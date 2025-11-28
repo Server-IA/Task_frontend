@@ -100,18 +100,20 @@ export default function GenericForm({
       name: field.name,
       value: formData[field.name] || '',
       onChange: handleChange,
-      className: `mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 ${
-        errors[field.name] ? 'border-red-500' : 'border-gray-300'
-      }`,
+      className: `mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 dark:focus:border-blue-400 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border ${
+        errors[field.name] 
+          ? 'border-red-500 dark:border-red-400' 
+          : 'border-gray-300 dark:border-gray-600'
+      } transition-colors`,
     };
 
     switch (field.type) {
       case 'select':
         return (
-          <select {...commonProps} className={`${commonProps.className} px-3 py-2 border`}>
+          <select {...commonProps} className={`${commonProps.className} px-3 py-2`}>
             <option value="">Seleccione...</option>
             {field.options?.map(option => (
-              <option key={option.id} value={option.id}>
+              <option key={option.id} value={option.id} className="bg-white dark:bg-gray-700">
                 {option.nombre}
               </option>
             ))}
@@ -123,7 +125,7 @@ export default function GenericForm({
           <textarea
             {...commonProps}
             rows={4}
-            className={`${commonProps.className} px-3 py-2 border`}
+            className={`${commonProps.className} px-3 py-2`}
           />
         );
 
@@ -134,7 +136,7 @@ export default function GenericForm({
             name={field.name}
             checked={formData[field.name] || false}
             onChange={handleChange}
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            className="h-4 w-4 text-blue-600 dark:text-blue-500 focus:ring-blue-500 dark:focus:ring-blue-400 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
           />
         );
 
@@ -143,7 +145,7 @@ export default function GenericForm({
           <input
             {...commonProps}
             type="number"
-            className={`${commonProps.className} px-3 py-2 border`}
+            className={`${commonProps.className} px-3 py-2`}
           />
         );
 
@@ -152,7 +154,7 @@ export default function GenericForm({
           <input
             {...commonProps}
             type="email"
-            className={`${commonProps.className} px-3 py-2 border`}
+            className={`${commonProps.className} px-3 py-2`}
           />
         );
 
@@ -161,7 +163,7 @@ export default function GenericForm({
           <input
             {...commonProps}
             type="text"
-            className={`${commonProps.className} px-3 py-2 border`}
+            className={`${commonProps.className} px-3 py-2`}
           />
         );
     }
@@ -173,21 +175,21 @@ export default function GenericForm({
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Overlay */}
       <div
-        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+        className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 transition-opacity"
         onClick={onClose}
       />
 
       {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full">
+        <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full transition-colors duration-200">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <h3 className="text-xl font-semibold text-gray-900">
+          <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white transition-colors">
               {mode === 'create' ? `Crear ${title}` : `Editar ${title}`}
             </h3>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -202,31 +204,31 @@ export default function GenericForm({
                 <div key={field.name}>
                   <label
                     htmlFor={field.name}
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors"
                   >
                     {field.label}
-                    {field.required && <span className="text-red-500 ml-1">*</span>}
+                    {field.required && <span className="text-red-500 dark:text-red-400 ml-1">*</span>}
                   </label>
                   {renderField(field)}
                   {errors[field.name] && (
-                    <p className="mt-1 text-sm text-red-600">{errors[field.name]}</p>
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400 transition-colors">{errors[field.name]}</p>
                   )}
                 </div>
               ))}
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-700 rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
               >
                 {mode === 'create' ? 'Crear' : 'Guardar'}
               </button>

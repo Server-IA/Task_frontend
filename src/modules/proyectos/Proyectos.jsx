@@ -112,8 +112,8 @@ export default function Proyectos() {
     <div className="p-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Gestión de Proyectos</h1>
-        <p className="text-gray-600 mt-2">Administra los proyectos del sistema</p>
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-white transition-colors">Gestión de Proyectos</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-2 transition-colors">Administra los proyectos del sistema</p>
       </div>
 
       {/* Botones de acción */}
@@ -145,8 +145,8 @@ export default function Proyectos() {
       {/* Grid */}
       {loading ? (
         <div className="text-center py-10">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
-          <p className="mt-2 text-gray-600">Cargando...</p>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 dark:border-blue-400 border-t-transparent"></div>
+          <p className="mt-2 text-gray-600 dark:text-gray-400 transition-colors">Cargando...</p>
         </div>
       ) : (
         <GridProyectos

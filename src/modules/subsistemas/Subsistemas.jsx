@@ -82,8 +82,8 @@ export default function Subsistemas() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Gestión de Subsistemas</h1>
-        <p className="text-gray-600 mt-2">Administra los subsistemas del proyecto</p>
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-white transition-colors">Gestión de Subsistemas</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-2 transition-colors">Administra los subsistemas del proyecto</p>
       </div>
 
       <div className="mb-4 flex gap-3">
@@ -100,8 +100,8 @@ export default function Subsistemas() {
 
       {loading ? (
         <div className="text-center py-10">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
-          <p className="mt-2 text-gray-600">Cargando...</p>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 dark:border-blue-400 border-t-transparent"></div>
+          <p className="mt-2 text-gray-600 dark:text-gray-400 transition-colors">Cargando...</p>
         </div>
       ) : (
         <GridSubsistemas subsistemas={subsistemas} onRowSelect={setSelectedRow} />

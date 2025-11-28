@@ -50,8 +50,8 @@ export default function Dashboard() {
     <div className="p-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-800">Dashboard</h1>
-        <p className="text-gray-600 mt-2">br br brbr patapim</p>
+        <h1 className="text-4xl font-bold text-gray-800 dark:text-white transition-colors">Dashboard</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-2 transition-colors">br br brbr patapim</p>
       </div>
 
       {/* Stats Grid */}
@@ -59,16 +59,16 @@ export default function Dashboard() {
         {stats.map((stat, index) => (
           <div
             key={index}
-            className="bg-white rounded-lg shadow-md p-6 border-l-4 hover:shadow-lg transition-shadow"
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border-l-4 hover:shadow-lg transition-all duration-200"
             style={{ borderLeftColor: stat.color.replace('bg-', '') }}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium uppercase">{stat.title}</p>
-                <p className="text-3xl font-bold text-gray-800 mt-2">{stat.value}</p>
-                <p className="text-gray-500 text-xs mt-1">{stat.subtitle}</p>
+                <p className="text-gray-600 dark:text-gray-400 text-sm font-medium uppercase transition-colors">{stat.title}</p>
+                <p className="text-3xl font-bold text-gray-800 dark:text-white mt-2 transition-colors">{stat.value}</p>
+                <p className="text-gray-500 dark:text-gray-500 text-xs mt-1 transition-colors">{stat.subtitle}</p>
               </div>
-              <div className={`text-5xl ${stat.color} bg-opacity-20 p-4 rounded-full`}>
+              <div className={`text-5xl ${stat.color} bg-opacity-20 dark:bg-opacity-30 p-4 rounded-full`}>
                 {stat.icon}
               </div>
             </div>
@@ -79,17 +79,19 @@ export default function Dashboard() {
       {/* Info Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Proyectos Recientes */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">📋 Proyectos Recientes</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 transition-colors duration-200">
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4 transition-colors">📋 Proyectos Recientes</h2>
           <div className="space-y-3">
             {mockProyectos.slice(0, 5).map((proyecto) => (
-              <div key={proyecto.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+              <div key={proyecto.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
                 <div>
-                  <p className="font-medium text-gray-800">{proyecto.nombre}</p>
-                  <p className="text-sm text-gray-500">{proyecto.descripcion}</p>
+                  <p className="font-medium text-gray-800 dark:text-white transition-colors">{proyecto.nombre}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors">{proyecto.descripcion}</p>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  proyecto.estadoId === 3 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                <span className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  proyecto.estadoId === 3 
+                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' 
+                    : 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300'
                 }`}>
                   {proyecto.estadoId === 3 ? 'En Proceso' : 'Otro'}
                 </span>
@@ -99,17 +101,19 @@ export default function Dashboard() {
         </div>
 
         {/* Empresas */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">🏢 Empresas</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 transition-colors duration-200">
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4 transition-colors">🏢 Empresas</h2>
           <div className="space-y-3">
             {mockEmpresas.map((empresa) => (
-              <div key={empresa.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+              <div key={empresa.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
                 <div>
-                  <p className="font-medium text-gray-800">{empresa.nombre}</p>
-                  <p className="text-sm text-gray-500">{empresa.correo}</p>
+                  <p className="font-medium text-gray-800 dark:text-white transition-colors">{empresa.nombre}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors">{empresa.correo}</p>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  empresa.estadoId === 1 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                <span className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  empresa.estadoId === 1 
+                    ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' 
+                    : 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300'
                 }`}>
                   {empresa.estadoId === 1 ? 'Activa' : 'Inactiva'}
                 </span>
