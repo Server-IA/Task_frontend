@@ -1,28 +1,33 @@
 import { useState, useEffect } from 'react';
 import GridSistemas from './GridSistemas';
 import FormSistemas from './FormSistemas';
-import { mockSistemas, mockEstados, simulateDelay } from '../../shared/config/mockData';
+import { sistemasService, estadosService } from '../../shared/services';
 
 export default function Sistemas() {
   const [sistemas, setSistemas] = useState([]);
+  const [estados, setEstados] = useState([]);
   const [selectedRow, setSelectedRow] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState('create');
   const [loading, setLoading] = useState(false);
-  const [estados] = useState(mockEstados);
 
   useEffect(() => {
-    loadSistemas();
+    loadData();
   }, []);
 
-  const loadSistemas = async () => {
+  const loadData = async () => {
     setLoading(true);
-    await simulateDelay(300);
-    const enrichedData = mockSistemas.map(sistema => ({
-      ...sistema,
-      estadoNombre: estados.find(e => e.id === sistema.estadoId)?.nombre || 'N/A',
-    }));
-    setSistemas(enrichedData);
+    try {
+      const [sistemasData, estadosData] = await Promise.all([
+        sistemasService.getAll(),
+        estadosService.getAll()
+      ]);
+      setSistemas(sistemasData);
+      setEstados(estadosData);
+    } catch (error) {
+      console.error('Error cargando datos:', error);
+      alert('Error al cargar los datos');
+    }
     setLoading(false);
   };
 
@@ -41,31 +46,33 @@ export default function Sistemas() {
   const handleDelete = async () => {
     if (!selectedRow) return;
     if (!window.confirm(`¿Eliminar el sistema "${selectedRow.nombre}"?`)) return;
-    await simulateDelay(300);
-    setSistemas(sistemas.filter(s => s.id !== selectedRow.id));
-    setSelectedRow(null);
-    alert('Sistema eliminado correctamente');
+    
+    try {
+      await sistemasService.delete(selectedRow.id);
+      await loadData();
+      setSelectedRow(null);
+      alert('Sistema eliminado correctamente');
+    } catch (error) {
+      console.error('Error eliminando sistema:', error);
+      alert('Error al eliminar el sistema');
+    }
   };
 
   const handleFormSubmit = async (data) => {
-    await simulateDelay(300);
-    if (formMode === 'create') {
-      const newSistema = {
-        ...data,
-        id: Math.max(...sistemas.map(s => s.id), 0) + 1,
-        estadoNombre: estados.find(e => e.id === Number(data.estadoId))?.nombre || 'N/A',
-      };
-      setSistemas([...sistemas, newSistema]);
-      alert('Sistema creado correctamente');
-    } else {
-      const updatedSistemas = sistemas.map(s =>
-        s.id === selectedRow.id
-          ? { ...data, id: s.id, estadoNombre: estados.find(e => e.id === Number(data.estadoId))?.nombre || 'N/A' }
-          : s
-      );
-      setSistemas(updatedSistemas);
+    try {
+      if (formMode === 'create') {
+        await sistemasService.create(data);
+        alert('Sistema creado correctamente');
+      } else {
+        await sistemasService.update(selectedRow.id, data);
+        alert('Sistema actualizado correctamente');
+      }
+      await loadData();
+      setFormOpen(false);
       setSelectedRow(null);
-      alert('Sistema actualizado correctamente');
+    } catch (error) {
+      console.error('Error guardando sistema:', error);
+      alert('Error al guardar el sistema');
     }
   };
 

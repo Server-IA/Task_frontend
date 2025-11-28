@@ -6,28 +6,33 @@
 import { useState, useEffect } from 'react';
 import GridEmpresas from './GridEmpresas';
 import FormEmpresas from './FormEmpresas';
-import { mockEmpresas, mockEstados, simulateDelay } from '../../shared/config/mockData';
+import { empresasService, estadosService } from '../../shared/services';
 
 export default function Empresas() {
   const [empresas, setEmpresas] = useState([]);
+  const [estados, setEstados] = useState([]);
   const [selectedRow, setSelectedRow] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState('create');
   const [loading, setLoading] = useState(false);
-  const [estados] = useState(mockEstados);
 
   useEffect(() => {
-    loadEmpresas();
+    loadData();
   }, []);
 
-  const loadEmpresas = async () => {
+  const loadData = async () => {
     setLoading(true);
-    await simulateDelay(300);
-    const enrichedData = mockEmpresas.map(empresa => ({
-      ...empresa,
-      estadoNombre: estados.find(e => e.id === empresa.estadoId)?.nombre || 'N/A',
-    }));
-    setEmpresas(enrichedData);
+    try {
+      const [empresasData, estadosData] = await Promise.all([
+        empresasService.getAll(),
+        estadosService.getAll()
+      ]);
+      setEmpresas(empresasData);
+      setEstados(estadosData);
+    } catch (error) {
+      console.error('Error cargando datos:', error);
+      alert('Error al cargar los datos');
+    }
     setLoading(false);
   };
 
@@ -46,31 +51,33 @@ export default function Empresas() {
   const handleDelete = async () => {
     if (!selectedRow) return;
     if (!window.confirm(`¿Eliminar la empresa "${selectedRow.nombre}"?`)) return;
-    await simulateDelay(300);
-    setEmpresas(empresas.filter(e => e.id !== selectedRow.id));
-    setSelectedRow(null);
-    alert('Empresa eliminada correctamente');
+    
+    try {
+      await empresasService.delete(selectedRow.id);
+      await loadData();
+      setSelectedRow(null);
+      alert('Empresa eliminada correctamente');
+    } catch (error) {
+      console.error('Error eliminando empresa:', error);
+      alert('Error al eliminar la empresa');
+    }
   };
 
   const handleFormSubmit = async (data) => {
-    await simulateDelay(300);
-    if (formMode === 'create') {
-      const newEmpresa = {
-        ...data,
-        id: Math.max(...empresas.map(e => e.id), 0) + 1,
-        estadoNombre: estados.find(e => e.id === Number(data.estadoId))?.nombre || 'N/A',
-      };
-      setEmpresas([...empresas, newEmpresa]);
-      alert('Empresa creada correctamente');
-    } else {
-      const updatedEmpresas = empresas.map(e =>
-        e.id === selectedRow.id
-          ? { ...data, id: e.id, estadoNombre: estados.find(est => est.id === Number(data.estadoId))?.nombre || 'N/A' }
-          : e
-      );
-      setEmpresas(updatedEmpresas);
+    try {
+      if (formMode === 'create') {
+        await empresasService.create(data);
+        alert('Empresa creada correctamente');
+      } else {
+        await empresasService.update(selectedRow.id, data);
+        alert('Empresa actualizada correctamente');
+      }
+      await loadData();
+      setFormOpen(false);
       setSelectedRow(null);
-      alert('Empresa actualizada correctamente');
+    } catch (error) {
+      console.error('Error guardando empresa:', error);
+      alert('Error al guardar la empresa');
     }
   };
 

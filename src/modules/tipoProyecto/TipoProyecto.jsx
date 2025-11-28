@@ -1,28 +1,33 @@
 import { useState, useEffect } from 'react';
 import GridTipoProyecto from './GridTipoProyecto';
 import FormTipoProyecto from './FormTipoProyecto';
-import { mockTiposProyecto, mockEstados, simulateDelay } from '../../shared/config/mockData';
+import { tiposProyectoService, estadosService } from '../../shared/services';
 
 export default function TipoProyecto() {
   const [tiposProyecto, setTiposProyecto] = useState([]);
+  const [estados, setEstados] = useState([]);
   const [selectedRow, setSelectedRow] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState('create');
   const [loading, setLoading] = useState(false);
-  const [estados] = useState(mockEstados);
 
   useEffect(() => {
-    loadTiposProyecto();
+    loadData();
   }, []);
 
-  const loadTiposProyecto = async () => {
+  const loadData = async () => {
     setLoading(true);
-    await simulateDelay(300);
-    const enrichedData = mockTiposProyecto.map(tipo => ({
-      ...tipo,
-      estadoNombre: estados.find(e => e.id === tipo.estadoId)?.nombre || 'N/A',
-    }));
-    setTiposProyecto(enrichedData);
+    try {
+      const [tiposData, estadosData] = await Promise.all([
+        tiposProyectoService.getAll(),
+        estadosService.getAll()
+      ]);
+      setTiposProyecto(tiposData);
+      setEstados(estadosData);
+    } catch (error) {
+      console.error('Error cargando datos:', error);
+      alert('Error al cargar los datos');
+    }
     setLoading(false);
   };
 
@@ -41,31 +46,33 @@ export default function TipoProyecto() {
   const handleDelete = async () => {
     if (!selectedRow) return;
     if (!window.confirm(`¿Eliminar el tipo de proyecto "${selectedRow.nombre}"?`)) return;
-    await simulateDelay(300);
-    setTiposProyecto(tiposProyecto.filter(t => t.id !== selectedRow.id));
-    setSelectedRow(null);
-    alert('Tipo de proyecto eliminado correctamente');
+    
+    try {
+      await tiposProyectoService.delete(selectedRow.id);
+      await loadData();
+      setSelectedRow(null);
+      alert('Tipo de proyecto eliminado correctamente');
+    } catch (error) {
+      console.error('Error eliminando tipo de proyecto:', error);
+      alert('Error al eliminar el tipo de proyecto');
+    }
   };
 
   const handleFormSubmit = async (data) => {
-    await simulateDelay(300);
-    if (formMode === 'create') {
-      const newTipo = {
-        ...data,
-        id: Math.max(...tiposProyecto.map(t => t.id), 0) + 1,
-        estadoNombre: estados.find(e => e.id === Number(data.estadoId))?.nombre || 'N/A',
-      };
-      setTiposProyecto([...tiposProyecto, newTipo]);
-      alert('Tipo de proyecto creado correctamente');
-    } else {
-      const updatedTipos = tiposProyecto.map(t =>
-        t.id === selectedRow.id
-          ? { ...data, id: t.id, estadoNombre: estados.find(e => e.id === Number(data.estadoId))?.nombre || 'N/A' }
-          : t
-      );
-      setTiposProyecto(updatedTipos);
+    try {
+      if (formMode === 'create') {
+        await tiposProyectoService.create(data);
+        alert('Tipo de proyecto creado correctamente');
+      } else {
+        await tiposProyectoService.update(selectedRow.id, data);
+        alert('Tipo de proyecto actualizado correctamente');
+      }
+      await loadData();
+      setFormOpen(false);
       setSelectedRow(null);
-      alert('Tipo de proyecto actualizado correctamente');
+    } catch (error) {
+      console.error('Error guardando tipo de proyecto:', error);
+      alert('Error al guardar el tipo de proyecto');
     }
   };
 

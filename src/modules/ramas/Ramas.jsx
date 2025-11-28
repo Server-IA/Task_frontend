@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import GridRamas from './GridRamas';
 import FormRamas from './FormRamas';
-import { mockRamas, simulateDelay } from '../../shared/config/mockData';
+import { ramasService } from '../../shared/services';
 
 export default function Ramas() {
   const [ramas, setRamas] = useState([]);
@@ -16,8 +16,13 @@ export default function Ramas() {
 
   const loadRamas = async () => {
     setLoading(true);
-    await simulateDelay(300);
-    setRamas(mockRamas);
+    try {
+      const data = await ramasService.getAll();
+      setRamas(data);
+    } catch (error) {
+      console.error('Error cargando ramas:', error);
+      alert('Error al cargar las ramas');
+    }
     setLoading(false);
   };
 
@@ -36,23 +41,33 @@ export default function Ramas() {
   const handleDelete = async () => {
     if (!selectedRow) return;
     if (!window.confirm(`¿Eliminar la rama "${selectedRow.nombre}"?`)) return;
-    await simulateDelay(300);
-    setRamas(ramas.filter(r => r.id !== selectedRow.id));
-    setSelectedRow(null);
-    alert('Rama eliminada correctamente');
+    
+    try {
+      await ramasService.delete(selectedRow.id);
+      await loadRamas();
+      setSelectedRow(null);
+      alert('Rama eliminada correctamente');
+    } catch (error) {
+      console.error('Error eliminando rama:', error);
+      alert('Error al eliminar la rama');
+    }
   };
 
   const handleFormSubmit = async (data) => {
-    await simulateDelay(300);
-    if (formMode === 'create') {
-      const newRama = { ...data, id: Math.max(...ramas.map(r => r.id), 0) + 1 };
-      setRamas([...ramas, newRama]);
-      alert('Rama creada correctamente');
-    } else {
-      const updatedRamas = ramas.map(r => (r.id === selectedRow.id ? { ...data, id: r.id } : r));
-      setRamas(updatedRamas);
+    try {
+      if (formMode === 'create') {
+        await ramasService.create(data);
+        alert('Rama creada correctamente');
+      } else {
+        await ramasService.update(selectedRow.id, data);
+        alert('Rama actualizada correctamente');
+      }
+      await loadRamas();
+      setFormOpen(false);
       setSelectedRow(null);
-      alert('Rama actualizada correctamente');
+    } catch (error) {
+      console.error('Error guardando rama:', error);
+      alert('Error al guardar la rama');
     }
   };
 

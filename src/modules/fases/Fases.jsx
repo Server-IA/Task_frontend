@@ -1,28 +1,33 @@
 import { useState, useEffect } from 'react';
 import GridFases from './GridFases';
 import FormFases from './FormFases';
-import { mockFases, mockEstados, simulateDelay } from '../../shared/config/mockData';
+import { fasesService, estadosService } from '../../shared/services';
 
 export default function Fases() {
   const [fases, setFases] = useState([]);
+  const [estados, setEstados] = useState([]);
   const [selectedRow, setSelectedRow] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState('create');
   const [loading, setLoading] = useState(false);
-  const [estados] = useState(mockEstados);
 
   useEffect(() => {
-    loadFases();
+    loadData();
   }, []);
 
-  const loadFases = async () => {
+  const loadData = async () => {
     setLoading(true);
-    await simulateDelay(300);
-    const enrichedData = mockFases.map(fase => ({
-      ...fase,
-      estadoNombre: estados.find(e => e.id === fase.estadoId)?.nombre || 'N/A',
-    }));
-    setFases(enrichedData);
+    try {
+      const [fasesData, estadosData] = await Promise.all([
+        fasesService.getAll(),
+        estadosService.getAll()
+      ]);
+      setFases(fasesData);
+      setEstados(estadosData);
+    } catch (error) {
+      console.error('Error cargando datos:', error);
+      alert('Error al cargar los datos');
+    }
     setLoading(false);
   };
 
@@ -41,31 +46,33 @@ export default function Fases() {
   const handleDelete = async () => {
     if (!selectedRow) return;
     if (!window.confirm(`¿Eliminar la fase "${selectedRow.nombre}"?`)) return;
-    await simulateDelay(300);
-    setFases(fases.filter(f => f.id !== selectedRow.id));
-    setSelectedRow(null);
-    alert('Fase eliminada correctamente');
+    
+    try {
+      await fasesService.delete(selectedRow.id);
+      await loadData();
+      setSelectedRow(null);
+      alert('Fase eliminada correctamente');
+    } catch (error) {
+      console.error('Error eliminando fase:', error);
+      alert('Error al eliminar la fase');
+    }
   };
 
   const handleFormSubmit = async (data) => {
-    await simulateDelay(300);
-    if (formMode === 'create') {
-      const newFase = {
-        ...data,
-        id: Math.max(...fases.map(f => f.id), 0) + 1,
-        estadoNombre: estados.find(e => e.id === Number(data.estadoId))?.nombre || 'N/A',
-      };
-      setFases([...fases, newFase]);
-      alert('Fase creada correctamente');
-    } else {
-      const updatedFases = fases.map(f =>
-        f.id === selectedRow.id
-          ? { ...data, id: f.id, estadoNombre: estados.find(e => e.id === Number(data.estadoId))?.nombre || 'N/A' }
-          : f
-      );
-      setFases(updatedFases);
+    try {
+      if (formMode === 'create') {
+        await fasesService.create(data);
+        alert('Fase creada correctamente');
+      } else {
+        await fasesService.update(selectedRow.id, data);
+        alert('Fase actualizada correctamente');
+      }
+      await loadData();
+      setFormOpen(false);
       setSelectedRow(null);
-      alert('Fase actualizada correctamente');
+    } catch (error) {
+      console.error('Error guardando fase:', error);
+      alert('Error al guardar la fase');
     }
   };
 

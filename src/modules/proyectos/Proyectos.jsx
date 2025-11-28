@@ -8,51 +8,52 @@ import { useState, useEffect } from 'react';
 import GridProyectos from './GridProyectos';
 import FormProyectos from './FormProyectos';
 import { 
-  mockProyectos, 
-  mockEmpresas, 
-  mockTiposProyecto, 
-  mockEstados,
-  simulateDelay 
-} from '../../shared/config/mockData';
+  proyectosService, 
+  empresasService, 
+  tiposProyectoService, 
+  estadosService 
+} from '../../shared/services';
 
 export default function Proyectos() {
   // ===========================
   // ESTADO
   // ===========================
   const [proyectos, setProyectos] = useState([]);
+  const [empresas, setEmpresas] = useState([]);
+  const [tiposProyecto, setTiposProyecto] = useState([]);
+  const [estados, setEstados] = useState([]);
   const [selectedRow, setSelectedRow] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState('create');
   const [loading, setLoading] = useState(false);
 
-  // Catálogos para el formulario
-  const [empresas] = useState(mockEmpresas);
-  const [tiposProyecto] = useState(mockTiposProyecto);
-  const [estados] = useState(mockEstados);
-
   // ===========================
   // EFECTOS
   // ===========================
   useEffect(() => {
-    loadProyectos();
+    loadData();
   }, []);
 
   // ===========================
   // FUNCIONES DE DATOS
   // ===========================
-  const loadProyectos = async () => {
+  const loadData = async () => {
     setLoading(true);
-    await simulateDelay(300);
-    
-    // Enriquecer datos con nombres de entidades relacionadas
-    const enrichedData = mockProyectos.map(proyecto => ({
-      ...proyecto,
-      empresaNombre: empresas.find(e => e.id === proyecto.empresaId)?.nombre || 'N/A',
-      tipoProyectoNombre: tiposProyecto.find(t => t.id === proyecto.tipoProyectoId)?.nombre || 'N/A',
-      estadoNombre: estados.find(e => e.id === proyecto.estadoId)?.nombre || 'N/A',
-    }));
-    
-    setProyectos(enrichedData);
+    try {
+      const [proyectosData, empresasData, tiposData, estadosData] = await Promise.all([
+        proyectosService.getAll(),
+        empresasService.getAll(),
+        tiposProyectoService.getAll(),
+        estadosService.getAll()
+      ]);
+      setProyectos(proyectosData);
+      setEmpresas(empresasData);
+      setTiposProyecto(tiposData);
+      setEstados(estadosData);
+    } catch (error) {
+      console.error('Error cargando datos:', error);
+      alert('Error al cargar los datos');
+    }
     setLoading(false);
   };
 
@@ -75,44 +76,32 @@ export default function Proyectos() {
     if (!selectedRow) return;
     if (!window.confirm(`¿Eliminar el proyecto "${selectedRow.nombre}"?`)) return;
 
-    // Simular eliminación
-    await simulateDelay(300);
-    const newProyectos = proyectos.filter(p => p.id !== selectedRow.id);
-    setProyectos(newProyectos);
-    setSelectedRow(null);
-    alert('Proyecto eliminado correctamente');
+    try {
+      await proyectosService.delete(selectedRow.id);
+      await loadData();
+      setSelectedRow(null);
+      alert('Proyecto eliminado correctamente');
+    } catch (error) {
+      console.error('Error eliminando proyecto:', error);
+      alert('Error al eliminar el proyecto');
+    }
   };
 
   const handleFormSubmit = async (data) => {
-    await simulateDelay(300);
-    
-    if (formMode === 'create') {
-      // Crear nuevo proyecto
-      const newProyecto = {
-        ...data,
-        id: Math.max(...proyectos.map(p => p.id), 0) + 1,
-        empresaNombre: empresas.find(e => e.id === Number(data.empresaId))?.nombre || 'N/A',
-        tipoProyectoNombre: tiposProyecto.find(t => t.id === Number(data.tipoProyectoId))?.nombre || 'N/A',
-        estadoNombre: estados.find(e => e.id === Number(data.estadoId))?.nombre || 'N/A',
-      };
-      setProyectos([...proyectos, newProyecto]);
-      alert('Proyecto creado correctamente');
-    } else {
-      // Actualizar proyecto existente
-      const updatedProyectos = proyectos.map(p =>
-        p.id === selectedRow.id
-          ? {
-              ...data,
-              id: p.id,
-              empresaNombre: empresas.find(e => e.id === Number(data.empresaId))?.nombre || 'N/A',
-              tipoProyectoNombre: tiposProyecto.find(t => t.id === Number(data.tipoProyectoId))?.nombre || 'N/A',
-              estadoNombre: estados.find(e => e.id === Number(data.estadoId))?.nombre || 'N/A',
-            }
-          : p
-      );
-      setProyectos(updatedProyectos);
+    try {
+      if (formMode === 'create') {
+        await proyectosService.create(data);
+        alert('Proyecto creado correctamente');
+      } else {
+        await proyectosService.update(selectedRow.id, data);
+        alert('Proyecto actualizado correctamente');
+      }
+      await loadData();
+      setFormOpen(false);
       setSelectedRow(null);
-      alert('Proyecto actualizado correctamente');
+    } catch (error) {
+      console.error('Error guardando proyecto:', error);
+      alert('Error al guardar el proyecto');
     }
   };
 

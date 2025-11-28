@@ -1,30 +1,36 @@
 import { useState, useEffect } from 'react';
 import GridSubsistemas from './GridSubsistemas';
 import FormSubsistemas from './FormSubsistemas';
-import { mockSubsistemas, mockSistemas, mockEstados, simulateDelay } from '../../shared/config/mockData';
+import { subsistemasService, sistemasService, estadosService } from '../../shared/services';
 
 export default function Subsistemas() {
   const [subsistemas, setSubsistemas] = useState([]);
+  const [sistemas, setSistemas] = useState([]);
+  const [estados, setEstados] = useState([]);
   const [selectedRow, setSelectedRow] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState('create');
   const [loading, setLoading] = useState(false);
-  const [sistemas] = useState(mockSistemas);
-  const [estados] = useState(mockEstados);
 
   useEffect(() => {
-    loadSubsistemas();
+    loadData();
   }, []);
 
-  const loadSubsistemas = async () => {
+  const loadData = async () => {
     setLoading(true);
-    await simulateDelay(300);
-    const enrichedData = mockSubsistemas.map(subsistema => ({
-      ...subsistema,
-      sistemaNombre: sistemas.find(s => s.id === subsistema.sistemaId)?.nombre || 'N/A',
-      estadoNombre: estados.find(e => e.id === subsistema.estadoId)?.nombre || 'N/A',
-    }));
-    setSubsistemas(enrichedData);
+    try {
+      const [subsistemasData, sistemasData, estadosData] = await Promise.all([
+        subsistemasService.getAll(),
+        sistemasService.getAll(),
+        estadosService.getAll()
+      ]);
+      setSubsistemas(subsistemasData);
+      setSistemas(sistemasData);
+      setEstados(estadosData);
+    } catch (error) {
+      console.error('Error cargando datos:', error);
+      alert('Error al cargar los datos');
+    }
     setLoading(false);
   };
 
@@ -43,37 +49,33 @@ export default function Subsistemas() {
   const handleDelete = async () => {
     if (!selectedRow) return;
     if (!window.confirm(`¿Eliminar el subsistema "${selectedRow.nombre}"?`)) return;
-    await simulateDelay(300);
-    setSubsistemas(subsistemas.filter(s => s.id !== selectedRow.id));
-    setSelectedRow(null);
-    alert('Subsistema eliminado correctamente');
+    
+    try {
+      await subsistemasService.delete(selectedRow.id);
+      await loadData();
+      setSelectedRow(null);
+      alert('Subsistema eliminado correctamente');
+    } catch (error) {
+      console.error('Error eliminando subsistema:', error);
+      alert('Error al eliminar el subsistema');
+    }
   };
 
   const handleFormSubmit = async (data) => {
-    await simulateDelay(300);
-    if (formMode === 'create') {
-      const newSubsistema = {
-        ...data,
-        id: Math.max(...subsistemas.map(s => s.id), 0) + 1,
-        sistemaNombre: sistemas.find(s => s.id === Number(data.sistemaId))?.nombre || 'N/A',
-        estadoNombre: estados.find(e => e.id === Number(data.estadoId))?.nombre || 'N/A',
-      };
-      setSubsistemas([...subsistemas, newSubsistema]);
-      alert('Subsistema creado correctamente');
-    } else {
-      const updatedSubsistemas = subsistemas.map(s =>
-        s.id === selectedRow.id
-          ? {
-              ...data,
-              id: s.id,
-              sistemaNombre: sistemas.find(sys => sys.id === Number(data.sistemaId))?.nombre || 'N/A',
-              estadoNombre: estados.find(e => e.id === Number(data.estadoId))?.nombre || 'N/A',
-            }
-          : s
-      );
-      setSubsistemas(updatedSubsistemas);
+    try {
+      if (formMode === 'create') {
+        await subsistemasService.create(data);
+        alert('Subsistema creado correctamente');
+      } else {
+        await subsistemasService.update(selectedRow.id, data);
+        alert('Subsistema actualizado correctamente');
+      }
+      await loadData();
+      setFormOpen(false);
       setSelectedRow(null);
-      alert('Subsistema actualizado correctamente');
+    } catch (error) {
+      console.error('Error guardando subsistema:', error);
+      alert('Error al guardar el subsistema');
     }
   };
 

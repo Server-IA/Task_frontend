@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import GridEstados from './GridEstados';
 import FormEstados from './FormEstados';
-import { mockEstados, simulateDelay } from '../../shared/config/mockData';
+import { estadosService } from '../../shared/services';
 
 export default function Estados() {
   const [estados, setEstados] = useState([]);
@@ -16,8 +16,13 @@ export default function Estados() {
 
   const loadEstados = async () => {
     setLoading(true);
-    await simulateDelay(300);
-    setEstados(mockEstados);
+    try {
+      const data = await estadosService.getAll();
+      setEstados(data);
+    } catch (error) {
+      console.error('Error cargando estados:', error);
+      alert('Error al cargar los estados');
+    }
     setLoading(false);
   };
 
@@ -36,23 +41,33 @@ export default function Estados() {
   const handleDelete = async () => {
     if (!selectedRow) return;
     if (!window.confirm(`¿Eliminar el estado "${selectedRow.nombre}"?`)) return;
-    await simulateDelay(300);
-    setEstados(estados.filter(e => e.id !== selectedRow.id));
-    setSelectedRow(null);
-    alert('Estado eliminado correctamente');
+    
+    try {
+      await estadosService.delete(selectedRow.id);
+      await loadEstados();
+      setSelectedRow(null);
+      alert('Estado eliminado correctamente');
+    } catch (error) {
+      console.error('Error eliminando estado:', error);
+      alert('Error al eliminar el estado');
+    }
   };
 
   const handleFormSubmit = async (data) => {
-    await simulateDelay(300);
-    if (formMode === 'create') {
-      const newEstado = { ...data, id: Math.max(...estados.map(e => e.id), 0) + 1 };
-      setEstados([...estados, newEstado]);
-      alert('Estado creado correctamente');
-    } else {
-      const updatedEstados = estados.map(e => (e.id === selectedRow.id ? { ...data, id: e.id } : e));
-      setEstados(updatedEstados);
+    try {
+      if (formMode === 'create') {
+        await estadosService.create(data);
+        alert('Estado creado correctamente');
+      } else {
+        await estadosService.update(selectedRow.id, data);
+        alert('Estado actualizado correctamente');
+      }
+      await loadEstados();
+      setFormOpen(false);
       setSelectedRow(null);
-      alert('Estado actualizado correctamente');
+    } catch (error) {
+      console.error('Error guardando estado:', error);
+      alert('Error al guardar el estado');
     }
   };
 
