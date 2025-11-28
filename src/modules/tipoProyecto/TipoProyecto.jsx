@@ -85,13 +85,13 @@ export default function TipoProyecto() {
 
       <div className="mb-4 flex gap-3">
         <button onClick={handleCreate} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-          <span>➕</span> Crear Tipo
+          Crear Tipo
         </button>
         <button onClick={handleEdit} disabled={!selectedRow} className="flex items-center gap-2 px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-          <span>✏️</span> Editar
+          Editar
         </button>
         <button onClick={handleDelete} disabled={!selectedRow} className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-          <span>🗑️</span> Eliminar
+          Eliminar
         </button>
       </div>
 
