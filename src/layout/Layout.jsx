@@ -50,7 +50,7 @@ const Layout = ({ children }) => {
                 </svg>
               </button>
               <h1 className="text-2xl font-bold text-gray-800 dark:text-white transition-colors">
-                T a s k F r o n t e n d
+                Task Manager
               </h1>
             </div>
             <div className="flex items-center space-x-4">
