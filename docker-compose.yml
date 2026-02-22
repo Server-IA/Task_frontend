@@ -1,0 +1,70 @@
+version: '3.8'
+
+# ─────────────────────────────────────────────────────────────────
+#  USO:
+#    Solo frontend (backend ya corriendo en localhost:8080):
+#      docker-compose up frontend
+#
+#    Stack completo (postgres + backend + frontend):
+#      docker-compose --profile fullstack up
+# ─────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Base de datos ────────────────────────────────────────────────
+  postgres:
+    profiles: [fullstack]
+    image: postgres:15-alpine
+    container_name: taskmanager_postgres
+    environment:
+      POSTGRES_DB: taskmanager_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../Task_backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - taskmanager_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend Spring Boot ──────────────────────────────────────────
+  backend:
+    profiles: [fullstack]
+    build: ../Task_backend
+    container_name: taskmanager_backend
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/taskmanager_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - taskmanager_network
+
+  # ── Frontend React/Nginx ─────────────────────────────────────────
+  frontend:
+    build: .
+    container_name: taskmanager_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - taskmanager_network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  taskmanager_network:
+    driver: bridge
