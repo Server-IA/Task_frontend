@@ -10,7 +10,7 @@ import {
   Clock,
   TrendingUp,
 } from 'lucide-react';
-import { proyectosService, empresasService, tareasService, etiquetasService } from '../shared/services';
+import { proyectosService, empresasService, tareasService, etiquetasService, estadosService } from '../shared/services';
 import { useAuth } from '../context/AuthContext';
 
 const container = {
@@ -24,19 +24,20 @@ const item = {
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [data, setData] = useState({ proyectos: [], empresas: [], tareas: [], etiquetas: [] });
+  const [data, setData] = useState({ proyectos: [], empresas: [], tareas: [], etiquetas: [], estados: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       try {
-        const [proyectos, empresas, tareas, etiquetas] = await Promise.all([
+        const [proyectos, empresas, tareas, etiquetas, estados] = await Promise.all([
           proyectosService.getAll(),
           empresasService.getAll(),
           tareasService.getAll(),
           etiquetasService.getAll(),
+          estadosService.getAll(),
         ]);
-        setData({ proyectos, empresas, tareas, etiquetas });
+        setData({ proyectos, empresas, tareas, etiquetas, estados });
       } catch (err) {
         console.error('Error cargando dashboard:', err);
       } finally {
@@ -163,11 +164,17 @@ export default function Dashboard() {
                         {p.prioridad}
                       </span>
                     )}
-                    {p.estadoNombre && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 font-medium">
-                        {p.estadoNombre}
-                      </span>
-                    )}
+                    {p.estadoNombre && (() => {
+                      const color = data.estados.find((e) => e.id === p.estadoId)?.color || '#6366f1';
+                      return (
+                        <span
+                          className="text-xs px-2 py-0.5 rounded-full font-medium"
+                          style={{ backgroundColor: color + '22', color }}
+                        >
+                          {p.estadoNombre}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
               ))
@@ -214,11 +221,17 @@ export default function Dashboard() {
                         {t.prioridad}
                       </span>
                     )}
-                    {t.estadoNombre && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-medium">
-                        {t.estadoNombre}
-                      </span>
-                    )}
+                    {t.estadoNombre && (() => {
+                      const color = data.estados.find((e) => e.id === t.estadoId)?.color || '#6366f1';
+                      return (
+                        <span
+                          className="text-xs px-2 py-0.5 rounded-full font-medium"
+                          style={{ backgroundColor: color + '22', color }}
+                        >
+                          {t.estadoNombre}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
               ))

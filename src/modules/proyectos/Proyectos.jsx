@@ -179,11 +179,17 @@ export default function Proyectos() {
                     {proyecto.prioridad}
                   </span>
                 )}
-                {proyecto.estadoNombre && (
-                  <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 font-medium">
-                    {proyecto.estadoNombre}
-                  </span>
-                )}
+                {proyecto.estadoNombre && (() => {
+                  const color = estados.find((e) => e.id === proyecto.estadoId)?.color || '#6366f1';
+                  return (
+                    <span
+                      className="px-2 py-0.5 rounded-full font-medium"
+                      style={{ backgroundColor: color + '22', color }}
+                    >
+                      {proyecto.estadoNombre}
+                    </span>
+                  );
+                })()}
                 {proyecto.fechaFinEstimada && (
                   <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 flex items-center gap-1">
                     <Calendar className="w-3 h-3" />

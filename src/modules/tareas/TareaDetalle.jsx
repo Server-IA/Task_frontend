@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { comentariosService } from '../../shared/services';
 import { getErrorMessage } from '../../shared/lib/errorUtils';
 
-export default function TareaDetalle({ tarea, onClose, onEdit, onRefresh }) {
+export default function TareaDetalle({ tarea, estados = [], onClose, onEdit, onRefresh }) {
   const [comentarios, setComentarios] = useState([]);
   const [nuevoComentario, setNuevoComentario] = useState('');
   const [loadingComentarios, setLoadingComentarios] = useState(true);
@@ -93,11 +93,17 @@ export default function TareaDetalle({ tarea, onClose, onEdit, onRefresh }) {
                 {tarea.prioridad}
               </span>
             )}
-            {tarea.estadoNombre && (
-              <span className="text-xs px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 font-medium">
-                {tarea.estadoNombre}
-              </span>
-            )}
+            {tarea.estadoNombre && (() => {
+              const color = estados.find((e) => e.id === tarea.estadoId)?.color || '#6366f1';
+              return (
+                <span
+                  className="text-xs px-2.5 py-1 rounded-full font-medium"
+                  style={{ backgroundColor: color + '22', color }}
+                >
+                  {tarea.estadoNombre}
+                </span>
+              );
+            })()}
           </div>
 
           {tarea.descripcion && (

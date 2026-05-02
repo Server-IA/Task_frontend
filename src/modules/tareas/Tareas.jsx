@@ -202,11 +202,17 @@ export default function Tareas() {
                         {tarea.prioridad}
                       </span>
                     )}
-                    {tarea.estadoNombre && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 font-medium">
-                        {tarea.estadoNombre}
-                      </span>
-                    )}
+                    {tarea.estadoNombre && (() => {
+                      const color = estados.find((e) => e.id === tarea.estadoId)?.color || '#6366f1';
+                      return (
+                        <span
+                          className="text-xs px-2 py-0.5 rounded-full font-medium"
+                          style={{ backgroundColor: color + '22', color }}
+                        >
+                          {tarea.estadoNombre}
+                        </span>
+                      );
+                    })()}
                     <button
                       onClick={(e) => { e.stopPropagation(); setEditItem(tarea); setFormOpen(true); }}
                       className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-500 transition-colors"
@@ -297,6 +303,7 @@ export default function Tareas() {
         {detalleItem && (
           <TareaDetalle
             tarea={detalleItem}
+            estados={estados}
             onClose={() => setDetalleItem(null)}
             onEdit={(t) => { setDetalleItem(null); setEditItem(t); setFormOpen(true); }}
             onRefresh={loadData}
