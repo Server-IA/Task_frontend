@@ -3,8 +3,8 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle, XCircle, Loader2, Mail } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuth } from '../../context/AuthContext';
-import { getErrorMessage } from '../../shared/lib/errorUtils';
+import { useAuth } from '@/context/AuthContext';
+import { getErrorMessage } from '@/shared/lib/errorUtils';
 
 const STORAGE_PREFIX = 'emailVerified:';
 

@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, Save } from 'lucide-react';
+import { SelectField, DateInput, FieldError } from '@/shared/components';
+import { isEmpty } from '@/shared/lib/formValidation';
+
+const inputBase =
+  'w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border rounded-xl text-slate-800 dark:text-white focus:outline-none focus:ring-2 transition-all';
+const inputNormal = `${inputBase} border-slate-200 dark:border-slate-600 focus:ring-blue-500`;
+const inputError = `${inputBase} border-red-400 dark:border-red-500 focus:ring-red-400`;
 
 export default function FormTareas({ onClose, onSave, initialData, proyectos, estados }) {
   const [form, setForm] = useState({
@@ -12,6 +19,7 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
     estadoId: '',
     orden: 0,
   });
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (initialData) {
@@ -31,8 +39,22 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
   tomorrow.setDate(tomorrow.getDate() + 1);
   const minDate = tomorrow.toISOString().split('T')[0];
 
+  const validate = () => {
+    const e = {};
+    if (isEmpty(form.titulo)) e.titulo = 'El título es obligatorio';
+    if (isEmpty(form.proyectoId)) e.proyectoId = 'Selecciona un proyecto';
+    return e;
+  };
+
+  const set = (name, value) => {
+    setForm((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors((prev) => { const n = { ...prev }; delete n[name]; return n; });
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    const validation = validate();
+    if (Object.keys(validation).length > 0) { setErrors(validation); return; }
     onSave({
       ...form,
       orden: Number(form.orden),
@@ -41,7 +63,7 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
     });
   };
 
-  const inputClass = 'w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all';
+  const ic = (name) => (errors[name] ? inputError : inputNormal);
 
   return (
     <motion.div
@@ -67,54 +89,66 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="p-6 space-y-4">
+          {/* Título */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Título <span className="text-red-500">*</span>
             </label>
-            <input required value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} className={inputClass} />
+            <input value={form.titulo} onChange={(e) => set('titulo', e.target.value)} className={ic('titulo')} />
+            <FieldError message={errors.titulo} />
           </div>
 
+          {/* Descripción */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Descripción</label>
             <textarea
               value={form.descripcion}
-              onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
+              onChange={(e) => set('descripcion', e.target.value)}
               rows={3}
-              className={`${inputClass} resize-none`}
+              className={`${inputNormal} resize-none`}
             />
           </div>
 
+          {/* Proyecto + Estado */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Proyecto <span className="text-red-500">*</span></label>
-              <select required value={form.proyectoId} onChange={(e) => setForm({ ...form, proyectoId: e.target.value })} className={inputClass}>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Proyecto <span className="text-red-500">*</span>
+              </label>
+              <SelectField value={form.proyectoId} onChange={(e) => set('proyectoId', e.target.value)} error={!!errors.proyectoId}>
                 <option value="">Seleccionar...</option>
                 {proyectos.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-              </select>
+              </SelectField>
+              <FieldError message={errors.proyectoId} />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Estado</label>
-              <select value={form.estadoId} onChange={(e) => setForm({ ...form, estadoId: e.target.value })} className={inputClass}>
+              <SelectField value={form.estadoId} onChange={(e) => set('estadoId', e.target.value)}>
                 <option value="">Seleccionar...</option>
                 {estados.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
-              </select>
+              </SelectField>
             </div>
           </div>
 
+          {/* Prioridad + Fecha */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Prioridad</label>
-              <select value={form.prioridad} onChange={(e) => setForm({ ...form, prioridad: e.target.value })} className={inputClass}>
+              <SelectField value={form.prioridad} onChange={(e) => set('prioridad', e.target.value)}>
                 <option value="BAJA">Baja</option>
                 <option value="MEDIA">Media</option>
                 <option value="ALTA">Alta</option>
                 <option value="CRITICA">Crítica</option>
-              </select>
+              </SelectField>
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Fecha límite</label>
-              <input type="date" min={minDate} value={form.fechaLimite} onChange={(e) => setForm({ ...form, fechaLimite: e.target.value })} className={inputClass} />
+              <DateInput
+                value={form.fechaLimite}
+                onChange={(e) => set('fechaLimite', e.target.value)}
+                min={minDate}
+              />
             </div>
           </div>
 

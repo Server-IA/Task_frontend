@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, Pencil, Clock, User, FolderKanban, Send, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { comentariosService } from '../../shared/services';
-import { getErrorMessage } from '../../shared/lib/errorUtils';
+import { comentariosService } from '@/shared/services';
+import { getErrorMessage } from '@/shared/lib/errorUtils';
+import { ConfirmDialog } from '@/shared/components';
 
 export default function TareaDetalle({ tarea, estados = [], onClose, onEdit, onRefresh }) {
   const [comentarios, setComentarios] = useState([]);
   const [nuevoComentario, setNuevoComentario] = useState('');
   const [loadingComentarios, setLoadingComentarios] = useState(true);
+  const [confirmComentarioId, setConfirmComentarioId] = useState(null);
 
   useEffect(() => {
     loadComentarios();
@@ -38,14 +40,17 @@ export default function TareaDetalle({ tarea, estados = [], onClose, onEdit, onR
     }
   };
 
-  const handleDeleteComentario = async (comentarioId) => {
-    if (!confirm('¿Eliminar este comentario?')) return;
+  const handleDeleteComentario = (comentarioId) => setConfirmComentarioId(comentarioId);
+
+  const doDeleteComentario = async () => {
     try {
-      await comentariosService.delete(tarea.id, comentarioId);
+      await comentariosService.delete(tarea.id, confirmComentarioId);
       loadComentarios();
       toast.success('Comentario eliminado');
     } catch (err) {
       toast.error(getErrorMessage(err, 'Error al eliminar el comentario'));
+    } finally {
+      setConfirmComentarioId(null);
     }
   };
 
@@ -196,6 +201,15 @@ export default function TareaDetalle({ tarea, estados = [], onClose, onEdit, onR
           </div>
         </div>
       </motion.div>
+
+      <ConfirmDialog
+        open={!!confirmComentarioId}
+        title="Eliminar comentario"
+        message="¿Estás seguro de que quieres eliminar este comentario?"
+        confirmLabel="Eliminar"
+        onConfirm={doDeleteComentario}
+        onCancel={() => setConfirmComentarioId(null)}
+      />
     </motion.div>
   );
 }

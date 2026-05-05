@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Pencil, Trash2, Settings, Search } from 'lucide-react';
 import { toast } from 'sonner';
-import { tiposProyectoService } from '../../shared/services';
-import { getErrorMessage } from '../../shared/lib/errorUtils';
+import { tiposProyectoService } from '@/shared/services';
+import { getErrorMessage } from '@/shared/lib/errorUtils';
+import { ConfirmDialog } from '@/shared/components';
 import FormTipoProyecto from './FormTipoProyecto';
 
 export default function TipoProyecto() {
@@ -12,6 +13,7 @@ export default function TipoProyecto() {
   const [formOpen, setFormOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [search, setSearch] = useState('');
+  const [confirmItem, setConfirmItem] = useState(null);
 
   const loadData = async () => {
     try {
@@ -26,14 +28,17 @@ export default function TipoProyecto() {
 
   useEffect(() => { loadData(); }, []);
 
-  const handleDelete = async (tipo) => {
-    if (!confirm(`¿Eliminar "${tipo.nombre}"?`)) return;
+  const handleDelete = (tipo) => setConfirmItem(tipo);
+
+  const doDelete = async () => {
     try {
-      await tiposProyectoService.delete(tipo.id);
+      await tiposProyectoService.delete(confirmItem.id);
       toast.success('Tipo eliminado');
       loadData();
     } catch (err) {
       toast.error(getErrorMessage(err, 'Error al eliminar el tipo de proyecto'));
+    } finally {
+      setConfirmItem(null);
     }
   };
 
@@ -152,6 +157,15 @@ export default function TipoProyecto() {
           />
         )}
       </AnimatePresence>
+
+      <ConfirmDialog
+        open={!!confirmItem}
+        title="Eliminar tipo de proyecto"
+        message={`¿Estás seguro de que quieres eliminar "${confirmItem?.nombre}"? Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+        onConfirm={doDelete}
+        onCancel={() => setConfirmItem(null)}
+      />
     </div>
   );
 }

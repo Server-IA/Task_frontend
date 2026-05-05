@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, ArrowLeft, Send, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuth } from '../../context/AuthContext';
-import { getErrorMessage } from '../../shared/lib/errorUtils';
+import { useAuth } from '@/context/AuthContext';
+import { getErrorMessage } from '@/shared/lib/errorUtils';
 
 export default function ForgotPassword() {
   const { solicitarReset } = useAuth();

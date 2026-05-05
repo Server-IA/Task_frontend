@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Pencil, Trash2, Building2, Search } from 'lucide-react';
 import { toast } from 'sonner';
-import { empresasService } from '../../shared/services';
-import { getErrorMessage } from '../../shared/lib/errorUtils';
+import { empresasService } from '@/shared/services';
+import { getErrorMessage } from '@/shared/lib/errorUtils';
+import { ConfirmDialog } from '@/shared/components';
 import FormEmpresas from './FormEmpresas';
 
 export default function Empresas() {
@@ -13,6 +14,7 @@ export default function Empresas() {
   const [formOpen, setFormOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [search, setSearch] = useState('');
+  const [confirmItem, setConfirmItem] = useState(null);
 
   const loadData = async () => {
     try {
@@ -27,14 +29,17 @@ export default function Empresas() {
 
   useEffect(() => { loadData(); }, []);
 
-  const handleDelete = async (empresa) => {
-    if (!confirm(`¿Eliminar la empresa "${empresa.nombre}"?`)) return;
+  const handleDelete = (empresa) => setConfirmItem(empresa);
+
+  const doDelete = async () => {
     try {
-      await empresasService.delete(empresa.id);
+      await empresasService.delete(confirmItem.id);
       toast.success('Empresa eliminada');
       loadData();
     } catch (err) {
       toast.error(getErrorMessage(err, 'Error al eliminar la empresa'));
+    } finally {
+      setConfirmItem(null);
     }
   };
 
@@ -175,6 +180,15 @@ export default function Empresas() {
           />
         )}
       </AnimatePresence>
+
+      <ConfirmDialog
+        open={!!confirmItem}
+        title="Eliminar empresa"
+        message={`¿Estás seguro de que quieres eliminar "${confirmItem?.nombre}"? Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+        onConfirm={doDelete}
+        onCancel={() => setConfirmItem(null)}
+      />
     </div>
   );
 }

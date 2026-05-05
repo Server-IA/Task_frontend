@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, Save } from 'lucide-react';
+import { FieldError } from '@/shared/components';
+import { isEmpty, isValidEmail, isValidPhone } from '@/shared/lib/formValidation';
+
+const inputBase =
+  'w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border rounded-xl text-slate-800 dark:text-white focus:outline-none focus:ring-2 transition-all';
+const inputNormal = `${inputBase} border-slate-200 dark:border-slate-600 focus:ring-blue-500`;
+const inputError = `${inputBase} border-red-400 dark:border-red-500 focus:ring-red-400`;
 
 export default function FormEmpresas({ onClose, onSave, initialData }) {
   const [form, setForm] = useState({
@@ -15,6 +22,7 @@ export default function FormEmpresas({ onClose, onSave, initialData }) {
     departamento: '',
     ciudad: '',
   });
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (initialData) {
@@ -33,19 +41,34 @@ export default function FormEmpresas({ onClose, onSave, initialData }) {
     }
   }, [initialData]);
 
+  const validate = () => {
+    const e = {};
+    if (isEmpty(form.nombre)) e.nombre = 'El nombre es obligatorio';
+    if (isEmpty(form.nit)) e.nit = 'El NIT es obligatorio';
+    if (isEmpty(form.correo)) e.correo = 'El correo es obligatorio';
+    else if (!isValidEmail(form.correo)) e.correo = 'Ingresa un correo válido';
+    if (isEmpty(form.telefono)) e.telefono = 'El teléfono es obligatorio';
+    else if (!isValidPhone(form.telefono)) e.telefono = 'Ingresa entre 7 y 15 dígitos';
+    return e;
+  };
+
+  const handleChange = (name, value) => {
+    const newValue = name === 'telefono' ? value.replace(/\D/g, '') : value;
+    setForm((prev) => ({ ...prev, [name]: newValue }));
+    if (errors[name]) setErrors((prev) => { const n = { ...prev }; delete n[name]; return n; });
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    const validation = validate();
+    if (Object.keys(validation).length > 0) {
+      setErrors(validation);
+      return;
+    }
     onSave(form);
   };
 
-  const fields = [
-    { name: 'nombre', label: 'Nombre', required: true },
-    { name: 'nit', label: 'NIT', required: true },
-    { name: 'correo', label: 'Correo', type: 'email', required: true },
-    { name: 'telefono', label: 'Teléfono', required: true, pattern: '[0-9]{7,15}', title: 'Ingrese entre 7 y 15 dígitos' },
-    { name: 'direccion', label: 'Dirección' },
-    { name: 'sector', label: 'Sector' },
-  ];
+  const ic = (name) => (errors[name] ? inputError : inputNormal);
 
   return (
     <motion.div
@@ -71,63 +94,108 @@ export default function FormEmpresas({ onClose, onSave, initialData }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {fields.map((f) => (
-            <div key={f.name}>
+        <form onSubmit={handleSubmit} noValidate className="p-6 space-y-4">
+          {/* Nombre */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              Nombre <span className="text-red-500">*</span>
+            </label>
+            <input
+              value={form.nombre}
+              onChange={(e) => handleChange('nombre', e.target.value)}
+              className={ic('nombre')}
+            />
+            <FieldError message={errors.nombre} />
+          </div>
+
+          {/* NIT + Correo */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                {f.label} {f.required && <span className="text-red-500">*</span>}
+                NIT <span className="text-red-500">*</span>
               </label>
               <input
-                type={f.type || 'text'}
-                required={f.required}
-                pattern={f.pattern}
-                title={f.title}
-                inputMode={f.name === 'telefono' ? 'numeric' : undefined}
-                value={form[f.name]}
-                onChange={(e) => setForm({
-                  ...form,
-                  [f.name]: f.name === 'telefono' ? e.target.value.replace(/\D/g, '') : e.target.value,
-                })}
-                className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                value={form.nit}
+                onChange={(e) => handleChange('nit', e.target.value)}
+                className={ic('nit')}
+              />
+              <FieldError message={errors.nit} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Correo <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="email"
+                value={form.correo}
+                onChange={(e) => handleChange('correo', e.target.value)}
+                className={ic('correo')}
+              />
+              <FieldError message={errors.correo} />
+            </div>
+          </div>
+
+          {/* Teléfono + Sector */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Teléfono <span className="text-red-500">*</span>
+              </label>
+              <input
+                value={form.telefono}
+                onChange={(e) => handleChange('telefono', e.target.value)}
+                inputMode="numeric"
+                className={ic('telefono')}
+              />
+              <FieldError message={errors.telefono} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Sector</label>
+              <input
+                value={form.sector}
+                onChange={(e) => handleChange('sector', e.target.value)}
+                className={inputNormal}
               />
             </div>
-          ))}
+          </div>
 
+          {/* Dirección */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Dirección</label>
+            <input
+              value={form.direccion}
+              onChange={(e) => handleChange('direccion', e.target.value)}
+              className={inputNormal}
+            />
+          </div>
+
+          {/* Descripción */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Descripción</label>
             <textarea
               value={form.descripcion}
-              onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
+              onChange={(e) => handleChange('descripcion', e.target.value)}
               rows={3}
-              className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none"
+              className={`${inputNormal} resize-none`}
             />
           </div>
 
+          {/* Ubicación */}
           <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">País</label>
-              <input
-                value={form.pais}
-                onChange={(e) => setForm({ ...form, pais: e.target.value })}
-                className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Departamento</label>
-              <input
-                value={form.departamento}
-                onChange={(e) => setForm({ ...form, departamento: e.target.value })}
-                className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Ciudad</label>
-              <input
-                value={form.ciudad}
-                onChange={(e) => setForm({ ...form, ciudad: e.target.value })}
-                className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-              />
-            </div>
+            {[
+              { name: 'pais', label: 'País' },
+              { name: 'departamento', label: 'Departamento' },
+              { name: 'ciudad', label: 'Ciudad' },
+            ].map(({ name, label }) => (
+              <div key={name}>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{label}</label>
+                <input
+                  value={form[name]}
+                  onChange={(e) => handleChange(name, e.target.value)}
+                  className={inputNormal}
+                />
+              </div>
+            ))}
           </div>
 
           <div className="flex justify-end gap-3 pt-4">

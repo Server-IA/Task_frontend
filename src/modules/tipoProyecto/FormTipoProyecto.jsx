@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, Save } from 'lucide-react';
+import { FieldError, ColorPicker } from '@/shared/components';
+import { isEmpty } from '@/shared/lib/formValidation';
+
+const inputBase =
+  'w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border rounded-xl text-slate-800 dark:text-white focus:outline-none focus:ring-2 transition-all';
+const inputNormal = `${inputBase} border-slate-200 dark:border-slate-600 focus:ring-blue-500`;
+const inputError = `${inputBase} border-red-400 dark:border-red-500 focus:ring-red-400`;
 
 export default function FormTipoProyecto({ onClose, onSave, initialData }) {
-  const [form, setForm] = useState({
-    nombre: '',
-    descripcion: '',
-    color: '#8b5cf6',
-  });
+  const [form, setForm] = useState({ nombre: '', descripcion: '', color: '#8b5cf6' });
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (initialData) {
@@ -19,12 +23,23 @@ export default function FormTipoProyecto({ onClose, onSave, initialData }) {
     }
   }, [initialData]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSave(form);
+  const validate = () => {
+    const e = {};
+    if (isEmpty(form.nombre)) e.nombre = 'El nombre es obligatorio';
+    return e;
   };
 
-  const inputClass = 'w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all';
+  const set = (name, value) => {
+    setForm((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors((prev) => { const n = { ...prev }; delete n[name]; return n; });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const validation = validate();
+    if (Object.keys(validation).length > 0) { setErrors(validation); return; }
+    onSave(form);
+  };
 
   return (
     <motion.div
@@ -50,26 +65,35 @@ export default function FormTipoProyecto({ onClose, onSave, initialData }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="p-6 space-y-4">
+          {/* Nombre */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Nombre <span className="text-red-500">*</span>
             </label>
-            <input required value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} className={inputClass} />
+            <input
+              value={form.nombre}
+              onChange={(e) => set('nombre', e.target.value)}
+              className={errors.nombre ? inputError : inputNormal}
+            />
+            <FieldError message={errors.nombre} />
           </div>
 
+          {/* Descripción */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Descripción</label>
-            <textarea value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} rows={2} className={`${inputClass} resize-none`} />
+            <textarea
+              value={form.descripcion}
+              onChange={(e) => set('descripcion', e.target.value)}
+              rows={2}
+              className={`${inputNormal} resize-none`}
+            />
           </div>
 
+          {/* Color */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Color</label>
-            <div className="flex items-center gap-3">
-              <input type="color" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} className="w-12 h-12 rounded-xl border border-slate-200 dark:border-slate-600 cursor-pointer p-1" />
-              <input value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} className={`flex-1 ${inputClass} text-sm font-mono`} placeholder="#8b5cf6" />
-              <div className="w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-600" style={{ backgroundColor: form.color }} />
-            </div>
+            <ColorPicker value={form.color} onChange={(color) => set('color', color)} />
           </div>
 
           <div className="flex justify-end gap-3 pt-4">

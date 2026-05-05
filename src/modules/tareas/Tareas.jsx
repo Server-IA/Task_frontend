@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Pencil, Trash2, ListChecks, Search, Clock } from 'lucide-react';
 import { toast } from 'sonner';
-import { tareasService, proyectosService, estadosService } from '../../shared/services';
-import { getErrorMessage } from '../../shared/lib/errorUtils';
+import { tareasService, proyectosService, estadosService } from '@/shared/services';
+import { getErrorMessage } from '@/shared/lib/errorUtils';
+import { SelectField, ConfirmDialog } from '@/shared/components';
 import FormTareas from './FormTareas';
 import TareaDetalle from './TareaDetalle';
 
@@ -19,6 +20,7 @@ export default function Tareas() {
   const [filterProyecto, setFilterProyecto] = useState('');
   const [filterEstado, setFilterEstado] = useState('');
   const [viewMode, setViewMode] = useState('list');
+  const [confirmItem, setConfirmItem] = useState(null);
 
   const loadData = async () => {
     try {
@@ -39,18 +41,23 @@ export default function Tareas() {
 
   useEffect(() => { loadData(); }, []);
 
-  const handleDelete = async (tarea) => {
+  const handleDelete = (tarea) => {
     if (tarea.estadoNombre?.toLowerCase() !== 'completado') {
       toast.error('Solo se pueden eliminar tareas con estado "Completado"');
       return;
     }
-    if (!confirm(`¿Eliminar la tarea "${tarea.titulo}"?`)) return;
+    setConfirmItem(tarea);
+  };
+
+  const doDelete = async () => {
     try {
-      await tareasService.delete(tarea.id);
+      await tareasService.delete(confirmItem.id);
       toast.success('Tarea eliminada');
       loadData();
     } catch (err) {
       toast.error(getErrorMessage(err, 'Error al eliminar la tarea'));
+    } finally {
+      setConfirmItem(null);
     }
   };
 
@@ -148,22 +155,18 @@ export default function Tareas() {
             className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
           />
         </div>
-        <select
-          value={filterProyecto}
-          onChange={(e) => setFilterProyecto(e.target.value)}
-          className="px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-        >
-          <option value="">Todos los proyectos</option>
-          {proyectos.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-        </select>
-        <select
-          value={filterEstado}
-          onChange={(e) => setFilterEstado(e.target.value)}
-          className="px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-        >
-          <option value="">Todos los estados</option>
-          {estados.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
-        </select>
+        <div className="w-full sm:w-48">
+          <SelectField value={filterProyecto} onChange={(e) => setFilterProyecto(e.target.value)}>
+            <option value="">Todos los proyectos</option>
+            {proyectos.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+          </SelectField>
+        </div>
+        <div className="w-full sm:w-44">
+          <SelectField value={filterEstado} onChange={(e) => setFilterEstado(e.target.value)}>
+            <option value="">Todos los estados</option>
+            {estados.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+          </SelectField>
+        </div>
       </div>
 
       {/* List view */}
@@ -312,6 +315,15 @@ export default function Tareas() {
           />
         )}
       </AnimatePresence>
+
+      <ConfirmDialog
+        open={!!confirmItem}
+        title="Eliminar tarea"
+        message={`¿Estás seguro de que quieres eliminar "${confirmItem?.titulo}"? Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+        onConfirm={doDelete}
+        onCancel={() => setConfirmItem(null)}
+      />
     </div>
   );
 }

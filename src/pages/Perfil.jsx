@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { User, Mail, Phone, AtSign, Save } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuth } from '../context/AuthContext';
-import { getErrorMessage } from '../shared/lib/errorUtils';
+import { useAuth } from '@/context/AuthContext';
+import { getErrorMessage } from '@/shared/lib/errorUtils';
 
 export default function Perfil() {
   const { user, updateProfile } = useAuth();

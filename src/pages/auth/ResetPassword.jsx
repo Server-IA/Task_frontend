@@ -3,8 +3,8 @@ import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Lock, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuth } from '../../context/AuthContext';
-import { getErrorMessage } from '../../shared/lib/errorUtils';
+import { useAuth } from '@/context/AuthContext';
+import { getErrorMessage } from '@/shared/lib/errorUtils';
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();

@@ -1,4 +1,4 @@
-import axiosInstance from '../config/axiosConfig';
+import axiosInstance from '@/shared/config/axiosConfig';
 
 export const estadosService = {
   getAll: async () => {

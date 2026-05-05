@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Pencil, Trash2, FolderKanban, Search, Calendar, TrendingUp, Tag } from 'lucide-react';
 import { toast } from 'sonner';
-import { proyectosService, empresasService, tiposProyectoService, estadosService } from '../../shared/services';
-import { getErrorMessage } from '../../shared/lib/errorUtils';
+import { proyectosService, empresasService, tiposProyectoService, estadosService } from '@/shared/services';
+import { getErrorMessage } from '@/shared/lib/errorUtils';
+import { ConfirmDialog } from '@/shared/components';
 import FormProyectos from './FormProyectos';
 
 export default function Proyectos() {
@@ -15,6 +16,7 @@ export default function Proyectos() {
   const [formOpen, setFormOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [search, setSearch] = useState('');
+  const [confirmItem, setConfirmItem] = useState(null);
 
   const loadData = async () => {
     try {
@@ -37,18 +39,23 @@ export default function Proyectos() {
 
   useEffect(() => { loadData(); }, []);
 
-  const handleDelete = async (proyecto) => {
+  const handleDelete = (proyecto) => {
     if (proyecto.estadoNombre?.toLowerCase() !== 'completado') {
       toast.error('Solo se pueden eliminar proyectos con estado "Completado"');
       return;
     }
-    if (!confirm(`¿Eliminar el proyecto "${proyecto.nombre}"?`)) return;
+    setConfirmItem(proyecto);
+  };
+
+  const doDelete = async () => {
     try {
-      await proyectosService.delete(proyecto.id);
+      await proyectosService.delete(confirmItem.id);
       toast.success('Proyecto eliminado');
       loadData();
     } catch (err) {
       toast.error(getErrorMessage(err, 'Error al eliminar el proyecto'));
+    } finally {
+      setConfirmItem(null);
     }
   };
 
@@ -244,6 +251,15 @@ export default function Proyectos() {
           />
         )}
       </AnimatePresence>
+
+      <ConfirmDialog
+        open={!!confirmItem}
+        title="Eliminar proyecto"
+        message={`¿Estás seguro de que quieres eliminar "${confirmItem?.nombre}"? Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+        onConfirm={doDelete}
+        onCancel={() => setConfirmItem(null)}
+      />
     </div>
   );
 }

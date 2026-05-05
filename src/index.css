@@ -5,6 +5,22 @@
 
 @variant dark (&:where(.dark, .dark *));
 
+/* Transición global sincronizada para cambio de tema — en @layer base para no sobrescribir utilidades */
+@layer base {
+  /* Reserva espacio para el scrollbar siempre — evita el desplazamiento al abrir dropdowns */
+  html {
+    scrollbar-gutter: stable;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-duration: 200ms;
+    transition-timing-function: ease;
+  }
+}
+
 * {
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 transparent;
@@ -21,3 +37,4 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+

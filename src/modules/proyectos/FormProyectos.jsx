@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, Save } from 'lucide-react';
+import { SelectField, DateInput, FieldError } from '@/shared/components';
+import { isEmpty } from '@/shared/lib/formValidation';
+
+const inputBase =
+  'w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border rounded-xl text-slate-800 dark:text-white focus:outline-none focus:ring-2 transition-all';
+const inputNormal = `${inputBase} border-slate-200 dark:border-slate-600 focus:ring-blue-500`;
+const inputError = `${inputBase} border-red-400 dark:border-red-500 focus:ring-red-400`;
 
 export default function FormProyectos({ onClose, onSave, initialData, empresas, tiposProyecto, estados }) {
   const [form, setForm] = useState({
@@ -14,6 +21,7 @@ export default function FormProyectos({ onClose, onSave, initialData, empresas, 
     estadoId: '',
     progreso: 0,
   });
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (initialData) {
@@ -35,8 +43,24 @@ export default function FormProyectos({ onClose, onSave, initialData, empresas, 
   tomorrow.setDate(tomorrow.getDate() + 1);
   const minDate = tomorrow.toISOString().split('T')[0];
 
+  const validate = () => {
+    const e = {};
+    if (isEmpty(form.nombre)) e.nombre = 'El nombre es obligatorio';
+    if (isEmpty(form.empresaId)) e.empresaId = 'Selecciona una empresa';
+    if (isEmpty(form.tipoProyectoId)) e.tipoProyectoId = 'Selecciona un tipo de proyecto';
+    if (isEmpty(form.fechaInicio)) e.fechaInicio = 'La fecha de inicio es obligatoria';
+    return e;
+  };
+
+  const set = (name, value) => {
+    setForm((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors((prev) => { const n = { ...prev }; delete n[name]; return n; });
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    const validation = validate();
+    if (Object.keys(validation).length > 0) { setErrors(validation); return; }
     onSave({
       ...form,
       progreso: Number(form.progreso),
@@ -46,7 +70,7 @@ export default function FormProyectos({ onClose, onSave, initialData, empresas, 
     });
   };
 
-  const inputClass = 'w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all';
+  const ic = (name) => (errors[name] ? inputError : inputNormal);
 
   return (
     <motion.div
@@ -72,74 +96,106 @@ export default function FormProyectos({ onClose, onSave, initialData, empresas, 
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="p-6 space-y-4">
+          {/* Nombre */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Nombre <span className="text-red-500">*</span>
             </label>
-            <input required value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} className={inputClass} />
+            <input value={form.nombre} onChange={(e) => set('nombre', e.target.value)} className={ic('nombre')} />
+            <FieldError message={errors.nombre} />
           </div>
 
+          {/* Descripción */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Descripción</label>
             <textarea
               value={form.descripcion}
-              onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
+              onChange={(e) => set('descripcion', e.target.value)}
               rows={3}
-              className={`${inputClass} resize-none`}
+              className={`${inputNormal} resize-none`}
             />
           </div>
 
+          {/* Empresa + Tipo */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Empresa <span className="text-red-500">*</span></label>
-              <select required value={form.empresaId} onChange={(e) => setForm({ ...form, empresaId: e.target.value })} className={inputClass}>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Empresa <span className="text-red-500">*</span>
+              </label>
+              <SelectField value={form.empresaId} onChange={(e) => set('empresaId', e.target.value)} error={!!errors.empresaId}>
                 <option value="">Seleccionar...</option>
                 {empresas.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
-              </select>
+              </SelectField>
+              <FieldError message={errors.empresaId} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tipo <span className="text-red-500">*</span></label>
-              <select required value={form.tipoProyectoId} onChange={(e) => setForm({ ...form, tipoProyectoId: e.target.value })} className={inputClass}>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Tipo <span className="text-red-500">*</span>
+              </label>
+              <SelectField value={form.tipoProyectoId} onChange={(e) => set('tipoProyectoId', e.target.value)} error={!!errors.tipoProyectoId}>
                 <option value="">Seleccionar...</option>
                 {tiposProyecto.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
-              </select>
+              </SelectField>
+              <FieldError message={errors.tipoProyectoId} />
             </div>
           </div>
 
+          {/* Estado + Prioridad */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Estado</label>
-              <select value={form.estadoId} onChange={(e) => setForm({ ...form, estadoId: e.target.value })} className={inputClass}>
+              <SelectField value={form.estadoId} onChange={(e) => set('estadoId', e.target.value)}>
                 <option value="">Seleccionar...</option>
                 {estados.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
-              </select>
+              </SelectField>
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Prioridad</label>
-              <select value={form.prioridad} onChange={(e) => setForm({ ...form, prioridad: e.target.value })} className={inputClass}>
+              <SelectField value={form.prioridad} onChange={(e) => set('prioridad', e.target.value)}>
                 <option value="BAJA">Baja</option>
                 <option value="MEDIA">Media</option>
                 <option value="ALTA">Alta</option>
                 <option value="CRITICA">Crítica</option>
-              </select>
+              </SelectField>
             </div>
           </div>
 
+          {/* Fechas */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Fecha inicio <span className="text-red-500">*</span></label>
-              <input required type="date" value={form.fechaInicio} onChange={(e) => setForm({ ...form, fechaInicio: e.target.value })} className={inputClass} />
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Fecha inicio <span className="text-red-500">*</span>
+              </label>
+              <DateInput
+                value={form.fechaInicio}
+                onChange={(e) => set('fechaInicio', e.target.value)}
+                error={!!errors.fechaInicio}
+                required
+              />
+              <FieldError message={errors.fechaInicio} />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Fecha fin estimada</label>
-              <input type="date" min={minDate} value={form.fechaFinEstimada} onChange={(e) => setForm({ ...form, fechaFinEstimada: e.target.value })} className={inputClass} />
+              <DateInput
+                value={form.fechaFinEstimada}
+                onChange={(e) => set('fechaFinEstimada', e.target.value)}
+                min={minDate}
+              />
             </div>
           </div>
 
+          {/* Progreso */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Progreso (%)</label>
-            <input type="number" min="0" max="100" value={form.progreso} onChange={(e) => setForm({ ...form, progreso: e.target.value })} className={inputClass} />
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={form.progreso}
+              onChange={(e) => set('progreso', e.target.value)}
+              className={inputNormal}
+            />
           </div>
 
           <div className="flex justify-end gap-3 pt-4">

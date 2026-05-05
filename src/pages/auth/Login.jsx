@@ -3,8 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Lock, Eye, EyeOff, LogIn, AlertTriangle, ShieldAlert, MailWarning, Clock } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuth } from '../../context/AuthContext';
-import { getErrorMessage, getErrorCode, getErrorStatus } from '../../shared/lib/errorUtils';
+import { useAuth } from '@/context/AuthContext';
+import { getErrorMessage, getErrorCode, getErrorStatus } from '@/shared/lib/errorUtils';
 
 export default function Login() {
   const navigate = useNavigate();

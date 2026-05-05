@@ -3,8 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Lock, Eye, EyeOff, UserPlus, User, Phone, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuth } from '../../context/AuthContext';
-import { getErrorMessage, getFieldErrors } from '../../shared/lib/errorUtils';
+import { useAuth } from '@/context/AuthContext';
+import { getErrorMessage, getFieldErrors } from '@/shared/lib/errorUtils';
 
 export default function Register() {
   const navigate = useNavigate();

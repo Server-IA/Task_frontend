@@ -10,8 +10,8 @@ import {
   Tag,
   Calendar,
 } from 'lucide-react';
-import { proyectosService, empresasService, tareasService, estadosService, tiposProyectoService } from '../shared/services';
-import { useAuth } from '../context/AuthContext';
+import { proyectosService, empresasService, tareasService, estadosService, tiposProyectoService } from '@/shared/services';
+import { useAuth } from '@/context/AuthContext';
 
 const container = {
   hidden: { opacity: 0 },

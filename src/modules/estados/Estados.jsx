@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Pencil, Trash2, Layers, Search } from 'lucide-react';
 import { toast } from 'sonner';
-import { estadosService } from '../../shared/services';
-import { getErrorMessage } from '../../shared/lib/errorUtils';
+import { estadosService } from '@/shared/services';
+import { getErrorMessage } from '@/shared/lib/errorUtils';
+import { ConfirmDialog } from '@/shared/components';
 import FormEstados from './FormEstados';
 
 export default function Estados() {
@@ -12,6 +13,7 @@ export default function Estados() {
   const [formOpen, setFormOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [search, setSearch] = useState('');
+  const [confirmItem, setConfirmItem] = useState(null);
 
   const loadData = async () => {
     try {
@@ -25,14 +27,17 @@ export default function Estados() {
 
   useEffect(() => { loadData(); }, []);
 
-  const handleDelete = async (estado) => {
-    if (!confirm(`¿Eliminar el estado "${estado.nombre}"?`)) return;
+  const handleDelete = (estado) => setConfirmItem(estado);
+
+  const doDelete = async () => {
     try {
-      await estadosService.delete(estado.id);
+      await estadosService.delete(confirmItem.id);
       toast.success('Estado eliminado');
       loadData();
     } catch (err) {
       toast.error(getErrorMessage(err, 'Error al eliminar el estado'));
+    } finally {
+      setConfirmItem(null);
     }
   };
 
@@ -153,6 +158,15 @@ export default function Estados() {
           />
         )}
       </AnimatePresence>
+
+      <ConfirmDialog
+        open={!!confirmItem}
+        title="Eliminar estado"
+        message={`¿Estás seguro de que quieres eliminar "${confirmItem?.nombre}"? Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+        onConfirm={doDelete}
+        onCancel={() => setConfirmItem(null)}
+      />
     </div>
   );
 }
