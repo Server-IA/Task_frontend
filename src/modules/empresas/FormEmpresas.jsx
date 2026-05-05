@@ -82,8 +82,12 @@ export default function FormEmpresas({ onClose, onSave, initialData }) {
                 required={f.required}
                 pattern={f.pattern}
                 title={f.title}
+                inputMode={f.name === 'telefono' ? 'numeric' : undefined}
                 value={form[f.name]}
-                onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
+                onChange={(e) => setForm({
+                  ...form,
+                  [f.name]: f.name === 'telefono' ? e.target.value.replace(/\D/g, '') : e.target.value,
+                })}
                 className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
               />
             </div>

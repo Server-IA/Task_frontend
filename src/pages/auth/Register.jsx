@@ -33,7 +33,8 @@ export default function Register() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm({ ...form, [name]: value });
+    const newValue = name === 'telefono' ? value.replace(/\D/g, '') : value;
+    setForm({ ...form, [name]: newValue });
     if (fieldErrors[name]) {
       setFieldErrors((prev) => { const next = { ...prev }; delete next[name]; return next; });
     }
@@ -195,8 +196,9 @@ export default function Register() {
                     name="telefono"
                     value={form.telefono}
                     onChange={handleChange}
+                    inputMode="numeric"
                     className={`w-full pl-11 pr-4 py-3 bg-white/5 border ${inputBorder('telefono')} rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all`}
-                    placeholder="+57 300..."
+                    placeholder="3001234567"
                   />
                 </div>
                 <FieldError name="telefono" />

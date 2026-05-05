@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Pencil, Trash2, FolderKanban, Search, Calendar, TrendingUp } from 'lucide-react';
+import { Plus, Pencil, Trash2, FolderKanban, Search, Calendar, TrendingUp, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 import { proyectosService, empresasService, tiposProyectoService, estadosService } from '../../shared/services';
 import { getErrorMessage } from '../../shared/lib/errorUtils';
@@ -38,6 +38,10 @@ export default function Proyectos() {
   useEffect(() => { loadData(); }, []);
 
   const handleDelete = async (proyecto) => {
+    if (proyecto.estadoNombre?.toLowerCase() !== 'completado') {
+      toast.error('Solo se pueden eliminar proyectos con estado "Completado"');
+      return;
+    }
     if (!confirm(`¿Eliminar el proyecto "${proyecto.nombre}"?`)) return;
     try {
       await proyectosService.delete(proyecto.id);
@@ -143,7 +147,9 @@ export default function Proyectos() {
                   </button>
                   <button
                     onClick={() => handleDelete(proyecto)}
-                    className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-red-500 transition-colors"
+                    disabled={proyecto.estadoNombre?.toLowerCase() !== 'completado'}
+                    title={proyecto.estadoNombre?.toLowerCase() !== 'completado' ? 'Solo se puede eliminar cuando el estado es Completado' : 'Eliminar proyecto'}
+                    className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-red-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-slate-400 disabled:hover:bg-transparent"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -171,7 +177,20 @@ export default function Proyectos() {
                 </div>
               )}
 
-              <div className="flex flex-wrap gap-2 text-xs">
+                <div className="flex flex-wrap gap-2 text-xs">
+                {proyecto.tipoProyectoNombre && (() => {
+                  const tp = tiposProyecto.find((t) => t.id === proyecto.tipoProyectoId);
+                  const color = tp?.color || '#6366f1';
+                  return (
+                    <span
+                      className="px-2 py-0.5 rounded-full font-medium flex items-center gap-1"
+                      style={{ backgroundColor: color + '22', color }}
+                    >
+                      <Tag className="w-3 h-3" />
+                      {proyecto.tipoProyectoNombre}
+                    </span>
+                  );
+                })()}
                 {proyecto.prioridad && (
                   <span className={`px-2 py-0.5 rounded-full font-medium ${priorityColor(proyecto.prioridad)}`}>
                     {proyecto.prioridad}
@@ -188,8 +207,14 @@ export default function Proyectos() {
                     </span>
                   );
                 })()}
-                {proyecto.fechaFinEstimada && (
+                {proyecto.fechaInicio && (
                   <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {new Date(proyecto.fechaInicio).toLocaleDateString()}
+                  </span>
+                )}
+                {proyecto.fechaFinEstimada && (
+                  <span className="px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center gap-1">
                     <Calendar className="w-3 h-3" />
                     {new Date(proyecto.fechaFinEstimada).toLocaleDateString()}
                   </span>

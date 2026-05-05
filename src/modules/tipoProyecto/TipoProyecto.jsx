@@ -2,13 +2,12 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Pencil, Trash2, Settings, Search } from 'lucide-react';
 import { toast } from 'sonner';
-import { tiposProyectoService, estadosService } from '../../shared/services';
+import { tiposProyectoService } from '../../shared/services';
 import { getErrorMessage } from '../../shared/lib/errorUtils';
 import FormTipoProyecto from './FormTipoProyecto';
 
 export default function TipoProyecto() {
   const [tipos, setTipos] = useState([]);
-  const [estados, setEstados] = useState([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
@@ -16,9 +15,8 @@ export default function TipoProyecto() {
 
   const loadData = async () => {
     try {
-      const [t, e] = await Promise.all([tiposProyectoService.getAll(), estadosService.getAll()]);
+      const t = await tiposProyectoService.getAll();
       setTipos(t);
-      setEstados(e);
     } catch (err) {
       toast.error(getErrorMessage(err, 'Error al cargar los tipos de proyecto'));
     } finally {
@@ -116,9 +114,6 @@ export default function TipoProyecto() {
                     {tipo.descripcion && (
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">{tipo.descripcion}</p>
                     )}
-                    {tipo.estadoNombre && (
-                      <span className="text-xs text-blue-500">{tipo.estadoNombre}</span>
-                    )}
                   </div>
                 </div>
                 <div className="flex gap-1">
@@ -154,7 +149,6 @@ export default function TipoProyecto() {
             onClose={() => { setFormOpen(false); setEditItem(null); }}
             onSave={handleSave}
             initialData={editItem}
-            estados={estados}
           />
         )}
       </AnimatePresence>

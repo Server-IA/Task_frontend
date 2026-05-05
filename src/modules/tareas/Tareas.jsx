@@ -40,6 +40,10 @@ export default function Tareas() {
   useEffect(() => { loadData(); }, []);
 
   const handleDelete = async (tarea) => {
+    if (tarea.estadoNombre?.toLowerCase() !== 'completado') {
+      toast.error('Solo se pueden eliminar tareas con estado "Completado"');
+      return;
+    }
     if (!confirm(`¿Eliminar la tarea "${tarea.titulo}"?`)) return;
     try {
       await tareasService.delete(tarea.id);
@@ -218,7 +222,9 @@ export default function Tareas() {
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDelete(tarea); }}
-                      className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-red-500 transition-colors"
+                      disabled={tarea.estadoNombre?.toLowerCase() !== 'completado'}
+                      title={tarea.estadoNombre?.toLowerCase() !== 'completado' ? 'Solo se puede eliminar cuando el estado es Completado' : 'Eliminar tarea'}
+                      className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-red-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-slate-400 disabled:hover:bg-transparent"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

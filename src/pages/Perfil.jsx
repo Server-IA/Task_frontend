@@ -17,7 +17,8 @@ export default function Perfil() {
   });
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm({ ...form, [name]: name === 'telefono' ? value.replace(/\D/g, '') : value });
   };
 
   const handleSubmit = async (e) => {
@@ -104,6 +105,7 @@ export default function Perfil() {
                   name="telefono"
                   value={form.telefono}
                   onChange={handleChange}
+                  inputMode="numeric"
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                 />
               </div>

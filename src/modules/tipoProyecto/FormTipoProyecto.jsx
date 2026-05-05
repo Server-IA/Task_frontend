@@ -2,12 +2,11 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, Save } from 'lucide-react';
 
-export default function FormTipoProyecto({ onClose, onSave, initialData, estados }) {
+export default function FormTipoProyecto({ onClose, onSave, initialData }) {
   const [form, setForm] = useState({
     nombre: '',
     descripcion: '',
     color: '#8b5cf6',
-    estadoId: '',
   });
 
   useEffect(() => {
@@ -16,14 +15,13 @@ export default function FormTipoProyecto({ onClose, onSave, initialData, estados
         nombre: initialData.nombre || '',
         descripcion: initialData.descripcion || '',
         color: initialData.color || '#8b5cf6',
-        estadoId: initialData.estadoId || '',
       });
     }
   }, [initialData]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave({ ...form, estadoId: form.estadoId || null });
+    onSave(form);
   };
 
   const inputClass = 'w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all';
@@ -72,14 +70,6 @@ export default function FormTipoProyecto({ onClose, onSave, initialData, estados
               <input value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} className={`flex-1 ${inputClass} text-sm font-mono`} placeholder="#8b5cf6" />
               <div className="w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-600" style={{ backgroundColor: form.color }} />
             </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Estado</label>
-            <select value={form.estadoId} onChange={(e) => setForm({ ...form, estadoId: e.target.value })} className={inputClass}>
-              <option value="">Seleccionar...</option>
-              {estados.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
-            </select>
           </div>
 
           <div className="flex justify-end gap-3 pt-4">

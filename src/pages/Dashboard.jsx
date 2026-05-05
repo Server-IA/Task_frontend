@@ -7,8 +7,10 @@ import {
   ListChecks,
   ArrowRight,
   Clock,
+  Tag,
+  Calendar,
 } from 'lucide-react';
-import { proyectosService, empresasService, tareasService, estadosService } from '../shared/services';
+import { proyectosService, empresasService, tareasService, estadosService, tiposProyectoService } from '../shared/services';
 import { useAuth } from '../context/AuthContext';
 
 const container = {
@@ -22,19 +24,20 @@ const item = {
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [data, setData] = useState({ proyectos: [], empresas: [], tareas: [], estados: [] });
+  const [data, setData] = useState({ proyectos: [], empresas: [], tareas: [], estados: [], tiposProyecto: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       try {
-        const [proyectos, empresas, tareas, estados] = await Promise.all([
+        const [proyectos, empresas, tareas, estados, tiposProyecto] = await Promise.all([
           proyectosService.getAll(),
           empresasService.getAll(),
           tareasService.getAll(),
           estadosService.getAll(),
+          tiposProyectoService.getAll(),
         ]);
-        setData({ proyectos, empresas, tareas, estados });
+        setData({ proyectos, empresas, tareas, estados, tiposProyecto });
       } catch (err) {
         console.error('Error cargando dashboard:', err);
       } finally {
@@ -135,35 +138,59 @@ export default function Dashboard() {
               data.proyectos.slice(0, 5).map((p) => (
                 <div
                   key={p.id}
-                  className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-700/30 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
+                  className="p-3 rounded-xl bg-slate-50 dark:bg-slate-700/30 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
                 >
-                  <div className="min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
                     <p className="font-medium text-slate-800 dark:text-white truncate">{p.nombre}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{p.empresaNombre || 'Sin empresa'}</p>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {p.prioridad && (
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          p.prioridad === 'ALTA' || p.prioridad === 'CRITICA'
+                            ? 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400'
+                            : p.prioridad === 'MEDIA'
+                            ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                            : 'bg-slate-100 dark:bg-slate-600/50 text-slate-600 dark:text-slate-400'
+                        }`}>
+                          {p.prioridad}
+                        </span>
+                      )}
+                      {p.estadoNombre && (() => {
+                        const color = data.estados.find((e) => e.id === p.estadoId)?.color || '#6366f1';
+                        return (
+                          <span
+                            className="text-xs px-2 py-0.5 rounded-full font-medium"
+                            style={{ backgroundColor: color + '22', color }}
+                          >
+                            {p.estadoNombre}
+                          </span>
+                        );
+                      })()}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {p.prioridad && (
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        p.prioridad === 'ALTA' || p.prioridad === 'CRITICA'
-                          ? 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400'
-                          : p.prioridad === 'MEDIA'
-                          ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400'
-                          : 'bg-slate-100 dark:bg-slate-600/50 text-slate-600 dark:text-slate-400'
-                      }`}>
-                        {p.prioridad}
-                      </span>
-                    )}
-                    {p.estadoNombre && (() => {
-                      const color = data.estados.find((e) => e.id === p.estadoId)?.color || '#6366f1';
+                  <div className="flex items-center gap-3 flex-wrap text-xs text-slate-500 dark:text-slate-400">
+                    <span>{p.empresaNombre || 'Sin empresa'}</span>
+                    {p.tipoProyectoNombre && (() => {
+                      const tp = data.tiposProyecto.find((t) => t.id === p.tipoProyectoId);
+                      const color = tp?.color || '#6366f1';
                       return (
-                        <span
-                          className="text-xs px-2 py-0.5 rounded-full font-medium"
-                          style={{ backgroundColor: color + '22', color }}
-                        >
-                          {p.estadoNombre}
+                        <span className="flex items-center gap-1" style={{ color }}>
+                          <Tag className="w-3 h-3" />
+                          {p.tipoProyectoNombre}
                         </span>
                       );
                     })()}
+                    {p.fechaInicio && (
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        {new Date(p.fechaInicio).toLocaleDateString()}
+                      </span>
+                    )}
+                    {p.fechaFinEstimada && (
+                      <span className="flex items-center gap-1 text-amber-500 dark:text-amber-400">
+                        <Calendar className="w-3 h-3" />
+                        {new Date(p.fechaFinEstimada).toLocaleDateString()}
+                      </span>
+                    )}
                   </div>
                 </div>
               ))
