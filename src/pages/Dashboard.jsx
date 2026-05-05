@@ -7,13 +7,8 @@ import {
   ListChecks,
   ArrowRight,
   Clock,
-  TrendingUp,
 } from 'lucide-react';
-<<<<<<< HEAD
-import { proyectosService, empresasService, tareasService, etiquetasService, estadosService } from '../shared/services';
-=======
-import { proyectosService, empresasService, tareasService } from '../shared/services';
->>>>>>> develop
+import { proyectosService, empresasService, tareasService, estadosService } from '../shared/services';
 import { useAuth } from '../context/AuthContext';
 
 const container = {
@@ -27,33 +22,19 @@ const item = {
 
 export default function Dashboard() {
   const { user } = useAuth();
-<<<<<<< HEAD
-  const [data, setData] = useState({ proyectos: [], empresas: [], tareas: [], etiquetas: [], estados: [] });
-=======
-  const [data, setData] = useState({ proyectos: [], empresas: [], tareas: [] });
->>>>>>> develop
+  const [data, setData] = useState({ proyectos: [], empresas: [], tareas: [], estados: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       try {
-<<<<<<< HEAD
-        const [proyectos, empresas, tareas, etiquetas, estados] = await Promise.all([
+        const [proyectos, empresas, tareas, estados] = await Promise.all([
           proyectosService.getAll(),
           empresasService.getAll(),
           tareasService.getAll(),
-          etiquetasService.getAll(),
           estadosService.getAll(),
         ]);
-        setData({ proyectos, empresas, tareas, etiquetas, estados });
-=======
-        const [proyectos, empresas, tareas] = await Promise.all([
-          proyectosService.getAll(),
-          empresasService.getAll(),
-          tareasService.getAll(),
-        ]);
-        setData({ proyectos, empresas, tareas });
->>>>>>> develop
+        setData({ proyectos, empresas, tareas, estados });
       } catch (err) {
         console.error('Error cargando dashboard:', err);
       } finally {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Pencil, Trash2, Building2, Search, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Building2, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { empresasService } from '../../shared/services';
 import { getErrorMessage } from '../../shared/lib/errorUtils';

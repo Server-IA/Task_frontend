@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Pencil, Trash2, ListChecks, Search, Clock, MessageSquare, Filter } from 'lucide-react';
+import { Plus, Pencil, Trash2, ListChecks, Search, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { tareasService, proyectosService, estadosService } from '../../shared/services';
 import { getErrorMessage } from '../../shared/lib/errorUtils';
