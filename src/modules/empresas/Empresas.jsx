@@ -148,25 +148,11 @@ export default function Empresas() {
                     {empresa.correo}
                   </span>
                 )}
-<<<<<<< HEAD
-                {empresa.estadoNombre && (() => {
-                  const color = estados.find((e) => e.id === empresa.estadoId)?.color || '#6366f1';
-                  return (
-                    <span
-                      className="px-2 py-1 rounded-lg font-medium"
-                      style={{ backgroundColor: color + '22', color }}
-                    >
-                      {empresa.estadoNombre}
-                    </span>
-                  );
-                })()}
-=======
                 {(empresa.ciudad || empresa.departamento || empresa.pais) && (
                   <span className="px-2 py-1 bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 rounded-lg">
                     {[empresa.ciudad, empresa.departamento, empresa.pais].filter(Boolean).join(', ')}
                   </span>
                 )}
->>>>>>> develop
               </div>
             </motion.div>
           ))}
