@@ -5,12 +5,11 @@ import {
   FolderKanban,
   Building2,
   ListChecks,
-  Tags,
   ArrowRight,
   Clock,
   TrendingUp,
 } from 'lucide-react';
-import { proyectosService, empresasService, tareasService, etiquetasService } from '../shared/services';
+import { proyectosService, empresasService, tareasService } from '../shared/services';
 import { useAuth } from '../context/AuthContext';
 
 const container = {
@@ -24,19 +23,18 @@ const item = {
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [data, setData] = useState({ proyectos: [], empresas: [], tareas: [], etiquetas: [] });
+  const [data, setData] = useState({ proyectos: [], empresas: [], tareas: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       try {
-        const [proyectos, empresas, tareas, etiquetas] = await Promise.all([
+        const [proyectos, empresas, tareas] = await Promise.all([
           proyectosService.getAll(),
           empresasService.getAll(),
           tareasService.getAll(),
-          etiquetasService.getAll(),
         ]);
-        setData({ proyectos, empresas, tareas, etiquetas });
+        setData({ proyectos, empresas, tareas });
       } catch (err) {
         console.error('Error cargando dashboard:', err);
       } finally {
@@ -69,14 +67,6 @@ export default function Dashboard() {
       color: 'text-amber-600 dark:text-amber-400',
       bg: 'bg-amber-50 dark:bg-amber-500/10',
       link: '/tareas',
-    },
-    {
-      label: 'Etiquetas',
-      value: data.etiquetas.length,
-      icon: Tags,
-      color: 'text-violet-600 dark:text-violet-400',
-      bg: 'bg-violet-50 dark:bg-violet-500/10',
-      link: '/etiquetas',
     },
   ];
 

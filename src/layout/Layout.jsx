@@ -6,7 +6,6 @@ import {
   FolderKanban,
   Building2,
   ListChecks,
-  Tags,
   Settings,
   ChevronLeft,
   Menu,
@@ -25,7 +24,6 @@ const navItems = [
   { path: '/empresas', label: 'Empresas', icon: Building2 },
   { path: '/proyectos', label: 'Proyectos', icon: FolderKanban },
   { path: '/tareas', label: 'Tareas', icon: ListChecks },
-  { path: '/etiquetas', label: 'Etiquetas', icon: Tags },
   { path: '/estados', label: 'Estados', icon: Layers },
   { path: '/tipo-proyecto', label: 'Tipos de Proyecto', icon: Settings },
 ];

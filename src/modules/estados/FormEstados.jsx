@@ -7,7 +7,6 @@ export default function FormEstados({ onClose, onSave, initialData }) {
     nombre: '',
     descripcion: '',
     color: '#6366f1',
-    orden: 0,
   });
 
   useEffect(() => {
@@ -16,14 +15,13 @@ export default function FormEstados({ onClose, onSave, initialData }) {
         nombre: initialData.nombre || '',
         descripcion: initialData.descripcion || '',
         color: initialData.color || '#6366f1',
-        orden: initialData.orden || 0,
       });
     }
   }, [initialData]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave({ ...form, orden: Number(form.orden) });
+    onSave(form);
   };
 
   return (
@@ -73,31 +71,22 @@ export default function FormEstados({ onClose, onSave, initialData }) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Color</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={form.color}
-                  onChange={(e) => setForm({ ...form, color: e.target.value })}
-                  className="w-10 h-10 rounded-lg border border-slate-200 dark:border-slate-600 cursor-pointer"
-                />
-                <input
-                  value={form.color}
-                  onChange={(e) => setForm({ ...form, color: e.target.value })}
-                  className="flex-1 px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Orden</label>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Color</label>
+            <div className="flex items-center gap-3">
               <input
-                type="number"
-                value={form.orden}
-                onChange={(e) => setForm({ ...form, orden: e.target.value })}
-                className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                type="color"
+                value={form.color}
+                onChange={(e) => setForm({ ...form, color: e.target.value })}
+                className="w-12 h-12 rounded-xl border border-slate-200 dark:border-slate-600 cursor-pointer p-1"
               />
+              <input
+                value={form.color}
+                onChange={(e) => setForm({ ...form, color: e.target.value })}
+                className="flex-1 px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm font-mono"
+                placeholder="#6366f1"
+              />
+              <div className="w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-600" style={{ backgroundColor: form.color }} />
             </div>
           </div>
 

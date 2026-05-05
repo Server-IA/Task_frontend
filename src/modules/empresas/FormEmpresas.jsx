@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, Save } from 'lucide-react';
 
-export default function FormEmpresas({ onClose, onSave, initialData, estados }) {
+export default function FormEmpresas({ onClose, onSave, initialData }) {
   const [form, setForm] = useState({
     nombre: '',
     descripcion: '',
@@ -11,7 +11,9 @@ export default function FormEmpresas({ onClose, onSave, initialData, estados }) 
     telefono: '',
     direccion: '',
     sector: '',
-    estadoId: '',
+    pais: '',
+    departamento: '',
+    ciudad: '',
   });
 
   useEffect(() => {
@@ -24,7 +26,9 @@ export default function FormEmpresas({ onClose, onSave, initialData, estados }) 
         telefono: initialData.telefono || '',
         direccion: initialData.direccion || '',
         sector: initialData.sector || '',
-        estadoId: initialData.estadoId || '',
+        pais: initialData.pais || '',
+        departamento: initialData.departamento || '',
+        ciudad: initialData.ciudad || '',
       });
     }
   }, [initialData]);
@@ -36,9 +40,9 @@ export default function FormEmpresas({ onClose, onSave, initialData, estados }) 
 
   const fields = [
     { name: 'nombre', label: 'Nombre', required: true },
-    { name: 'nit', label: 'NIT' },
-    { name: 'correo', label: 'Correo', type: 'email' },
-    { name: 'telefono', label: 'Teléfono' },
+    { name: 'nit', label: 'NIT', required: true },
+    { name: 'correo', label: 'Correo', type: 'email', required: true },
+    { name: 'telefono', label: 'Teléfono', required: true, pattern: '[0-9]{7,15}', title: 'Ingrese entre 7 y 15 dígitos' },
     { name: 'direccion', label: 'Dirección' },
     { name: 'sector', label: 'Sector' },
   ];
@@ -76,6 +80,8 @@ export default function FormEmpresas({ onClose, onSave, initialData, estados }) 
               <input
                 type={f.type || 'text'}
                 required={f.required}
+                pattern={f.pattern}
+                title={f.title}
                 value={form[f.name]}
                 onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
                 className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
@@ -93,18 +99,31 @@ export default function FormEmpresas({ onClose, onSave, initialData, estados }) 
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Estado</label>
-            <select
-              value={form.estadoId}
-              onChange={(e) => setForm({ ...form, estadoId: e.target.value })}
-              className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-            >
-              <option value="">Seleccionar estado...</option>
-              {estados.map((est) => (
-                <option key={est.id} value={est.id}>{est.nombre}</option>
-              ))}
-            </select>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">País</label>
+              <input
+                value={form.pais}
+                onChange={(e) => setForm({ ...form, pais: e.target.value })}
+                className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Departamento</label>
+              <input
+                value={form.departamento}
+                onChange={(e) => setForm({ ...form, departamento: e.target.value })}
+                className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Ciudad</label>
+              <input
+                value={form.ciudad}
+                onChange={(e) => setForm({ ...form, ciudad: e.target.value })}
+                className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+              />
+            </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-4">

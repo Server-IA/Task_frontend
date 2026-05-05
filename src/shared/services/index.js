@@ -3,7 +3,6 @@ export { empresasService } from './empresasService';
 export { tiposProyectoService } from './tiposProyectoService';
 export { proyectosService } from './proyectosService';
 export { tareasService } from './tareasService';
-export { etiquetasService } from './etiquetasService';
 export { miembrosEmpresaService } from './miembrosEmpresaService';
 export { miembrosProyectoService } from './miembrosProyectoService';
 export { comentariosService } from './comentariosService';

@@ -6,7 +6,6 @@ export default function FormProyectos({ onClose, onSave, initialData, empresas, 
   const [form, setForm] = useState({
     nombre: '',
     descripcion: '',
-    codigo: '',
     prioridad: 'MEDIA',
     fechaInicio: '',
     fechaFinEstimada: '',
@@ -21,7 +20,6 @@ export default function FormProyectos({ onClose, onSave, initialData, empresas, 
       setForm({
         nombre: initialData.nombre || '',
         descripcion: initialData.descripcion || '',
-        codigo: initialData.codigo || '',
         prioridad: initialData.prioridad || 'MEDIA',
         fechaInicio: initialData.fechaInicio || '',
         fechaFinEstimada: initialData.fechaFinEstimada || '',
@@ -32,6 +30,10 @@ export default function FormProyectos({ onClose, onSave, initialData, empresas, 
       });
     }
   }, [initialData]);
+
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const minDate = tomorrow.toISOString().split('T')[0];
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -79,11 +81,6 @@ export default function FormProyectos({ onClose, onSave, initialData, empresas, 
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Código</label>
-            <input value={form.codigo} onChange={(e) => setForm({ ...form, codigo: e.target.value })} className={inputClass} placeholder="PRY-001" />
-          </div>
-
-          <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Descripción</label>
             <textarea
               value={form.descripcion}
@@ -95,15 +92,15 @@ export default function FormProyectos({ onClose, onSave, initialData, empresas, 
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Empresa</label>
-              <select value={form.empresaId} onChange={(e) => setForm({ ...form, empresaId: e.target.value })} className={inputClass}>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Empresa <span className="text-red-500">*</span></label>
+              <select required value={form.empresaId} onChange={(e) => setForm({ ...form, empresaId: e.target.value })} className={inputClass}>
                 <option value="">Seleccionar...</option>
                 {empresas.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tipo</label>
-              <select value={form.tipoProyectoId} onChange={(e) => setForm({ ...form, tipoProyectoId: e.target.value })} className={inputClass}>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tipo <span className="text-red-500">*</span></label>
+              <select required value={form.tipoProyectoId} onChange={(e) => setForm({ ...form, tipoProyectoId: e.target.value })} className={inputClass}>
                 <option value="">Seleccionar...</option>
                 {tiposProyecto.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
               </select>
@@ -131,12 +128,12 @@ export default function FormProyectos({ onClose, onSave, initialData, empresas, 
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Fecha inicio</label>
-              <input type="date" value={form.fechaInicio} onChange={(e) => setForm({ ...form, fechaInicio: e.target.value })} className={inputClass} />
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Fecha inicio <span className="text-red-500">*</span></label>
+              <input required type="date" value={form.fechaInicio} onChange={(e) => setForm({ ...form, fechaInicio: e.target.value })} className={inputClass} />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Fecha fin estimada</label>
-              <input type="date" value={form.fechaFinEstimada} onChange={(e) => setForm({ ...form, fechaFinEstimada: e.target.value })} className={inputClass} />
+              <input type="date" min={minDate} value={form.fechaFinEstimada} onChange={(e) => setForm({ ...form, fechaFinEstimada: e.target.value })} className={inputClass} />
             </div>
           </div>
 

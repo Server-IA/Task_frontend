@@ -106,10 +106,10 @@ export default function TipoProyecto() {
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-lg"
+                    className="w-10 h-10 rounded-xl flex items-center justify-center"
                     style={{ backgroundColor: (tipo.color || '#8b5cf6') + '20' }}
                   >
-                    {tipo.icono || '📁'}
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: tipo.color || '#8b5cf6' }} />
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-800 dark:text-white">{tipo.nombre}</h3>
