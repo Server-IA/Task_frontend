@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, Save } from 'lucide-react';
 
-export default function FormTareas({ onClose, onSave, initialData, proyectos, estados, etiquetas }) {
+export default function FormTareas({ onClose, onSave, initialData, proyectos, estados }) {
   const [form, setForm] = useState({
     titulo: '',
     descripcion: '',
@@ -10,7 +10,6 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
     fechaLimite: '',
     proyectoId: '',
     estadoId: '',
-    etiquetaIds: [],
     orden: 0,
   });
 
@@ -23,11 +22,14 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
         fechaLimite: initialData.fechaLimite || '',
         proyectoId: initialData.proyectoId || '',
         estadoId: initialData.estadoId || '',
-        etiquetaIds: initialData.etiquetaIds || [],
         orden: initialData.orden || 0,
       });
     }
   }, [initialData]);
+
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const minDate = tomorrow.toISOString().split('T')[0];
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -37,15 +39,6 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
       proyectoId: form.proyectoId || null,
       estadoId: form.estadoId || null,
     });
-  };
-
-  const toggleEtiqueta = (id) => {
-    setForm((prev) => ({
-      ...prev,
-      etiquetaIds: prev.etiquetaIds.includes(id)
-        ? prev.etiquetaIds.filter((i) => i !== id)
-        : [...prev.etiquetaIds, id],
-    }));
   };
 
   const inputClass = 'w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all';
@@ -94,8 +87,8 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Proyecto</label>
-              <select value={form.proyectoId} onChange={(e) => setForm({ ...form, proyectoId: e.target.value })} className={inputClass}>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Proyecto <span className="text-red-500">*</span></label>
+              <select required value={form.proyectoId} onChange={(e) => setForm({ ...form, proyectoId: e.target.value })} className={inputClass}>
                 <option value="">Seleccionar...</option>
                 {proyectos.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
               </select>
@@ -121,32 +114,9 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Fecha límite</label>
-              <input type="date" value={form.fechaLimite} onChange={(e) => setForm({ ...form, fechaLimite: e.target.value })} className={inputClass} />
+              <input type="date" min={minDate} value={form.fechaLimite} onChange={(e) => setForm({ ...form, fechaLimite: e.target.value })} className={inputClass} />
             </div>
           </div>
-
-          {etiquetas.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Etiquetas</label>
-              <div className="flex flex-wrap gap-2">
-                {etiquetas.map((et) => (
-                  <button
-                    key={et.id}
-                    type="button"
-                    onClick={() => toggleEtiqueta(et.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                      form.etiquetaIds.includes(et.id)
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400'
-                        : 'border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500'
-                    }`}
-                  >
-                    <span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: et.color || '#6366f1' }} />
-                    {et.nombre}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           <div className="flex justify-end gap-3 pt-4">
             <button type="button" onClick={onClose} className="px-4 py-2.5 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">

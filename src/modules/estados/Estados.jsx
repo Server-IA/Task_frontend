@@ -115,9 +115,6 @@ export default function Estados() {
                     {estado.descripcion && (
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{estado.descripcion}</p>
                     )}
-                    {estado.orden != null && (
-                      <span className="text-xs text-slate-400">Orden: {estado.orden}</span>
-                    )}
                   </div>
                 </div>
                 <div className="flex gap-1">

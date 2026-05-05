@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Pencil, Trash2, Building2, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { empresasService, estadosService } from '../../shared/services';
+import { empresasService } from '../../shared/services';
 import { getErrorMessage } from '../../shared/lib/errorUtils';
 import FormEmpresas from './FormEmpresas';
 
 export default function Empresas() {
   const [empresas, setEmpresas] = useState([]);
-  const [estados, setEstados] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
@@ -16,9 +16,8 @@ export default function Empresas() {
 
   const loadData = async () => {
     try {
-      const [e, est] = await Promise.all([empresasService.getAll(), estadosService.getAll()]);
+      const e = await empresasService.getAll();
       setEmpresas(e);
-      setEstados(est);
     } catch (err) {
       toast.error(getErrorMessage(err, 'Error al cargar las empresas'));
     } finally {
@@ -149,6 +148,7 @@ export default function Empresas() {
                     {empresa.correo}
                   </span>
                 )}
+<<<<<<< HEAD
                 {empresa.estadoNombre && (() => {
                   const color = estados.find((e) => e.id === empresa.estadoId)?.color || '#6366f1';
                   return (
@@ -160,6 +160,13 @@ export default function Empresas() {
                     </span>
                   );
                 })()}
+=======
+                {(empresa.ciudad || empresa.departamento || empresa.pais) && (
+                  <span className="px-2 py-1 bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 rounded-lg">
+                    {[empresa.ciudad, empresa.departamento, empresa.pais].filter(Boolean).join(', ')}
+                  </span>
+                )}
+>>>>>>> develop
               </div>
             </motion.div>
           ))}
@@ -179,7 +186,6 @@ export default function Empresas() {
             onClose={() => { setFormOpen(false); setEditItem(null); }}
             onSave={handleSave}
             initialData={editItem}
-            estados={estados}
           />
         )}
       </AnimatePresence>

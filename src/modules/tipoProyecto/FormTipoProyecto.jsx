@@ -7,7 +7,6 @@ export default function FormTipoProyecto({ onClose, onSave, initialData, estados
     nombre: '',
     descripcion: '',
     color: '#8b5cf6',
-    icono: '',
     estadoId: '',
   });
 
@@ -17,7 +16,6 @@ export default function FormTipoProyecto({ onClose, onSave, initialData, estados
         nombre: initialData.nombre || '',
         descripcion: initialData.descripcion || '',
         color: initialData.color || '#8b5cf6',
-        icono: initialData.icono || '',
         estadoId: initialData.estadoId || '',
       });
     }
@@ -67,17 +65,12 @@ export default function FormTipoProyecto({ onClose, onSave, initialData, estados
             <textarea value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} rows={2} className={`${inputClass} resize-none`} />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Color</label>
-              <div className="flex items-center gap-2">
-                <input type="color" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} className="w-10 h-10 rounded-lg border border-slate-200 dark:border-slate-600 cursor-pointer" />
-                <input value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} className={`flex-1 ${inputClass} text-sm`} />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Icono</label>
-              <input value={form.icono} onChange={(e) => setForm({ ...form, icono: e.target.value })} placeholder="Emoji..." className={inputClass} />
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Color</label>
+            <div className="flex items-center gap-3">
+              <input type="color" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} className="w-12 h-12 rounded-xl border border-slate-200 dark:border-slate-600 cursor-pointer p-1" />
+              <input value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} className={`flex-1 ${inputClass} text-sm font-mono`} placeholder="#8b5cf6" />
+              <div className="w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-600" style={{ backgroundColor: form.color }} />
             </div>
           </div>
 

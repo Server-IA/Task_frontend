@@ -12,7 +12,6 @@ import Empresas from './modules/empresas/Empresas';
 import Estados from './modules/estados/Estados';
 import TipoProyecto from './modules/tipoProyecto/TipoProyecto';
 import Tareas from './modules/tareas/Tareas';
-import Etiquetas from './modules/etiquetas/Etiquetas';
 import Perfil from './pages/Perfil';
 
 function AppRoute({ children }) {
@@ -40,7 +39,6 @@ export default function App() {
         <Route path="/empresas" element={<AppRoute><Empresas /></AppRoute>} />
         <Route path="/proyectos" element={<AppRoute><Proyectos /></AppRoute>} />
         <Route path="/tareas" element={<AppRoute><Tareas /></AppRoute>} />
-        <Route path="/etiquetas" element={<AppRoute><Etiquetas /></AppRoute>} />
         <Route path="/estados" element={<AppRoute><Estados /></AppRoute>} />
         <Route path="/tipo-proyecto" element={<AppRoute><TipoProyecto /></AppRoute>} />
         <Route path="/perfil" element={<AppRoute><Perfil /></AppRoute>} />

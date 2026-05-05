@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Pencil, Trash2, ListChecks, Search, Clock, MessageSquare, Filter } from 'lucide-react';
 import { toast } from 'sonner';
-import { tareasService, proyectosService, estadosService, etiquetasService } from '../../shared/services';
+import { tareasService, proyectosService, estadosService } from '../../shared/services';
 import { getErrorMessage } from '../../shared/lib/errorUtils';
 import FormTareas from './FormTareas';
 import TareaDetalle from './TareaDetalle';
@@ -11,7 +11,6 @@ export default function Tareas() {
   const [tareas, setTareas] = useState([]);
   const [proyectos, setProyectos] = useState([]);
   const [estados, setEstados] = useState([]);
-  const [etiquetas, setEtiquetas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
@@ -23,16 +22,14 @@ export default function Tareas() {
 
   const loadData = async () => {
     try {
-      const [t, p, e, et] = await Promise.all([
+      const [t, p, e] = await Promise.all([
         tareasService.getAll(),
         proyectosService.getAll(),
         estadosService.getAll(),
-        etiquetasService.getAll(),
       ]);
       setTareas(t);
       setProyectos(p);
       setEstados(e);
-      setEtiquetas(et);
     } catch (err) {
       toast.error(getErrorMessage(err, 'Error al cargar las tareas'));
     } finally {
@@ -294,7 +291,6 @@ export default function Tareas() {
             initialData={editItem}
             proyectos={proyectos}
             estados={estados}
-            etiquetas={etiquetas}
           />
         )}
       </AnimatePresence>

@@ -68,7 +68,6 @@ export default function Proyectos() {
   const filtered = proyectos.filter(
     (p) =>
       p.nombre?.toLowerCase().includes(search.toLowerCase()) ||
-      p.codigo?.toLowerCase().includes(search.toLowerCase()) ||
       p.empresaNombre?.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -131,8 +130,7 @@ export default function Proyectos() {
                   <div className="min-w-0">
                     <h3 className="font-semibold text-slate-800 dark:text-white truncate">{proyecto.nombre}</h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {proyecto.codigo && <span className="font-mono">{proyecto.codigo}</span>}
-                      {proyecto.empresaNombre && <span> · {proyecto.empresaNombre}</span>}
+                      {proyecto.empresaNombre && <span>{proyecto.empresaNombre}</span>}
                     </p>
                   </div>
                 </div>

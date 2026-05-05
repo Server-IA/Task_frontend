@@ -5,12 +5,15 @@ import {
   FolderKanban,
   Building2,
   ListChecks,
-  Tags,
   ArrowRight,
   Clock,
   TrendingUp,
 } from 'lucide-react';
+<<<<<<< HEAD
 import { proyectosService, empresasService, tareasService, etiquetasService, estadosService } from '../shared/services';
+=======
+import { proyectosService, empresasService, tareasService } from '../shared/services';
+>>>>>>> develop
 import { useAuth } from '../context/AuthContext';
 
 const container = {
@@ -24,12 +27,17 @@ const item = {
 
 export default function Dashboard() {
   const { user } = useAuth();
+<<<<<<< HEAD
   const [data, setData] = useState({ proyectos: [], empresas: [], tareas: [], etiquetas: [], estados: [] });
+=======
+  const [data, setData] = useState({ proyectos: [], empresas: [], tareas: [] });
+>>>>>>> develop
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       try {
+<<<<<<< HEAD
         const [proyectos, empresas, tareas, etiquetas, estados] = await Promise.all([
           proyectosService.getAll(),
           empresasService.getAll(),
@@ -38,6 +46,14 @@ export default function Dashboard() {
           estadosService.getAll(),
         ]);
         setData({ proyectos, empresas, tareas, etiquetas, estados });
+=======
+        const [proyectos, empresas, tareas] = await Promise.all([
+          proyectosService.getAll(),
+          empresasService.getAll(),
+          tareasService.getAll(),
+        ]);
+        setData({ proyectos, empresas, tareas });
+>>>>>>> develop
       } catch (err) {
         console.error('Error cargando dashboard:', err);
       } finally {
@@ -70,14 +86,6 @@ export default function Dashboard() {
       color: 'text-amber-600 dark:text-amber-400',
       bg: 'bg-amber-50 dark:bg-amber-500/10',
       link: '/tareas',
-    },
-    {
-      label: 'Etiquetas',
-      value: data.etiquetas.length,
-      icon: Tags,
-      color: 'text-violet-600 dark:text-violet-400',
-      bg: 'bg-violet-50 dark:bg-violet-500/10',
-      link: '/etiquetas',
     },
   ];
 
