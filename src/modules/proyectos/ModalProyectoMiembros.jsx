@@ -4,6 +4,8 @@ import { X, UserPlus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { miembrosProyectoService, usuariosService } from '@/shared/services';
 import { getErrorMessage } from '@/shared/lib/errorUtils';
+import { SelectField } from '@/shared/components';
+import { formatRoleLabel } from '@/shared/lib/roleUtils';
 
 const ROLES_PROYECTO = [
   { value: 'DESARROLLADOR', label: 'Desarrollador' },
@@ -208,15 +210,13 @@ export default function ModalProyectoMiembros({
                     <p className="text-xs text-amber-600">Carga miembros de la empresa primero.</p>
                   )}
                   <div className="flex flex-wrap gap-2 items-center">
-                    <select
-                      value={rolNuevo}
-                      onChange={(e) => setRolNuevo(e.target.value)}
-                      className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-white"
-                    >
-                      {ROLES_PROYECTO.map((r) => (
-                        <option key={r.value} value={r.value}>{r.label}</option>
-                      ))}
-                    </select>
+                    <div className="min-w-[190px]">
+                      <SelectField value={rolNuevo} onChange={(e) => setRolNuevo(e.target.value)}>
+                        {ROLES_PROYECTO.map((r) => (
+                          <option key={r.value} value={r.value}>{r.label}</option>
+                        ))}
+                      </SelectField>
+                    </div>
                     <button
                       type="button"
                       onClick={handleAdd}
@@ -253,17 +253,17 @@ export default function ModalProyectoMiembros({
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           {canManage ? (
-                            <select
-                              value={m.rol || 'DESARROLLADOR'}
-                              onChange={(e) => handleRolChange(m.id, e.target.value)}
-                              className="text-xs px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 max-w-[140px]"
-                            >
-                              {ROLES_PROYECTO.map((r) => (
-                                <option key={r.value} value={r.value}>{r.label}</option>
-                              ))}
-                            </select>
+                            <div className="min-w-[170px]">
+                              <SelectField value={m.rol || 'DESARROLLADOR'} onChange={(e) => handleRolChange(m.id, e.target.value)}>
+                                {ROLES_PROYECTO.map((r) => (
+                                  <option key={r.value} value={r.value}>{r.label}</option>
+                                ))}
+                              </SelectField>
+                            </div>
                           ) : (
-                            <span className="text-xs px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700">{m.rol}</span>
+                            <span className="text-xs px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700">
+                              {formatRoleLabel(m.rol)}
+                            </span>
                           )}
                           {canManage && Number(m.usuarioId) !== Number(currentUserId) && (
                             <button

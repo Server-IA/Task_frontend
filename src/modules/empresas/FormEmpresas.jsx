@@ -49,6 +49,11 @@ export default function FormEmpresas({ onClose, onSave, initialData }) {
     else if (!isValidEmail(form.correo)) e.correo = 'Ingresa un correo válido';
     if (isEmpty(form.telefono)) e.telefono = 'El teléfono es obligatorio';
     else if (!isValidPhone(form.telefono)) e.telefono = 'Ingresa entre 7 y 15 dígitos';
+    if (isEmpty(form.sector)) e.sector = 'El sector es obligatorio';
+    if (isEmpty(form.direccion)) e.direccion = 'La dirección es obligatoria';
+    if (isEmpty(form.pais)) e.pais = 'El país es obligatorio';
+    if (isEmpty(form.departamento)) e.departamento = 'El departamento es obligatorio';
+    if (isEmpty(form.ciudad)) e.ciudad = 'La ciudad es obligatoria';
     return e;
   };
 
@@ -150,23 +155,29 @@ export default function FormEmpresas({ onClose, onSave, initialData }) {
               <FieldError message={errors.telefono} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Sector</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Sector <span className="text-red-500">*</span>
+              </label>
               <input
                 value={form.sector}
                 onChange={(e) => handleChange('sector', e.target.value)}
-                className={inputNormal}
+                className={ic('sector')}
               />
+              <FieldError message={errors.sector} />
             </div>
           </div>
 
           {/* Dirección */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Dirección</label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              Dirección <span className="text-red-500">*</span>
+            </label>
             <input
               value={form.direccion}
               onChange={(e) => handleChange('direccion', e.target.value)}
-              className={inputNormal}
+              className={ic('direccion')}
             />
+            <FieldError message={errors.direccion} />
           </div>
 
           {/* Descripción */}
@@ -188,12 +199,15 @@ export default function FormEmpresas({ onClose, onSave, initialData }) {
               { name: 'ciudad', label: 'Ciudad' },
             ].map(({ name, label }) => (
               <div key={name}>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{label}</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  {label} <span className="text-red-500">*</span>
+                </label>
                 <input
                   value={form[name]}
                   onChange={(e) => handleChange(name, e.target.value)}
-                  className={inputNormal}
+                  className={ic(name)}
                 />
+                <FieldError message={errors[name]} />
               </div>
             ))}
           </div>

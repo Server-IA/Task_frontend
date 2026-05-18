@@ -4,6 +4,8 @@ import { X, UserPlus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { miembrosEmpresaService, usuariosService } from '@/shared/services';
 import { getErrorMessage } from '@/shared/lib/errorUtils';
+import { SelectField } from '@/shared/components';
+import { formatRoleLabel } from '@/shared/lib/roleUtils';
 
 const ROLES_EMPRESA = [
   { value: 'MIEMBRO', label: 'Miembro' },
@@ -177,15 +179,13 @@ export default function ModalEmpresaMiembros({ empresa, open, onClose, canManage
                   )}
                   {buscando && <p className="text-xs text-slate-500">Buscando…</p>}
                   <div className="flex flex-wrap gap-2 items-center">
-                    <select
-                      value={rolNuevo}
-                      onChange={(e) => setRolNuevo(e.target.value)}
-                      className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-white"
-                    >
-                      {ROLES_EMPRESA.map((r) => (
-                        <option key={r.value} value={r.value}>{r.label}</option>
-                      ))}
-                    </select>
+                    <div className="min-w-[170px]">
+                      <SelectField value={rolNuevo} onChange={(e) => setRolNuevo(e.target.value)}>
+                        {ROLES_EMPRESA.map((r) => (
+                          <option key={r.value} value={r.value}>{r.label}</option>
+                        ))}
+                      </SelectField>
+                    </div>
                     <button
                       type="button"
                       onClick={handleAdd}
@@ -222,17 +222,17 @@ export default function ModalEmpresaMiembros({ empresa, open, onClose, canManage
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           {canManage ? (
-                            <select
-                              value={m.rol || 'MIEMBRO'}
-                              onChange={(e) => handleRolChange(m.id, e.target.value)}
-                              className="text-xs px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800"
-                            >
-                              {ROLES_EMPRESA.map((r) => (
-                                <option key={r.value} value={r.value}>{r.label}</option>
-                              ))}
-                            </select>
+                            <div className="min-w-[140px]">
+                              <SelectField value={m.rol || 'MIEMBRO'} onChange={(e) => handleRolChange(m.id, e.target.value)}>
+                                {ROLES_EMPRESA.map((r) => (
+                                  <option key={r.value} value={r.value}>{r.label}</option>
+                                ))}
+                              </SelectField>
+                            </div>
                           ) : (
-                            <span className="text-xs px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700">{m.rol}</span>
+                            <span className="text-xs px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700">
+                              {formatRoleLabel(m.rol)}
+                            </span>
                           )}
                           {canManage && Number(m.usuarioId) !== Number(currentUserId) && (
                             <button

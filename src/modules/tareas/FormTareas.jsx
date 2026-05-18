@@ -4,10 +4,13 @@ import { X, Save } from 'lucide-react';
 import { SelectField, DateInput, FieldError } from '@/shared/components';
 import { miembrosProyectoService } from '@/shared/services';
 import { isEmpty } from '@/shared/lib/formValidation';
+import { formatRoleLabel } from '@/shared/lib/roleUtils';
 
 function labelMiembro(m) {
   const nombre = m.usuarioNombre?.trim() || m.usuarioApodo?.trim();
-  return nombre ? `${nombre} (${m.usuarioEmail})` : m.usuarioEmail || `Usuario #${m.usuarioId}`;
+  const rolLabel = formatRoleLabel(m.rol);
+  const base = nombre || m.usuarioEmail || `Usuario #${m.usuarioId}`;
+  return rolLabel ? `${base} — ${rolLabel}` : base;
 }
 
 const inputBase =
@@ -75,6 +78,8 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
     const e = {};
     if (isEmpty(form.titulo)) e.titulo = 'El título es obligatorio';
     if (isEmpty(form.proyectoId)) e.proyectoId = 'Selecciona un proyecto';
+    if (isEmpty(form.estadoId)) e.estadoId = 'Selecciona un estado';
+    if (isEmpty(form.fechaLimite)) e.fechaLimite = 'La fecha límite es obligatoria';
     return e;
   };
 
@@ -162,11 +167,14 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
               <FieldError message={errors.proyectoId} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Estado</label>
-              <SelectField value={form.estadoId} onChange={(e) => set('estadoId', e.target.value)}>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Estado <span className="text-red-500">*</span>
+              </label>
+              <SelectField value={form.estadoId} onChange={(e) => set('estadoId', e.target.value)} error={!!errors.estadoId}>
                 <option value="">Seleccionar...</option>
                 {estados.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
               </SelectField>
+              <FieldError message={errors.estadoId} />
             </div>
           </div>
 
@@ -213,12 +221,17 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
               </SelectField>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Fecha límite</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Fecha límite <span className="text-red-500">*</span>
+              </label>
               <DateInput
                 value={form.fechaLimite}
                 onChange={(e) => set('fechaLimite', e.target.value)}
                 min={minDate}
+                error={!!errors.fechaLimite}
+                required
               />
+              <FieldError message={errors.fechaLimite} />
             </div>
           </div>
 

@@ -48,7 +48,12 @@ export default function FormProyectos({ onClose, onSave, initialData, empresas, 
     if (isEmpty(form.nombre)) e.nombre = 'El nombre es obligatorio';
     if (isEmpty(form.empresaId)) e.empresaId = 'Selecciona una empresa';
     if (isEmpty(form.tipoProyectoId)) e.tipoProyectoId = 'Selecciona un tipo de proyecto';
+    if (isEmpty(form.estadoId)) e.estadoId = 'Selecciona un estado';
     if (isEmpty(form.fechaInicio)) e.fechaInicio = 'La fecha de inicio es obligatoria';
+    const progresoNum = Number(form.progreso);
+    if (!Number.isInteger(progresoNum) || progresoNum < 0 || progresoNum > 100) {
+      e.progreso = 'El progreso debe ser un número entero entre 0 y 100';
+    }
     return e;
   };
 
@@ -144,11 +149,14 @@ export default function FormProyectos({ onClose, onSave, initialData, empresas, 
           {/* Estado + Prioridad */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Estado</label>
-              <SelectField value={form.estadoId} onChange={(e) => set('estadoId', e.target.value)}>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Estado <span className="text-red-500">*</span>
+              </label>
+              <SelectField value={form.estadoId} onChange={(e) => set('estadoId', e.target.value)} error={!!errors.estadoId}>
                 <option value="">Seleccionar...</option>
                 {estados.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
               </SelectField>
+              <FieldError message={errors.estadoId} />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Prioridad</label>
@@ -187,15 +195,19 @@ export default function FormProyectos({ onClose, onSave, initialData, empresas, 
 
           {/* Progreso */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Progreso (%)</label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              Progreso (%)
+            </label>
             <input
               type="number"
               min="0"
               max="100"
+              step="1"
               value={form.progreso}
               onChange={(e) => set('progreso', e.target.value)}
-              className={inputNormal}
+              className={errors.progreso ? inputError : inputNormal}
             />
+            <FieldError message={errors.progreso} />
           </div>
 
           <div className="flex justify-end gap-3 pt-4">

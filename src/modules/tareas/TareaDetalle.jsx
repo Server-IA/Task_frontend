@@ -5,8 +5,24 @@ import { toast } from 'sonner';
 import { comentariosService } from '@/shared/services';
 import { getErrorMessage } from '@/shared/lib/errorUtils';
 import { ConfirmDialog } from '@/shared/components';
+import { useAuth } from '@/context/AuthContext';
+
+const parseServerDate = (value) => {
+  if (!value) return null;
+  if (typeof value === 'string' && !(/[zZ]|[+-]\d{2}:\d{2}$/.test(value))) {
+    return new Date(`${value}Z`);
+  }
+  return new Date(value);
+};
+
+const formatDateTime = (value) => {
+  const date = parseServerDate(value);
+  if (!date || Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString();
+};
 
 export default function TareaDetalle({ tarea, estados = [], onClose, onEdit, onRefresh }) {
+  const { user } = useAuth();
   const [comentarios, setComentarios] = useState([]);
   const [nuevoComentario, setNuevoComentario] = useState('');
   const [loadingComentarios, setLoadingComentarios] = useState(true);
@@ -167,14 +183,16 @@ export default function TareaDetalle({ tarea, estados = [], onClose, onEdit, onR
                       </span>
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-slate-400">
-                          {new Date(c.fechaCreacion).toLocaleString()}
+                          {formatDateTime(c.fechaCreacion)}
                         </span>
-                        <button
-                          onClick={() => handleDeleteComentario(c.id)}
-                          className="opacity-0 group-hover:opacity-100 p-1 rounded text-slate-400 hover:text-red-500 transition-all"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
+                        {user?.id && Number(c.autorId) === Number(user.id) && (
+                          <button
+                            onClick={() => handleDeleteComentario(c.id)}
+                            className="opacity-0 group-hover:opacity-100 p-1 rounded text-slate-400 hover:text-red-500 transition-all"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
                       </div>
                     </div>
                     <p className="text-sm text-slate-600 dark:text-slate-400">{c.contenido}</p>
