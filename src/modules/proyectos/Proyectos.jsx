@@ -1,22 +1,62 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Pencil, Trash2, FolderKanban, Search, Calendar, TrendingUp, Tag } from 'lucide-react';
+import { Plus, Pencil, Trash2, FolderKanban, Search, Calendar, TrendingUp, Tag, Users } from 'lucide-react';
 import { toast } from 'sonner';
-import { proyectosService, empresasService, tiposProyectoService, estadosService } from '@/shared/services';
+import {
+  proyectosService,
+  empresasService,
+  tiposProyectoService,
+  estadosService,
+  miembrosEmpresaService,
+  miembrosProyectoService,
+} from '@/shared/services';
 import { getErrorMessage } from '@/shared/lib/errorUtils';
 import { ConfirmDialog } from '@/shared/components';
+import { useAuth } from '@/context/AuthContext';
 import FormProyectos from './FormProyectos';
+import ModalProyectoMiembros from './ModalProyectoMiembros';
 
 export default function Proyectos() {
+  const { user } = useAuth();
   const [proyectos, setProyectos] = useState([]);
   const [empresas, setEmpresas] = useState([]);
   const [tiposProyecto, setTiposProyecto] = useState([]);
   const [estados, setEstados] = useState([]);
+  const [miembrosPorEmpresa, setMiembrosPorEmpresa] = useState({});
+  const [miembrosPorProyecto, setMiembrosPorProyecto] = useState({});
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [search, setSearch] = useState('');
   const [confirmItem, setConfirmItem] = useState(null);
+  const [miembrosModalProyecto, setMiembrosModalProyecto] = useState(null);
+
+  const cargarMapasMiembros = async (listaProyectos) => {
+    const empresaIds = [...new Set(listaProyectos.map((pr) => pr.empresaId))];
+    const empresaEntries = await Promise.all(
+      empresaIds.map(async (id) => {
+        try {
+          const m = await miembrosEmpresaService.getByEmpresa(id);
+          return [id, m];
+        } catch {
+          return [id, []];
+        }
+      })
+    );
+    setMiembrosPorEmpresa(Object.fromEntries(empresaEntries));
+
+    const proyectoEntries = await Promise.all(
+      listaProyectos.map(async (pr) => {
+        try {
+          const m = await miembrosProyectoService.getByProyecto(pr.id);
+          return [pr.id, m];
+        } catch {
+          return [pr.id, []];
+        }
+      })
+    );
+    setMiembrosPorProyecto(Object.fromEntries(proyectoEntries));
+  };
 
   const loadData = async () => {
     try {
@@ -30,6 +70,7 @@ export default function Proyectos() {
       setEmpresas(e);
       setTiposProyecto(tp);
       setEstados(est);
+      await cargarMapasMiembros(p);
     } catch (err) {
       toast.error(getErrorMessage(err, 'Error al cargar los proyectos'));
     } finally {
@@ -37,7 +78,43 @@ export default function Proyectos() {
     }
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const puedeGestionarProyecto = (pr) => {
+    if (!user?.id || !pr) return false;
+    if (Number(pr.creadorId) === Number(user.id)) return true;
+    const emp = empresas.find((x) => x.id === pr.empresaId);
+    if (Number(emp?.creadorId) === Number(user.id)) return true;
+    const me = miembrosPorEmpresa[pr.empresaId] || [];
+    if (
+      me.some(
+        (m) =>
+          Number(m.usuarioId) === Number(user.id) &&
+          String(m.rol || '').toUpperCase() === 'ADMIN'
+      )
+    ) {
+      return true;
+    }
+    const mp = miembrosPorProyecto[pr.id] || [];
+    return mp.some(
+      (m) =>
+        Number(m.usuarioId) === Number(user.id) &&
+        String(m.rol || '').toUpperCase() === 'LIDER'
+    );
+  };
+
+  const usuarioIdsMiembrosEmpresa = (proyecto) => {
+    if (!proyecto) return [];
+    const emp = empresas.find((x) => x.id === proyecto.empresaId);
+    const ids = new Set();
+    if (emp?.creadorId != null) ids.add(Number(emp.creadorId));
+    (miembrosPorEmpresa[proyecto.empresaId] || []).forEach((m) => {
+      if (m.activo !== false) ids.add(Number(m.usuarioId));
+    });
+    return Array.from(ids);
+  };
 
   const handleDelete = (proyecto) => {
     if (proyecto.estadoNombre?.toLowerCase() !== 'completado') {
@@ -104,7 +181,11 @@ export default function Proyectos() {
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{proyectos.length} proyectos</p>
         </div>
         <button
-          onClick={() => { setEditItem(null); setFormOpen(true); }}
+          type="button"
+          onClick={() => {
+            setEditItem(null);
+            setFormOpen(true);
+          }}
           className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors"
         >
           <Plus className="w-4 h-4" />
@@ -147,19 +228,40 @@ export default function Proyectos() {
                 </div>
                 <div className="flex gap-1 shrink-0">
                   <button
-                    onClick={() => { setEditItem(proyecto); setFormOpen(true); }}
-                    className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-500 transition-colors"
+                    type="button"
+                    title="Equipo"
+                    onClick={() => setMiembrosModalProyecto(proyecto)}
+                    className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-emerald-600 transition-colors"
                   >
-                    <Pencil className="w-4 h-4" />
+                    <Users className="w-4 h-4" />
                   </button>
-                  <button
-                    onClick={() => handleDelete(proyecto)}
-                    disabled={proyecto.estadoNombre?.toLowerCase() !== 'completado'}
-                    title={proyecto.estadoNombre?.toLowerCase() !== 'completado' ? 'Solo se puede eliminar cuando el estado es Completado' : 'Eliminar proyecto'}
-                    className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-red-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-slate-400 disabled:hover:bg-transparent"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {puedeGestionarProyecto(proyecto) && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditItem(proyecto);
+                          setFormOpen(true);
+                        }}
+                        className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-500 transition-colors"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(proyecto)}
+                        disabled={proyecto.estadoNombre?.toLowerCase() !== 'completado'}
+                        title={
+                          proyecto.estadoNombre?.toLowerCase() !== 'completado'
+                            ? 'Solo se puede eliminar cuando el estado es Completado'
+                            : 'Eliminar proyecto'
+                        }
+                        className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-red-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-slate-400 disabled:hover:bg-transparent"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -184,36 +286,38 @@ export default function Proyectos() {
                 </div>
               )}
 
-                <div className="flex flex-wrap gap-2 text-xs">
-                {proyecto.tipoProyectoNombre && (() => {
-                  const tp = tiposProyecto.find((t) => t.id === proyecto.tipoProyectoId);
-                  const color = tp?.color || '#6366f1';
-                  return (
-                    <span
-                      className="px-2 py-0.5 rounded-full font-medium flex items-center gap-1"
-                      style={{ backgroundColor: color + '22', color }}
-                    >
-                      <Tag className="w-3 h-3" />
-                      {proyecto.tipoProyectoNombre}
-                    </span>
-                  );
-                })()}
+              <div className="flex flex-wrap gap-2 text-xs">
+                {proyecto.tipoProyectoNombre &&
+                  (() => {
+                    const tp = tiposProyecto.find((t) => t.id === proyecto.tipoProyectoId);
+                    const color = tp?.color || '#6366f1';
+                    return (
+                      <span
+                        className="px-2 py-0.5 rounded-full font-medium flex items-center gap-1"
+                        style={{ backgroundColor: `${color}22`, color }}
+                      >
+                        <Tag className="w-3 h-3" />
+                        {proyecto.tipoProyectoNombre}
+                      </span>
+                    );
+                  })()}
                 {proyecto.prioridad && (
                   <span className={`px-2 py-0.5 rounded-full font-medium ${priorityColor(proyecto.prioridad)}`}>
                     {proyecto.prioridad}
                   </span>
                 )}
-                {proyecto.estadoNombre && (() => {
-                  const color = estados.find((e) => e.id === proyecto.estadoId)?.color || '#6366f1';
-                  return (
-                    <span
-                      className="px-2 py-0.5 rounded-full font-medium"
-                      style={{ backgroundColor: color + '22', color }}
-                    >
-                      {proyecto.estadoNombre}
-                    </span>
-                  );
-                })()}
+                {proyecto.estadoNombre &&
+                  (() => {
+                    const color = estados.find((e) => e.id === proyecto.estadoId)?.color || '#6366f1';
+                    return (
+                      <span
+                        className="px-2 py-0.5 rounded-full font-medium"
+                        style={{ backgroundColor: `${color}22`, color }}
+                      >
+                        {proyecto.estadoNombre}
+                      </span>
+                    );
+                  })()}
                 {proyecto.fechaInicio && (
                   <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 flex items-center gap-1">
                     <Calendar className="w-3 h-3" />
@@ -242,7 +346,10 @@ export default function Proyectos() {
       <AnimatePresence>
         {formOpen && (
           <FormProyectos
-            onClose={() => { setFormOpen(false); setEditItem(null); }}
+            onClose={() => {
+              setFormOpen(false);
+              setEditItem(null);
+            }}
             onSave={handleSave}
             initialData={editItem}
             empresas={empresas}
@@ -251,6 +358,16 @@ export default function Proyectos() {
           />
         )}
       </AnimatePresence>
+
+      <ModalProyectoMiembros
+        proyecto={miembrosModalProyecto}
+        open={!!miembrosModalProyecto}
+        onClose={() => setMiembrosModalProyecto(null)}
+        canManage={miembrosModalProyecto ? puedeGestionarProyecto(miembrosModalProyecto) : false}
+        currentUserId={user?.id}
+        miembrosEmpresaIds={usuarioIdsMiembrosEmpresa(miembrosModalProyecto)}
+        onUpdated={() => cargarMapasMiembros(proyectos)}
+      />
 
       <ConfirmDialog
         open={!!confirmItem}

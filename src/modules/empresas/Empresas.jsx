@@ -1,25 +1,44 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Pencil, Trash2, Building2, Search } from 'lucide-react';
+import { Plus, Pencil, Trash2, Building2, Search, Users } from 'lucide-react';
 import { toast } from 'sonner';
-import { empresasService } from '@/shared/services';
+import { empresasService, miembrosEmpresaService } from '@/shared/services';
 import { getErrorMessage } from '@/shared/lib/errorUtils';
 import { ConfirmDialog } from '@/shared/components';
+import { useAuth } from '@/context/AuthContext';
 import FormEmpresas from './FormEmpresas';
+import ModalEmpresaMiembros from './ModalEmpresaMiembros';
 
 export default function Empresas() {
+  const { user } = useAuth();
   const [empresas, setEmpresas] = useState([]);
-
+  const [miembrosPorEmpresa, setMiembrosPorEmpresa] = useState({});
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [search, setSearch] = useState('');
   const [confirmItem, setConfirmItem] = useState(null);
+  const [miembrosModalEmpresa, setMiembrosModalEmpresa] = useState(null);
+
+  const refreshMiembrosMaps = async (listaEmpresas) => {
+    const entries = await Promise.all(
+      listaEmpresas.map(async (emp) => {
+        try {
+          const m = await miembrosEmpresaService.getByEmpresa(emp.id);
+          return [emp.id, m];
+        } catch {
+          return [emp.id, []];
+        }
+      })
+    );
+    setMiembrosPorEmpresa(Object.fromEntries(entries));
+  };
 
   const loadData = async () => {
     try {
       const e = await empresasService.getAll();
       setEmpresas(e);
+      await refreshMiembrosMaps(e);
     } catch (err) {
       toast.error(getErrorMessage(err, 'Error al cargar las empresas'));
     } finally {
@@ -27,7 +46,20 @@ export default function Empresas() {
     }
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const puedeGestionarEmpresa = (empresa) => {
+    if (!user?.id || !empresa) return false;
+    if (Number(empresa.creadorId) === Number(user.id)) return true;
+    const lista = miembrosPorEmpresa[empresa.id] || [];
+    return lista.some(
+      (m) =>
+        Number(m.usuarioId) === Number(user.id) &&
+        String(m.rol || '').toUpperCase() === 'ADMIN'
+    );
+  };
 
   const handleDelete = (empresa) => setConfirmItem(empresa);
 
@@ -83,7 +115,11 @@ export default function Empresas() {
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{empresas.length} empresas registradas</p>
         </div>
         <button
-          onClick={() => { setEditItem(null); setFormOpen(true); }}
+          type="button"
+          onClick={() => {
+            setEditItem(null);
+            setFormOpen(true);
+          }}
           className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors"
         >
           <Plus className="w-4 h-4" />
@@ -124,17 +160,34 @@ export default function Empresas() {
                 </div>
                 <div className="flex gap-1">
                   <button
-                    onClick={() => { setEditItem(empresa); setFormOpen(true); }}
-                    className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-500 transition-colors"
+                    type="button"
+                    title="Miembros"
+                    onClick={() => setMiembrosModalEmpresa(empresa)}
+                    className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-emerald-600 transition-colors"
                   >
-                    <Pencil className="w-4 h-4" />
+                    <Users className="w-4 h-4" />
                   </button>
-                  <button
-                    onClick={() => handleDelete(empresa)}
-                    className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-red-500 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {puedeGestionarEmpresa(empresa) && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditItem(empresa);
+                          setFormOpen(true);
+                        }}
+                        className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-500 transition-colors"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(empresa)}
+                        className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -174,12 +227,24 @@ export default function Empresas() {
       <AnimatePresence>
         {formOpen && (
           <FormEmpresas
-            onClose={() => { setFormOpen(false); setEditItem(null); }}
+            onClose={() => {
+              setFormOpen(false);
+              setEditItem(null);
+            }}
             onSave={handleSave}
             initialData={editItem}
           />
         )}
       </AnimatePresence>
+
+      <ModalEmpresaMiembros
+        empresa={miembrosModalEmpresa}
+        open={!!miembrosModalEmpresa}
+        onClose={() => setMiembrosModalEmpresa(null)}
+        canManage={miembrosModalEmpresa ? puedeGestionarEmpresa(miembrosModalEmpresa) : false}
+        currentUserId={user?.id}
+        onUpdated={() => refreshMiembrosMaps(empresas)}
+      />
 
       <ConfirmDialog
         open={!!confirmItem}

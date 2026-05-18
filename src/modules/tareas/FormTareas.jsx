@@ -2,7 +2,13 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, Save } from 'lucide-react';
 import { SelectField, DateInput, FieldError } from '@/shared/components';
+import { miembrosProyectoService } from '@/shared/services';
 import { isEmpty } from '@/shared/lib/formValidation';
+
+function labelMiembro(m) {
+  const nombre = m.usuarioNombre?.trim() || m.usuarioApodo?.trim();
+  return nombre ? `${nombre} (${m.usuarioEmail})` : m.usuarioEmail || `Usuario #${m.usuarioId}`;
+}
 
 const inputBase =
   'w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border rounded-xl text-slate-800 dark:text-white focus:outline-none focus:ring-2 transition-all';
@@ -17,9 +23,12 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
     fechaLimite: '',
     proyectoId: '',
     estadoId: '',
+    asignadoId: '',
     orden: 0,
   });
   const [errors, setErrors] = useState({});
+  const [miembrosProyecto, setMiembrosProyecto] = useState([]);
+  const [cargandoMiembros, setCargandoMiembros] = useState(false);
 
   useEffect(() => {
     if (initialData) {
@@ -28,12 +37,35 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
         descripcion: initialData.descripcion || '',
         prioridad: initialData.prioridad || 'MEDIA',
         fechaLimite: initialData.fechaLimite || '',
-        proyectoId: initialData.proyectoId || '',
-        estadoId: initialData.estadoId || '',
+        proyectoId: initialData.proyectoId ? String(initialData.proyectoId) : '',
+        estadoId: initialData.estadoId ? String(initialData.estadoId) : '',
+        asignadoId: initialData.asignadoId ? String(initialData.asignadoId) : '',
         orden: initialData.orden || 0,
       });
     }
   }, [initialData]);
+
+  useEffect(() => {
+    if (!form.proyectoId) {
+      setMiembrosProyecto([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setCargandoMiembros(true);
+      try {
+        const lista = await miembrosProyectoService.getByProyecto(form.proyectoId);
+        if (!cancelled) setMiembrosProyecto(lista);
+      } catch {
+        if (!cancelled) setMiembrosProyecto([]);
+      } finally {
+        if (!cancelled) setCargandoMiembros(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [form.proyectoId]);
 
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -47,7 +79,13 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
   };
 
   const set = (name, value) => {
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm((prev) => {
+      const next = { ...prev, [name]: value };
+      if (name === 'proyectoId' && value !== prev.proyectoId) {
+        next.asignadoId = '';
+      }
+      return next;
+    });
     if (errors[name]) setErrors((prev) => { const n = { ...prev }; delete n[name]; return n; });
   };
 
@@ -58,8 +96,9 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
     onSave({
       ...form,
       orden: Number(form.orden),
-      proyectoId: form.proyectoId || null,
-      estadoId: form.estadoId || null,
+      proyectoId: form.proyectoId ? Number(form.proyectoId) : null,
+      estadoId: form.estadoId ? Number(form.estadoId) : null,
+      asignadoId: form.asignadoId ? Number(form.asignadoId) : null,
     });
   };
 
@@ -129,6 +168,37 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
                 {estados.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
               </SelectField>
             </div>
+          </div>
+
+          {/* Asignado */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              Asignado a
+            </label>
+            <SelectField
+              value={form.asignadoId}
+              onChange={(e) => set('asignadoId', e.target.value)}
+              disabled={!form.proyectoId || cargandoMiembros}
+            >
+              <option value="">
+                {!form.proyectoId
+                  ? 'Selecciona un proyecto primero'
+                  : cargandoMiembros
+                    ? 'Cargando equipo...'
+                    : 'Sin asignar'}
+              </option>
+              {miembrosProyecto.map((m) => (
+                <option key={m.usuarioId} value={m.usuarioId}>
+                  {labelMiembro(m)}
+                  {m.rol ? ` — ${m.rol}` : ''}
+                </option>
+              ))}
+            </SelectField>
+            {form.proyectoId && !cargandoMiembros && miembrosProyecto.length === 0 && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                No hay integrantes en este proyecto. Añádelos en Proyectos → Equipo.
+              </p>
+            )}
           </div>
 
           {/* Prioridad + Fecha */}
