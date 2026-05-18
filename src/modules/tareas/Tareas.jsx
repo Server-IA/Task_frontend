@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Pencil, Trash2, ListChecks, Search, Clock } from 'lucide-react';
+import { Plus, Pencil, Trash2, ListChecks, Search, Clock, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { tareasService, proyectosService, estadosService } from '@/shared/services';
 import { getErrorMessage } from '@/shared/lib/errorUtils';
 import { SelectField, ConfirmDialog } from '@/shared/components';
+import { useAuth } from '@/context/AuthContext';
 import FormTareas from './FormTareas';
 import TareaDetalle from './TareaDetalle';
 
 export default function Tareas() {
+  const { user } = useAuth();
   const [tareas, setTareas] = useState([]);
   const [proyectos, setProyectos] = useState([]);
   const [estados, setEstados] = useState([]);
@@ -97,6 +99,10 @@ export default function Tareas() {
     if (!fecha) return false;
     return new Date(fecha) < new Date() && !fecha.fechaCompletada;
   };
+
+  const isLimitedEditor = (tarea) => (
+    !!(user?.id && Number(tarea.asignadoId) === Number(user.id) && Number(tarea.creadorId) !== Number(user.id))
+  );
 
   // Kanban view grouped by estado
   const kanbanColumns = estados.map((est) => ({
@@ -217,12 +223,23 @@ export default function Tareas() {
                         </span>
                       );
                     })()}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setEditItem(tarea); setFormOpen(true); }}
-                      className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-500 transition-colors"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
+                    {isLimitedEditor(tarea) ? (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setEditItem(tarea); setFormOpen(true); }}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition-colors"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        Cambiar estado
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setEditItem(tarea); setFormOpen(true); }}
+                        title="Editar tarea"
+                        className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-500 transition-colors"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                    )}
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDelete(tarea); }}
                       disabled={tarea.estadoNombre?.toLowerCase() !== 'completado'}
@@ -257,7 +274,18 @@ export default function Tareas() {
                     className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700/50 p-3 hover:shadow-md transition-shadow cursor-pointer"
                     onClick={() => setDetalleItem(tarea)}
                   >
-                    <h4 className="font-medium text-slate-800 dark:text-white text-sm mb-1 truncate">{tarea.titulo}</h4>
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <h4 className="font-medium text-slate-800 dark:text-white text-sm truncate">{tarea.titulo}</h4>
+                      {isLimitedEditor(tarea) && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setEditItem(tarea); setFormOpen(true); }}
+                          className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                          title="Cambiar estado"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                       {tarea.prioridad && (
                         <span className={`px-1.5 py-0.5 rounded font-medium ${priorityColor(tarea.prioridad)}`}>

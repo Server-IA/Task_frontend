@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { X, Pencil, Clock, User, FolderKanban, Send, Trash2 } from 'lucide-react';
+import { X, Pencil, Clock, User, FolderKanban, Send, Trash2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { comentariosService } from '@/shared/services';
 import { getErrorMessage } from '@/shared/lib/errorUtils';
@@ -23,6 +23,11 @@ const formatDateTime = (value) => {
 
 export default function TareaDetalle({ tarea, estados = [], onClose, onEdit, onRefresh }) {
   const { user } = useAuth();
+  const isLimitedEditor = !!(
+    user?.id &&
+    Number(tarea.asignadoId) === Number(user.id) &&
+    Number(tarea.creadorId) !== Number(user.id)
+  );
   const [comentarios, setComentarios] = useState([]);
   const [nuevoComentario, setNuevoComentario] = useState('');
   const [loadingComentarios, setLoadingComentarios] = useState(true);
@@ -94,12 +99,23 @@ export default function TareaDetalle({ tarea, estados = [], onClose, onEdit, onR
         <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700">
           <h2 className="text-lg font-semibold text-slate-800 dark:text-white truncate pr-4">{tarea.titulo}</h2>
           <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => onEdit(tarea)}
-              className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-500 transition-colors"
-            >
-              <Pencil className="w-4 h-4" />
-            </button>
+            {isLimitedEditor ? (
+              <button
+                onClick={() => onEdit(tarea)}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Cambiar estado
+              </button>
+            ) : (
+              <button
+                onClick={() => onEdit(tarea)}
+                title="Editar tarea"
+                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-500 transition-colors"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            )}
             <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
               <X className="w-5 h-5" />
             </button>

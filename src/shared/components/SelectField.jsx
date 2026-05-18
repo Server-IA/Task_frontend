@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, Children, isValidElement } from 'react';
+import { useState, useRef, useEffect, useMemo, Children, isValidElement } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Check } from 'lucide-react';
 
@@ -15,6 +16,8 @@ export default function SelectField({
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const menuRef = useRef(null);
+  const [menuStyle, setMenuStyle] = useState(null);
 
   // Parsear hijos <option> en array { value, label }
   const options = Children.toArray(children)
@@ -26,15 +29,47 @@ export default function SelectField({
 
   const selected = options.find((o) => String(o.value) === String(value ?? ''));
   const isPlaceholder = !selected || selected.value === '';
+  const menuMaxHeight = 208;
+
+  const updateMenuPosition = () => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const openUp = spaceBelow < menuMaxHeight && spaceAbove > spaceBelow;
+    const top = openUp ? rect.top - menuMaxHeight - 8 : rect.bottom + 6;
+    setMenuStyle({
+      position: 'fixed',
+      top: Math.max(8, top),
+      left: rect.left,
+      width: rect.width,
+      zIndex: 9999,
+      placement: openUp ? 'top' : 'bottom',
+    });
+  };
 
   // Cerrar al hacer click fuera
   useEffect(() => {
     const handler = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      const target = e.target;
+      if (ref.current?.contains(target) || menuRef.current?.contains(target)) return;
+      setOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    updateMenuPosition();
+    const handler = () => updateMenuPosition();
+    window.addEventListener('resize', handler);
+    window.addEventListener('scroll', handler, true);
+    return () => {
+      window.removeEventListener('resize', handler);
+      window.removeEventListener('scroll', handler, true);
+    };
+  }, [open, options.length]);
 
   const handleSelect = (optVal) => {
     onChange({ target: { value: optVal } });
@@ -71,14 +106,16 @@ export default function SelectField({
       </button>
 
       {/* Lista desplegable animada */}
-      <AnimatePresence>
-        {open && (
+      {open && menuStyle && createPortal(
+        <AnimatePresence>
           <motion.div
-            initial={{ opacity: 0, y: -6, scale: 0.98 }}
+            ref={menuRef}
+            initial={{ opacity: 0, y: menuStyle.placement === 'top' ? 6 : -6, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.98 }}
+            exit={{ opacity: 0, y: menuStyle.placement === 'top' ? 6 : -6, scale: 0.98 }}
             transition={{ duration: 0.14, ease: 'easeOut' }}
-            className="absolute z-[9999] w-full mt-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden"
+            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden"
+            style={menuStyle}
           >
             <div className="max-h-52 overflow-y-auto py-1">
               {options.map((opt) => {
@@ -107,8 +144,9 @@ export default function SelectField({
               })}
             </div>
           </motion.div>
-        )}
-      </AnimatePresence>
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 }

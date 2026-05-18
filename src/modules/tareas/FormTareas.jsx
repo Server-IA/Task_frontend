@@ -5,6 +5,7 @@ import { SelectField, DateInput, FieldError } from '@/shared/components';
 import { miembrosProyectoService } from '@/shared/services';
 import { isEmpty } from '@/shared/lib/formValidation';
 import { formatRoleLabel } from '@/shared/lib/roleUtils';
+import { useAuth } from '@/context/AuthContext';
 
 function labelMiembro(m) {
   const nombre = m.usuarioNombre?.trim() || m.usuarioApodo?.trim();
@@ -19,6 +20,7 @@ const inputNormal = `${inputBase} border-slate-200 dark:border-slate-600 focus:r
 const inputError = `${inputBase} border-red-400 dark:border-red-500 focus:ring-red-400`;
 
 export default function FormTareas({ onClose, onSave, initialData, proyectos, estados }) {
+  const { user } = useAuth();
   const [form, setForm] = useState({
     titulo: '',
     descripcion: '',
@@ -32,6 +34,12 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
   const [errors, setErrors] = useState({});
   const [miembrosProyecto, setMiembrosProyecto] = useState([]);
   const [cargandoMiembros, setCargandoMiembros] = useState(false);
+  const isLimitedEditor = !!(
+    initialData &&
+    user?.id &&
+    Number(initialData.asignadoId) === Number(user.id) &&
+    Number(initialData.creadorId) !== Number(user.id)
+  );
 
   useEffect(() => {
     if (initialData) {
@@ -126,7 +134,7 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
       >
         <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700">
           <h2 className="text-lg font-semibold text-slate-800 dark:text-white">
-            {initialData ? 'Editar Tarea' : 'Nueva Tarea'}
+            {isLimitedEditor ? 'Actualizar estado' : initialData ? 'Editar Tarea' : 'Nueva Tarea'}
           </h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
             <X className="w-5 h-5" />
@@ -134,38 +142,117 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
         </div>
 
         <form onSubmit={handleSubmit} noValidate className="p-6 space-y-4">
-          {/* Título */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Título <span className="text-red-500">*</span>
-            </label>
-            <input value={form.titulo} onChange={(e) => set('titulo', e.target.value)} className={ic('titulo')} />
-            <FieldError message={errors.titulo} />
-          </div>
-
-          {/* Descripción */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Descripción</label>
-            <textarea
-              value={form.descripcion}
-              onChange={(e) => set('descripcion', e.target.value)}
-              rows={3}
-              className={`${inputNormal} resize-none`}
-            />
-          </div>
-
-          {/* Proyecto + Estado */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Proyecto <span className="text-red-500">*</span>
-              </label>
-              <SelectField value={form.proyectoId} onChange={(e) => set('proyectoId', e.target.value)} error={!!errors.proyectoId}>
-                <option value="">Seleccionar...</option>
-                {proyectos.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-              </SelectField>
-              <FieldError message={errors.proyectoId} />
+          {isLimitedEditor && (
+            <div className="rounded-xl border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 px-3 py-2 text-xs text-blue-700 dark:text-blue-300">
+              Solo puedes cambiar el estado de la tarea.
             </div>
+          )}
+
+          {!isLimitedEditor && (
+            <>
+              {/* Título */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Título <span className="text-red-500">*</span>
+                </label>
+                <input value={form.titulo} onChange={(e) => set('titulo', e.target.value)} className={ic('titulo')} />
+                <FieldError message={errors.titulo} />
+              </div>
+
+              {/* Descripción */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Descripción</label>
+                <textarea
+                  value={form.descripcion}
+                  onChange={(e) => set('descripcion', e.target.value)}
+                  rows={3}
+                  className={`${inputNormal} resize-none`}
+                />
+              </div>
+
+              {/* Proyecto + Estado */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Proyecto <span className="text-red-500">*</span>
+                  </label>
+                  <SelectField value={form.proyectoId} onChange={(e) => set('proyectoId', e.target.value)} error={!!errors.proyectoId}>
+                    <option value="">Seleccionar...</option>
+                    {proyectos.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                  </SelectField>
+                  <FieldError message={errors.proyectoId} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Estado <span className="text-red-500">*</span>
+                  </label>
+                  <SelectField value={form.estadoId} onChange={(e) => set('estadoId', e.target.value)} error={!!errors.estadoId}>
+                    <option value="">Seleccionar...</option>
+                    {estados.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+                  </SelectField>
+                  <FieldError message={errors.estadoId} />
+                </div>
+              </div>
+
+              {/* Asignado */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Asignado a
+                </label>
+                <SelectField
+                  value={form.asignadoId}
+                  onChange={(e) => set('asignadoId', e.target.value)}
+                  disabled={!form.proyectoId || cargandoMiembros}
+                >
+                  <option value="">
+                    {!form.proyectoId
+                      ? 'Selecciona un proyecto primero'
+                      : cargandoMiembros
+                        ? 'Cargando equipo...'
+                        : 'Sin asignar'}
+                  </option>
+                  {miembrosProyecto.map((m) => (
+                    <option key={m.usuarioId} value={m.usuarioId}>
+                      {labelMiembro(m)}
+                    </option>
+                  ))}
+                </SelectField>
+                {form.proyectoId && !cargandoMiembros && miembrosProyecto.length === 0 && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                    No hay integrantes en este proyecto. Añádelos en Proyectos → Equipo.
+                  </p>
+                )}
+              </div>
+
+              {/* Prioridad + Fecha */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Prioridad</label>
+                  <SelectField value={form.prioridad} onChange={(e) => set('prioridad', e.target.value)}>
+                    <option value="BAJA">Baja</option>
+                    <option value="MEDIA">Media</option>
+                    <option value="ALTA">Alta</option>
+                    <option value="CRITICA">Crítica</option>
+                  </SelectField>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Fecha límite <span className="text-red-500">*</span>
+                  </label>
+                  <DateInput
+                    value={form.fechaLimite}
+                    onChange={(e) => set('fechaLimite', e.target.value)}
+                    min={minDate}
+                    error={!!errors.fechaLimite}
+                    required
+                  />
+                  <FieldError message={errors.fechaLimite} />
+                </div>
+              </div>
+            </>
+          )}
+
+          {isLimitedEditor && (
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                 Estado <span className="text-red-500">*</span>
@@ -176,64 +263,7 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
               </SelectField>
               <FieldError message={errors.estadoId} />
             </div>
-          </div>
-
-          {/* Asignado */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Asignado a
-            </label>
-            <SelectField
-              value={form.asignadoId}
-              onChange={(e) => set('asignadoId', e.target.value)}
-              disabled={!form.proyectoId || cargandoMiembros}
-            >
-              <option value="">
-                {!form.proyectoId
-                  ? 'Selecciona un proyecto primero'
-                  : cargandoMiembros
-                    ? 'Cargando equipo...'
-                    : 'Sin asignar'}
-              </option>
-              {miembrosProyecto.map((m) => (
-                <option key={m.usuarioId} value={m.usuarioId}>
-                  {labelMiembro(m)}
-                  {m.rol ? ` — ${m.rol}` : ''}
-                </option>
-              ))}
-            </SelectField>
-            {form.proyectoId && !cargandoMiembros && miembrosProyecto.length === 0 && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                No hay integrantes en este proyecto. Añádelos en Proyectos → Equipo.
-              </p>
-            )}
-          </div>
-
-          {/* Prioridad + Fecha */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Prioridad</label>
-              <SelectField value={form.prioridad} onChange={(e) => set('prioridad', e.target.value)}>
-                <option value="BAJA">Baja</option>
-                <option value="MEDIA">Media</option>
-                <option value="ALTA">Alta</option>
-                <option value="CRITICA">Crítica</option>
-              </SelectField>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Fecha límite <span className="text-red-500">*</span>
-              </label>
-              <DateInput
-                value={form.fechaLimite}
-                onChange={(e) => set('fechaLimite', e.target.value)}
-                min={minDate}
-                error={!!errors.fechaLimite}
-                required
-              />
-              <FieldError message={errors.fechaLimite} />
-            </div>
-          </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-4">
             <button type="button" onClick={onClose} className="px-4 py-2.5 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
