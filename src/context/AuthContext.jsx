@@ -39,11 +39,7 @@ export const AuthProvider = ({ children }) => {
       setUser(data);
       localStorage.setItem('user', JSON.stringify(data));
       return data;
-    } catch (error) {
-      const status = error?.response?.status;
-      if (status === 401 || status === 403) {
-        logout();
-      }
+    } catch {
       return null;
     }
   };
@@ -52,7 +48,17 @@ export const AuthProvider = ({ children }) => {
     const { data } = await axiosInstance.post('/auth/login', { email, password });
     localStorage.setItem('token', data.token);
     localStorage.setItem('refreshToken', data.refreshToken);
-    await fetchProfile();
+    const userData = {
+      id: data.id,
+      nombre: data.nombre,
+      apellido: data.apellido,
+      apodo: data.apodo,
+      email: data.email,
+      emailVerificado: data.emailVerificado,
+    };
+    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
+    fetchProfile().catch(() => {});
     return data;
   };
 
