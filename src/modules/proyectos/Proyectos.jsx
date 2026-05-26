@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Pencil, Trash2, FolderKanban, Search, Calendar, TrendingUp, Tag, Users } from 'lucide-react';
 import { toast } from 'sonner';
@@ -31,34 +31,93 @@ export default function Proyectos() {
   const [confirmItem, setConfirmItem] = useState(null);
   const [miembrosModalProyecto, setMiembrosModalProyecto] = useState(null);
 
-  const cargarMapasMiembros = async (listaProyectos) => {
-    const empresaIds = [...new Set(listaProyectos.map((pr) => pr.empresaId))];
-    const empresaEntries = await Promise.all(
-      empresaIds.map(async (id) => {
-        try {
-          const m = await miembrosEmpresaService.getByEmpresa(id);
-          return [id, m];
-        } catch {
-          return [id, []];
-        }
-      })
-    );
+  const cargarMapasMiembros = useCallback(async (listaProyectos) => {
+    const empresaIds = [...new Set(listaProyectos.map((pr) => pr.empresaId).filter(Boolean))];
+    const [empresaEntries, proyectoEntries] = await Promise.all([
+      Promise.all(
+        empresaIds.map(async (id) => {
+          try { return [id, await miembrosEmpresaService.getByEmpresa(id)]; }
+          catch { return [id, []]; }
+        })
+      ),
+      Promise.all(
+        listaProyectos.map(async (pr) => {
+          try { return [pr.id, await miembrosProyectoService.getByProyecto(pr.id)]; }
+          catch { return [pr.id, []]; }
+        })
+      ),
+    ]);
     setMiembrosPorEmpresa(Object.fromEntries(empresaEntries));
-
-    const proyectoEntries = await Promise.all(
-      listaProyectos.map(async (pr) => {
-        try {
-          const m = await miembrosProyectoService.getByProyecto(pr.id);
-          return [pr.id, m];
-        } catch {
-          return [pr.id, []];
-        }
-      })
-    );
     setMiembrosPorProyecto(Object.fromEntries(proyectoEntries));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [p, e, tp, est] = await Promise.all([
+          proyectosService.getAll(),
+          empresasService.getAll(),
+          tiposProyectoService.getAll(),
+          estadosService.getAll(),
+        ]);
+        if (cancelled) return;
+        setProyectos(p);
+        setEmpresas(e);
+        setTiposProyecto(tp);
+        setEstados(est);
+        setLoading(false);
+        cargarMapasMiembros(p);
+      } catch (err) {
+        if (!cancelled) {
+          toast.error(getErrorMessage(err, 'Error al cargar los proyectos'));
+          setLoading(false);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [cargarMapasMiembros]);
+
+  const permisosProyecto = useMemo(() => {
+    if (!user?.id) return {};
+    const uid = Number(user.id);
+    const result = {};
+    proyectos.forEach((pr) => {
+      if (uid === Number(pr.creadorId)) { result[pr.id] = true; return; }
+      const emp = empresas.find((x) => x.id === pr.empresaId);
+      if (emp && uid === Number(emp.creadorId)) { result[pr.id] = true; return; }
+      const me = miembrosPorEmpresa[pr.empresaId] || [];
+      if (me.some((m) => Number(m.usuarioId) === uid && String(m.rol || '').toUpperCase() === 'ADMIN')) {
+        result[pr.id] = true; return;
+      }
+      const mp = miembrosPorProyecto[pr.id] || [];
+      result[pr.id] = mp.some((m) => Number(m.usuarioId) === uid && String(m.rol || '').toUpperCase() === 'LIDER');
+    });
+    return result;
+  }, [proyectos, empresas, miembrosPorEmpresa, miembrosPorProyecto, user?.id]);
+
+  const puedeGestionarProyecto = useCallback((pr) => !!permisosProyecto[pr?.id], [permisosProyecto]);
+
+  const miembrosEmpresaIdsParaModal = useMemo(() => {
+    if (!miembrosModalProyecto) return [];
+    const emp = empresas.find((x) => x.id === miembrosModalProyecto.empresaId);
+    const ids = new Set();
+    if (emp?.creadorId != null) ids.add(Number(emp.creadorId));
+    (miembrosPorEmpresa[miembrosModalProyecto.empresaId] || []).forEach((m) => {
+      if (m.activo !== false) ids.add(Number(m.usuarioId));
+    });
+    return Array.from(ids);
+  }, [miembrosModalProyecto, empresas, miembrosPorEmpresa]);
+
+  const handleDelete = (proyecto) => {
+    if (proyecto.estadoNombre?.toLowerCase() !== 'completado') {
+      toast.error('Solo se pueden eliminar proyectos con estado "Completado"');
+      return;
+    }
+    setConfirmItem(proyecto);
   };
 
-  const loadData = async () => {
+  const reloadData = useCallback(async () => {
     try {
       const [p, e, tp, est] = await Promise.all([
         proyectosService.getAll(),
@@ -70,65 +129,17 @@ export default function Proyectos() {
       setEmpresas(e);
       setTiposProyecto(tp);
       setEstados(est);
-      await cargarMapasMiembros(p);
+      cargarMapasMiembros(p);
     } catch (err) {
-      toast.error(getErrorMessage(err, 'Error al cargar los proyectos'));
-    } finally {
-      setLoading(false);
+      toast.error(getErrorMessage(err, 'Error al recargar los proyectos'));
     }
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const puedeGestionarProyecto = (pr) => {
-    if (!user?.id || !pr) return false;
-    if (Number(pr.creadorId) === Number(user.id)) return true;
-    const emp = empresas.find((x) => x.id === pr.empresaId);
-    if (Number(emp?.creadorId) === Number(user.id)) return true;
-    const me = miembrosPorEmpresa[pr.empresaId] || [];
-    if (
-      me.some(
-        (m) =>
-          Number(m.usuarioId) === Number(user.id) &&
-          String(m.rol || '').toUpperCase() === 'ADMIN'
-      )
-    ) {
-      return true;
-    }
-    const mp = miembrosPorProyecto[pr.id] || [];
-    return mp.some(
-      (m) =>
-        Number(m.usuarioId) === Number(user.id) &&
-        String(m.rol || '').toUpperCase() === 'LIDER'
-    );
-  };
-
-  const usuarioIdsMiembrosEmpresa = (proyecto) => {
-    if (!proyecto) return [];
-    const emp = empresas.find((x) => x.id === proyecto.empresaId);
-    const ids = new Set();
-    if (emp?.creadorId != null) ids.add(Number(emp.creadorId));
-    (miembrosPorEmpresa[proyecto.empresaId] || []).forEach((m) => {
-      if (m.activo !== false) ids.add(Number(m.usuarioId));
-    });
-    return Array.from(ids);
-  };
-
-  const handleDelete = (proyecto) => {
-    if (proyecto.estadoNombre?.toLowerCase() !== 'completado') {
-      toast.error('Solo se pueden eliminar proyectos con estado "Completado"');
-      return;
-    }
-    setConfirmItem(proyecto);
-  };
+  }, [cargarMapasMiembros]);
 
   const doDelete = async () => {
     try {
       await proyectosService.delete(confirmItem.id);
       toast.success('Proyecto eliminado');
-      loadData();
+      reloadData();
     } catch (err) {
       toast.error(getErrorMessage(err, 'Error al eliminar el proyecto'));
     } finally {
@@ -147,7 +158,7 @@ export default function Proyectos() {
       }
       setFormOpen(false);
       setEditItem(null);
-      loadData();
+      reloadData();
     } catch (err) {
       toast.error(getErrorMessage(err, 'Error al guardar el proyecto'));
     }
@@ -208,10 +219,10 @@ export default function Proyectos() {
           {filtered.map((proyecto) => (
             <motion.div
               key={proyecto.id}
-              layout
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
               className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/50 p-5 hover:shadow-md transition-shadow"
             >
               <div className="flex items-start justify-between mb-3">
@@ -365,7 +376,7 @@ export default function Proyectos() {
         onClose={() => setMiembrosModalProyecto(null)}
         canManage={miembrosModalProyecto ? puedeGestionarProyecto(miembrosModalProyecto) : false}
         currentUserId={user?.id}
-        miembrosEmpresaIds={usuarioIdsMiembrosEmpresa(miembrosModalProyecto)}
+        miembrosEmpresaIds={miembrosEmpresaIdsParaModal}
         onUpdated={() => cargarMapasMiembros(proyectos)}
       />
 

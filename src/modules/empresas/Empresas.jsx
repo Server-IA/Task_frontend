@@ -155,10 +155,10 @@ export default function Empresas() {
           {filtered.map((empresa) => (
             <motion.div
               key={empresa.id}
-              layout
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
               className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/50 p-5 hover:shadow-md transition-shadow"
             >
               <div className="flex items-start justify-between mb-3">

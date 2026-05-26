@@ -183,10 +183,10 @@ export default function Tareas() {
             {filtered.map((tarea) => (
               <motion.div
                 key={tarea.id}
-                layout
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
                 className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/50 p-4 hover:shadow-md transition-shadow cursor-pointer"
                 onClick={() => setDetalleItem(tarea)}
               >
@@ -271,7 +271,9 @@ export default function Tareas() {
                 {col.tareas.map((tarea) => (
                   <motion.div
                     key={tarea.id}
-                    layout
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.12 }}
                     className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700/50 p-3 hover:shadow-md transition-shadow cursor-pointer"
                     onClick={() => setDetalleItem(tarea)}
                   >

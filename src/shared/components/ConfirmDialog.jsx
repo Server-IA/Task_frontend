@@ -30,14 +30,14 @@ export default function ConfirmDialog({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60"
           onClick={onCancel}
         >
           <motion.div
-            initial={{ scale: 0.88, opacity: 0, y: 20 }}
+            initial={{ scale: 0.94, opacity: 0, y: 12 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.88, opacity: 0, y: 20 }}
-            transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+            exit={{ scale: 0.94, opacity: 0, y: 12 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
             onClick={(e) => e.stopPropagation()}
             className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 border border-slate-200 dark:border-slate-700/50"
           >
