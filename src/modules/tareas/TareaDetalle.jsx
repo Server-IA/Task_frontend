@@ -97,7 +97,7 @@ export default function TareaDetalle({ tarea, estados = [], onClose, onEdit, onR
         className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
       >
         <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700">
-          <h2 className="text-lg font-semibold text-slate-800 dark:text-white truncate pr-4">{tarea.titulo}</h2>
+          <h2 className="text-lg font-semibold text-slate-800 dark:text-white flex-1 min-w-0 break-words pr-4 leading-snug">{tarea.titulo}</h2>
           <div className="flex items-center gap-2 shrink-0">
             {isLimitedEditor ? (
               <button
@@ -146,33 +146,33 @@ export default function TareaDetalle({ tarea, estados = [], onClose, onEdit, onR
           {tarea.descripcion && (
             <div>
               <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Descripción</h3>
-              <p className="text-slate-800 dark:text-white text-sm whitespace-pre-wrap">{tarea.descripcion}</p>
+              <p className="text-slate-800 dark:text-white text-sm whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{tarea.descripcion}</p>
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-4 text-sm">
             {tarea.proyectoNombre && (
-              <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-                <FolderKanban className="w-4 h-4" />
-                <span>{tarea.proyectoNombre}</span>
+              <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 min-w-0">
+                <FolderKanban className="w-4 h-4 shrink-0" />
+                <span className="truncate">{tarea.proyectoNombre}</span>
               </div>
             )}
             {tarea.asignadoNombre && (
-              <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-                <User className="w-4 h-4" />
-                <span>{tarea.asignadoNombre}</span>
+              <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 min-w-0">
+                <User className="w-4 h-4 shrink-0" />
+                <span className="truncate">{tarea.asignadoNombre}</span>
               </div>
             )}
             {tarea.fechaLimite && (
-              <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-                <Clock className="w-4 h-4" />
+              <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 min-w-0">
+                <Clock className="w-4 h-4 shrink-0" />
                 <span>{new Date(tarea.fechaLimite).toLocaleDateString()}</span>
               </div>
             )}
             {tarea.creadorNombre && (
-              <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-                <User className="w-4 h-4" />
-                <span>Creador: {tarea.creadorNombre}</span>
+              <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 min-w-0">
+                <User className="w-4 h-4 shrink-0" />
+                <span className="truncate">Creador: {tarea.creadorNombre}</span>
               </div>
             )}
           </div>
@@ -211,7 +211,7 @@ export default function TareaDetalle({ tarea, estados = [], onClose, onEdit, onR
                         )}
                       </div>
                     </div>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">{c.contenido}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 break-words [overflow-wrap:anywhere] whitespace-pre-wrap">{c.contenido}</p>
                   </div>
                 ))
               )}

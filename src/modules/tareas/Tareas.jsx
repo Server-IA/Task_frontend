@@ -95,9 +95,10 @@ export default function Tareas() {
     return 'bg-slate-100 dark:bg-slate-600/50 text-slate-600 dark:text-slate-400';
   };
 
-  const isOverdue = (fecha) => {
-    if (!fecha) return false;
-    return new Date(fecha) < new Date() && !fecha.fechaCompletada;
+  const isOverdue = (tarea) => {
+    if (!tarea?.fechaLimite) return false;
+    const completado = tarea.estadoNombre?.toLowerCase().includes('complet') || !!tarea.fechaCompletada;
+    return new Date(tarea.fechaLimite) < new Date() && !completado;
   };
 
   const isLimitedEditor = (tarea) => (
@@ -198,7 +199,7 @@ export default function Tareas() {
                       {tarea.proyectoNombre && <span>{tarea.proyectoNombre}</span>}
                       {tarea.asignadoNombre && <span>@ {tarea.asignadoNombre}</span>}
                       {tarea.fechaLimite && (
-                        <span className={`flex items-center gap-1 ${isOverdue(tarea.fechaLimite) ? 'text-red-500' : ''}`}>
+                        <span className={`flex items-center gap-1 ${isOverdue(tarea) ? 'text-red-500' : ''}`}>
                           <Clock className="w-3 h-3" />
                           {new Date(tarea.fechaLimite).toLocaleDateString()}
                         </span>
@@ -293,7 +294,7 @@ export default function Tareas() {
                         </span>
                       )}
                       {tarea.fechaLimite && (
-                        <span className={`flex items-center gap-1 ${isOverdue(tarea.fechaLimite) ? 'text-red-500' : ''}`}>
+                        <span className={`flex items-center gap-1 ${isOverdue(tarea) ? 'text-red-500' : ''}`}>
                           <Clock className="w-3 h-3" />
                           {new Date(tarea.fechaLimite).toLocaleDateString()}
                         </span>

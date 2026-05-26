@@ -50,9 +50,9 @@ export default function ConfirmDialog({
                 <AlertTriangle className={`w-5 h-5 ${danger ? 'text-red-500' : 'text-amber-500'}`} />
               </div>
               <div className="min-w-0">
-                <h3 className="font-semibold text-slate-800 dark:text-white text-base">{title}</h3>
+                <h3 className="font-semibold text-slate-800 dark:text-white text-base break-words">{title}</h3>
                 {message && (
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">{message}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 leading-relaxed break-words [overflow-wrap:anywhere]">{message}</p>
                 )}
               </div>
             </div>

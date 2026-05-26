@@ -85,6 +85,7 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
   const validate = () => {
     const e = {};
     if (isEmpty(form.titulo)) e.titulo = 'El título es obligatorio';
+    else if (form.titulo.length > 300) e.titulo = 'El título no puede superar los 300 caracteres';
     if (isEmpty(form.proyectoId)) e.proyectoId = 'Selecciona un proyecto';
     if (isEmpty(form.estadoId)) e.estadoId = 'Selecciona un estado';
     if (isEmpty(form.fechaLimite)) e.fechaLimite = 'La fecha límite es obligatoria';
@@ -152,20 +153,36 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
             <>
               {/* Título */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Título <span className="text-red-500">*</span>
-                </label>
-                <input value={form.titulo} onChange={(e) => set('titulo', e.target.value)} className={ic('titulo')} />
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Título <span className="text-red-500">*</span>
+                  </label>
+                  <span className={`text-xs ${form.titulo.length > 280 ? (form.titulo.length >= 300 ? 'text-red-500' : 'text-amber-500') : 'text-slate-400'}`}>
+                    {form.titulo.length}/300
+                  </span>
+                </div>
+                <input
+                  value={form.titulo}
+                  onChange={(e) => set('titulo', e.target.value)}
+                  maxLength={300}
+                  className={ic('titulo')}
+                />
                 <FieldError message={errors.titulo} />
               </div>
 
               {/* Descripción */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Descripción</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Descripción</label>
+                  <span className={`text-xs ${form.descripcion.length > 4500 ? 'text-amber-500' : 'text-slate-400'}`}>
+                    {form.descripcion.length}/5000
+                  </span>
+                </div>
                 <textarea
                   value={form.descripcion}
                   onChange={(e) => set('descripcion', e.target.value)}
                   rows={3}
+                  maxLength={5000}
                   className={`${inputNormal} resize-none`}
                 />
               </div>
