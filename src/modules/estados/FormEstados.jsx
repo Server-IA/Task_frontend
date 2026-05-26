@@ -20,6 +20,9 @@ export default function FormEstados({ onClose, onSave, initialData }) {
         descripcion: initialData.descripcion || '',
         color: initialData.color || '#6366f1',
       });
+    } else {
+      setForm({ nombre: '', descripcion: '', color: '#6366f1' });
+      setErrors({});
     }
   }, [initialData]);
 

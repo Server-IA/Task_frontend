@@ -12,7 +12,13 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('user');
-    return saved ? JSON.parse(saved) : null;
+    if (!saved) return null;
+    try {
+      return JSON.parse(saved);
+    } catch {
+      localStorage.removeItem('user');
+      return null;
+    }
   });
   const [loading, setLoading] = useState(true);
 
@@ -46,16 +52,7 @@ export const AuthProvider = ({ children }) => {
     const { data } = await axiosInstance.post('/auth/login', { email, password });
     localStorage.setItem('token', data.token);
     localStorage.setItem('refreshToken', data.refreshToken);
-    const userData = {
-      id: data.id,
-      nombre: data.nombre,
-      apellido: data.apellido,
-      apodo: data.apodo,
-      email: data.email,
-      emailVerificado: data.emailVerificado,
-    };
-    setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
+    await fetchProfile();
     return data;
   };
 

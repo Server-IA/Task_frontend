@@ -20,6 +20,9 @@ export default function FormTipoProyecto({ onClose, onSave, initialData }) {
         descripcion: initialData.descripcion || '',
         color: initialData.color || '#8b5cf6',
       });
+    } else {
+      setForm({ nombre: '', descripcion: '', color: '#8b5cf6' });
+      setErrors({});
     }
   }, [initialData]);
 

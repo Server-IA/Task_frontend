@@ -25,7 +25,14 @@ export default function Estados() {
     }
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    let cancelled = false;
+    estadosService.getAll()
+      .then((data) => { if (!cancelled) setEstados(data); })
+      .catch((err) => { if (!cancelled) toast.error(getErrorMessage(err, 'Error al cargar los estados')); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
   const handleDelete = (estado) => setConfirmItem(estado);
 

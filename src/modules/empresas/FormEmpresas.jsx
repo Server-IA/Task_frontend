@@ -24,6 +24,11 @@ export default function FormEmpresas({ onClose, onSave, initialData }) {
   });
   const [errors, setErrors] = useState({});
 
+  const EMPTY_FORM = {
+    nombre: '', descripcion: '', nit: '', correo: '', telefono: '',
+    direccion: '', sector: '', pais: '', departamento: '', ciudad: '',
+  };
+
   useEffect(() => {
     if (initialData) {
       setForm({
@@ -38,6 +43,9 @@ export default function FormEmpresas({ onClose, onSave, initialData }) {
         departamento: initialData.departamento || '',
         ciudad: initialData.ciudad || '',
       });
+    } else {
+      setForm(EMPTY_FORM);
+      setErrors({});
     }
   }, [initialData]);
 

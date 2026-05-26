@@ -47,7 +47,20 @@ export default function Empresas() {
   };
 
   useEffect(() => {
-    loadData();
+    let cancelled = false;
+    (async () => {
+      try {
+        const e = await empresasService.getAll();
+        if (cancelled) return;
+        setEmpresas(e);
+        await refreshMiembrosMaps(e);
+      } catch (err) {
+        if (!cancelled) toast.error(getErrorMessage(err, 'Error al cargar las empresas'));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   const puedeGestionarEmpresa = (empresa) => {

@@ -80,7 +80,7 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
 
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const minDate = tomorrow.toISOString().split('T')[0];
+  const minDate = initialData ? undefined : tomorrow.toISOString().split('T')[0];
 
   const validate = () => {
     const e = {};

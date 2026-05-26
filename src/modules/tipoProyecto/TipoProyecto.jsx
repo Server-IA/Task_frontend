@@ -26,7 +26,14 @@ export default function TipoProyecto() {
     }
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    let cancelled = false;
+    tiposProyectoService.getAll()
+      .then((data) => { if (!cancelled) setTipos(data); })
+      .catch((err) => { if (!cancelled) toast.error(getErrorMessage(err, 'Error al cargar los tipos de proyecto')); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
   const handleDelete = (tipo) => setConfirmItem(tipo);
 

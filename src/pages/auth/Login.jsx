@@ -108,7 +108,7 @@ export default function Login() {
                     <p className="text-sm font-medium">{errorInfo.message}</p>
                     {errorInfo.type === 'email-not-verified' && (
                       <Link
-                        to="/verify-email"
+                        to="/verificar-email"
                         className="inline-block mt-2 text-xs font-semibold text-amber-400 hover:text-amber-300 underline underline-offset-2 transition-colors"
                       >
                         Reenviar correo de verificación

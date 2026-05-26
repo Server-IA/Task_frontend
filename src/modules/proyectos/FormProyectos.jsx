@@ -36,12 +36,19 @@ export default function FormProyectos({ onClose, onSave, initialData, empresas, 
         estadoId: initialData.estadoId || '',
         progreso: initialData.progreso || 0,
       });
+    } else {
+      setForm({
+        nombre: '', descripcion: '', prioridad: 'MEDIA',
+        fechaInicio: '', fechaFinEstimada: '', empresaId: '',
+        tipoProyectoId: '', estadoId: '', progreso: 0,
+      });
+      setErrors({});
     }
   }, [initialData]);
 
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const minDate = tomorrow.toISOString().split('T')[0];
+  const minDate = initialData ? undefined : tomorrow.toISOString().split('T')[0];
 
   const validate = () => {
     const e = {};

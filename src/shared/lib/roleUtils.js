@@ -2,11 +2,12 @@ const ROLE_LABELS = {
   ADMIN: 'Administrador',
   MIEMBRO: 'Miembro',
   DESARROLLADOR: 'Desarrollador',
-  DESARROLLADOR_BACKEND: 'Desarrollador backend',
-  DESARROLLADOR_FRONTEND: 'Desarrollador frontend',
+  DESARROLLADOR_BACKEND: 'Desarrollador Backend',
+  DESARROLLADOR_FRONTEND: 'Desarrollador Frontend',
   QA: 'QA',
-  DISENADOR: 'Disenador',
-  LIDER: 'Lider',
+  DISENADOR: 'Diseñador',
+  'DISEÑADOR': 'Diseñador',
+  LIDER: 'Líder',
 };
 
 export function formatRoleLabel(role) {

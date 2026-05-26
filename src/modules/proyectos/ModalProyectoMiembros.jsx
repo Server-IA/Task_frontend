@@ -12,7 +12,7 @@ const ROLES_PROYECTO = [
   { value: 'DESARROLLADOR_BACKEND', label: 'Backend' },
   { value: 'DESARROLLADOR_FRONTEND', label: 'Frontend' },
   { value: 'QA', label: 'QA' },
-  { value: 'DISEÑADOR', label: 'Diseño' },
+  { value: 'DISENADOR', label: 'Diseñador' },
   { value: 'LIDER', label: 'Líder' },
 ];
 

@@ -10,7 +10,9 @@ import {
   Tag,
   Calendar,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { proyectosService, empresasService, tareasService, estadosService, tiposProyectoService } from '@/shared/services';
+import { getErrorMessage } from '@/shared/lib/errorUtils';
 import { useAuth } from '@/context/AuthContext';
 
 const container = {
@@ -28,6 +30,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       try {
         const [proyectos, empresas, tareas, estados, tiposProyecto] = await Promise.all([
@@ -37,13 +40,14 @@ export default function Dashboard() {
           estadosService.getAll(),
           tiposProyectoService.getAll(),
         ]);
-        setData({ proyectos, empresas, tareas, estados, tiposProyecto });
+        if (!cancelled) setData({ proyectos, empresas, tareas, estados, tiposProyecto });
       } catch (err) {
-        console.error('Error cargando dashboard:', err);
+        if (!cancelled) toast.error(getErrorMessage(err, 'Error al cargar el dashboard'));
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
+    return () => { cancelled = true; };
   }, []);
 
   const stats = [
@@ -95,7 +99,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats */}
-      <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {stats.map((s) => {
           const Icon = s.icon;
           return (
