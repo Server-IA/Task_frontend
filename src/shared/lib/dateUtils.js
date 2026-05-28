@@ -79,3 +79,20 @@ export function isBeforeToday(value) {
   today.setHours(0, 0, 0, 0);
   return date < today;
 }
+
+/** Formatea fecha y hora del servidor (LocalDateTime) en DD/MM/AAAA HH:mm */
+export function formatDateTime(value) {
+  if (!value) return '';
+  const str = String(value);
+  const date = /[zZ]|[+-]\d{2}:\d{2}$/.test(str)
+    ? new Date(str)
+    : new Date(str.includes('T') ? `${str}Z` : str);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString('es-CO', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}

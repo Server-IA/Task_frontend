@@ -5,6 +5,7 @@ import { SelectField, DateInput, FieldError } from '@/shared/components';
 import { miembrosProyectoService } from '@/shared/services';
 import { isEmpty } from '@/shared/lib/formValidation';
 import { getTomorrowInputDate, toInputDateValue } from '@/shared/lib/dateUtils';
+import { getAsignadoIds, isUserAssignedToTarea } from '@/shared/lib/tareaUtils';
 import { formatRoleLabel } from '@/shared/lib/roleUtils';
 import { useAuth } from '@/context/AuthContext';
 
@@ -29,7 +30,7 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
     fechaLimite: '',
     proyectoId: '',
     estadoId: '',
-    asignadoId: '',
+    asignadoIds: [],
     orden: 0,
   });
   const [errors, setErrors] = useState({});
@@ -38,7 +39,7 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
   const isLimitedEditor = !!(
     initialData &&
     user?.id &&
-    Number(initialData.asignadoId) === Number(user.id) &&
+    isUserAssignedToTarea(initialData, user?.id) &&
     Number(initialData.creadorId) !== Number(user.id)
   );
 
@@ -51,7 +52,7 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
         fechaLimite: toInputDateValue(initialData.fechaLimite),
         proyectoId: initialData.proyectoId ? String(initialData.proyectoId) : '',
         estadoId: initialData.estadoId ? String(initialData.estadoId) : '',
-        asignadoId: initialData.asignadoId ? String(initialData.asignadoId) : '',
+        asignadoIds: getAsignadoIds(initialData).map(String),
         orden: initialData.orden || 0,
       });
     }
@@ -95,7 +96,7 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
     setForm((prev) => {
       const next = { ...prev, [name]: value };
       if (name === 'proyectoId' && value !== prev.proyectoId) {
-        next.asignadoId = '';
+        next.asignadoIds = [];
       }
       return next;
     });
@@ -111,11 +112,24 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
       orden: Number(form.orden),
       proyectoId: form.proyectoId ? Number(form.proyectoId) : null,
       estadoId: form.estadoId ? Number(form.estadoId) : null,
-      asignadoId: form.asignadoId ? Number(form.asignadoId) : null,
+      asignadoIds: form.asignadoIds.map((id) => Number(id)),
     });
   };
 
   const ic = (name) => (errors[name] ? inputError : inputNormal);
+
+  const toggleAsignado = (usuarioId) => {
+    const id = String(usuarioId);
+    setForm((prev) => {
+      const exists = prev.asignadoIds.includes(id);
+      return {
+        ...prev,
+        asignadoIds: exists
+          ? prev.asignadoIds.filter((current) => current !== id)
+          : [...prev.asignadoIds, id],
+      };
+    });
+  };
 
   return (
     <motion.div
@@ -210,32 +224,50 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
                 </div>
               </div>
 
-              {/* Asignado */}
+              {/* Asignados */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Asignado a
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Asignados
                 </label>
-                <SelectField
-                  value={form.asignadoId}
-                  onChange={(e) => set('asignadoId', e.target.value)}
-                  disabled={!form.proyectoId || cargandoMiembros}
-                >
-                  <option value="">
-                    {!form.proyectoId
-                      ? 'Selecciona un proyecto primero'
-                      : cargandoMiembros
-                        ? 'Cargando equipo...'
-                        : 'Sin asignar'}
-                  </option>
-                  {miembrosProyecto.map((m) => (
-                    <option key={m.usuarioId} value={m.usuarioId}>
-                      {labelMiembro(m)}
-                    </option>
-                  ))}
-                </SelectField>
-                {form.proyectoId && !cargandoMiembros && miembrosProyecto.length === 0 && (
-                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                {!form.proyectoId ? (
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Selecciona un proyecto para ver el equipo disponible.
+                  </p>
+                ) : cargandoMiembros ? (
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Cargando equipo...</p>
+                ) : miembrosProyecto.length === 0 ? (
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
                     No hay integrantes en este proyecto. Añádelos en Proyectos → Equipo.
+                  </p>
+                ) : (
+                  <div className="max-h-40 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-600 divide-y divide-slate-200 dark:divide-slate-600">
+                    {miembrosProyecto.map((m) => {
+                      const id = String(m.usuarioId);
+                      const checked = form.asignadoIds.includes(id);
+                      return (
+                        <label
+                          key={m.usuarioId}
+                          className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors ${
+                            checked
+                              ? 'bg-blue-50 dark:bg-blue-500/10'
+                              : 'hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleAsignado(m.usuarioId)}
+                            className="rounded border-slate-300 dark:border-slate-500 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-slate-700 dark:text-slate-200">{labelMiembro(m)}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+                {form.asignadoIds.length > 0 && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                    {form.asignadoIds.length} persona{form.asignadoIds.length === 1 ? '' : 's'} seleccionada{form.asignadoIds.length === 1 ? '' : 's'}
                   </p>
                 )}
               </div>
