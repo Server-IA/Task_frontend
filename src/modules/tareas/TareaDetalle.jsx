@@ -4,6 +4,7 @@ import { X, Pencil, Clock, User, FolderKanban, Send, Trash2, RefreshCw } from 'l
 import { toast } from 'sonner';
 import { comentariosService } from '@/shared/services';
 import { getErrorMessage } from '@/shared/lib/errorUtils';
+import { formatLocalDate } from '@/shared/lib/dateUtils';
 import { ConfirmDialog } from '@/shared/components';
 import { useAuth } from '@/context/AuthContext';
 
@@ -166,7 +167,7 @@ export default function TareaDetalle({ tarea, estados = [], onClose, onEdit, onR
             {tarea.fechaLimite && (
               <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 min-w-0">
                 <Clock className="w-4 h-4 shrink-0" />
-                <span>{new Date(tarea.fechaLimite).toLocaleDateString()}</span>
+                <span>{formatLocalDate(tarea.fechaLimite)}</span>
               </div>
             )}
             {tarea.creadorNombre && (

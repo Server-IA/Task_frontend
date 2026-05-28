@@ -13,6 +13,7 @@ import {
 import { toast } from 'sonner';
 import { proyectosService, empresasService, tareasService, estadosService, tiposProyectoService } from '@/shared/services';
 import { getErrorMessage } from '@/shared/lib/errorUtils';
+import { formatLocalDate } from '@/shared/lib/dateUtils';
 import { useAuth } from '@/context/AuthContext';
 
 const container = {
@@ -186,13 +187,13 @@ export default function Dashboard() {
                     {p.fechaInicio && (
                       <span className="flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
-                        {new Date(p.fechaInicio).toLocaleDateString()}
+                        {formatLocalDate(p.fechaInicio)}
                       </span>
                     )}
                     {p.fechaFinEstimada && (
                       <span className="flex items-center gap-1 text-amber-500 dark:text-amber-400">
                         <Calendar className="w-3 h-3" />
-                        {new Date(p.fechaFinEstimada).toLocaleDateString()}
+                        {formatLocalDate(p.fechaFinEstimada)}
                       </span>
                     )}
                   </div>
@@ -226,7 +227,7 @@ export default function Dashboard() {
                     <p className="font-medium text-slate-800 dark:text-white truncate">{t.titulo}</p>
                     <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
                       <Clock className="w-3 h-3" />
-                      {t.fechaLimite ? new Date(t.fechaLimite).toLocaleDateString() : 'Sin fecha'}
+                      {t.fechaLimite ? formatLocalDate(t.fechaLimite) : 'Sin fecha'}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">

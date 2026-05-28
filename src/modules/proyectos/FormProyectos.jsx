@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { X, Save } from 'lucide-react';
 import { SelectField, DateInput, FieldError } from '@/shared/components';
 import { isEmpty } from '@/shared/lib/formValidation';
+import { getTomorrowInputDate, toInputDateValue } from '@/shared/lib/dateUtils';
 
 const inputBase =
   'w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border rounded-xl text-slate-800 dark:text-white focus:outline-none focus:ring-2 transition-all';
@@ -29,8 +30,8 @@ export default function FormProyectos({ onClose, onSave, initialData, empresas, 
         nombre: initialData.nombre || '',
         descripcion: initialData.descripcion || '',
         prioridad: initialData.prioridad || 'MEDIA',
-        fechaInicio: initialData.fechaInicio || '',
-        fechaFinEstimada: initialData.fechaFinEstimada || '',
+        fechaInicio: toInputDateValue(initialData.fechaInicio),
+        fechaFinEstimada: toInputDateValue(initialData.fechaFinEstimada),
         empresaId: initialData.empresaId || '',
         tipoProyectoId: initialData.tipoProyectoId || '',
         estadoId: initialData.estadoId || '',
@@ -46,9 +47,7 @@ export default function FormProyectos({ onClose, onSave, initialData, empresas, 
     }
   }, [initialData]);
 
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const minDate = initialData ? undefined : tomorrow.toISOString().split('T')[0];
+  const minDate = initialData ? undefined : getTomorrowInputDate();
 
   const validate = () => {
     const e = {};

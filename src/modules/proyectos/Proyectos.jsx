@@ -11,6 +11,7 @@ import {
   miembrosProyectoService,
 } from '@/shared/services';
 import { getErrorMessage } from '@/shared/lib/errorUtils';
+import { formatLocalDate } from '@/shared/lib/dateUtils';
 import { ConfirmDialog } from '@/shared/components';
 import { useAuth } from '@/context/AuthContext';
 import FormProyectos from './FormProyectos';
@@ -332,13 +333,13 @@ export default function Proyectos() {
                 {proyecto.fechaInicio && (
                   <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 flex items-center gap-1">
                     <Calendar className="w-3 h-3" />
-                    {new Date(proyecto.fechaInicio).toLocaleDateString()}
+                    {formatLocalDate(proyecto.fechaInicio)}
                   </span>
                 )}
                 {proyecto.fechaFinEstimada && (
                   <span className="px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center gap-1">
                     <Calendar className="w-3 h-3" />
-                    {new Date(proyecto.fechaFinEstimada).toLocaleDateString()}
+                    {formatLocalDate(proyecto.fechaFinEstimada)}
                   </span>
                 )}
               </div>

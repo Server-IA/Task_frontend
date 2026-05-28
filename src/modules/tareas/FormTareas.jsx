@@ -4,6 +4,7 @@ import { X, Save } from 'lucide-react';
 import { SelectField, DateInput, FieldError } from '@/shared/components';
 import { miembrosProyectoService } from '@/shared/services';
 import { isEmpty } from '@/shared/lib/formValidation';
+import { getTomorrowInputDate, toInputDateValue } from '@/shared/lib/dateUtils';
 import { formatRoleLabel } from '@/shared/lib/roleUtils';
 import { useAuth } from '@/context/AuthContext';
 
@@ -47,7 +48,7 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
         titulo: initialData.titulo || '',
         descripcion: initialData.descripcion || '',
         prioridad: initialData.prioridad || 'MEDIA',
-        fechaLimite: initialData.fechaLimite || '',
+        fechaLimite: toInputDateValue(initialData.fechaLimite),
         proyectoId: initialData.proyectoId ? String(initialData.proyectoId) : '',
         estadoId: initialData.estadoId ? String(initialData.estadoId) : '',
         asignadoId: initialData.asignadoId ? String(initialData.asignadoId) : '',
@@ -78,9 +79,7 @@ export default function FormTareas({ onClose, onSave, initialData, proyectos, es
     };
   }, [form.proyectoId]);
 
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const minDate = initialData ? undefined : tomorrow.toISOString().split('T')[0];
+  const minDate = initialData ? undefined : getTomorrowInputDate();
 
   const validate = () => {
     const e = {};

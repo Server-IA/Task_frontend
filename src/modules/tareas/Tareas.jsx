@@ -4,6 +4,7 @@ import { Plus, Pencil, Trash2, ListChecks, Search, Clock, RefreshCw } from 'luci
 import { toast } from 'sonner';
 import { tareasService, proyectosService, estadosService } from '@/shared/services';
 import { getErrorMessage } from '@/shared/lib/errorUtils';
+import { formatLocalDate, isBeforeToday } from '@/shared/lib/dateUtils';
 import { SelectField, ConfirmDialog } from '@/shared/components';
 import { useAuth } from '@/context/AuthContext';
 import FormTareas from './FormTareas';
@@ -98,7 +99,7 @@ export default function Tareas() {
   const isOverdue = (tarea) => {
     if (!tarea?.fechaLimite) return false;
     const completado = tarea.estadoNombre?.toLowerCase().includes('complet') || !!tarea.fechaCompletada;
-    return new Date(tarea.fechaLimite) < new Date() && !completado;
+    return isBeforeToday(tarea.fechaLimite) && !completado;
   };
 
   const isLimitedEditor = (tarea) => (
@@ -201,7 +202,7 @@ export default function Tareas() {
                       {tarea.fechaLimite && (
                         <span className={`flex items-center gap-1 ${isOverdue(tarea) ? 'text-red-500' : ''}`}>
                           <Clock className="w-3 h-3" />
-                          {new Date(tarea.fechaLimite).toLocaleDateString()}
+                          {formatLocalDate(tarea.fechaLimite)}
                         </span>
                       )}
                     </div>
@@ -298,7 +299,7 @@ export default function Tareas() {
                       {tarea.fechaLimite && (
                         <span className={`flex items-center gap-1 ${isOverdue(tarea) ? 'text-red-500' : ''}`}>
                           <Clock className="w-3 h-3" />
-                          {new Date(tarea.fechaLimite).toLocaleDateString()}
+                          {formatLocalDate(tarea.fechaLimite)}
                         </span>
                       )}
                     </div>
