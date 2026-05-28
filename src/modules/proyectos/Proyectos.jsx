@@ -12,7 +12,7 @@ import {
 } from '@/shared/services';
 import { getErrorMessage } from '@/shared/lib/errorUtils';
 import { formatLocalDate } from '@/shared/lib/dateUtils';
-import { ConfirmDialog } from '@/shared/components';
+import { ConfirmDialog, InfoBadge } from '@/shared/components';
 import { useAuth } from '@/context/AuthContext';
 import FormProyectos from './FormProyectos';
 import ModalProyectoMiembros from './ModalProyectoMiembros';
@@ -234,7 +234,12 @@ export default function Proyectos() {
                   <div className="min-w-0">
                     <h3 className="font-semibold text-slate-800 dark:text-white truncate">{proyecto.nombre}</h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {proyecto.empresaNombre && <span>{proyecto.empresaNombre}</span>}
+                      {proyecto.empresaNombre && (
+                        <>
+                          <span className="font-medium text-slate-600 dark:text-slate-300">Empresa:</span>{' '}
+                          {proyecto.empresaNombre}
+                        </>
+                      )}
                     </p>
                   </div>
                 </div>
@@ -304,43 +309,52 @@ export default function Proyectos() {
                     const tp = tiposProyecto.find((t) => t.id === proyecto.tipoProyectoId);
                     const color = tp?.color || '#6366f1';
                     return (
-                      <span
-                        className="px-2 py-0.5 rounded-full font-medium flex items-center gap-1"
+                      <InfoBadge
+                        label="Tipo"
+                        value={proyecto.tipoProyectoNombre}
+                        icon={Tag}
+                        labelClassName="opacity-80 font-normal"
                         style={{ backgroundColor: `${color}22`, color }}
-                      >
-                        <Tag className="w-3 h-3" />
-                        {proyecto.tipoProyectoNombre}
-                      </span>
+                      />
                     );
                   })()}
                 {proyecto.prioridad && (
-                  <span className={`px-2 py-0.5 rounded-full font-medium ${priorityColor(proyecto.prioridad)}`}>
-                    {proyecto.prioridad}
-                  </span>
+                  <InfoBadge
+                    label="Prioridad"
+                    value={proyecto.prioridad}
+                    className={priorityColor(proyecto.prioridad)}
+                    labelClassName="opacity-80 font-normal"
+                  />
                 )}
                 {proyecto.estadoNombre &&
                   (() => {
                     const color = estados.find((e) => e.id === proyecto.estadoId)?.color || '#6366f1';
                     return (
-                      <span
-                        className="px-2 py-0.5 rounded-full font-medium"
+                      <InfoBadge
+                        label="Estado"
+                        value={proyecto.estadoNombre}
+                        labelClassName="opacity-80 font-normal"
                         style={{ backgroundColor: `${color}22`, color }}
-                      >
-                        {proyecto.estadoNombre}
-                      </span>
+                      />
                     );
                   })()}
                 {proyecto.fechaInicio && (
-                  <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    {formatLocalDate(proyecto.fechaInicio)}
-                  </span>
+                  <InfoBadge
+                    label="Inicio"
+                    value={formatLocalDate(proyecto.fechaInicio)}
+                    icon={Calendar}
+                    className="bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400"
+                    labelClassName="text-slate-500 dark:text-slate-400 font-normal"
+                  />
                 )}
                 {proyecto.fechaFinEstimada && (
-                  <span className="px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    {formatLocalDate(proyecto.fechaFinEstimada)}
-                  </span>
+                  <InfoBadge
+                    label="Fin est."
+                    value={formatLocalDate(proyecto.fechaFinEstimada)}
+                    icon={Calendar}
+                    className="bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                    labelClassName="text-amber-600/80 dark:text-amber-400/80 font-normal"
+                  />
                 )}
               </div>
             </motion.div>

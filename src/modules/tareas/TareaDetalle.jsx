@@ -4,29 +4,16 @@ import { X, Pencil, Clock, User, FolderKanban, Send, Trash2, RefreshCw } from 'l
 import { toast } from 'sonner';
 import { comentariosService } from '@/shared/services';
 import { getErrorMessage } from '@/shared/lib/errorUtils';
-import { formatLocalDate } from '@/shared/lib/dateUtils';
-import { ConfirmDialog } from '@/shared/components';
+import { formatLocalDate, formatDateTime } from '@/shared/lib/dateUtils';
+import { formatAsignados, isUserAssignedToTarea } from '@/shared/lib/tareaUtils';
+import { ConfirmDialog, InfoBadge } from '@/shared/components';
 import { useAuth } from '@/context/AuthContext';
-
-const parseServerDate = (value) => {
-  if (!value) return null;
-  if (typeof value === 'string' && !(/[zZ]|[+-]\d{2}:\d{2}$/.test(value))) {
-    return new Date(`${value}Z`);
-  }
-  return new Date(value);
-};
-
-const formatDateTime = (value) => {
-  const date = parseServerDate(value);
-  if (!date || Number.isNaN(date.getTime())) return '';
-  return date.toLocaleString();
-};
 
 export default function TareaDetalle({ tarea, estados = [], onClose, onEdit, onRefresh }) {
   const { user } = useAuth();
   const isLimitedEditor = !!(
     user?.id &&
-    Number(tarea.asignadoId) === Number(user.id) &&
+    isUserAssignedToTarea(tarea, user?.id) &&
     Number(tarea.creadorId) !== Number(user.id)
   );
   const [comentarios, setComentarios] = useState([]);
@@ -127,19 +114,22 @@ export default function TareaDetalle({ tarea, estados = [], onClose, onEdit, onR
           {/* Info */}
           <div className="flex flex-wrap gap-2">
             {tarea.prioridad && (
-              <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${priorityColor(tarea.prioridad)}`}>
-                {tarea.prioridad}
-              </span>
+              <InfoBadge
+                label="Prioridad"
+                value={tarea.prioridad}
+                className={priorityColor(tarea.prioridad)}
+                labelClassName="opacity-80 font-normal"
+              />
             )}
             {tarea.estadoNombre && (() => {
               const color = estados.find((e) => e.id === tarea.estadoId)?.color || '#6366f1';
               return (
-                <span
-                  className="text-xs px-2.5 py-1 rounded-full font-medium"
+                <InfoBadge
+                  label="Estado"
+                  value={tarea.estadoNombre}
+                  labelClassName="opacity-80 font-normal"
                   style={{ backgroundColor: color + '22', color }}
-                >
-                  {tarea.estadoNombre}
-                </span>
+                />
               );
             })()}
           </div>
@@ -153,27 +143,48 @@ export default function TareaDetalle({ tarea, estados = [], onClose, onEdit, onR
 
           <div className="grid grid-cols-2 gap-4 text-sm">
             {tarea.proyectoNombre && (
-              <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 min-w-0">
-                <FolderKanban className="w-4 h-4 shrink-0" />
-                <span className="truncate">{tarea.proyectoNombre}</span>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Proyecto</p>
+                <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 min-w-0">
+                  <FolderKanban className="w-4 h-4 shrink-0" />
+                  <span className="truncate">{tarea.proyectoNombre}</span>
+                </div>
               </div>
             )}
-            {tarea.asignadoNombre && (
-              <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 min-w-0">
-                <User className="w-4 h-4 shrink-0" />
-                <span className="truncate">{tarea.asignadoNombre}</span>
+            {formatAsignados(tarea) && (
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Asignados</p>
+                <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 min-w-0">
+                  <User className="w-4 h-4 shrink-0" />
+                  <span className="break-words">{formatAsignados(tarea)}</span>
+                </div>
+              </div>
+            )}
+            {tarea.fechaCreacion && (
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Fecha de creación</p>
+                <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 min-w-0">
+                  <Clock className="w-4 h-4 shrink-0" />
+                  <span>{formatDateTime(tarea.fechaCreacion)}</span>
+                </div>
               </div>
             )}
             {tarea.fechaLimite && (
-              <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 min-w-0">
-                <Clock className="w-4 h-4 shrink-0" />
-                <span>{formatLocalDate(tarea.fechaLimite)}</span>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Fecha límite</p>
+                <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 min-w-0">
+                  <Clock className="w-4 h-4 shrink-0" />
+                  <span>{formatLocalDate(tarea.fechaLimite)}</span>
+                </div>
               </div>
             )}
             {tarea.creadorNombre && (
-              <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 min-w-0">
-                <User className="w-4 h-4 shrink-0" />
-                <span className="truncate">Creador: {tarea.creadorNombre}</span>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Creador</p>
+                <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 min-w-0">
+                  <User className="w-4 h-4 shrink-0" />
+                  <span className="truncate">{tarea.creadorNombre}</span>
+                </div>
               </div>
             )}
           </div>

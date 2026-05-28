@@ -4,8 +4,9 @@ import { Plus, Pencil, Trash2, ListChecks, Search, Clock, RefreshCw } from 'luci
 import { toast } from 'sonner';
 import { tareasService, proyectosService, estadosService } from '@/shared/services';
 import { getErrorMessage } from '@/shared/lib/errorUtils';
-import { formatLocalDate, isBeforeToday } from '@/shared/lib/dateUtils';
-import { SelectField, ConfirmDialog } from '@/shared/components';
+import { formatLocalDate, formatDateTime, isBeforeToday } from '@/shared/lib/dateUtils';
+import { formatAsignados, isUserAssignedToTarea } from '@/shared/lib/tareaUtils';
+import { SelectField, ConfirmDialog, InfoBadge, MetaItem } from '@/shared/components';
 import { useAuth } from '@/context/AuthContext';
 import FormTareas from './FormTareas';
 import TareaDetalle from './TareaDetalle';
@@ -103,7 +104,7 @@ export default function Tareas() {
   };
 
   const isLimitedEditor = (tarea) => (
-    !!(user?.id && Number(tarea.asignadoId) === Number(user.id) && Number(tarea.creadorId) !== Number(user.id))
+    !!(user?.id && isUserAssignedToTarea(tarea, user.id) && Number(tarea.creadorId) !== Number(user.id))
   );
 
   // Kanban view grouped by estado
@@ -196,33 +197,42 @@ export default function Tareas() {
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-semibold text-slate-800 dark:text-white truncate">{tarea.titulo}</h3>
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
-                      {tarea.proyectoNombre && <span>{tarea.proyectoNombre}</span>}
-                      {tarea.asignadoNombre && <span>@ {tarea.asignadoNombre}</span>}
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                      <MetaItem label="Proyecto" value={tarea.proyectoNombre} />
+                      <MetaItem label="Asignados" value={formatAsignados(tarea)} />
+                      {tarea.fechaCreacion && (
+                        <MetaItem label="Creada" value={formatDateTime(tarea.fechaCreacion)} />
+                      )}
                       {tarea.fechaLimite && (
-                        <span className={`flex items-center gap-1 ${isOverdue(tarea) ? 'text-red-500' : ''}`}>
-                          <Clock className="w-3 h-3" />
-                          {formatLocalDate(tarea.fechaLimite)}
-                        </span>
+                        <MetaItem
+                          label="Fecha límite"
+                          value={formatLocalDate(tarea.fechaLimite)}
+                          icon={Clock}
+                          className={isOverdue(tarea) ? 'text-red-500' : ''}
+                          valueClassName={isOverdue(tarea) ? 'text-red-500 font-medium' : ''}
+                        />
                       )}
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
                     {tarea.prioridad && (
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${priorityColor(tarea.prioridad)}`}>
-                        {tarea.prioridad}
-                      </span>
+                      <InfoBadge
+                        label="Prioridad"
+                        value={tarea.prioridad}
+                        className={priorityColor(tarea.prioridad)}
+                        labelClassName="opacity-80 font-normal"
+                      />
                     )}
                     {tarea.estadoNombre && (() => {
                       const color = estados.find((e) => e.id === tarea.estadoId)?.color || '#6366f1';
                       return (
-                        <span
-                          className="text-xs px-2 py-0.5 rounded-full font-medium"
+                        <InfoBadge
+                          label="Estado"
+                          value={tarea.estadoNombre}
+                          labelClassName="opacity-80 font-normal"
                           style={{ backgroundColor: color + '22', color }}
-                        >
-                          {tarea.estadoNombre}
-                        </span>
+                        />
                       );
                     })()}
                     {isLimitedEditor(tarea) ? (
@@ -290,21 +300,34 @@ export default function Tareas() {
                         </button>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
                       {tarea.prioridad && (
-                        <span className={`px-1.5 py-0.5 rounded font-medium ${priorityColor(tarea.prioridad)}`}>
-                          {tarea.prioridad}
-                        </span>
+                        <InfoBadge
+                          label="Prioridad"
+                          value={tarea.prioridad}
+                          className={priorityColor(tarea.prioridad)}
+                          labelClassName="opacity-80 font-normal"
+                        />
                       )}
                       {tarea.fechaLimite && (
-                        <span className={`flex items-center gap-1 ${isOverdue(tarea) ? 'text-red-500' : ''}`}>
-                          <Clock className="w-3 h-3" />
-                          {formatLocalDate(tarea.fechaLimite)}
-                        </span>
+                        <InfoBadge
+                          label="Fecha límite"
+                          value={formatLocalDate(tarea.fechaLimite)}
+                          icon={Clock}
+                          className={isOverdue(tarea)
+                            ? 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400'
+                            : 'bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400'}
+                          labelClassName={isOverdue(tarea)
+                            ? 'text-red-500/80 font-normal'
+                            : 'text-slate-500 dark:text-slate-400 font-normal'}
+                        />
                       )}
                     </div>
-                    {tarea.asignadoNombre && (
-                      <p className="text-xs text-slate-400 mt-1.5">@ {tarea.asignadoNombre}</p>
+                    {formatAsignados(tarea) && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
+                        <span className="font-medium text-slate-600 dark:text-slate-300">Asignados:</span>{' '}
+                        {formatAsignados(tarea)}
+                      </p>
                     )}
                   </motion.div>
                 ))}

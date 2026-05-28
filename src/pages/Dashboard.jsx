@@ -13,7 +13,9 @@ import {
 import { toast } from 'sonner';
 import { proyectosService, empresasService, tareasService, estadosService, tiposProyectoService } from '@/shared/services';
 import { getErrorMessage } from '@/shared/lib/errorUtils';
-import { formatLocalDate } from '@/shared/lib/dateUtils';
+import { formatLocalDate, formatDateTime } from '@/shared/lib/dateUtils';
+import { formatAsignados } from '@/shared/lib/tareaUtils';
+import { InfoBadge, MetaItem } from '@/shared/components';
 import { useAuth } from '@/context/AuthContext';
 
 const container = {
@@ -143,59 +145,63 @@ export default function Dashboard() {
               data.proyectos.slice(0, 5).map((p) => (
                 <div
                   key={p.id}
-                  className="p-3 rounded-xl bg-slate-50 dark:bg-slate-700/30 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
+                  className="flex items-start justify-between gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-700/30 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
                 >
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <div className="min-w-0 flex-1">
                     <p className="font-medium text-slate-800 dark:text-white truncate">{p.nombre}</p>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {p.prioridad && (
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
+                      <MetaItem label="Empresa" value={p.empresaNombre || 'Sin empresa'} />
+                      {p.tipoProyectoNombre && (
+                        <MetaItem label="Tipo" value={p.tipoProyectoNombre} icon={Tag} />
+                      )}
+                    </div>
+                    {(p.fechaInicio || p.fechaFinEstimada) && (
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                        {p.fechaInicio && (
+                          <MetaItem
+                            label="Inicio"
+                            value={formatLocalDate(p.fechaInicio)}
+                            icon={Calendar}
+                          />
+                        )}
+                        {p.fechaFinEstimada && (
+                          <MetaItem
+                            label="Fin est."
+                            value={formatLocalDate(p.fechaFinEstimada)}
+                            icon={Calendar}
+                            className="text-amber-500 dark:text-amber-400"
+                            valueClassName="text-amber-500 dark:text-amber-400"
+                          />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    {p.prioridad && (
+                      <InfoBadge
+                        label="Prioridad"
+                        value={p.prioridad}
+                        className={
                           p.prioridad === 'ALTA' || p.prioridad === 'CRITICA'
                             ? 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400'
                             : p.prioridad === 'MEDIA'
                             ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400'
                             : 'bg-slate-100 dark:bg-slate-600/50 text-slate-600 dark:text-slate-400'
-                        }`}>
-                          {p.prioridad}
-                        </span>
-                      )}
-                      {p.estadoNombre && (() => {
-                        const color = data.estados.find((e) => e.id === p.estadoId)?.color || '#6366f1';
-                        return (
-                          <span
-                            className="text-xs px-2 py-0.5 rounded-full font-medium"
-                            style={{ backgroundColor: color + '22', color }}
-                          >
-                            {p.estadoNombre}
-                          </span>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 flex-wrap text-xs text-slate-500 dark:text-slate-400">
-                    <span>{p.empresaNombre || 'Sin empresa'}</span>
-                    {p.tipoProyectoNombre && (() => {
-                      const tp = data.tiposProyecto.find((t) => t.id === p.tipoProyectoId);
-                      const color = tp?.color || '#6366f1';
+                        }
+                        labelClassName="opacity-80 font-normal"
+                      />
+                    )}
+                    {p.estadoNombre && (() => {
+                      const color = data.estados.find((e) => e.id === p.estadoId)?.color || '#6366f1';
                       return (
-                        <span className="flex items-center gap-1" style={{ color }}>
-                          <Tag className="w-3 h-3" />
-                          {p.tipoProyectoNombre}
-                        </span>
+                        <InfoBadge
+                          label="Estado"
+                          value={p.estadoNombre}
+                          labelClassName="opacity-80 font-normal"
+                          style={{ backgroundColor: color + '22', color }}
+                        />
                       );
                     })()}
-                    {p.fechaInicio && (
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        {formatLocalDate(p.fechaInicio)}
-                      </span>
-                    )}
-                    {p.fechaFinEstimada && (
-                      <span className="flex items-center gap-1 text-amber-500 dark:text-amber-400">
-                        <Calendar className="w-3 h-3" />
-                        {formatLocalDate(p.fechaFinEstimada)}
-                      </span>
-                    )}
                   </div>
                 </div>
               ))
@@ -221,36 +227,50 @@ export default function Dashboard() {
               data.tareas.slice(0, 5).map((t) => (
                 <div
                   key={t.id}
-                  className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-700/30 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
+                  className="flex items-start justify-between gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-700/30 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
                 >
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="font-medium text-slate-800 dark:text-white truncate">{t.titulo}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
-                      <Clock className="w-3 h-3" />
-                      {t.fechaLimite ? formatLocalDate(t.fechaLimite) : 'Sin fecha'}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
+                      <MetaItem
+                        label="Proyecto"
+                        value={t.proyectoNombre}
+                      />
+                      <MetaItem label="Asignados" value={formatAsignados(t) || 'Sin asignar'} />
+                      <MetaItem
+                        label="Fecha límite"
+                        value={t.fechaLimite ? formatLocalDate(t.fechaLimite) : 'Sin fecha'}
+                        icon={Clock}
+                      />
+                      {t.fechaCreacion && (
+                        <MetaItem label="Creada" value={formatDateTime(t.fechaCreacion)} />
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
                     {t.prioridad && (
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        t.prioridad === 'ALTA' || t.prioridad === 'CRITICA'
-                          ? 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400'
-                          : t.prioridad === 'MEDIA'
-                          ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400'
-                          : 'bg-slate-100 dark:bg-slate-600/50 text-slate-600 dark:text-slate-400'
-                      }`}>
-                        {t.prioridad}
-                      </span>
+                      <InfoBadge
+                        label="Prioridad"
+                        value={t.prioridad}
+                        className={
+                          t.prioridad === 'ALTA' || t.prioridad === 'CRITICA'
+                            ? 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400'
+                            : t.prioridad === 'MEDIA'
+                            ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                            : 'bg-slate-100 dark:bg-slate-600/50 text-slate-600 dark:text-slate-400'
+                        }
+                        labelClassName="opacity-80 font-normal"
+                      />
                     )}
                     {t.estadoNombre && (() => {
                       const color = data.estados.find((e) => e.id === t.estadoId)?.color || '#6366f1';
                       return (
-                        <span
-                          className="text-xs px-2 py-0.5 rounded-full font-medium"
+                        <InfoBadge
+                          label="Estado"
+                          value={t.estadoNombre}
+                          labelClassName="opacity-80 font-normal"
                           style={{ backgroundColor: color + '22', color }}
-                        >
-                          {t.estadoNombre}
-                        </span>
+                        />
                       );
                     })()}
                   </div>
