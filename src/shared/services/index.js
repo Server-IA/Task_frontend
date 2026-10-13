@@ -1,9 +1,0 @@
-export { estadosService } from './estadosService';
-export { empresasService } from './empresasService';
-export { tiposProyectoService } from './tiposProyectoService';
-export { proyectosService } from './proyectosService';
-export { tareasService } from './tareasService';
-export { miembrosEmpresaService } from './miembrosEmpresaService';
-export { miembrosProyectoService } from './miembrosProyectoService';
-export { comentariosService } from './comentariosService';
-export { usuariosService } from './usuariosService';
