@@ -9,6 +9,8 @@ export const api = axios.create({
   baseURL: API_URL,
   timeout: 20_000,
   headers: { 'Content-Type': 'application/json' },
+  // Spring espera los filtros repetidos como ?state=a&state=b (no state[]=a)
+  paramsSerializer: { indexes: null },
 })
 
 // Agrega el access token a cada petición

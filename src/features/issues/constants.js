@@ -1,0 +1,23 @@
+export const PRIORITIES = [
+  { value: 'URGENT', label: 'Urgente' },
+  { value: 'HIGH', label: 'Alta' },
+  { value: 'MEDIUM', label: 'Media' },
+  { value: 'LOW', label: 'Baja' },
+  { value: 'NONE', label: 'Sin prioridad' },
+]
+
+export const PRIORITY_LABELS = Object.fromEntries(PRIORITIES.map(({ value, label }) => [value, label]))
+
+/** Opciones de orden del listado (el backend acepta `sort=campo,dirección`). */
+export const SORT_OPTIONS = [
+  { value: 'sortOrder,asc', label: 'Orden manual' },
+  { value: 'sequenceId,desc', label: 'Más recientes' },
+  { value: 'sequenceId,asc', label: 'Más antiguos' },
+  { value: 'updatedAt,desc', label: 'Actualizados recientemente' },
+  { value: 'dueDate,asc', label: 'Fecha límite' },
+  { value: 'title,asc', label: 'Título (A-Z)' },
+]
+
+/** Tamaño de página del listado y de la carga del Kanban (el backend permite hasta 200). */
+export const LIST_PAGE_SIZE = 50
+export const BOARD_PAGE_SIZE = 200
