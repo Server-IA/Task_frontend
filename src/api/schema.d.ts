@@ -1013,6 +1013,8 @@ export interface components {
             sortOrder?: number;
             assignees?: components["schemas"]["UserSummaryResponse"][];
             labels?: components["schemas"]["LabelResponse"][];
+            cycle?: components["schemas"]["PlanningRefResponse"];
+            modules?: components["schemas"]["PlanningRefResponse"][];
             createdBy?: components["schemas"]["UserSummaryResponse"];
             /** Format: date-time */
             createdAt?: string;
@@ -1024,6 +1026,11 @@ export interface components {
             id?: string;
             code?: string;
             title?: string;
+        };
+        PlanningRefResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
         };
         CommentRequest: {
             body: string;

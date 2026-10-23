@@ -1,4 +1,5 @@
 import { IssueActivity } from '@/features/comments/IssueActivity'
+import { IssuePlanningProperties } from '@/features/planning/components/IssuePlanningProperties'
 import { IssueDetail } from './IssueDetail'
 
 /**
@@ -11,6 +12,7 @@ export function IssueDetailWithExtras(props) {
     <IssueDetail
       {...props}
       renderActivity={(issue) => <IssueActivity slug={slug} projectId={project.id} issueId={issue.id} />}
+      renderPlanning={(issue) => <IssuePlanningProperties slug={slug} projectId={project.id} issue={issue} />}
     />
   )
 }
