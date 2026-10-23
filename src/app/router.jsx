@@ -9,6 +9,8 @@ import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage'
 import { VerifyEmailPage } from '@/features/auth/pages/VerifyEmailPage'
 import { IssuePage } from '@/features/issues/pages/IssuePage'
 import { NotificationsPage } from '@/features/notifications/NotificationsPage'
+import { PlanningDetailPage } from '@/features/planning/pages/PlanningDetailPage'
+import { PlanningListPage } from '@/features/planning/pages/PlanningListPage'
 import { IssuesPage } from '@/features/issues/pages/IssuesPage'
 import { ProfilePage } from '@/features/profile/ProfilePage'
 import { ProjectLayout } from '@/features/projects/pages/ProjectLayout'
@@ -66,6 +68,10 @@ export const router = createBrowserRouter([
                       { index: true, element: <Navigate to="issues" replace /> },
                       { path: 'issues', element: <IssuesPage /> },
                       { path: 'issues/:issueId', element: <IssuePage /> },
+                      { path: 'cycles', element: <PlanningListPage kind="cycles" key="cycles" /> },
+                      { path: 'cycles/:itemId', element: <PlanningDetailPage kind="cycles" key="cycle" /> },
+                      { path: 'modules', element: <PlanningListPage kind="modules" key="modules" /> },
+                      { path: 'modules/:itemId', element: <PlanningDetailPage kind="modules" key="module" /> },
                       { path: 'settings', element: <ProjectSettingsPage /> },
                       { path: '*', element: <NotFoundPage /> },
                     ],

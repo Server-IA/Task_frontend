@@ -166,7 +166,7 @@ export function IssueDetail({ slug, project, issueId, variant = 'page', onClose,
   )
 }
 
-function PropertyRow({ label, children }) {
+export function PropertyRow({ label, children }) {
   return (
     <div className="grid grid-cols-[6.5rem_1fr] items-center gap-2">
       <span className="text-xs text-muted-foreground">{label}</span>
