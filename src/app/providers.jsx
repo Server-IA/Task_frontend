@@ -14,7 +14,7 @@ export function AppProviders({ children }) {
         {children}
         <Toaster position="bottom-right" richColors closeButton />
       </TooltipProvider>
-      {import.meta.env.DEV && <ReactQueryDevtools buttonPosition="bottom-left" />}
+      {import.meta.env.VITE_QUERY_DEVTOOLS === 'true' && <ReactQueryDevtools buttonPosition="bottom-left" />}
     </QueryClientProvider>
   )
 }
