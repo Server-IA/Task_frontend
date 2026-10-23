@@ -2,6 +2,7 @@ import { NavLink } from 'react-router'
 import { FolderKanban, PanelLeftClose, PanelLeftOpen, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { NotificationsLink } from '@/features/notifications/NotificationsLink'
 import { WorkspaceSwitcher } from '@/features/workspaces/components/WorkspaceSwitcher'
 import { useRouteParams } from '@/hooks/useRouteParams'
 import { cn } from '@/lib/utils'
@@ -36,6 +37,7 @@ export function Sidebar({ collapsed }) {
       </div>
 
       <nav className="min-h-0 flex-1 space-y-4 overflow-y-auto px-2 py-2" aria-label="Principal">
+        <NotificationsLink collapsed={collapsed} />
         {slug && (
           <>
             <div className="space-y-0.5">

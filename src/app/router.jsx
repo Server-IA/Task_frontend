@@ -8,6 +8,7 @@ import { RegisterPage } from '@/features/auth/pages/RegisterPage'
 import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage'
 import { VerifyEmailPage } from '@/features/auth/pages/VerifyEmailPage'
 import { IssuePage } from '@/features/issues/pages/IssuePage'
+import { NotificationsPage } from '@/features/notifications/NotificationsPage'
 import { IssuesPage } from '@/features/issues/pages/IssuesPage'
 import { ProfilePage } from '@/features/profile/ProfilePage'
 import { ProjectLayout } from '@/features/projects/pages/ProjectLayout'
@@ -51,6 +52,7 @@ export const router = createBrowserRouter([
             element: <AppLayout />,
             children: [
               { path: '/profile', element: <ProfilePage /> },
+              { path: '/notifications', element: <NotificationsPage /> },
               {
                 path: '/:slug',
                 element: <WorkspaceLayout />,
