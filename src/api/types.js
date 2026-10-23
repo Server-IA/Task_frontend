@@ -1,0 +1,34 @@
+/**
+ * Alias JSDoc de los tipos de la API para el autocompletado de VS Code.
+ * Se generan desde el backend con `npm run api:types` (archivo schema.d.ts).
+ * No afectan la ejecución: solo sirven al editor.
+ *
+ * Uso: `/** @param {import('@/api/types').IssueResponse} issue *\/`
+ */
+
+/** @typedef {import('./schema').components['schemas']} Schemas */
+
+/** @typedef {Schemas['AuthResponse']} AuthResponse */
+/** @typedef {Schemas['UserResponse']} UserResponse */
+/** @typedef {Schemas['UserSummaryResponse']} UserSummary */
+/** @typedef {Schemas['WorkspaceResponse']} WorkspaceResponse */
+/** @typedef {Schemas['WorkspaceMemberResponse']} WorkspaceMember */
+/** @typedef {Schemas['InvitationResponse']} InvitationResponse */
+/** @typedef {Schemas['InvitationDetailsResponse']} InvitationDetails */
+/** @typedef {Schemas['ProjectResponse']} ProjectResponse */
+/** @typedef {Schemas['ProjectMemberResponse']} ProjectMember */
+/** @typedef {Schemas['StateResponse']} StateResponse */
+/** @typedef {Schemas['LabelResponse']} LabelResponse */
+/** @typedef {Schemas['IssueResponse']} IssueResponse */
+/** @typedef {Schemas['CommentResponse']} CommentResponse */
+/** @typedef {Schemas['ActivityResponse']} ActivityResponse */
+/** @typedef {Schemas['NotificationResponse']} NotificationResponse */
+/** @typedef {Schemas['CycleResponse']} CycleResponse */
+/** @typedef {Schemas['ModuleResponse']} ModuleResponse */
+
+/**
+ * @template T
+ * @typedef {{ content: T[], page: number, size: number, totalElements: number, totalPages: number, first: boolean, last: boolean }} Page
+ */
+
+export {}
