@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Link, Outlet } from 'react-router'
 import { Logo } from '@/components/common/Logo'
 import { ThemeToggle } from '@/components/common/ThemeToggle'
@@ -23,6 +24,10 @@ export function AuthLayout() {
 
 /** Encabezado común de las tarjetas de autenticación. */
 export function AuthHeader({ title, description }) {
+  useEffect(() => {
+    document.title = `${title} · TaskFlow`
+  }, [title])
+
   return (
     <div className="mb-6 space-y-1.5 text-center">
       <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>

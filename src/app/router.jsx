@@ -24,10 +24,12 @@ import { WorkspaceSettingsPage } from '@/features/workspaces/pages/WorkspaceSett
 import { AppLayout } from '@/layouts/AppLayout'
 import { AuthLayout } from '@/layouts/AuthLayout'
 import { NotFoundPage } from '@/pages/NotFoundPage'
+import { RouteErrorPage } from '@/pages/RouteErrorPage'
 
 export const router = createBrowserRouter([
   {
     element: <SessionGate />,
+    errorElement: <RouteErrorPage />,
     children: [
       {
         element: <AuthLayout />,

@@ -1,4 +1,4 @@
-import { Fragment } from 'react'
+import { Fragment, useEffect } from 'react'
 import { Link } from 'react-router'
 import { ChevronRight, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -11,6 +11,13 @@ import { useLayoutStore } from '@/stores/layoutStore'
  */
 export function PageHeader({ breadcrumbs = [], actions, children, className }) {
   const openSidebar = useLayoutStore((state) => state.setMobileSidebarOpen)
+
+  // Título de la pestaña: de lo más específico a lo más general («Issues · Sitio web · TaskFlow»)
+  const titleParts = breadcrumbs.map((crumb) => crumb.label).filter((label) => typeof label === 'string')
+  const documentTitle = [...titleParts.reverse(), 'TaskFlow'].join(' · ')
+  useEffect(() => {
+    document.title = documentTitle
+  }, [documentTitle])
 
   return (
     <header className={cn('flex min-h-14 shrink-0 flex-wrap items-center gap-2 border-b px-4 py-2', className)}>
