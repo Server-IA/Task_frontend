@@ -8,21 +8,15 @@ import { RegisterPage } from '@/features/auth/pages/RegisterPage'
 import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage'
 import { VerifyEmailPage } from '@/features/auth/pages/VerifyEmailPage'
 import { ProfilePage } from '@/features/profile/ProfilePage'
+import { HomeRedirect } from '@/features/workspaces/pages/HomeRedirect'
+import { InvitationPage } from '@/features/workspaces/pages/InvitationPage'
+import { OnboardingPage } from '@/features/workspaces/pages/OnboardingPage'
+import { WorkspaceHomePage } from '@/features/workspaces/pages/WorkspaceHomePage'
+import { WorkspaceLayout } from '@/features/workspaces/pages/WorkspaceLayout'
+import { WorkspaceSettingsPage } from '@/features/workspaces/pages/WorkspaceSettingsPage'
 import { AppLayout } from '@/layouts/AppLayout'
 import { AuthLayout } from '@/layouts/AuthLayout'
-import { PageHeader } from '@/layouts/PageHeader'
 import { NotFoundPage } from '@/pages/NotFoundPage'
-
-function HomePage() {
-  return (
-    <>
-      <PageHeader breadcrumbs={[{ label: 'Inicio' }]} />
-      <div className="flex flex-1 items-center justify-center text-muted-foreground">
-        Aquí irán tus workspaces
-      </div>
-    </>
-  )
-}
 
 export const router = createBrowserRouter([
   {
@@ -41,16 +35,27 @@ export const router = createBrowserRouter([
           },
           { path: '/verify-email', element: <VerifyEmailPage /> },
           { path: '/reset-password', element: <ResetPasswordPage /> },
+          { path: '/invitations/:token', element: <InvitationPage /> },
         ],
       },
       {
         element: <RequireAuth />,
         children: [
+          { path: '/', element: <HomeRedirect /> },
+          { path: '/onboarding', element: <OnboardingPage /> },
           {
             element: <AppLayout />,
             children: [
-              { path: '/', element: <HomePage /> },
               { path: '/profile', element: <ProfilePage /> },
+              {
+                path: '/:slug',
+                element: <WorkspaceLayout />,
+                children: [
+                  { index: true, element: <WorkspaceHomePage /> },
+                  { path: 'settings', element: <WorkspaceSettingsPage /> },
+                  { path: '*', element: <NotFoundPage /> },
+                ],
+              },
             ],
           },
         ],
