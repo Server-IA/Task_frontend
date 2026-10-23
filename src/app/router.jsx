@@ -7,7 +7,10 @@ import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { RegisterPage } from '@/features/auth/pages/RegisterPage'
 import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage'
 import { VerifyEmailPage } from '@/features/auth/pages/VerifyEmailPage'
+import { IssuesPage } from '@/features/issues/pages/IssuesPage'
 import { ProfilePage } from '@/features/profile/ProfilePage'
+import { ProjectLayout } from '@/features/projects/pages/ProjectLayout'
+import { ProjectSettingsPage } from '@/features/projects/pages/ProjectSettingsPage'
 import { HomeRedirect } from '@/features/workspaces/pages/HomeRedirect'
 import { InvitationPage } from '@/features/workspaces/pages/InvitationPage'
 import { OnboardingPage } from '@/features/workspaces/pages/OnboardingPage'
@@ -53,6 +56,16 @@ export const router = createBrowserRouter([
                 children: [
                   { index: true, element: <WorkspaceHomePage /> },
                   { path: 'settings', element: <WorkspaceSettingsPage /> },
+                  {
+                    path: 'projects/:projectId',
+                    element: <ProjectLayout />,
+                    children: [
+                      { index: true, element: <Navigate to="issues" replace /> },
+                      { path: 'issues', element: <IssuesPage /> },
+                      { path: 'settings', element: <ProjectSettingsPage /> },
+                      { path: '*', element: <NotFoundPage /> },
+                    ],
+                  },
                   { path: '*', element: <NotFoundPage /> },
                 ],
               },
