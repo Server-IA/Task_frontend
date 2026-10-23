@@ -6,12 +6,13 @@ import { WorkspaceSwitcher } from '@/features/workspaces/components/WorkspaceSwi
 import { useRouteParams } from '@/hooks/useRouteParams'
 import { cn } from '@/lib/utils'
 import { usePreferencesStore } from '@/stores/preferencesStore'
+import { SidebarProjects } from './SidebarProjects'
 import { UserMenu } from './UserMenu'
 
 export function Sidebar({ collapsed }) {
   const toggleSidebar = usePreferencesStore((state) => state.toggleSidebar)
   const lastWorkspaceSlug = usePreferencesStore((state) => state.lastWorkspaceSlug)
-  const { slug: routeSlug } = useRouteParams()
+  const { slug: routeSlug, projectId } = useRouteParams()
   // Fuera de un workspace (perfil, notificaciones) se usa el último abierto
   const slug = routeSlug ?? lastWorkspaceSlug
 
@@ -36,10 +37,13 @@ export function Sidebar({ collapsed }) {
 
       <nav className="min-h-0 flex-1 space-y-4 overflow-y-auto px-2 py-2" aria-label="Principal">
         {slug && (
-          <div className="space-y-0.5">
-            <SidebarLink to={`/${slug}`} end icon={FolderKanban} label="Proyectos" collapsed={collapsed} />
-            <SidebarLink to={`/${slug}/settings`} icon={Settings} label="Ajustes" collapsed={collapsed} />
-          </div>
+          <>
+            <div className="space-y-0.5">
+              <SidebarLink to={`/${slug}`} end icon={FolderKanban} label="Proyectos" collapsed={collapsed} />
+              <SidebarLink to={`/${slug}/settings`} icon={Settings} label="Ajustes" collapsed={collapsed} />
+            </div>
+            <SidebarProjects slug={slug} currentProjectId={projectId} collapsed={collapsed} />
+          </>
         )}
       </nav>
 
@@ -62,7 +66,7 @@ export function Sidebar({ collapsed }) {
 }
 
 /** Enlace de navegación de la sidebar con ícono; muestra tooltip cuando está contraída. */
-export function SidebarLink({ to, icon: Icon, label, collapsed, end = false, badge, iconClassName }) {
+export function SidebarLink({ to, icon: Icon, iconNode, label, collapsed, end = false, badge, iconClassName }) {
   const link = (
     <NavLink
       to={to}
@@ -75,7 +79,7 @@ export function SidebarLink({ to, icon: Icon, label, collapsed, end = false, bad
         )
       }
     >
-      <Icon className={cn('size-4 shrink-0', iconClassName)} />
+      {iconNode ?? <Icon className={cn('size-4 shrink-0', iconClassName)} />}
       {!collapsed && <span className="min-w-0 flex-1 truncate">{label}</span>}
       {!collapsed && badge}
     </NavLink>
