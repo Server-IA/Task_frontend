@@ -19,21 +19,30 @@ export function Sidebar({ collapsed }) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className={cn('flex h-14 items-center gap-1 px-2', collapsed && 'justify-center')}>
-        <div className="min-w-0 flex-1">
+      {/* Contraída: logo del workspace y debajo el botón para expandir, ambos arriba */}
+      <div
+        className={cn(
+          'flex items-center gap-1 px-2',
+          collapsed ? 'flex-col justify-center gap-1 py-2.5' : 'h-14',
+        )}
+      >
+        <div className={cn('min-w-0', collapsed ? 'w-full' : 'flex-1')}>
           <WorkspaceSwitcher currentSlug={slug} collapsed={collapsed} />
         </div>
-        {!collapsed && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="hidden size-7 text-muted-foreground md:inline-flex"
-            onClick={toggleSidebar}
-            aria-label="Contraer menú"
-          >
-            <PanelLeftClose className="size-4" />
-          </Button>
-        )}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn('hidden text-muted-foreground md:inline-flex', collapsed ? 'size-8' : 'size-7')}
+              onClick={toggleSidebar}
+              aria-label={collapsed ? 'Expandir menú' : 'Contraer menú'}
+            >
+              {collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="right">{collapsed ? 'Expandir menú' : 'Contraer menú'}</TooltipContent>
+        </Tooltip>
       </div>
 
       <nav className="min-h-0 flex-1 space-y-4 overflow-y-auto px-2 py-2" aria-label="Principal">
@@ -49,37 +58,29 @@ export function Sidebar({ collapsed }) {
         )}
       </nav>
 
-      <div className="space-y-1 border-t p-2">
-        {collapsed && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="mx-auto hidden size-8 text-muted-foreground md:flex"
-            onClick={toggleSidebar}
-            aria-label="Expandir menú"
-          >
-            <PanelLeftOpen className="size-4" />
-          </Button>
-        )}
+      <div className="border-t p-2">
         <UserMenu collapsed={collapsed} />
       </div>
     </div>
   )
 }
 
-/** Enlace de navegación de la sidebar con ícono; muestra tooltip cuando está contraída. */
+/**
+ * Enlace de navegación de la sidebar con ícono; muestra tooltip cuando está contraída.
+ * El estado activo se pinta con `aria-current="page"` (lo pone NavLink): así el className es un texto fijo
+ * y el TooltipTrigger (Radix Slot) lo puede combinar sin romperlo.
+ */
 export function SidebarLink({ to, icon: Icon, iconNode, label, collapsed, end = false, badge, iconClassName }) {
   const link = (
     <NavLink
       to={to}
       end={end}
-      className={({ isActive }) =>
-        cn(
-          'flex h-8 items-center gap-2 rounded-md px-2 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-          isActive && 'bg-sidebar-accent font-medium text-sidebar-accent-foreground',
-          collapsed && 'justify-center px-0',
-        )
-      }
+      aria-label={collapsed ? label : undefined}
+      className={cn(
+        'flex h-8 items-center gap-2 rounded-md px-2 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+        'aria-[current=page]:bg-sidebar-accent aria-[current=page]:font-medium aria-[current=page]:text-sidebar-accent-foreground',
+        collapsed && 'justify-center px-0',
+      )}
     >
       {iconNode ?? <Icon className={cn('size-4 shrink-0', iconClassName)} />}
       {!collapsed && <span className="min-w-0 flex-1 truncate">{label}</span>}
