@@ -47,8 +47,10 @@ npm run dev            # http://localhost:5173
 | `VITE_API_URL` | URL base de la API (por defecto `http://localhost:8080/api/v1`) |
 | `VITE_QUERY_DEVTOOLS` | `true` para ver el panel de React Query Devtools |
 
-> En local, si el backend no tiene `RESEND_API_KEY`, los enlaces de los correos (verificación,
-> restablecer contraseña, invitación) aparecen en el log de la API.
+> **Correos en local:** con el backend en `MAIL_PROVIDER=smtp`, todos los correos (verificación,
+> restablecer contraseña, invitaciones, aviso de inicio de sesión) llegan a **Mailpit** en
+> http://localhost:8025, sea cual sea el destinatario. Puedes registrarte con cualquier correo de
+> prueba y abrir los enlaces desde ahí.
 
 ### Scripts
 
