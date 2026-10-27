@@ -68,7 +68,7 @@ export function IssueListView({
   const to = from + data.content.length - 1
 
   return (
-    <div className={cn('flex min-h-full flex-col gap-3', isFetching && 'opacity-80')}>
+    <div className={cn('tf-fade flex min-h-full flex-col gap-3 transition-opacity duration-200', isFetching && 'opacity-80')}>
       {groups.map(({ state, issues }) => (
         <section key={state.id} aria-label={state.name} className="overflow-hidden rounded-2xl border bg-card">
           <header className="flex items-center gap-2 bg-column px-4 py-2.5 font-mono text-[11px] tracking-[0.08em] uppercase">
@@ -117,7 +117,8 @@ export function IssueListView({
   )
 }
 
-const revealOnHover = 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100'
+const revealOnHover =
+  'opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100'
 
 function IssueRow({ issue, slug, project, meta, openIssue }) {
   const { update } = useIssueUpdater(slug, project.id, issue.id)
@@ -130,7 +131,7 @@ function IssueRow({ issue, slug, project, meta, openIssue }) {
         tabIndex={0}
         onClick={() => openIssue(issue.id)}
         onKeyDown={(event) => event.key === 'Enter' && openIssue(issue.id)}
-        className="group flex cursor-pointer flex-wrap items-center gap-x-2.5 gap-y-1.5 px-4 py-2 outline-none hover:bg-subtle focus-visible:bg-accent"
+        className="group flex cursor-pointer flex-wrap items-center gap-x-2.5 gap-y-1.5 px-4 py-2 transition-colors duration-150 outline-none hover:bg-subtle focus-visible:bg-accent"
       >
         <span className="flex items-center gap-1" onClick={stop} onKeyDown={stop}>
           <StatePicker states={meta.states} value={issue.state?.id} onChange={(stateId) => update({ stateId })} showLabel={false} className="px-1" />

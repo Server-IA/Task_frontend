@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import { useIsFetching } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Segmented } from '@/components/common/Segmented'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useCurrentProject } from '@/features/projects/hooks'
 import { useCurrentWorkspace } from '@/features/workspaces/hooks'
@@ -74,7 +75,7 @@ export function IssuesPage() {
         )}
       </IssueFiltersBar>
 
-      <PageBody className={view === 'board' ? 'flex flex-col overflow-hidden' : undefined}>
+      <PageBody key={view} className={cn('tf-fade', view === 'board' && 'flex flex-col overflow-hidden')}>
         {view === 'board' ? (
           <IssueBoardView
             slug={workspace.slug}
@@ -139,29 +140,18 @@ function IssueCounts({ project }) {
   )
 }
 
-/** Selector Lista / Tablero como pastillas. */
+/** Selector Lista / Tablero: el fondo de la opción activa se desliza. */
 function ViewSwitch({ value, onChange }) {
-  const options = [
-    { value: 'list', label: 'Lista' },
-    { value: 'board', label: 'Tablero' },
-  ]
   return (
-    <div role="group" aria-label="Vista" className="flex rounded-full border p-[3px]">
-      {options.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          aria-pressed={value === option.value}
-          onClick={() => onChange(option.value)}
-          className={cn(
-            'rounded-full px-3.5 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground',
-            value === option.value && 'bg-accent-soft font-semibold text-accent-text hover:text-accent-text',
-          )}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
+    <Segmented
+      label="Vista"
+      value={value}
+      onChange={onChange}
+      options={[
+        { value: 'list', label: 'Lista' },
+        { value: 'board', label: 'Tablero' },
+      ]}
+    />
   )
 }
 

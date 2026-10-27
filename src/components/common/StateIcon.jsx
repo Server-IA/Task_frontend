@@ -8,14 +8,30 @@ export const STATE_GROUP_LABELS = {
   CANCELLED: 'Cancelado',
 }
 
+/** Colores muy oscuros (luminancia relativa baja) que no se verían sobre el fondo oscuro. */
+function isTooDark(hex) {
+  const match = /^#([0-9a-f]{6})$/i.exec(hex ?? '')
+  if (!match) return false
+  const [r, g, b] = [0, 2, 4].map((index) => parseInt(match[1].slice(index, index + 2), 16) / 255)
+  const channel = (value) => (value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4)
+  return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b) < 0.05
+}
+
 /**
  * Ícono del estado según su grupo, con el color del estado (como en Plane):
  * Backlog = círculo punteado, Sin empezar = círculo vacío, En curso = medio lleno,
  * Completado = check, Cancelado = cruz.
  * @param {{ group: string, color?: string, className?: string }} props
  */
-export function StateIcon({ group, color = 'currentColor', className }) {
-  const common = { className: cn('size-4 shrink-0', className), viewBox: '0 0 16 16', 'aria-hidden': true }
+export function StateIcon({ group, color: stateColor = 'currentColor', className }) {
+  // El color va en currentColor; en modo oscuro los colores casi negros se cambian por el gris del texto
+  const common = {
+    className: cn('size-4 shrink-0 text-(--state)', isTooDark(stateColor) && 'dark:text-muted-foreground', className),
+    style: { '--state': stateColor },
+    viewBox: '0 0 16 16',
+    'aria-hidden': true,
+  }
+  const color = 'currentColor'
   switch (group) {
     case 'BACKLOG':
       return (

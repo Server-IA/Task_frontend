@@ -4,6 +4,7 @@ import * as React from "react"
 import { cva } from "class-variance-authority";
 import { cn } from "@/lib/utils"
 import { Tabs as TabsPrimitive } from "radix-ui"
+import { SlidingThumb, useSlidingThumb } from "@/components/common/Segmented"
 
 function Tabs({
   className,
@@ -24,9 +25,9 @@ function Tabs({
   )
 }
 
-// Pestañas tipo pastilla del diseño de TaskFlow: la activa va en crema suave
+// Pestañas tipo pastilla del diseño de TaskFlow: el fondo crema se desliza hasta la activa
 const tabsListVariants = cva(
-  "group/tabs-list inline-flex w-fit flex-wrap items-center gap-1 text-muted-foreground group-data-[orientation=vertical]/tabs:flex-col",
+  "group/tabs-list relative inline-flex w-fit flex-wrap items-center gap-1 text-muted-foreground group-data-[orientation=vertical]/tabs:flex-col",
   {
     variants: {
       variant: {
@@ -43,15 +44,34 @@ const tabsListVariants = cva(
 function TabsList({
   className,
   variant = "default",
+  children,
   ...props
 }) {
+  const listRef = React.useRef(null)
+  const thumbRef = React.useRef(null)
+  const [activeKey, setActiveKey] = React.useState(0)
+
+  // Radix cambia data-state en los triggers; se observa para mover el indicador
+  React.useEffect(() => {
+    const list = listRef.current
+    if (!list) return undefined
+    const observer = new MutationObserver(() => setActiveKey((key) => key + 1))
+    observer.observe(list, { attributes: true, subtree: true, attributeFilter: ["data-state"] })
+    return () => observer.disconnect()
+  }, [])
+  useSlidingThumb(listRef, thumbRef, '[data-slot="tabs-trigger"][data-state="active"]', activeKey)
+
   return (
     <TabsPrimitive.List
+      ref={listRef}
       data-slot="tabs-list"
       data-variant={variant}
       className={cn(tabsListVariants({ variant }), className)}
       {...props}
-    />
+    >
+      <SlidingThumb thumbRef={thumbRef} />
+      {children}
+    </TabsPrimitive.List>
   )
 }
 
@@ -63,8 +83,8 @@ function TabsTrigger({
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        "relative inline-flex items-center justify-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors group-data-[orientation=vertical]/tabs:w-full group-data-[orientation=vertical]/tabs:justify-start hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-        "data-[state=active]:bg-accent-soft data-[state=active]:font-semibold data-[state=active]:text-accent-text",
+        "relative inline-flex items-center justify-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors duration-200 group-data-[orientation=vertical]/tabs:w-full group-data-[orientation=vertical]/tabs:justify-start hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "data-[state=active]:font-semibold data-[state=active]:text-accent-text",
         className
       )}
       {...props}
@@ -79,7 +99,7 @@ function TabsContent({
   return (
     <TabsPrimitive.Content
       data-slot="tabs-content"
-      className={cn("flex-1 outline-none", className)}
+      className={cn("tf-fade flex-1 outline-none", className)}
       {...props}
     />
   )

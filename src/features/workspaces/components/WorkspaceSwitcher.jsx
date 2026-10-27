@@ -47,7 +47,7 @@ export function WorkspaceSwitcher({ currentSlug, collapsed }) {
       <DropdownMenu>
         <DropdownMenuTrigger
           className={cn(
-            'flex w-full items-center gap-2.5 rounded-xl p-1.5 text-left text-sm text-sidebar-foreground outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring',
+            'flex w-full items-center gap-2.5 rounded-xl p-1.5 text-left text-sm whitespace-nowrap text-sidebar-foreground transition-colors duration-150 outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring',
             collapsed && 'justify-center',
           )}
           aria-label="Cambiar de workspace"

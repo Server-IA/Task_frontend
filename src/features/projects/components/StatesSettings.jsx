@@ -89,7 +89,7 @@ export function StatesSettings({ slug, project }) {
                   {STATE_GROUP_LABELS[state.group].toLowerCase()}
                 </span>
                 <span className="hidden w-24 items-center gap-1.5 font-mono text-xs text-muted-foreground md:flex">
-                  <span className="size-3 rounded-[4px]" style={{ backgroundColor: state.color }} aria-hidden="true" />
+                  <span className="size-3 rounded-[4px] ring-1 ring-foreground/15" style={{ backgroundColor: state.color }} aria-hidden="true" />
                   {state.color.toUpperCase()}
                 </span>
                 <div className="ml-auto flex items-center">
@@ -150,10 +150,14 @@ function IconButton({ label, children, ...props }) {
   )
 }
 
-function StateDialog({ slug, projectId, state, open, onOpenChange }) {
+function StateDialog({ slug, projectId, state: requestedState, open, onOpenChange }) {
   const create = useCreateState(slug, projectId)
   const update = useUpdateState(slug, projectId)
   const pending = create.isPending || update.isPending
+  // Al cerrar, el padre limpia el estado editado; se conserva el último para que el título no cambie durante la animación
+  const [lastState, setLastState] = useState(requestedState)
+  if (open && requestedState !== lastState) setLastState(requestedState)
+  const state = open ? requestedState : lastState
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -161,26 +165,25 @@ function StateDialog({ slug, projectId, state, open, onOpenChange }) {
         <DialogHeader>
           <DialogTitle>{state ? 'Editar estado' : 'Nuevo estado'}</DialogTitle>
         </DialogHeader>
-        {open && (
-          <StateForm
-            state={state}
-            pending={pending}
-            onCancel={() => onOpenChange(false)}
-            onSubmit={(values, setError) => {
-              const options = {
-                onSuccess: () => {
-                  toast.success(state ? 'Estado actualizado' : 'Estado creado')
-                  onOpenChange(false)
-                },
-                onError: (error) => {
-                  if (!applyFieldErrors(error, setError)) notifyError(error)
-                },
-              }
-              if (state) update.mutate({ stateId: state.id, ...values }, options)
-              else create.mutate(values, options)
-            }}
-          />
-        )}
+        {/* El formulario vive mientras exista el diálogo: así no desaparece durante la animación de cierre */}
+        <StateForm
+          state={state}
+          pending={pending}
+          onCancel={() => onOpenChange(false)}
+          onSubmit={(values, setError) => {
+            const options = {
+              onSuccess: () => {
+                toast.success(state ? 'Estado actualizado' : 'Estado creado')
+                onOpenChange(false)
+              },
+              onError: (error) => {
+                if (!applyFieldErrors(error, setError)) notifyError(error)
+              },
+            }
+            if (state) update.mutate({ stateId: state.id, ...values }, options)
+            else create.mutate(values, options)
+          }}
+        />
       </DialogContent>
     </Dialog>
   )

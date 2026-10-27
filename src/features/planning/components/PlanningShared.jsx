@@ -157,19 +157,18 @@ export function PlanningFormDialog({ kind, slug, projectId, item, open, onOpenCh
           <DialogTitle>{item ? `Editar ${text.singular}` : text.newLabel}</DialogTitle>
           <DialogDescription>{text.emptyDescription}</DialogDescription>
         </DialogHeader>
-        {open && (
-          <PlanningForm
-            kind={kind}
-            slug={slug}
-            projectId={projectId}
-            item={item}
-            onCancel={() => onOpenChange(false)}
-            onSaved={(saved) => {
-              onOpenChange(false)
-              onSaved?.(saved)
-            }}
-          />
-        )}
+        {/* El formulario vive mientras exista el diálogo: así no desaparece durante la animación de cierre */}
+        <PlanningForm
+          kind={kind}
+          slug={slug}
+          projectId={projectId}
+          item={item}
+          onCancel={() => onOpenChange(false)}
+          onSaved={(saved) => {
+            onOpenChange(false)
+            onSaved?.(saved)
+          }}
+        />
       </DialogContent>
     </Dialog>
   )

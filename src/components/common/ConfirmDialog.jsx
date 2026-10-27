@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,6 +15,7 @@ import { Spinner } from '@/components/common/Loaders'
 /**
  * Confirmación para acciones irreversibles (eliminar, quitar, salir…).
  * `onConfirm` puede devolver una promesa: el diálogo se queda abierto mientras se resuelve.
+ * Mientras se cierra conserva el último texto (quien lo usa suele limpiar el elemento al cerrarlo).
  */
 export function ConfirmDialog({
   open,
@@ -25,12 +27,16 @@ export function ConfirmDialog({
   loading = false,
   onConfirm,
 }) {
+  const [lastText, setLastText] = useState({ title, description })
+  if (open && (title !== lastText.title || description !== lastText.description)) setLastText({ title, description })
+  const text = open ? { title, description } : lastText
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          {description && <AlertDialogDescription>{description}</AlertDialogDescription>}
+          <AlertDialogTitle>{text.title}</AlertDialogTitle>
+          {text.description && <AlertDialogDescription>{text.description}</AlertDialogDescription>}
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={loading}>Cancelar</AlertDialogCancel>

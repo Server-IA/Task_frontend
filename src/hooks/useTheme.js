@@ -22,6 +22,15 @@ export function useTheme() {
 export function useApplyTheme() {
   const { resolvedTheme } = useTheme()
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', resolvedTheme === 'dark')
+    const root = document.documentElement
+    if (root.classList.contains('dark') === (resolvedTheme === 'dark')) return
+    // Se cambia el tema sin transiciones y se reactivan en el siguiente cuadro
+    root.classList.add('tf-no-transitions')
+    root.classList.toggle('dark', resolvedTheme === 'dark')
+    const frame = requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove('tf-no-transitions')))
+    return () => {
+      cancelAnimationFrame(frame)
+      root.classList.remove('tf-no-transitions')
+    }
   }, [resolvedTheme])
 }

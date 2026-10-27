@@ -27,7 +27,7 @@ export function UserMenu({ collapsed = false }) {
     <DropdownMenu>
       <DropdownMenuTrigger
         className={cn(
-          'flex w-full items-center gap-2.5 rounded-xl p-1.5 text-left text-sm text-sidebar-foreground outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring aria-[current=page]:bg-sidebar-active aria-[current=page]:text-sidebar-active-foreground',
+          'flex w-full items-center gap-2.5 rounded-xl p-1.5 text-left text-sm whitespace-nowrap text-sidebar-foreground transition-colors duration-150 outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring aria-[current=page]:bg-sidebar-active aria-[current=page]:text-sidebar-active-foreground',
           collapsed && 'justify-center',
         )}
         aria-current={onProfile ? 'page' : undefined}

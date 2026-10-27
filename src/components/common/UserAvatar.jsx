@@ -29,7 +29,8 @@ export function initials(name = '') {
   return (first + last).toUpperCase()
 }
 
-function colorFor(name = '') {
+/** Clase de color del avatar para un nombre (la misma en toda la app). */
+export function avatarColor(name = '') {
   let hash = 0
   for (const char of name) hash = (hash * 31 + char.charCodeAt(0)) | 0
   return COLORS[Math.abs(hash) % COLORS.length]
@@ -41,7 +42,7 @@ export function UserAvatar({ user, size = 'md', className }) {
   return (
     <Avatar className={cn(SIZES[size], className)} title={name}>
       {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt={name} />}
-      <AvatarFallback className={cn('font-bold text-[#23201B]', colorFor(name))}>{initials(name)}</AvatarFallback>
+      <AvatarFallback className={cn('font-bold text-[#23201B]', avatarColor(name))}>{initials(name)}</AvatarFallback>
     </Avatar>
   )
 }

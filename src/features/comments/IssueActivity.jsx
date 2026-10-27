@@ -11,12 +11,12 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { CenteredSpinner, Spinner } from '@/components/common/Loaders'
+import { Segmented } from '@/components/common/Segmented'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { useActivity } from '@/features/issues/hooks'
 import { useCurrentWorkspace } from '@/features/workspaces/hooks'
 import { formatDateTime, formatRelative } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
-import { cn } from '@/lib/utils'
 import { isAdminRole } from '@/lib/permissions'
 import { useSessionStore } from '@/stores/sessionStore'
 import { describeActivity } from './describeActivity'
@@ -47,22 +47,7 @@ export function IssueActivity({ slug, projectId, issueId }) {
     <section className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-semibold">Actividad</h2>
-        <div role="group" aria-label="Filtrar actividad" className="flex rounded-full border p-0.5 text-xs">
-          {FILTERS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              aria-pressed={filter === option.value}
-              onClick={() => setFilter(option.value)}
-              className={cn(
-                'rounded-full px-2.5 py-0.5 text-muted-foreground hover:text-foreground',
-                filter === option.value && 'bg-accent-soft font-semibold text-accent-text hover:text-accent-text',
-              )}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
+        <Segmented label="Filtrar actividad" size="sm" className="p-0.5" value={filter} onChange={setFilter} options={FILTERS} />
       </div>
 
       {isLoading ? (

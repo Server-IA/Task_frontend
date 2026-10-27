@@ -29,18 +29,17 @@ export function CreateProjectDialog({ slug, open, onOpenChange }) {
             Se crearán los estados Backlog, Todo, In Progress, Done y Cancelled. Podrás cambiarlos después.
           </DialogDescription>
         </DialogHeader>
-        {open && (
-          <ProjectForm
-            onSubmit={handleSubmit}
-            pending={createProject.isPending}
-            submitLabel="Crear proyecto"
-            footer={
-              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-                Cancelar
-              </Button>
-            }
-          />
-        )}
+        {/* El formulario vive mientras exista el diálogo: así no desaparece durante la animación de cierre */}
+        <ProjectForm
+          onSubmit={handleSubmit}
+          pending={createProject.isPending}
+          submitLabel="Crear proyecto"
+          footer={
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+          }
+        />
       </DialogContent>
     </Dialog>
   )

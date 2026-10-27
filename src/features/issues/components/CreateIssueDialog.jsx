@@ -50,18 +50,17 @@ export function CreateIssueDialog({ slug, project, open, onOpenChange, defaults 
           </DialogTitle>
           <DialogDescription className="sr-only">Escribe el título y elige sus propiedades.</DialogDescription>
         </DialogHeader>
-        {open && (
-          <CreateIssueForm
-            slug={slug}
-            project={project}
-            defaults={defaults}
-            onCancel={() => onOpenChange(false)}
-            onCreated={(issue, keepOpen) => {
-              onCreated?.(issue)
-              if (!keepOpen) onOpenChange(false)
-            }}
-          />
-        )}
+        {/* El formulario vive mientras exista el diálogo: así no desaparece durante la animación de cierre */}
+        <CreateIssueForm
+          slug={slug}
+          project={project}
+          defaults={defaults}
+          onCancel={() => onOpenChange(false)}
+          onCreated={(issue, keepOpen) => {
+            onCreated?.(issue)
+            if (!keepOpen) onOpenChange(false)
+          }}
+        />
       </DialogContent>
     </Dialog>
   )

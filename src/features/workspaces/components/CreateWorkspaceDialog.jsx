@@ -27,18 +27,17 @@ export function CreateWorkspaceDialog({ open, onOpenChange }) {
           <DialogTitle>Crear workspace</DialogTitle>
           <DialogDescription>Un espacio para tu equipo, sus proyectos y sus tareas.</DialogDescription>
         </DialogHeader>
-        {open && (
-          <WorkspaceForm
-            onSubmit={handleSubmit}
-            pending={createWorkspace.isPending}
-            submitLabel="Crear workspace"
-            footer={
-              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-                Cancelar
-              </Button>
-            }
-          />
-        )}
+        {/* El formulario vive mientras exista el diálogo: así no desaparece durante la animación de cierre */}
+        <WorkspaceForm
+          onSubmit={handleSubmit}
+          pending={createWorkspace.isPending}
+          submitLabel="Crear workspace"
+          footer={
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+          }
+        />
       </DialogContent>
     </Dialog>
   )

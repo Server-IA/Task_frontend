@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 /** Estado vacío con ícono, texto y una acción opcional. */
 export function EmptyState({ icon: Icon, title, description, action, className }) {
   return (
-    <div className={cn('flex flex-col items-center justify-center gap-3 px-6 py-12 text-center', className)}>
+    <div className={cn('tf-enter flex flex-col items-center justify-center gap-3 px-6 py-12 text-center', className)}>
       {Icon && (
         <div className="flex size-12 items-center justify-center rounded-2xl border bg-card text-muted-foreground">
           <Icon className="size-5.5" />

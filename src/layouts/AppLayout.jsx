@@ -19,10 +19,10 @@ export function AppLayout() {
   }, [location.pathname, setMobileOpen])
 
   return (
-    <div className="flex h-full gap-3.5 bg-background p-2 sm:p-3.5">
+    <div className="tf-fade flex h-full gap-3.5 bg-background p-2 sm:p-3.5">
       <aside
         className={cn(
-          'hidden shrink-0 rounded-2xl bg-sidebar text-sidebar-foreground transition-[width] duration-200 md:block',
+          'hidden shrink-0 overflow-hidden rounded-2xl bg-sidebar text-sidebar-foreground transition-[width] duration-200 ease-out md:block',
           collapsed ? 'w-16' : 'w-62',
         )}
       >
@@ -37,8 +37,11 @@ export function AppLayout() {
         </SheetContent>
       </Sheet>
 
-      <main className="flex min-w-0 flex-1 flex-col gap-3.5">
-        <Outlet />
+      <main className="flex min-w-0 flex-1 flex-col">
+        {/* Cada página entra con una transición corta (la clave es la ruta, sin los parámetros de búsqueda) */}
+        <div key={location.pathname} className="tf-enter flex min-h-0 flex-1 flex-col gap-3.5">
+          <Outlet />
+        </div>
       </main>
     </div>
   )

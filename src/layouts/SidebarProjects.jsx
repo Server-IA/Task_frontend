@@ -48,7 +48,8 @@ export function SidebarProjects({ slug, currentProjectId, collapsed }) {
           return (
             <SidebarLink
               key={project.id}
-              to={`${base}/issues`}
+              // A la raíz del proyecto (redirige a tareas): así queda marcado en cualquiera de sus secciones
+              to={base}
               iconNode={<ProjectIcon project={project} className={collapsed ? 'max-w-11 truncate' : undefined} />}
               label={project.name}
               collapsed={collapsed}
@@ -56,7 +57,7 @@ export function SidebarProjects({ slug, currentProjectId, collapsed }) {
           )
         }
         return (
-          <div key={project.id} className="rounded-[14px] bg-sidebar-accent p-1.5">
+          <div key={project.id} className="tf-pop rounded-[14px] bg-sidebar-accent p-1.5">
             <NavLink
               to={`${base}/issues`}
               className="flex items-center gap-2 px-1.5 py-1.5 text-sm font-semibold text-sidebar-foreground"

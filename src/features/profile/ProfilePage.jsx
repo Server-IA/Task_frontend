@@ -14,8 +14,9 @@ import { Label } from '@/components/ui/label'
 import { CenteredSpinner, Spinner } from '@/components/common/Loaders'
 import { PasswordInput } from '@/components/common/PasswordInput'
 import { PasswordRules } from '@/components/common/PasswordRules'
+import { Segmented } from '@/components/common/Segmented'
 import { THEME_OPTIONS } from '@/components/common/ThemeToggle'
-import { initials } from '@/components/common/UserAvatar'
+import { avatarColor, initials } from '@/components/common/UserAvatar'
 import { useChangePassword, useLogout, useMe, useUpdateProfile } from '@/features/auth/hooks'
 import { changePasswordSchema, profileSchema } from '@/features/auth/schemas'
 import { useWorkspaces } from '@/features/workspaces/hooks'
@@ -57,7 +58,7 @@ function ProfileHeader({ user }) {
       leading={
         <Avatar className="size-18 self-center rounded-[22px]">
           {user.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.fullName} className="rounded-[22px]" />}
-          <AvatarFallback className="rounded-[22px] bg-[#B6A6FF] font-display text-[28px] font-extrabold text-[#23201B]">
+          <AvatarFallback className={cn('rounded-[22px] font-display text-[28px] font-extrabold text-[#23201B]', avatarColor(user.fullName))}>
             {initials(user.fullName)}
           </AvatarFallback>
         </Avatar>
@@ -153,23 +154,15 @@ function ProfileCard({ user }) {
             </div>
             <div className="space-y-2">
               <span className="text-sm font-medium">Tema</span>
-              <div role="radiogroup" aria-label="Tema" className="flex gap-1 rounded-xl bg-muted p-1">
-                {THEME_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    role="radio"
-                    aria-checked={theme === option.value}
-                    onClick={() => setTheme(option.value)}
-                    className={cn(
-                      'flex-1 rounded-[9px] px-2.5 py-1.5 text-sm font-medium text-muted-foreground',
-                      theme === option.value && 'bg-card font-semibold text-foreground shadow-sm',
-                    )}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
+              <Segmented
+                label="Tema"
+                value={theme}
+                onChange={setTheme}
+                options={THEME_OPTIONS.map(({ value, label }) => ({ value, label }))}
+                className="rounded-xl border-transparent bg-muted p-1"
+                itemClassName="flex-1 rounded-[9px] text-foreground/70"
+                thumbClassName="rounded-[9px] bg-card shadow-sm"
+              />
             </div>
             <div className="flex justify-end">
               <Button type="submit" disabled={update.isPending || !form.formState.isDirty}>

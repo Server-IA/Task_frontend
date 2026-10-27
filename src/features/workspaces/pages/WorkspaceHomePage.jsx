@@ -79,7 +79,7 @@ export function WorkspaceHomePage() {
             <button
               type="button"
               onClick={() => setCreateOpen(true)}
-              className="flex min-h-44 flex-col items-center justify-center gap-1.5 rounded-2xl border border-dashed border-dash text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
+              className="flex min-h-44 flex-col items-center justify-center gap-1.5 rounded-2xl border border-dashed border-dash text-muted-foreground transition-colors duration-200 hover:border-foreground/40 hover:bg-card/50 hover:text-foreground"
             >
               <span className="flex size-9 items-center justify-center rounded-xl border bg-card">
                 <Plus className="size-4" />
@@ -103,7 +103,7 @@ function ProjectCard({ slug, project }) {
   return (
     <Link
       to={`/${slug}/projects/${project.id}/issues`}
-      className="group flex flex-col gap-3.5 rounded-2xl border bg-card p-5 transition-shadow hover:shadow-card focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      className="group flex flex-col gap-3.5 rounded-2xl border bg-card p-5 transition-[box-shadow,transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-dash hover:shadow-card focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
     >
       <div className="flex items-start gap-3">
         <ProjectIcon project={project} className="h-7 rounded-lg px-2 text-xs" />

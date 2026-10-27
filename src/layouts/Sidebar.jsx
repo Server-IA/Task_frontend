@@ -70,7 +70,7 @@ export function SidebarLink({ to, icon: Icon, iconNode, label, collapsed, end = 
       end={end}
       aria-label={collapsed ? label : undefined}
       className={cn(
-        'group/link flex h-9 items-center gap-2.5 rounded-[10px] px-2.5 text-sm text-sidebar-foreground hover:bg-sidebar-accent',
+        'group/link flex h-9 items-center gap-2.5 rounded-[10px] px-2.5 text-sm whitespace-nowrap text-sidebar-foreground transition-colors duration-150 hover:bg-sidebar-accent',
         'aria-[current=page]:bg-sidebar-active aria-[current=page]:font-semibold aria-[current=page]:text-sidebar-active-foreground',
         collapsed && 'justify-center px-0',
         className,

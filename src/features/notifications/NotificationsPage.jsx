@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/common/Loaders'
+import { Segmented } from '@/components/common/Segmented'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
@@ -44,11 +45,6 @@ export function NotificationsPage() {
     days.at(-1).items.push(notification)
   }
 
-  const filters = [
-    { value: 'unread', label: 'No leídas', count: unreadCount },
-    { value: 'all', label: 'Todas' },
-  ]
-
   return (
     <div className="mx-auto flex w-full max-w-[820px] min-h-0 flex-1 flex-col gap-3.5">
       <PageHeader
@@ -72,26 +68,23 @@ export function NotificationsPage() {
         }
       />
       <PageBody className="flex flex-col gap-3.5">
-        <div role="group" aria-label="Filtrar" className="flex self-start rounded-full border bg-card p-[3px]">
-          {filters.map((filter) => {
-            const active = (filter.value === 'unread') === unread
-            return (
-              <button
-                key={filter.value}
-                type="button"
-                aria-pressed={active}
-                onClick={() => setSearchParams(filter.value === 'all' ? { tab: 'all' } : {}, { replace: true })}
-                className={cn(
-                  'rounded-full px-3.5 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground',
-                  active && 'bg-accent-soft font-semibold text-accent-text hover:text-accent-text',
-                )}
-              >
-                {filter.label}
-                {filter.count > 0 && <span className="ml-1.5 font-mono">{filter.count}</span>}
-              </button>
-            )
-          })}
-        </div>
+        <Segmented
+          label="Filtrar"
+          className="self-start bg-card"
+          value={unread ? 'unread' : 'all'}
+          onChange={(value) => setSearchParams(value === 'all' ? { tab: 'all' } : {}, { replace: true })}
+          options={[
+            {
+              value: 'unread',
+              label: (
+                <>
+                  No leídas{unreadCount > 0 && <span className="ml-1.5 font-mono">{unreadCount}</span>}
+                </>
+              ),
+            },
+            { value: 'all', label: 'Todas' },
+          ]}
+        />
 
         {isLoading && (
           <div className="space-y-2">
@@ -113,7 +106,7 @@ export function NotificationsPage() {
             <h2 className="mx-1 mt-1.5 font-mono text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
               {day.label}
             </h2>
-            <ul className="overflow-hidden rounded-2xl border bg-card">
+            <ul className="tf-enter overflow-hidden rounded-2xl border bg-card">
               {day.items.map((notification, index) => (
                 <NotificationItem key={notification.id} notification={notification} first={index === 0} />
               ))}
@@ -165,7 +158,7 @@ function NotificationItem({ notification, first }) {
         type="button"
         onClick={open}
         className={cn(
-          'flex w-full items-start gap-3 px-4 py-3.5 text-left transition-colors hover:bg-subtle',
+          'flex w-full items-start gap-3 px-4 py-3.5 text-left transition-colors duration-300 hover:bg-subtle',
           !notification.read && 'bg-accent-soft/35',
         )}
       >

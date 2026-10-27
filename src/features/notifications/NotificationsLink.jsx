@@ -16,7 +16,10 @@ export function NotificationsLink({ collapsed }) {
         collapsed={collapsed}
         badge={
           count > 0 && (
-            <span className="min-w-5 rounded-full bg-badge px-1.5 text-center font-mono text-[11px] leading-5 font-semibold text-badge-foreground">
+            <span
+              key={label}
+              className="tf-pop min-w-5 rounded-full bg-badge px-1.5 text-center font-mono text-[11px] leading-5 font-semibold text-badge-foreground"
+            >
               {label}
             </span>
           )

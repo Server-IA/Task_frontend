@@ -1,10 +1,14 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  closestCorners,
+  closestCenter,
   DndContext,
   DragOverlay,
+  getFirstCollision,
   KeyboardSensor,
+  MeasuringStrategy,
   PointerSensor,
+  pointerWithin,
+  rectIntersection,
   useDroppable,
   useSensor,
   useSensors,
@@ -36,7 +40,52 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
   // Mientras se arrastra se trabaja sobre una copia local de las columnas (vista previa de la posición)
   const [dragColumns, setDragColumns] = useState(null)
   const [activeId, setActiveId] = useState(null)
+  // Al soltar, la copia local se conserva hasta que la caché refleje el cambio (actualización optimista);
+  // si se borrara de inmediato, la tarjeta volvería un instante a su columna original
+  const [settlingFrom, setSettlingFrom] = useState(null)
+  if (settlingFrom && settlingFrom !== serverColumns) {
+    setSettlingFrom(null)
+    setDragColumns(null)
+  }
   const columns = dragColumns ?? serverColumns
+
+  // Detección de colisiones estable entre columnas (como el ejemplo «multiple containers» de dnd-kit):
+  // primero lo que está bajo el puntero y, si es una columna, la tarjeta más cercana dentro de ella
+  const columnsRef = useRef(columns)
+  const lastOverId = useRef(null)
+  const recentlyMovedToNewColumn = useRef(false)
+  useEffect(() => {
+    columnsRef.current = columns
+  })
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      recentlyMovedToNewColumn.current = false
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [columns])
+
+  const collisionDetection = useCallback(
+    (args) => {
+      const pointerHits = pointerWithin(args)
+      const hits = pointerHits.length > 0 ? pointerHits : rectIntersection(args)
+      let overId = getFirstCollision(hits, 'id')
+      if (overId != null) {
+        if (String(overId).startsWith('column:')) {
+          const ids = columnsRef.current[String(overId).slice('column:'.length)] ?? []
+          if (ids.length > 0) {
+            const inside = args.droppableContainers.filter((container) => ids.includes(container.id))
+            overId = closestCenter({ ...args, droppableContainers: inside })[0]?.id ?? overId
+          }
+        }
+        lastOverId.current = overId
+        return [{ id: overId }]
+      }
+      // Recién movida a otra columna, sus medidas aún no están al día: se mantiene donde está
+      if (recentlyMovedToNewColumn.current) lastOverId.current = activeId
+      return lastOverId.current ? [{ id: lastOverId.current }] : []
+    },
+    [activeId],
+  )
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -48,6 +97,7 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
 
   const handleDragStart = ({ active }) => {
     setActiveId(active.id)
+    setSettlingFrom(null)
     setDragColumns(serverColumns)
   }
 
@@ -61,6 +111,7 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
       const toItems = [...current[to]]
       const overIndex = toItems.indexOf(over.id)
       toItems.splice(overIndex >= 0 ? overIndex : toItems.length, 0, active.id)
+      recentlyMovedToNewColumn.current = true
       return { ...current, [from]: fromItems, [to]: toItems }
     })
   }
@@ -68,8 +119,10 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
   const handleDragEnd = ({ active, over }) => {
     const current = dragColumns
     setActiveId(null)
-    setDragColumns(null)
-    if (!over || !current) return
+    if (!over || !current) {
+      setDragColumns(null)
+      return
+    }
 
     const targetState = columnOf(active.id, current)
     let targetIds = current[targetState]
@@ -83,7 +136,13 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
     const originalIds = serverColumns[issue.state.id]
     const unchanged =
       issue.state.id === targetState && originalIds.indexOf(active.id) === targetIds.indexOf(active.id)
-    if (unchanged) return
+    if (unchanged) {
+      setDragColumns(null)
+      return
+    }
+    // La posición final se queda en pantalla hasta que llegue la actualización optimista
+    setDragColumns({ ...current, [targetState]: targetIds })
+    setSettlingFrom(serverColumns)
 
     const { afterIssueId, beforeIssueId } = getNeighbors(targetIds, active.id)
     const others = targetIds.filter((id) => id !== active.id).map((id) => issuesById[id].sortOrder)
@@ -119,7 +178,7 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
   const activeIssue = activeId ? issuesById[activeId] : null
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="tf-fade flex h-full min-h-0 flex-col">
       {data.totalElements > BOARD_PAGE_SIZE && (
         <div className="mb-3 flex items-center gap-2 rounded-xl bg-soon-soft px-4 py-2 text-sm text-soon">
           <TriangleAlert className="size-4" />
@@ -128,7 +187,8 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
       )}
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={collisionDetection}
+        measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
@@ -171,7 +231,7 @@ function BoardColumn({ state, ids, issuesById, slug, project, meta, openIssue, o
         <span className="text-muted-foreground">{ids.length}</span>
         <button
           type="button"
-          className="ml-auto flex size-6.5 items-center justify-center rounded-lg border bg-card text-muted-foreground hover:text-foreground"
+          className="ml-auto flex size-6.5 items-center justify-center rounded-lg border bg-card text-muted-foreground transition-colors hover:border-dash hover:text-foreground"
           onClick={onCreate}
           aria-label={`Nueva tarea en ${state.name}`}
         >
@@ -181,7 +241,10 @@ function BoardColumn({ state, ids, issuesById, slug, project, meta, openIssue, o
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
         <div
           ref={setNodeRef}
-          className={cn('-mx-1 flex min-h-24 flex-1 flex-col gap-2 overflow-y-auto px-1 pb-1', isOver && 'rounded-xl bg-accent-soft/60')}
+          className={cn(
+            '-mx-1 flex min-h-24 flex-1 flex-col gap-2 overflow-y-auto rounded-xl px-1 pb-1 transition-colors duration-200',
+            isOver && 'bg-accent-soft/60',
+          )}
         >
           {ids.map((id) =>
             issuesById[id] ? (
@@ -200,7 +263,11 @@ function SortableIssueCard({ issue, openIssue, ...props }) {
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={cn('rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring', isDragging && 'opacity-40')}
+      className={cn(
+        'rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        // Mientras se arrastra queda un hueco punteado del tamaño de la tarjeta
+        isDragging && 'bg-card/40 outline-2 -outline-offset-2 outline-dash outline-dashed [&>article]:invisible',
+      )}
       {...attributes}
       {...listeners}
       onClick={() => openIssue(issue.id)}
@@ -216,7 +283,8 @@ function SortableIssueCard({ issue, openIssue, ...props }) {
 
 /** Evita que los selectores de la tarjeta inicien el arrastre o abran el detalle. */
 const stop = (event) => event.stopPropagation()
-const revealOnHover = 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100'
+const revealOnHover =
+  'opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100'
 
 function IssueCard({ issue, slug, project, meta, overlay = false }) {
   const { update } = useIssueUpdater(slug, project.id, issue.id)
@@ -225,8 +293,8 @@ function IssueCard({ issue, slug, project, meta, overlay = false }) {
   return (
     <article
       className={cn(
-        'group flex cursor-grab flex-col gap-2.5 rounded-xl border bg-card p-3 shadow-card transition-shadow hover:shadow-md active:cursor-grabbing',
-        overlay && 'rotate-2 shadow-lg',
+        'group flex cursor-grab flex-col gap-2.5 rounded-xl border bg-card p-3 shadow-card transition-[box-shadow,border-color] duration-200 hover:border-dash hover:shadow-md active:cursor-grabbing',
+        overlay && 'cursor-grabbing shadow-xl ring-1 ring-foreground/10',
       )}
     >
       <div className="flex items-center gap-2 font-mono text-[11px]">

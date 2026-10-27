@@ -22,7 +22,7 @@ export function SplitShell({ caption, panel, children }) {
     <div className="flex min-h-svh gap-3.5 p-2 sm:p-3.5">
       <aside className="hidden flex-[1_1_520px] flex-col rounded-[22px] bg-sidebar px-8 py-6.5 text-sidebar-foreground lg:flex">
         <p className="font-mono text-[11px] text-sidebar-muted">~/acceso</p>
-        <div className="flex flex-1 flex-col items-center justify-center gap-9 py-7">
+        <div className="tf-fade flex flex-1 flex-col items-center justify-center gap-9 py-7">
           <div className="flex flex-col items-center gap-4 text-center">
             <LogoMark className="size-18" />
             <div>
@@ -41,7 +41,7 @@ export function SplitShell({ caption, panel, children }) {
         <div className="absolute top-2 right-2">
           <ThemeToggle />
         </div>
-        <div className="flex w-full max-w-[400px] flex-col gap-5.5">{children}</div>
+        <div className="tf-enter flex w-full max-w-[400px] flex-col gap-5.5">{children}</div>
       </main>
     </div>
   )
@@ -63,7 +63,7 @@ export function CenteredShell({ meta, children, footer }) {
           <ThemeToggle />
         </div>
       </header>
-      <main className="flex flex-1 flex-col items-center justify-center gap-4.5 py-8">{children}</main>
+      <main className="tf-enter flex flex-1 flex-col items-center justify-center gap-4.5 py-8">{children}</main>
       <footer className="flex flex-wrap justify-between gap-2.5 font-mono text-[11px] text-muted-foreground">
         <span>© 2026 TaskFlow</span>
         {footer}

@@ -208,3 +208,68 @@
     @apply rounded-2xl border bg-card text-card-foreground;
   }
 }
+
+/*
+ * Movimiento. Curva «ease-out-quint» para entradas: arranca rápido y frena suave.
+ * - .tf-enter: páginas y tarjetas que aparecen (sube 6 px y aparece).
+ * - .tf-fade: contenido que cambia en el mismo lugar (vista, pestaña, tarea abierta).
+ * - .tf-pop: elementos pequeños que aparecen (pastillas, grupos de la sidebar).
+ */
+@keyframes tf-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes tf-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes tf-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@utility tf-enter {
+  animation: tf-enter 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@utility tf-fade {
+  animation: tf-fade 200ms ease-out both;
+}
+@utility tf-pop {
+  animation: tf-pop 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Mientras cambia el tema no se anima nada (si no, unos elementos cambian de color animados y otros de golpe) */
+.tf-no-transitions,
+.tf-no-transitions *,
+.tf-no-transitions *::before,
+.tf-no-transitions *::after {
+  transition: none !important;
+}
+
+/* Quien pide menos movimiento en su sistema ve los cambios sin animación */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
