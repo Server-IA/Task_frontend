@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   closestCenter,
   DndContext,
@@ -212,9 +213,13 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
             />
           ))}
         </div>
-        <DragOverlay>
-          {activeIssue && <IssueCard issue={activeIssue} slug={slug} project={project} meta={meta} overlay />}
-        </DragOverlay>
+        {/* En un portal: así la tarjeta sigue al cursor aunque algún contenedor tenga transform */}
+        {createPortal(
+          <DragOverlay>
+            {activeIssue && <IssueCard issue={activeIssue} slug={slug} project={project} meta={meta} overlay />}
+          </DragOverlay>,
+          document.body,
+        )}
       </DndContext>
     </div>
   )

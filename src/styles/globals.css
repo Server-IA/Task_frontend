@@ -214,6 +214,8 @@
  * - .tf-enter: páginas y tarjetas que aparecen (sube 6 px y aparece).
  * - .tf-fade: contenido que cambia en el mismo lugar (vista, pestaña, tarea abierta).
  * - .tf-pop: elementos pequeños que aparecen (pastillas, grupos de la sidebar).
+ * Van con «backwards» y no «both»: al terminar no queda ningún transform aplicado. Si quedara, el
+ * contenedor pasaría a ser la referencia de los elementos fixed de adentro (p. ej. la tarjeta que se arrastra).
  */
 @keyframes tf-enter {
   from {
@@ -245,13 +247,13 @@
 }
 
 @utility tf-enter {
-  animation: tf-enter 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: tf-enter 280ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 @utility tf-fade {
-  animation: tf-fade 200ms ease-out both;
+  animation: tf-fade 200ms ease-out backwards;
 }
 @utility tf-pop {
-  animation: tf-pop 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: tf-pop 180ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
 /* Mientras cambia el tema no se anima nada (si no, unos elementos cambian de color animados y otros de golpe) */
