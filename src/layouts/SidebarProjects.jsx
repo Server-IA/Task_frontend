@@ -3,6 +3,7 @@ import { NavLink } from 'react-router'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { usePlanningList } from '@/features/planning/hooks'
 import { CreateProjectDialog } from '@/features/projects/components/CreateProjectDialog'
 import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
 import { useProjects } from '@/features/projects/hooks'
@@ -15,6 +16,9 @@ export const PROJECT_SECTIONS = [
   { path: 'modules', label: 'Módulos', hint: 'M' },
   { path: 'settings', label: 'Ajustes', hint: ',' },
 ]
+
+/** «12 abiertas» / «1 abierta». */
+const openLabel = (count = 0) => `${count} ${count === 1 ? 'abierta' : 'abiertas'}`
 
 /** Lista «// proyectos»: el proyecto abierto se despliega con sus secciones, los demás son un enlace. */
 export function SidebarProjects({ slug, currentProjectId, collapsed }) {
@@ -52,34 +56,52 @@ export function SidebarProjects({ slug, currentProjectId, collapsed }) {
               to={base}
               iconNode={<ProjectIcon project={project} className={collapsed ? 'max-w-11 truncate' : undefined} />}
               label={project.name}
+              meta={project.openIssueCount > 0 ? openLabel(project.openIssueCount) : undefined}
               collapsed={collapsed}
             />
           )
         }
-        return (
-          <div key={project.id} className="tf-pop rounded-[14px] bg-sidebar-accent p-1.5">
-            <NavLink
-              to={`${base}/issues`}
-              className="flex items-center gap-2 px-1.5 py-1.5 text-sm font-semibold text-sidebar-foreground"
-            >
-              <ProjectIcon project={project} />
-              <span className="min-w-0 flex-1 truncate">{project.name}</span>
-            </NavLink>
-            <div className="mt-0.5 flex flex-col gap-0.5">
-              {PROJECT_SECTIONS.map((section) => (
-                <SidebarLink
-                  key={section.path}
-                  to={`${base}/${section.path}`}
-                  label={section.label}
-                  hint={section.hint}
-                  className="h-8 pl-3"
-                />
-              ))}
-            </div>
-          </div>
-        )
+        return <CurrentProject key={project.id} slug={slug} project={project} base={base} />
       })}
       <CreateProjectDialog slug={slug} open={createOpen} onOpenChange={setCreateOpen} />
+    </div>
+  )
+}
+
+/**
+ * Proyecto abierto con sus secciones. A la derecha de cada una va un dato útil:
+ * tareas abiertas, el ciclo en curso y los módulos sin terminar.
+ */
+function CurrentProject({ slug, project, base }) {
+  const { data: cycles } = usePlanningList('cycles', slug, project.id)
+  const { data: modules } = usePlanningList('modules', slug, project.id)
+  const currentCycle = cycles?.find((cycle) => cycle.status === 'CURRENT')
+  const activeModules = modules?.filter((module) => module.progress.percentage < 100).length ?? 0
+
+  const meta = {
+    issues: openLabel(project.openIssueCount),
+    cycles: currentCycle?.name,
+    modules: activeModules > 0 ? `${activeModules} ${activeModules === 1 ? 'activo' : 'activos'}` : undefined,
+  }
+
+  return (
+    <div className="tf-pop rounded-[14px] bg-sidebar-accent p-1.5">
+      <NavLink to={`${base}/issues`} className="flex items-center gap-2 px-1.5 py-1.5 text-sm font-semibold text-sidebar-foreground">
+        <ProjectIcon project={project} />
+        <span className="min-w-0 flex-1 truncate">{project.name}</span>
+      </NavLink>
+      <div className="mt-0.5 flex flex-col gap-0.5">
+        {PROJECT_SECTIONS.map((section) => (
+          <SidebarLink
+            key={section.path}
+            to={`${base}/${section.path}`}
+            label={section.label}
+            meta={meta[section.path]}
+            title={`${section.label} · atajo ${section.hint}`}
+            className="h-8 pl-3 hover:bg-sidebar-active/60"
+          />
+        ))}
+      </div>
     </div>
   )
 }

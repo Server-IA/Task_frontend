@@ -63,12 +63,13 @@ export function Sidebar({ collapsed }) {
  * El estado activo se pinta con `aria-current="page"` (lo pone NavLink): así el className es un texto fijo
  * y el TooltipTrigger (Radix Slot) lo puede combinar sin romperlo.
  */
-export function SidebarLink({ to, icon: Icon, iconNode, label, collapsed, end = false, badge, hint, className }) {
+export function SidebarLink({ to, icon: Icon, iconNode, label, collapsed, end = false, badge, meta, title, className }) {
   const link = (
     <NavLink
       to={to}
       end={end}
       aria-label={collapsed ? label : undefined}
+      title={title}
       className={cn(
         'group/link flex h-9 items-center gap-2.5 rounded-[10px] px-2.5 text-sm whitespace-nowrap text-sidebar-foreground transition-colors duration-150 hover:bg-sidebar-accent',
         'aria-[current=page]:bg-sidebar-active aria-[current=page]:font-semibold aria-[current=page]:text-sidebar-active-foreground',
@@ -79,10 +80,10 @@ export function SidebarLink({ to, icon: Icon, iconNode, label, collapsed, end = 
       {iconNode ?? (Icon && <Icon className="size-4 shrink-0" />)}
       {!collapsed && <span className="min-w-0 flex-1 truncate">{label}</span>}
       {!collapsed && badge}
-      {!collapsed && hint && (
-        <kbd className="font-mono text-[11px] text-sidebar-muted group-aria-[current=page]/link:text-sidebar-active-foreground">
-          {hint}
-        </kbd>
+      {!collapsed && meta && (
+        <span className="max-w-[55%] truncate font-mono text-[11px] font-normal text-sidebar-muted group-aria-[current=page]/link:text-sidebar-active-foreground">
+          {meta}
+        </span>
       )}
     </NavLink>
   )
