@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { History, MessageSquare, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
+import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -8,7 +8,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { CenteredSpinner, Spinner } from '@/components/common/Loaders'
@@ -17,13 +16,14 @@ import { useActivity } from '@/features/issues/hooks'
 import { useCurrentWorkspace } from '@/features/workspaces/hooks'
 import { formatDateTime, formatRelative } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
+import { cn } from '@/lib/utils'
 import { isAdminRole } from '@/lib/permissions'
 import { useSessionStore } from '@/stores/sessionStore'
 import { describeActivity } from './describeActivity'
 import { useComments, useCreateComment, useDeleteComment, useUpdateComment } from './hooks'
 
 /**
- * Comentarios e historial del issue en una sola línea de tiempo, con filtro.
+ * Comentarios e historial de la tarea en una sola línea de tiempo, con filtro.
  * Las entradas COMMENT del historial no se repiten: el comentario ya aparece como tarjeta.
  */
 export function IssueActivity({ slug, projectId, issueId }) {
@@ -44,30 +44,31 @@ export function IssueActivity({ slug, projectId, issueId }) {
   const isLoading = comments.isLoading || activity.isLoading
 
   return (
-    <section className="space-y-4">
+    <section className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold">Actividad</h3>
-        <Tabs value={filter} onValueChange={setFilter}>
-          <TabsList className="h-8">
-            <TabsTrigger value="all" className="text-xs">
-              Todo
-            </TabsTrigger>
-            <TabsTrigger value="comments" className="text-xs">
-              <MessageSquare className="size-3.5" />
-              Comentarios
-            </TabsTrigger>
-            <TabsTrigger value="history" className="text-xs">
-              <History className="size-3.5" />
-              Historial
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <h2 className="text-sm font-semibold">Actividad</h2>
+        <div role="group" aria-label="Filtrar actividad" className="flex rounded-full border p-0.5 text-xs">
+          {FILTERS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              aria-pressed={filter === option.value}
+              onClick={() => setFilter(option.value)}
+              className={cn(
+                'rounded-full px-2.5 py-0.5 text-muted-foreground hover:text-foreground',
+                filter === option.value && 'bg-accent-soft font-semibold text-accent-text hover:text-accent-text',
+              )}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {isLoading ? (
         <CenteredSpinner className="p-4" />
       ) : (
-        <ol className="space-y-3">
+        <ol className="flex flex-col gap-2.5">
           {timeline.map((item) =>
             item.type === 'comment' ? (
               <li key={`c-${item.comment.id}`}>
@@ -92,14 +93,23 @@ export function IssueActivity({ slug, projectId, issueId }) {
   )
 }
 
+const FILTERS = [
+  { value: 'all', label: 'Todo' },
+  { value: 'comments', label: 'Comentarios' },
+  { value: 'history', label: 'Historial' },
+]
+
 function ActivityLine({ entry }) {
   return (
-    <div className="flex items-start gap-2 pl-1 text-xs text-muted-foreground">
+    <div className="flex items-start gap-2 pl-1.5 text-xs text-muted-foreground">
       <UserAvatar user={entry.actor} size="xs" className="mt-px" />
       <p className="min-w-0 flex-1">
-        <span className="font-medium text-foreground">{entry.actor?.fullName ?? 'Alguien'}</span>{' '}
+        <span className="font-semibold text-foreground">{entry.actor?.fullName ?? 'Alguien'}</span>{' '}
         {describeActivity(entry)}
-        <span title={formatDateTime(entry.createdAt)}> · {formatRelative(entry.createdAt)}</span>
+        <span className="font-mono" title={formatDateTime(entry.createdAt)}>
+          {' '}
+          · {formatRelative(entry.createdAt)}
+        </span>
       </p>
     </div>
   )
@@ -133,11 +143,11 @@ function CommentCard({ slug, projectId, issueId, comment }) {
   return (
     <div className="flex gap-2.5">
       <UserAvatar user={comment.author} size="md" />
-      <div className="min-w-0 flex-1 rounded-lg border bg-card">
+      <div className="min-w-0 flex-1 rounded-xl border bg-card">
         <div className="flex items-center gap-2 border-b px-3 py-1.5 text-xs">
-          <span className="font-medium">{comment.author?.fullName}</span>
-          <span className="text-muted-foreground" title={formatDateTime(comment.createdAt)}>
-            {formatRelative(comment.createdAt)}
+          <span className="font-semibold">{comment.author?.fullName}</span>
+          <span className="font-mono text-muted-foreground" title={formatDateTime(comment.createdAt)}>
+            · {formatRelative(comment.createdAt)}
             {edited && ' · editado'}
           </span>
           {(isAuthor || canDelete) && !editing && (
@@ -192,7 +202,7 @@ function CommentCard({ slug, projectId, issueId, comment }) {
             </div>
           </div>
         ) : (
-          <p className="px-3 py-2 text-sm break-words whitespace-pre-wrap">{comment.body}</p>
+          <p className="px-3 py-2.5 text-sm leading-relaxed break-words whitespace-pre-wrap">{comment.body}</p>
         )}
       </div>
       <ConfirmDialog
@@ -229,20 +239,24 @@ function CommentComposer({ slug, projectId, issueId }) {
   return (
     <div className="flex gap-2.5">
       <UserAvatar user={user} size="md" />
-      <div className="min-w-0 flex-1 space-y-2">
-        <Textarea
-          value={body}
-          onChange={(event) => setBody(event.target.value)}
-          placeholder="Escribe un comentario…"
-          rows={3}
-          maxLength={10000}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) submit()
-          }}
-        />
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Ctrl + Enter para enviar</span>
-          <Button size="sm" onClick={submit} disabled={!body.trim() || create.isPending}>
+      <div className="min-w-0 flex-1 rounded-xl border bg-card focus-within:ring-2 focus-within:ring-ring/40">
+        <label className="block">
+          <span className="sr-only">Escribe un comentario</span>
+          <textarea
+            value={body}
+            onChange={(event) => setBody(event.target.value)}
+            placeholder="Escribe un comentario…"
+            rows={2}
+            maxLength={10000}
+            className="block w-full resize-none bg-transparent px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground"
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) submit()
+            }}
+          />
+        </label>
+        <div className="flex items-center justify-between pt-1.5 pr-2 pb-2 pl-3">
+          <span className="font-mono text-[11px] text-muted-foreground">ctrl + enter para enviar</span>
+          <Button size="sm" className="rounded-[9px]" onClick={submit} disabled={!body.trim() || create.isPending}>
             {create.isPending && <Spinner />}
             Comentar
           </Button>

@@ -10,7 +10,7 @@ export const PRIORITY_LABELS = Object.fromEntries(PRIORITIES.map(({ value, label
 
 /** Opciones de orden del listado (el backend acepta `sort=campo,dirección`). */
 export const SORT_OPTIONS = [
-  { value: 'sortOrder,asc', label: 'Orden manual' },
+  { value: 'sortOrder,asc', label: 'Manual' },
   { value: 'sequenceId,desc', label: 'Más recientes' },
   { value: 'sequenceId,asc', label: 'Más antiguos' },
   { value: 'updatedAt,desc', label: 'Actualizados recientemente' },

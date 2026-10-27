@@ -1,31 +1,32 @@
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Link, useSearchParams } from 'react-router'
-import { CircleCheck, CircleX } from 'lucide-react'
+import { Link } from 'react-router'
+import { Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { PasswordInput } from '@/components/common/PasswordInput'
+import { PasswordRules } from '@/components/common/PasswordRules'
 import { Spinner } from '@/components/common/Loaders'
-import { AuthHeader } from '@/layouts/AuthLayout'
+import { useUrlToken } from '@/hooks/useUrlToken'
+import { AuthCard, AuthHeader, AuthIcon, CenteredShell } from '@/layouts/AuthLayout'
 import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { useResetPassword } from '../hooks'
 import { resetPasswordSchema } from '../schemas'
-import { Status } from './VerifyEmailPage'
 
 export function ResetPasswordPage() {
-  const [searchParams] = useSearchParams()
-  const token = searchParams.get('token')
+  const token = useUrlToken()
   const reset = useResetPassword()
   const form = useForm({
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: { newPassword: '', confirmPassword: '' },
   })
+  const [newPassword, confirmPassword] = useWatch({ control: form.control, name: ['newPassword', 'confirmPassword'] })
+  const matches = Boolean(confirmPassword) && confirmPassword === newPassword
 
-  const onSubmit = ({ newPassword }) => {
+  const onSubmit = ({ newPassword: password }) => {
     reset.mutate(
-      { token, newPassword },
+      { token, newPassword: password },
       {
         onError: (error) => {
           if (!applyFieldErrors(error, form.setError)) notifyError(error)
@@ -34,86 +35,93 @@ export function ResetPasswordPage() {
     )
   }
 
-  if (!token) {
-    return (
-      <Card>
-        <CardContent className="space-y-5 pt-8 text-center">
-          <Status icon={<CircleX className="size-6" />} tone="error" title="Enlace inválido">
-            Pide un nuevo enlace para restablecer tu contraseña.
-          </Status>
-          <Button asChild className="w-full">
-            <Link to="/forgot-password">Pedir un enlace nuevo</Link>
-          </Button>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (reset.isSuccess) {
-    return (
-      <Card>
-        <CardContent className="space-y-5 pt-8 text-center">
-          <Status icon={<CircleCheck className="size-6" />} tone="success" title="Contraseña actualizada">
-            Ya puedes iniciar sesión con tu nueva contraseña. Por seguridad cerramos tus otras sesiones.
-          </Status>
-          <Button asChild className="w-full">
-            <Link to="/login">Iniciar sesión</Link>
-          </Button>
-        </CardContent>
-      </Card>
-    )
-  }
-
   return (
-    <>
-      <AuthHeader title="Nueva contraseña" description="Elige una contraseña que no hayas usado antes." />
-      <Card>
-        <CardContent className="pt-6">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
-              <FormField
-                control={form.control}
-                name="newPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nueva contraseña</FormLabel>
-                    <FormControl>
-                      <PasswordInput autoComplete="new-password" autoFocus {...field} />
-                    </FormControl>
-                    <FormDescription>Mínimo 8 caracteres, con letras y números.</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="confirmPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Confirmar contraseña</FormLabel>
-                    <FormControl>
-                      <PasswordInput autoComplete="new-password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full" disabled={reset.isPending}>
-                {reset.isPending && <Spinner />}
-                Guardar contraseña
-              </Button>
-            </form>
-          </Form>
-          {reset.isError && (
-            <p className="mt-4 text-center text-sm text-muted-foreground">
-              ¿El enlace expiró?{' '}
-              <Link to="/forgot-password" className="font-medium text-primary hover:underline">
-                Pide uno nuevo
-              </Link>
+    <CenteredShell meta="~/acceso/restablecer">
+      <AuthCard>
+        {!token && (
+          <>
+            <AuthIcon tone="late">
+              <X className="size-7" strokeWidth={2.6} />
+            </AuthIcon>
+            <AuthHeader size="md" title="Enlace inválido" description="Pide un nuevo enlace para restablecer tu contraseña." />
+            <Button asChild className="h-11 rounded-xl">
+              <Link to="/forgot-password">Pedir un enlace nuevo</Link>
+            </Button>
+          </>
+        )}
+        {token && reset.isSuccess && (
+          <>
+            <AuthIcon tone="ok">
+              <Check className="size-7" strokeWidth={2.6} />
+            </AuthIcon>
+            <AuthHeader
+              size="md"
+              title="Contraseña actualizada"
+              description="Ya puedes iniciar sesión con tu nueva contraseña. Por seguridad cerramos tus otras sesiones."
+            />
+            <Button asChild className="h-11 rounded-xl">
+              <Link to="/login">Iniciar sesión</Link>
+            </Button>
+          </>
+        )}
+        {token && !reset.isSuccess && (
+          <>
+            <p className="flex items-center gap-2 self-start rounded-full bg-muted px-2.5 py-1 font-mono text-[11px] text-muted-foreground">
+              <span aria-hidden="true" className="size-1.5 rounded-full bg-ok-dot" />
+              el enlace vale por 1 h desde que lo pediste
             </p>
-          )}
-        </CardContent>
-      </Card>
-    </>
+            <AuthHeader
+              size="md"
+              title="Crea una contraseña nueva"
+              description="Cerraremos las sesiones abiertas en otros dispositivos."
+            />
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3.5" noValidate>
+                <FormField
+                  control={form.control}
+                  name="newPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nueva contraseña</FormLabel>
+                      <FormControl>
+                        <PasswordInput autoComplete="new-password" autoFocus className="h-10" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <PasswordRules value={newPassword} meter />
+                <FormField
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirmar contraseña</FormLabel>
+                      <FormControl>
+                        <PasswordInput autoComplete="new-password" className="h-10" {...field} />
+                      </FormControl>
+                      {matches && <p className="font-mono text-xs text-ok">✓ coinciden</p>}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="h-11 w-full rounded-xl" disabled={reset.isPending}>
+                  {reset.isPending && <Spinner />}
+                  Guardar contraseña
+                </Button>
+              </form>
+            </Form>
+            {reset.isError && (
+              <p className="text-center text-sm text-muted-foreground">
+                ¿El enlace expiró?{' '}
+                <Link to="/forgot-password" className="font-semibold text-accent-text hover:underline">
+                  Pide uno nuevo
+                </Link>
+              </p>
+            )}
+          </>
+        )}
+      </AuthCard>
+    </CenteredShell>
   )
 }

@@ -12,7 +12,7 @@ const date = (value) => (value ? formatShortDate(value) : null)
 export function describeActivity({ field, oldValue, newValue }) {
   switch (field) {
     case 'CREATED':
-      return 'creó el issue'
+      return 'creó la tarea'
     case 'TITLE':
       return `cambió el título a ${quote(newValue)}`
     case 'DESCRIPTION':
@@ -34,13 +34,13 @@ export function describeActivity({ field, oldValue, newValue }) {
       if (!newValue) return 'quitó todas las etiquetas'
       return oldValue ? `cambió las etiquetas a ${newValue}` : `agregó las etiquetas ${newValue}`
     case 'CYCLE':
-      return newValue ? `agregó el issue al ciclo ${quote(newValue)}` : `quitó el issue del ciclo ${quote(oldValue)}`
+      return newValue ? `agregó la tarea al ciclo ${quote(newValue)}` : `quitó la tarea del ciclo ${quote(oldValue)}`
     case 'MODULE':
-      return newValue ? `agregó el issue al módulo ${quote(newValue)}` : `quitó el issue del módulo ${quote(oldValue)}`
+      return newValue ? `agregó la tarea al módulo ${quote(newValue)}` : `quitó la tarea del módulo ${quote(oldValue)}`
     case 'COMMENT':
       return 'comentó'
     default:
-      return 'actualizó el issue'
+      return 'actualizó la tarea'
   }
 }
 

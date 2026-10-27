@@ -19,25 +19,25 @@ export function AppLayout() {
   }, [location.pathname, setMobileOpen])
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full gap-3.5 bg-background p-2 sm:p-3.5">
       <aside
         className={cn(
-          'hidden shrink-0 border-r bg-sidebar text-sidebar-foreground transition-[width] duration-200 md:block',
-          collapsed ? 'w-16' : 'w-64',
+          'hidden shrink-0 rounded-2xl bg-sidebar text-sidebar-foreground transition-[width] duration-200 md:block',
+          collapsed ? 'w-16' : 'w-62',
         )}
       >
         <Sidebar collapsed={collapsed} />
       </aside>
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="w-72 bg-sidebar p-0 text-sidebar-foreground">
+        <SheetContent side="left" className="w-72 border-none bg-sidebar p-0 text-sidebar-foreground">
           <SheetTitle className="sr-only">Menú</SheetTitle>
           <SheetDescription className="sr-only">Navegación principal</SheetDescription>
           <Sidebar collapsed={false} />
         </SheetContent>
       </Sheet>
 
-      <main className="flex min-w-0 flex-1 flex-col">
+      <main className="flex min-w-0 flex-1 flex-col gap-3.5">
         <Outlet />
       </main>
     </div>

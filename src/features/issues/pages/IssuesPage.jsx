@@ -1,12 +1,13 @@
 import { useCallback, useState } from 'react'
-import { Kanban, List, Plus } from 'lucide-react'
+import { useIsFetching } from '@tanstack/react-query'
+import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useCurrentProject } from '@/features/projects/hooks'
 import { useCurrentWorkspace } from '@/features/workspaces/hooks'
 import { useHotkey } from '@/hooks/useHotkey'
+import { projectPath } from '@/lib/paths'
+import { cn } from '@/lib/utils'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { SORT_OPTIONS } from '../constants'
 import { CreateIssueDialog } from '../components/CreateIssueDialog'
@@ -17,7 +18,7 @@ import { IssuePeekSheet } from '../components/IssuePeekSheet'
 import { useIssueFilters } from '../useIssueFilters'
 import { useProjectMeta } from '../useIssueHelpers'
 
-/** Issues del proyecto en lista o Kanban, con filtros en la URL y panel de detalle. */
+/** Tareas del proyecto en lista o tablero, con filtros en la URL y panel de detalle. */
 export function IssuesPage() {
   const workspace = useCurrentWorkspace()
   const project = useCurrentProject()
@@ -32,39 +33,18 @@ export function IssuesPage() {
   return (
     <>
       <PageHeader
-        breadcrumbs={[
-          { label: workspace.name, to: `/${workspace.slug}` },
-          { label: project.name, to: `/${workspace.slug}/projects/${project.id}/issues` },
-          { label: 'Issues' },
-        ]}
+        path={[...projectPath(workspace, project), { label: 'tareas' }]}
+        title="Tareas"
+        documentTitle={['Tareas', project.name]}
+        description={<IssueCounts project={project} />}
         actions={
           <>
-            <ToggleGroup
-              type="single"
-              variant="outline"
-              size="sm"
-              value={view}
-              onValueChange={(value) => value && issueFilters.setView(value)}
-              aria-label="Vista"
-            >
-              <ToggleGroupItem value="list" aria-label="Vista de lista" title="Lista">
-                <List />
-              </ToggleGroupItem>
-              <ToggleGroupItem value="board" aria-label="Vista Kanban" title="Kanban">
-                <Kanban />
-              </ToggleGroupItem>
-            </ToggleGroup>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button size="sm" onClick={() => openCreate()}>
-                  <Plus />
-                  <span className="hidden sm:inline">Nuevo issue</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                Atajo: <kbd className="rounded border px-1 font-mono">C</kbd>
-              </TooltipContent>
-            </Tooltip>
+            <ViewSwitch value={view} onChange={issueFilters.setView} />
+            <Button className="h-10 rounded-xl px-3.5" onClick={() => openCreate()}>
+              <Plus strokeWidth={3} />
+              Nueva tarea
+              <kbd className="rounded-[5px] bg-foreground/10 px-1.5 text-[11px] font-normal">C</kbd>
+            </Button>
           </>
         }
       />
@@ -75,23 +55,26 @@ export function IssuesPage() {
         clearFilters={issueFilters.clearFilters}
         meta={meta}
       >
-        {view === 'list' && (
+        {view === 'list' ? (
           <Select value={sort} onValueChange={issueFilters.setSort}>
-            <SelectTrigger size="sm" className="h-8 w-48" aria-label="Ordenar">
+            <SelectTrigger size="sm" className="h-8 rounded-full bg-card font-mono text-xs" aria-label="Ordenar">
+              <span className="text-muted-foreground">orden:</span>
               <SelectValue />
             </SelectTrigger>
             <SelectContent align="end">
               {SORT_OPTIONS.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
-                  {option.label}
+                  {option.label.toLowerCase()}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+        ) : (
+          <span className="font-mono text-xs text-muted-foreground">orden: manual</span>
         )}
       </IssueFiltersBar>
 
-      <PageBody className={view === 'board' ? 'overflow-hidden' : undefined}>
+      <PageBody className={view === 'board' ? 'flex flex-col overflow-hidden' : undefined}>
         {view === 'board' ? (
           <IssueBoardView
             slug={workspace.slug}
@@ -112,10 +95,12 @@ export function IssuesPage() {
             setPage={issueFilters.setPage}
             openIssue={issueFilters.openIssue}
             onCreate={() => openCreate()}
+            onCreateInState={openCreate}
             hasFilters={activeCount > 0}
           />
         )}
       </PageBody>
+      {view === 'board' && <ShortcutsBar />}
 
       <IssuePeekSheet
         slug={workspace.slug}
@@ -132,5 +117,75 @@ export function IssuesPage() {
         defaults={{ stateId: createState.stateId }}
       />
     </>
+  )
+}
+
+/** «10 tareas abiertas · 1 vencida» con los conteos que manda el backend en el proyecto. */
+function IssueCounts({ project }) {
+  const open = project.openIssueCount ?? 0
+  const overdue = project.overdueIssueCount ?? 0
+  return (
+    <>
+      {open} {open === 1 ? 'tarea abierta' : 'tareas abiertas'}
+      {overdue > 0 && (
+        <>
+          {' · '}
+          <span className="font-semibold text-late">
+            {overdue} {overdue === 1 ? 'vencida' : 'vencidas'}
+          </span>
+        </>
+      )}
+    </>
+  )
+}
+
+/** Selector Lista / Tablero como pastillas. */
+function ViewSwitch({ value, onChange }) {
+  const options = [
+    { value: 'list', label: 'Lista' },
+    { value: 'board', label: 'Tablero' },
+  ]
+  return (
+    <div role="group" aria-label="Vista" className="flex rounded-full border p-[3px]">
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          aria-pressed={value === option.value}
+          onClick={() => onChange(option.value)}
+          className={cn(
+            'rounded-full px-3.5 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground',
+            value === option.value && 'bg-accent-soft font-semibold text-accent-text hover:text-accent-text',
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** Barra inferior con los atajos y el estado de sincronización. */
+function ShortcutsBar() {
+  const fetching = useIsFetching() > 0
+  return (
+    <footer className="hidden shrink-0 flex-wrap items-center gap-4 rounded-xl border bg-card px-3.5 py-2 font-mono text-[11px] text-muted-foreground md:flex">
+      <span>
+        <kbd className="text-foreground">C</kbd> crear
+      </span>
+      <span>
+        <kbd className="text-foreground">/</kbd> buscar
+      </span>
+      <span>
+        <kbd className="text-foreground">Enter</kbd> abrir
+      </span>
+      <span>
+        <kbd className="text-foreground">I Y M</kbd> secciones
+      </span>
+      <span className="ml-auto flex items-center gap-1.5">
+        <span aria-hidden="true" className={cn('size-1.5 rounded-full bg-ok-dot', fetching && 'animate-pulse bg-soon')} />
+        {fetching ? 'sincronizando…' : 'sincronizado'}
+      </span>
+    </footer>
   )
 }

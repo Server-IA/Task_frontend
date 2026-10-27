@@ -8,10 +8,10 @@ export function AvatarStack({ users = [], max = 3, size = 'sm', className }) {
   return (
     <span className={cn('flex items-center -space-x-1.5', className)}>
       {visible.map((user) => (
-        <UserAvatar key={user.id} user={user} size={size} className="ring-2 ring-background" />
+        <UserAvatar key={user.id} user={user} size={size} className="ring-2 ring-card" />
       ))}
       {rest > 0 && (
-        <span className="flex size-6 items-center justify-center rounded-full bg-muted text-[10px] font-medium ring-2 ring-background">
+        <span className="flex size-6 items-center justify-center rounded-full bg-muted font-mono text-[10px] font-medium ring-2 ring-card">
           +{rest}
         </span>
       )}

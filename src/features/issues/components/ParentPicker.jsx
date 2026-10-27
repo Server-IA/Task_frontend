@@ -24,7 +24,7 @@ export function ParentPicker({ slug, projectId, issue, onChange, disabled }) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild disabled={disabled}>
-        <PropertyButton aria-label="Issue padre">
+        <PropertyButton aria-label="Tarea padre">
           <CornerUpLeft className="size-3.5 text-muted-foreground" />
           {issue.parent ? (
             <span className="truncate">
@@ -37,7 +37,7 @@ export function ParentPicker({ slug, projectId, issue, onChange, disabled }) {
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="start">
         <Command shouldFilter={false}>
-          <CommandInput placeholder="Buscar issue padre…" value={search} onValueChange={setSearch} />
+          <CommandInput placeholder="Buscar tarea padre…" value={search} onValueChange={setSearch} />
           <CommandList>
             {isFetching && (
               <div className="flex justify-center py-3">

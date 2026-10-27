@@ -1,30 +1,37 @@
 import { useState } from 'react'
-import { ChevronRight, CircleDot, Layers, Plus, RefreshCcw, Settings } from 'lucide-react'
+import { NavLink } from 'react-router'
+import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { CreateProjectDialog } from '@/features/projects/components/CreateProjectDialog'
 import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
 import { useProjects } from '@/features/projects/hooks'
-import { cn } from '@/lib/utils'
 import { SidebarLink } from './Sidebar'
 
-/** Lista de proyectos del workspace con sus secciones (Issues, Ciclos, Módulos, Ajustes). */
+/** Secciones de un proyecto con su atajo de teclado (ver ProjectLayout). */
+export const PROJECT_SECTIONS = [
+  { path: 'issues', label: 'Tareas', hint: 'I' },
+  { path: 'cycles', label: 'Ciclos', hint: 'Y' },
+  { path: 'modules', label: 'Módulos', hint: 'M' },
+  { path: 'settings', label: 'Ajustes', hint: ',' },
+]
+
+/** Lista «// proyectos»: el proyecto abierto se despliega con sus secciones, los demás son un enlace. */
 export function SidebarProjects({ slug, currentProjectId, collapsed }) {
   const { data: projects = [] } = useProjects(slug)
   const [createOpen, setCreateOpen] = useState(false)
 
   return (
-    <div className="space-y-0.5">
+    <div className="flex flex-col gap-0.5">
       {!collapsed && (
-        <div className="flex items-center justify-between px-2 pb-1">
-          <span className="text-xs font-medium text-muted-foreground">Proyectos</span>
+        <div className="flex items-center justify-between pr-1 pb-1.5 pl-2.5">
+          <span className="font-mono text-[11px] text-sidebar-muted">// proyectos</span>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-6 text-muted-foreground"
+                className="size-6 text-sidebar-muted hover:bg-sidebar-accent"
                 onClick={() => setCreateOpen(true)}
                 aria-label="Nuevo proyecto"
               >
@@ -35,50 +42,43 @@ export function SidebarProjects({ slug, currentProjectId, collapsed }) {
           </Tooltip>
         </div>
       )}
-      {projects.map((project) => (
-        <SidebarProject
-          key={project.id}
-          slug={slug}
-          project={project}
-          collapsed={collapsed}
-          defaultOpen={project.id === currentProjectId}
-        />
-      ))}
+      {projects.map((project) => {
+        const base = `/${slug}/projects/${project.id}`
+        if (collapsed || project.id !== currentProjectId) {
+          return (
+            <SidebarLink
+              key={project.id}
+              to={`${base}/issues`}
+              iconNode={<ProjectIcon project={project} className={collapsed ? 'max-w-11 truncate' : undefined} />}
+              label={project.name}
+              collapsed={collapsed}
+            />
+          )
+        }
+        return (
+          <div key={project.id} className="rounded-[14px] bg-sidebar-accent p-1.5">
+            <NavLink
+              to={`${base}/issues`}
+              className="flex items-center gap-2 px-1.5 py-1.5 text-sm font-semibold text-sidebar-foreground"
+            >
+              <ProjectIcon project={project} />
+              <span className="min-w-0 flex-1 truncate">{project.name}</span>
+            </NavLink>
+            <div className="mt-0.5 flex flex-col gap-0.5">
+              {PROJECT_SECTIONS.map((section) => (
+                <SidebarLink
+                  key={section.path}
+                  to={`${base}/${section.path}`}
+                  label={section.label}
+                  hint={section.hint}
+                  className="h-8 pl-3"
+                />
+              ))}
+            </div>
+          </div>
+        )
+      })}
       <CreateProjectDialog slug={slug} open={createOpen} onOpenChange={setCreateOpen} />
     </div>
-  )
-}
-
-function SidebarProject({ slug, project, collapsed, defaultOpen }) {
-  const [open, setOpen] = useState(defaultOpen)
-  const base = `/${slug}/projects/${project.id}`
-
-  if (collapsed) {
-    return (
-      <SidebarLink
-        to={`${base}/issues`}
-        iconNode={<ProjectIcon project={project} className="size-5 text-[10px]" />}
-        label={project.name}
-        collapsed
-      />
-    )
-  }
-
-  return (
-    <Collapsible open={open || defaultOpen} onOpenChange={setOpen}>
-      <CollapsibleTrigger className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-sm text-sidebar-foreground/90 hover:bg-sidebar-accent">
-        <ProjectIcon project={project} className="size-5 text-[10px]" />
-        <span className="min-w-0 flex-1 truncate text-left">{project.name}</span>
-        <ChevronRight
-          className={cn('size-3.5 text-muted-foreground transition-transform', (open || defaultOpen) && 'rotate-90')}
-        />
-      </CollapsibleTrigger>
-      <CollapsibleContent className="space-y-0.5 py-0.5 pl-5">
-        <SidebarLink to={`${base}/issues`} icon={CircleDot} label="Issues" />
-        <SidebarLink to={`${base}/cycles`} icon={RefreshCcw} label="Ciclos" />
-        <SidebarLink to={`${base}/modules`} icon={Layers} label="Módulos" />
-        <SidebarLink to={`${base}/settings`} icon={Settings} label="Ajustes" />
-      </CollapsibleContent>
-    </Collapsible>
   )
 }

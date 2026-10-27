@@ -3,32 +3,37 @@ import { useNavigate, useParams } from 'react-router'
 import { CircleDot, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AvatarStack } from '@/components/common/AvatarStack'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { CenteredSpinner } from '@/components/common/Loaders'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { StateIcon } from '@/components/common/StateIcon'
-import { PriorityIcon } from '@/features/issues/components/PriorityIcon'
+import { PriorityChip } from '@/features/issues/components/PriorityIcon'
 import { IssuePeekSheet } from '@/features/issues/components/IssuePeekSheet'
 import { useIssues } from '@/features/issues/hooks'
+import { isClosed } from '@/features/issues/useIssueHelpers'
 import { useIssueFilters } from '@/features/issues/useIssueFilters'
 import { useCurrentProject } from '@/features/projects/hooks'
 import { useCurrentWorkspace } from '@/features/workspaces/hooks'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { notifyError } from '@/lib/notify'
+import { projectPath } from '@/lib/paths'
+import { slugify } from '@/lib/slug'
+import { cn } from '@/lib/utils'
 import { PLANNING, useDeletePlanning, usePlanningItem, useRemovePlanningIssue } from '../hooks'
 import {
   AddIssuesDialog,
+  CYCLE_STATUS,
   CycleStatusBadge,
   DateRange,
   PLANNING_TEXT,
   PlanningFormDialog,
-  ProgressSummary,
+  ProgressBar,
+  remainingText,
 } from '../components/PlanningShared'
 
-/** Detalle de un ciclo o módulo: avance y sus issues (agregar, quitar, abrir). */
+/** Detalle de un ciclo o módulo: avance y sus tareas (agregar, quitar, abrir). */
 export function PlanningDetailPage({ kind }) {
   const workspace = useCurrentWorkspace()
   const project = useCurrentProject()
@@ -36,75 +41,82 @@ export function PlanningDetailPage({ kind }) {
   const navigate = useNavigate()
   const text = PLANNING_TEXT[kind]
   const { data: item, isLoading, error, refetch } = usePlanningItem(kind, workspace.slug, project.id, itemId)
+  const { data: issuesPage, isLoading: issuesLoading } = usePlanningIssues(kind, workspace.slug, project.id, itemId)
   const issueFilters = useIssueFilters()
   const remove = useDeletePlanning(kind, workspace.slug, project.id)
   const [editOpen, setEditOpen] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const listUrl = `/${workspace.slug}/projects/${project.id}/${kind}`
+  const listPath = [...projectPath(workspace, project), { label: kind === 'cycles' ? 'ciclos' : 'modulos', to: listUrl }]
 
-  const breadcrumbs = [
-    { label: workspace.name, to: `/${workspace.slug}` },
-    { label: project.name, to: `/${workspace.slug}/projects/${project.id}/issues` },
-    { label: text.title, to: listUrl },
-    { label: item?.name ?? '…' },
-  ]
+  const issues = useMemo(() => issuesPage?.content ?? [], [issuesPage])
 
   if (isLoading) return <CenteredSpinner className="flex-1" />
   if (error) {
     return (
       <>
-        <PageHeader breadcrumbs={breadcrumbs} />
+        <PageHeader path={listPath} title={text.title} />
         <ErrorState error={error} onRetry={refetch} homeLink={listUrl} className="flex-1" />
       </>
     )
   }
 
+  const end = item.endDate ?? item.targetDate
+  const showRemaining = kind === 'cycles' && item.status === 'CURRENT' && end
+
   return (
     <>
       <PageHeader
-        breadcrumbs={breadcrumbs}
-        actions={
+        path={[...listPath, { label: slugify(item.name) || item.name }]}
+        title={item.name}
+        titleAddon={kind === 'cycles' && <CycleStatusBadge status={item.status} />}
+        documentTitle={[item.name, project.name]}
+        description={
           <>
-            <Button size="sm" variant="ghost" onClick={() => setEditOpen(true)} aria-label="Editar">
-              <Pencil />
-              <span className="hidden sm:inline">Editar</span>
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(true)} aria-label="Eliminar">
-              <Trash2 />
-            </Button>
-            <Button size="sm" onClick={() => setAddOpen(true)}>
-              <Plus />
-              Agregar issues
-            </Button>
+            {item.description && <p className="max-w-2xl whitespace-pre-wrap">{item.description}</p>}
+            <p className="mt-1 font-mono text-xs">
+              <DateRange start={item.startDate} end={end} />
+              {showRemaining && <span className="font-semibold text-ok"> · {remainingText(end)}</span>}
+            </p>
           </>
+        }
+        actions={
+          <div className="flex w-full flex-col gap-3 sm:w-72">
+            <div className="flex items-center gap-2 sm:justify-end">
+              <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+                <Pencil />
+                Editar
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 text-muted-foreground"
+                onClick={() => setConfirmDelete(true)}
+                aria-label={`Eliminar ${text.singular}`}
+              >
+                <Trash2 />
+              </Button>
+              <Button size="sm" onClick={() => setAddOpen(true)}>
+                <Plus strokeWidth={3} />
+                Agregar tareas
+              </Button>
+            </div>
+            <ProgressBlock kind={kind} item={item} issues={issues} />
+          </div>
         }
       />
       <PageBody>
-        <div className="mx-auto max-w-5xl space-y-6 p-4 sm:p-8">
-          <Card className="gap-4 p-5">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl font-semibold">{item.name}</h1>
-              {kind === 'cycles' && <CycleStatusBadge status={item.status} />}
-            </div>
-            {item.description && <p className="text-sm whitespace-pre-wrap text-muted-foreground">{item.description}</p>}
-            <div className="grid gap-4 sm:grid-cols-[1fr_18rem] sm:items-end">
-              <p className="text-sm">
-                <span className="text-muted-foreground">Fechas: </span>
-                <DateRange start={item.startDate} end={item.endDate ?? item.targetDate} />
-              </p>
-              <ProgressSummary progress={item.progress} />
-            </div>
-          </Card>
-          <PlanningIssues
-            kind={kind}
-            slug={workspace.slug}
-            projectId={project.id}
-            item={item}
-            onOpenIssue={issueFilters.openIssue}
-            onAdd={() => setAddOpen(true)}
-          />
-        </div>
+        <PlanningIssues
+          kind={kind}
+          slug={workspace.slug}
+          projectId={project.id}
+          item={item}
+          issues={issues}
+          isLoading={issuesLoading}
+          onOpenIssue={issueFilters.openIssue}
+          onAdd={() => setAddOpen(true)}
+        />
       </PageBody>
 
       <IssuePeekSheet
@@ -126,7 +138,7 @@ export function PlanningDetailPage({ kind }) {
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         title={`¿Eliminar «${item.name}»?`}
-        description="Los issues no se borran: solo dejan de pertenecer a él."
+        description="Las tareas no se borran: solo dejan de pertenecer a él."
         confirmLabel="Eliminar"
         loading={remove.isPending}
         onConfirm={() =>
@@ -139,7 +151,15 @@ export function PlanningDetailPage({ kind }) {
           })
         }
       />
-      <PlanningIssuesAddDialog kind={kind} slug={workspace.slug} projectId={project.id} item={item} open={addOpen} onOpenChange={setAddOpen} />
+      <AddIssuesDialog
+        kind={kind}
+        slug={workspace.slug}
+        projectId={project.id}
+        item={item}
+        existingIds={new Set(issues.map((issue) => issue.id))}
+        open={addOpen}
+        onOpenChange={setAddOpen}
+      />
     </>
   )
 }
@@ -149,47 +169,47 @@ function usePlanningIssues(kind, slug, projectId, itemId) {
   return useIssues(slug, projectId, params)
 }
 
-function PlanningIssuesAddDialog({ kind, slug, projectId, item, open, onOpenChange }) {
-  const { data } = usePlanningIssues(kind, slug, projectId, item.id)
-  const existingIds = useMemo(() => new Set((data?.content ?? []).map((issue) => issue.id)), [data])
+/** «50%  4 de 8 completadas», la barra y el desglose «○ 3 por hacer ◐ 1 en curso ● 4 hechas». */
+function ProgressBlock({ kind, item, issues }) {
+  const { completedIssues, totalIssues, percentage } = item.progress
+  const started = issues.filter((issue) => issue.state?.group === 'STARTED').length
+  const pending = issues.filter((issue) => !isClosed(issue) && issue.state?.group !== 'STARTED').length
+  const bar = kind === 'cycles' ? (CYCLE_STATUS[item.status] ?? CYCLE_STATUS.DRAFT).bar : 'bg-accent-text'
+
   return (
-    <AddIssuesDialog
-      kind={kind}
-      slug={slug}
-      projectId={projectId}
-      item={item}
-      existingIds={existingIds}
-      open={open}
-      onOpenChange={onOpenChange}
-    />
+    <div>
+      <p className="mb-1.5 flex items-baseline justify-between gap-2">
+        <span className="font-display text-[28px] leading-none font-extrabold">{percentage}%</span>
+        <span className="text-xs text-muted-foreground">
+          {completedIssues} de {totalIssues} completadas
+        </span>
+      </p>
+      <ProgressBar value={percentage} className={bar} />
+      <p className="mt-1.5 flex justify-between gap-2 font-mono text-[11px] text-muted-foreground">
+        <span>○ {pending} por hacer</span>
+        <span>◐ {started} en curso</span>
+        <span>● {completedIssues} hechas</span>
+      </p>
+    </div>
   )
 }
 
-function PlanningIssues({ kind, slug, projectId, item, onOpenIssue, onAdd }) {
-  const { data, isLoading } = usePlanningIssues(kind, slug, projectId, item.id)
+function PlanningIssues({ kind, slug, projectId, item, issues, isLoading, onOpenIssue, onAdd }) {
   const removeIssue = useRemovePlanningIssue(kind, slug, projectId)
+  const singular = PLANNING_TEXT[kind].singular
 
-  if (isLoading) {
-    return (
-      <div className="space-y-1">
-        {Array.from({ length: 4 }, (_, index) => (
-          <Skeleton key={index} className="h-11 w-full" />
-        ))}
-      </div>
-    )
-  }
+  if (isLoading) return <Skeleton className="h-64 w-full rounded-2xl" />
 
-  const issues = data?.content ?? []
   if (issues.length === 0) {
     return (
       <EmptyState
         icon={CircleDot}
-        title="Sin issues"
-        description={`Agrega issues del proyecto a este ${PLANNING_TEXT[kind].singular}.`}
+        title="Sin tareas"
+        description={`Agrega tareas del proyecto a este ${singular}.`}
         action={
           <Button onClick={onAdd}>
             <Plus />
-            Agregar issues
+            Agregar tareas
           </Button>
         }
       />
@@ -197,43 +217,47 @@ function PlanningIssues({ kind, slug, projectId, item, onOpenIssue, onAdd }) {
   }
 
   return (
-    <section className="space-y-2">
-      <h2 className="text-sm font-semibold">Issues ({issues.length})</h2>
-      <ul className="divide-y rounded-xl border">
-        {issues.map((issue) => (
-          <li key={issue.id} className="group flex items-center gap-3 px-4 py-2 hover:bg-accent/50">
-            <button
-              type="button"
-              onClick={() => onOpenIssue(issue.id)}
-              className="flex min-w-0 flex-1 items-center gap-3 text-left"
-            >
-              <StateIcon group={issue.state?.group} color={issue.state?.color} />
-              <span className="w-16 shrink-0 font-mono text-xs text-muted-foreground">{issue.code}</span>
-              <span className="min-w-0 flex-1 truncate text-sm font-medium">{issue.title}</span>
-              <PriorityIcon priority={issue.priority} />
-              {issue.assignees?.length > 0 && <AvatarStack users={issue.assignees} size="xs" />}
-            </button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-7 text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-              aria-label={`Quitar ${issue.code}`}
-              title={`Quitar del ${PLANNING_TEXT[kind].singular}`}
-              disabled={removeIssue.isPending}
-              onClick={() =>
-                removeIssue.mutate(
-                  { id: item.id, issueId: issue.id },
-                  {
-                    onSuccess: () => toast.success(`${issue.code} quitado de «${item.name}»`),
-                    onError: (removeError) => notifyError(removeError),
-                  },
-                )
-              }
-            >
-              <X />
-            </Button>
-          </li>
-        ))}
+    <section aria-label={`Tareas del ${singular}`} className="overflow-hidden rounded-2xl border bg-card">
+      <header className="flex items-center gap-2 bg-column px-4 py-2.5 font-mono text-[11px] tracking-[0.08em] uppercase">
+        <h2 className="font-semibold">Tareas del {singular}</h2>
+        <span className="text-muted-foreground">{String(issues.length).padStart(2, '0')}</span>
+      </header>
+      <ul>
+        {issues.map((issue) => {
+          const closed = isClosed(issue)
+          return (
+            <li key={issue.id} className="group flex items-center gap-3 border-t px-4 py-2 hover:bg-subtle">
+              <button type="button" onClick={() => onOpenIssue(issue.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+                <StateIcon group={issue.state?.group} color={issue.state?.color} />
+                <span className="w-16 shrink-0 font-mono text-xs text-muted-foreground">{issue.code}</span>
+                <span className={cn('min-w-0 flex-1 truncate text-sm font-medium', closed && 'text-muted-foreground line-through')}>
+                  {issue.title}
+                </span>
+                {issue.priority !== 'NONE' && <PriorityChip priority={issue.priority} className="hidden sm:inline-flex" />}
+                {issue.assignees?.length > 0 && <AvatarStack users={issue.assignees} size="sm" />}
+              </button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                aria-label={`Quitar ${issue.code} del ${singular}`}
+                title={`Quitar del ${singular}`}
+                disabled={removeIssue.isPending}
+                onClick={() =>
+                  removeIssue.mutate(
+                    { id: item.id, issueId: issue.id },
+                    {
+                      onSuccess: () => toast.success(`${issue.code} quitada de «${item.name}»`),
+                      onError: (removeError) => notifyError(removeError),
+                    },
+                  )
+                }
+              >
+                <X />
+              </Button>
+            </li>
+          )
+        })}
       </ul>
     </section>
   )

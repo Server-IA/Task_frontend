@@ -43,7 +43,7 @@ export function LabelsSettings({ slug, project }) {
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div className="space-y-1.5">
           <CardTitle>Etiquetas</CardTitle>
-          <CardDescription>Clasifica los issues (bug, mejora, diseño…).</CardDescription>
+          <CardDescription>Clasifica las tareas (bug, mejora, diseño…).</CardDescription>
         </div>
         {!creating && (
           <Button size="sm" onClick={() => setCreating(true)}>
@@ -74,7 +74,7 @@ export function LabelsSettings({ slug, project }) {
         {isLoading && <CenteredSpinner />}
         {error && <ErrorState error={error} onRetry={refetch} />}
         {labels?.length === 0 && !creating && (
-          <EmptyState icon={Tags} title="Sin etiquetas" description="Crea la primera para clasificar issues." className="py-6" />
+          <EmptyState icon={Tags} title="Sin etiquetas" description="Crea la primera para clasificar tareas." className="py-6" />
         )}
         {labels?.length > 0 && (
           <ul className="divide-y rounded-lg border">
@@ -134,7 +134,7 @@ export function LabelsSettings({ slug, project }) {
         open={Boolean(toDelete)}
         onOpenChange={(open) => !open && setToDelete(null)}
         title={`¿Eliminar la etiqueta «${toDelete?.name}»?`}
-        description="Se quitará de todos los issues que la tengan."
+        description="Se quitará de todas las tareas que la tengan."
         confirmLabel="Eliminar"
         loading={remove.isPending}
         onConfirm={handleDelete}

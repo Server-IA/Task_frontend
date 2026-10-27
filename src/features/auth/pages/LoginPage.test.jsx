@@ -27,7 +27,7 @@ async function submit(email, password) {
   const user = userEvent.setup()
   await user.type(screen.getByLabelText('Correo'), email)
   await user.type(screen.getByLabelText('Contraseña'), password)
-  await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
+  await user.click(screen.getByRole('button', { name: /^Entrar/ }))
 }
 
 describe('LoginPage', () => {
@@ -35,7 +35,7 @@ describe('LoginPage', () => {
 
   it('valida los campos antes de llamar a la API', async () => {
     renderLogin()
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Iniciar sesión' }))
+    await userEvent.setup().click(screen.getByRole('button', { name: /^Entrar/ }))
 
     expect(await screen.findByText('El correo es obligatorio')).toBeInTheDocument()
     expect(authApi.login).not.toHaveBeenCalled()

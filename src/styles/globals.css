@@ -5,72 +5,126 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Variables de tema de shadcn/ui. El color principal es el azul de TaskFlow (#3f76ff).
+ * Tema de TaskFlow (diseño «Fusión B + C»): color principal crema, neutros cálidos,
+ * Bricolage Grotesque para títulos, Geist para la interfaz y Geist Mono para códigos y rutas.
+ * Además de las variables de shadcn/ui hay algunas propias (column, dash, accent-soft…).
  */
 :root {
-  --radius: 0.5rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.205 0.006 264);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.205 0.006 264);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.205 0.006 264);
-  --primary: oklch(0.59 0.2 263);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.967 0.003 264);
-  --secondary-foreground: oklch(0.21 0.006 264);
-  --muted: oklch(0.967 0.003 264);
-  --muted-foreground: oklch(0.552 0.016 264);
-  --accent: oklch(0.955 0.012 264);
-  --accent-foreground: oklch(0.21 0.006 264);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0.005 264);
-  --input: oklch(0.922 0.005 264);
-  --ring: oklch(0.59 0.2 263);
-  --sidebar: oklch(0.985 0.002 264);
-  --sidebar-foreground: oklch(0.205 0.006 264);
-  --sidebar-primary: oklch(0.59 0.2 263);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.945 0.008 264);
-  --sidebar-accent-foreground: oklch(0.205 0.006 264);
-  --sidebar-border: oklch(0.922 0.005 264);
-  --sidebar-ring: oklch(0.59 0.2 263);
+  color-scheme: light;
+  --radius: 0.75rem;
+  --background: #f4f2ee;
+  --foreground: #23201b;
+  --card: #ffffff;
+  --card-foreground: #23201b;
+  --popover: #ffffff;
+  --popover-foreground: #23201b;
+  --primary: #e4cf9c;
+  --primary-foreground: #23201b;
+  --secondary: #f1eee8;
+  --secondary-foreground: #23201b;
+  --muted: #f1eee8;
+  --muted-foreground: #67615a;
+  --accent: #f1eee8;
+  --accent-foreground: #23201b;
+  --destructive: #b3261e;
+  --border: #e6e2da;
+  --input: #ddd8ce;
+  --ring: #b08a3a;
+
+  /* Propias */
+  --column: #eae7e1;
+  --subtle: #f8f7f4;
+  --dash: #c4bdb0;
+  --accent-soft: #f3e8cf;
+  --accent-text: #7a5c1e;
+  --badge: #e4cf9c;
+  --badge-foreground: #23201b;
+  --late: #a3271c;
+  --late-soft: #ffe4e0;
+  --soon: #7a5a00;
+  --soon-soft: #fff1d6;
+  --ok: #1d6b47;
+  --ok-dot: #2e9e6a;
+  --ok-soft: #e3f5ec;
+  --overlay: rgb(35 32 27 / 0.35);
+  --dot: #ddd8ce;
+  --card-shadow: 0 1px 2px rgb(35 32 27 / 0.05), 0 4px 12px rgb(35 32 27 / 0.05);
+
+  --sidebar: #ece9e3;
+  --sidebar-foreground: #23201b;
+  --sidebar-muted: #67615a;
+  --sidebar-primary: #e4cf9c;
+  --sidebar-primary-foreground: #23201b;
+  --sidebar-accent: #e2ded6;
+  --sidebar-accent-foreground: #23201b;
+  --sidebar-active: #ffffff;
+  --sidebar-active-foreground: #23201b;
+  --sidebar-border: #dad5cb;
+  --sidebar-ring: #b08a3a;
 }
 
 .dark {
-  --background: oklch(0.17 0.006 264);
-  --foreground: oklch(0.96 0.003 264);
-  --card: oklch(0.205 0.007 264);
-  --card-foreground: oklch(0.96 0.003 264);
-  --popover: oklch(0.215 0.007 264);
-  --popover-foreground: oklch(0.96 0.003 264);
-  --primary: oklch(0.64 0.18 263);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.27 0.008 264);
-  --secondary-foreground: oklch(0.96 0.003 264);
-  --muted: oklch(0.27 0.008 264);
-  --muted-foreground: oklch(0.7 0.012 264);
-  --accent: oklch(0.29 0.012 264);
-  --accent-foreground: oklch(0.96 0.003 264);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.64 0.18 263);
-  --sidebar: oklch(0.195 0.007 264);
-  --sidebar-foreground: oklch(0.96 0.003 264);
-  --sidebar-primary: oklch(0.64 0.18 263);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.27 0.01 264);
-  --sidebar-accent-foreground: oklch(0.96 0.003 264);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.64 0.18 263);
+  color-scheme: dark;
+  --background: #12110f;
+  --foreground: #f0ece4;
+  --card: #1b1917;
+  --card-foreground: #f0ece4;
+  --popover: #1f1d1a;
+  --popover-foreground: #f0ece4;
+  --primary: #ead9b0;
+  --primary-foreground: #12110f;
+  --secondary: #22201c;
+  --secondary-foreground: #f0ece4;
+  --muted: #22201c;
+  --muted-foreground: #a59e93;
+  --accent: #26231f;
+  --accent-foreground: #f0ece4;
+  --destructive: #e5484d;
+  --border: #2e2b27;
+  --input: #3a3631;
+  --ring: #ead9b0;
+
+  --column: #151412;
+  --subtle: #171513;
+  --dash: #45403a;
+  --accent-soft: #2e281c;
+  --accent-text: #e6d3a3;
+  --badge: #ead9b0;
+  --badge-foreground: #121212;
+  --late: #ff8a80;
+  --late-soft: #3d1a17;
+  --soon: #ffd27a;
+  --soon-soft: #3a2e10;
+  --ok: #86efac;
+  --ok-dot: #7ee2a8;
+  --ok-soft: #12291d;
+  --overlay: rgb(5 4 10 / 0.6);
+  --dot: #26231f;
+  --card-shadow: none;
+
+  --sidebar: #0c0b0a;
+  --sidebar-foreground: #f0ece4;
+  --sidebar-muted: #a59e93;
+  --sidebar-primary: #ead9b0;
+  --sidebar-primary-foreground: #12110f;
+  --sidebar-accent: #1a1815;
+  --sidebar-accent-foreground: #f0ece4;
+  --sidebar-active: #f0ece4;
+  --sidebar-active-foreground: #0c0b0a;
+  --sidebar-border: #2e2b27;
+  --sidebar-ring: #ead9b0;
 }
 
 @theme inline {
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, 'SFMono-Regular', monospace;
+  --font-display: 'Bricolage Grotesque Variable', 'Geist Variable', ui-sans-serif, sans-serif;
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 2px);
+  --radius-2xl: calc(var(--radius) + 6px);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -89,12 +143,31 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-column: var(--column);
+  --color-subtle: var(--subtle);
+  --color-dash: var(--dash);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-text: var(--accent-text);
+  --color-badge: var(--badge);
+  --color-badge-foreground: var(--badge-foreground);
+  --color-late: var(--late);
+  --color-late-soft: var(--late-soft);
+  --color-soon: var(--soon);
+  --color-soon-soft: var(--soon-soft);
+  --color-ok: var(--ok);
+  --color-ok-dot: var(--ok-dot);
+  --color-ok-soft: var(--ok-soft);
+  --color-overlay: var(--overlay);
+  --shadow-card: var(--card-shadow);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-active-foreground: var(--sidebar-active-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 }
@@ -109,7 +182,29 @@
     @apply h-full;
   }
   body {
-    @apply bg-background text-foreground antialiased;
-    font-feature-settings: 'cv11', 'ss01';
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+  kbd {
+    @apply font-mono;
+  }
+  /* Barras de scroll discretas con los colores del tema */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--dash) transparent;
+  }
+}
+
+@layer components {
+  /* Ruta en monoespaciada sobre los títulos: «equipo-diseno / web / tareas» */
+  .tf-path {
+    @apply font-mono text-xs text-muted-foreground;
+  }
+  /* Títulos de página en Bricolage Grotesque */
+  .tf-title {
+    @apply font-display text-[2.125rem] leading-[1.05] font-extrabold tracking-[-0.02em];
+  }
+  /* Tarjeta base (encabezados, secciones) */
+  .tf-panel {
+    @apply rounded-2xl border bg-card text-card-foreground;
   }
 }

@@ -26,7 +26,7 @@ export function WorkspaceLayout() {
   if (error) {
     return (
       <>
-        <PageHeader breadcrumbs={[{ label: slug }]} />
+        <PageHeader path={[{ label: slug }]} title="Workspace" />
         <ErrorState error={error} onRetry={refetch} className="flex-1" />
       </>
     )

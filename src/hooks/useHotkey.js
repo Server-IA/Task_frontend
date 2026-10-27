@@ -4,7 +4,7 @@ const isTyping = (target) =>
   target instanceof HTMLElement &&
   (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
 
-/** Atajo de una tecla (p. ej. «c» para crear issue). Se ignora mientras se escribe en un campo. */
+/** Atajo de una tecla (p. ej. «c» para crear una tarea). Se ignora mientras se escribe en un campo. */
 export function useHotkey(key, handler, { enabled = true } = {}) {
   useEffect(() => {
     if (!enabled) return undefined

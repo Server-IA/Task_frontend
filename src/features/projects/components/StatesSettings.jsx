@@ -28,7 +28,7 @@ export function StatesSettings({ slug, project }) {
   const [toDelete, setToDelete] = useState(null)
   const [moving, setMoving] = useState(false)
 
-  /** Intercambia la posición con el estado vecino (el orden es el de las columnas del Kanban). */
+  /** Intercambia la posición con el estado vecino (el orden es el de las columnas del tablero). */
   const move = async (index, direction) => {
     const current = states[index]
     const neighbor = states[index + direction]
@@ -66,7 +66,9 @@ export function StatesSettings({ slug, project }) {
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div className="space-y-1.5">
           <CardTitle>Estados</CardTitle>
-          <CardDescription>Son las columnas del Kanban, en este orden. El grupo indica el avance.</CardDescription>
+          <CardDescription>
+            Son las columnas del tablero, en este orden. El grupo define cuándo una tarea cuenta como completada.
+          </CardDescription>
         </div>
         <Button size="sm" onClick={() => setCreating(true)}>
           <Plus />
@@ -77,13 +79,20 @@ export function StatesSettings({ slug, project }) {
         {isLoading && <CenteredSpinner />}
         {error && <ErrorState error={error} onRetry={refetch} />}
         {states && (
-          <ul className="divide-y rounded-lg border">
+          <ol className="divide-y overflow-hidden rounded-xl border">
             {states.map((state, index) => (
-              <li key={state.id} className="flex items-center gap-3 px-3 py-2.5">
+              <li key={state.id} className="flex flex-wrap items-center gap-3 px-3.5 py-2.5">
+                <span className="w-5 font-mono text-[11px] text-muted-foreground">{String(index + 1).padStart(2, '0')}</span>
                 <StateIcon group={state.group} color={state.color} />
-                <span className="min-w-0 flex-1 truncate text-sm font-medium">{state.name}</span>
-                <span className="hidden text-xs text-muted-foreground sm:inline">{STATE_GROUP_LABELS[state.group]}</span>
-                <div className="flex items-center">
+                <span className="min-w-0 flex-[1_1_160px] truncate text-sm font-medium">{state.name}</span>
+                <span className="hidden rounded-full bg-muted px-2.5 py-0.5 font-mono text-[11px] text-muted-foreground sm:inline">
+                  {STATE_GROUP_LABELS[state.group].toLowerCase()}
+                </span>
+                <span className="hidden w-24 items-center gap-1.5 font-mono text-xs text-muted-foreground md:flex">
+                  <span className="size-3 rounded-[4px]" style={{ backgroundColor: state.color }} aria-hidden="true" />
+                  {state.color.toUpperCase()}
+                </span>
+                <div className="ml-auto flex items-center">
                   <IconButton label="Subir" disabled={index === 0 || moving} onClick={() => move(index, -1)}>
                     <ArrowUp />
                   </IconButton>
@@ -103,8 +112,9 @@ export function StatesSettings({ slug, project }) {
                 </div>
               </li>
             ))}
-          </ul>
+          </ol>
         )}
+        <p className="mt-3 font-mono text-xs text-muted-foreground">un estado con tareas no se puede eliminar</p>
       </CardContent>
 
       <StateDialog
@@ -123,7 +133,7 @@ export function StatesSettings({ slug, project }) {
         open={Boolean(toDelete)}
         onOpenChange={(open) => !open && setToDelete(null)}
         title={`¿Eliminar el estado «${toDelete?.name}»?`}
-        description="Solo se puede eliminar si no tiene issues. Mueve antes sus issues a otro estado."
+        description="Solo se puede eliminar si no tiene tareas. Mueve antes sus tareas a otro estado."
         confirmLabel="Eliminar"
         loading={remove.isPending}
         onConfirm={handleDelete}

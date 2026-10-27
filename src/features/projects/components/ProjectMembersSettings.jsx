@@ -37,7 +37,7 @@ export function ProjectMembersSettings({ slug, project }) {
         <div className="space-y-1.5">
           <CardTitle>Miembros del proyecto</CardTitle>
           <CardDescription>
-            Pueden ver el proyecto y ser asignados a sus issues. Los administradores del workspace ven todos los
+            Pueden ver el proyecto y ser asignados a sus tareas. Los administradores del workspace ven todos los
             proyectos.
           </CardDescription>
         </div>

@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router'
-import { FolderKanban, PanelLeftClose, PanelLeftOpen, Settings } from 'lucide-react'
+import { FolderClosed, PanelLeftClose, PanelLeftOpen, SlidersHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { NotificationsLink } from '@/features/notifications/NotificationsLink'
@@ -18,14 +18,9 @@ export function Sidebar({ collapsed }) {
   const slug = routeSlug ?? lastWorkspaceSlug
 
   return (
-    <div className="flex h-full flex-col">
+    <div className={cn('flex h-full flex-col gap-4.5 py-3.5', collapsed ? 'px-2' : 'px-3')}>
       {/* Contraída: logo del workspace y debajo el botón para expandir, ambos arriba */}
-      <div
-        className={cn(
-          'flex items-center gap-1 px-2',
-          collapsed ? 'flex-col justify-center gap-1 py-2.5' : 'h-14',
-        )}
-      >
+      <div className={cn('flex items-center gap-1', collapsed && 'flex-col')}>
         <div className={cn('min-w-0', collapsed ? 'w-full' : 'flex-1')}>
           <WorkspaceSwitcher currentSlug={slug} collapsed={collapsed} />
         </div>
@@ -34,7 +29,7 @@ export function Sidebar({ collapsed }) {
             <Button
               variant="ghost"
               size="icon"
-              className={cn('hidden text-muted-foreground md:inline-flex', collapsed ? 'size-8' : 'size-7')}
+              className="hidden size-8 text-sidebar-muted hover:bg-sidebar-accent md:inline-flex"
               onClick={toggleSidebar}
               aria-label={collapsed ? 'Expandir menú' : 'Contraer menú'}
             >
@@ -45,22 +40,20 @@ export function Sidebar({ collapsed }) {
         </Tooltip>
       </div>
 
-      <nav className="min-h-0 flex-1 space-y-4 overflow-y-auto px-2 py-2" aria-label="Principal">
-        <NotificationsLink collapsed={collapsed} />
-        {slug && (
-          <>
-            <div className="space-y-0.5">
-              <SidebarLink to={`/${slug}`} end icon={FolderKanban} label="Proyectos" collapsed={collapsed} />
-              <SidebarLink to={`/${slug}/settings`} icon={Settings} label="Ajustes" collapsed={collapsed} />
-            </div>
-            <SidebarProjects slug={slug} currentProjectId={projectId} collapsed={collapsed} />
-          </>
-        )}
+      <nav className="flex min-h-0 flex-1 flex-col gap-4.5 overflow-y-auto" aria-label="Principal">
+        <div className="flex flex-col gap-0.5">
+          <NotificationsLink collapsed={collapsed} />
+          {slug && (
+            <>
+              <SidebarLink to={`/${slug}`} end icon={FolderClosed} label="Proyectos" collapsed={collapsed} />
+              <SidebarLink to={`/${slug}/settings`} icon={SlidersHorizontal} label="Ajustes" collapsed={collapsed} />
+            </>
+          )}
+        </div>
+        {slug && <SidebarProjects slug={slug} currentProjectId={projectId} collapsed={collapsed} />}
       </nav>
 
-      <div className="border-t p-2">
-        <UserMenu collapsed={collapsed} />
-      </div>
+      <UserMenu collapsed={collapsed} />
     </div>
   )
 }
@@ -70,21 +63,27 @@ export function Sidebar({ collapsed }) {
  * El estado activo se pinta con `aria-current="page"` (lo pone NavLink): así el className es un texto fijo
  * y el TooltipTrigger (Radix Slot) lo puede combinar sin romperlo.
  */
-export function SidebarLink({ to, icon: Icon, iconNode, label, collapsed, end = false, badge, iconClassName }) {
+export function SidebarLink({ to, icon: Icon, iconNode, label, collapsed, end = false, badge, hint, className }) {
   const link = (
     <NavLink
       to={to}
       end={end}
       aria-label={collapsed ? label : undefined}
       className={cn(
-        'flex h-8 items-center gap-2 rounded-md px-2 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-        'aria-[current=page]:bg-sidebar-accent aria-[current=page]:font-medium aria-[current=page]:text-sidebar-accent-foreground',
+        'group/link flex h-9 items-center gap-2.5 rounded-[10px] px-2.5 text-sm text-sidebar-foreground hover:bg-sidebar-accent',
+        'aria-[current=page]:bg-sidebar-active aria-[current=page]:font-semibold aria-[current=page]:text-sidebar-active-foreground',
         collapsed && 'justify-center px-0',
+        className,
       )}
     >
-      {iconNode ?? <Icon className={cn('size-4 shrink-0', iconClassName)} />}
+      {iconNode ?? (Icon && <Icon className="size-4 shrink-0" />)}
       {!collapsed && <span className="min-w-0 flex-1 truncate">{label}</span>}
       {!collapsed && badge}
+      {!collapsed && hint && (
+        <kbd className="font-mono text-[11px] text-sidebar-muted group-aria-[current=page]/link:text-sidebar-active-foreground">
+          {hint}
+        </kbd>
+      )}
     </NavLink>
   )
   if (!collapsed) return link

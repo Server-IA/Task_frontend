@@ -3,7 +3,6 @@ import { Link } from 'react-router'
 import { Layers, MoreHorizontal, Pencil, Plus, RefreshCcw, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,9 +15,19 @@ import { EmptyState, ErrorState } from '@/components/common/States'
 import { useCurrentProject } from '@/features/projects/hooks'
 import { useCurrentWorkspace } from '@/features/workspaces/hooks'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
+import { projectPath } from '@/lib/paths'
+import { cn } from '@/lib/utils'
 import { notifyError } from '@/lib/notify'
 import { useDeletePlanning, usePlanningList } from '../hooks'
-import { CycleStatusBadge, DateRange, PLANNING_TEXT, PlanningFormDialog, ProgressSummary } from '../components/PlanningShared'
+import {
+  CYCLE_STATUS,
+  CycleStatusBadge,
+  DateRange,
+  PLANNING_TEXT,
+  PlanningFormDialog,
+  ProgressSummary,
+  remainingText,
+} from '../components/PlanningShared'
 
 /** Lista de ciclos o de módulos del proyecto (`kind` = 'cycles' | 'modules'). */
 export function PlanningListPage({ kind }) {
@@ -35,24 +44,23 @@ export function PlanningListPage({ kind }) {
   return (
     <>
       <PageHeader
-        breadcrumbs={[
-          { label: workspace.name, to: `/${workspace.slug}` },
-          { label: project.name, to: `/${workspace.slug}/projects/${project.id}/issues` },
-          { label: text.title },
-        ]}
+        path={[...projectPath(workspace, project), { label: kind === 'cycles' ? 'ciclos' : 'modulos' }]}
+        title={text.title}
+        documentTitle={[text.title, project.name]}
+        description={text.headerDescription}
         actions={
-          <Button size="sm" onClick={() => setFormState({ open: true, item: null })}>
-            <Plus />
+          <Button className="h-10 rounded-xl px-3.5" onClick={() => setFormState({ open: true, item: null })}>
+            <Plus strokeWidth={3} />
             {text.newLabel}
           </Button>
         }
       />
       <PageBody>
-        <div className="mx-auto max-w-5xl p-4 sm:p-8">
+        <div>
           {isLoading && (
             <div className="space-y-3">
               {Array.from({ length: 3 }, (_, index) => (
-                <Skeleton key={index} className="h-24 w-full rounded-xl" />
+                <Skeleton key={index} className="h-24 w-full rounded-2xl" />
               ))}
             </div>
           )}
@@ -72,41 +80,79 @@ export function PlanningListPage({ kind }) {
           )}
           {items?.length > 0 && (
             <div className="space-y-3">
-              {items.map((item) => (
-                <Card key={item.id} className="flex-row items-center gap-4 p-4 transition-colors hover:bg-accent/40">
-                  <Link to={`${base}/${item.id}`} className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center">
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Icon className="size-4 shrink-0 text-muted-foreground" />
-                        <span className="truncate font-semibold">{item.name}</span>
-                        {kind === 'cycles' && <CycleStatusBadge status={item.status} />}
+              {items.map((item) => {
+                const end = item.endDate ?? item.targetDate
+                const current = kind === 'cycles' && item.status === 'CURRENT'
+                return (
+                  <div
+                    key={item.id}
+                    className={cn(
+                      'bg-card hover:shadow-card flex items-center gap-4 rounded-2xl border p-4 transition-shadow sm:px-5',
+                      current && 'border-ok-dot',
+                    )}
+                  >
+                    <Link
+                      to={`${base}/${item.id}`}
+                      className="group flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:gap-6"
+                    >
+                      <div className="flex min-w-0 flex-1 items-start gap-3">
+                        {kind === 'modules' && (
+                          <span className="bg-accent-soft text-accent-text flex size-9 shrink-0 items-center justify-center rounded-xl">
+                            <Layers className="size-4" />
+                          </span>
+                        )}
+                        <div className="min-w-0 space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h2 className="truncate text-base font-semibold">{item.name}</h2>
+                            {kind === 'cycles' && <CycleStatusBadge status={item.status} />}
+                          </div>
+                          {kind === 'modules' && item.description && (
+                            <p className="text-muted-foreground line-clamp-1 text-sm">{item.description}</p>
+                          )}
+                          <p className="text-muted-foreground font-mono text-xs">
+                            <DateRange start={item.startDate} end={end} />
+                            {current && end && (
+                              <span className="text-ok font-semibold"> · {remainingText(end)}</span>
+                            )}
+                          </p>
+                        </div>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        <DateRange start={item.startDate} end={item.endDate ?? item.targetDate} />
-                        {item.description && ` · ${item.description}`}
-                      </p>
-                    </div>
-                    <ProgressSummary progress={item.progress} className="w-full sm:w-56" />
-                  </Link>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="size-8 shrink-0" aria-label="Acciones">
-                        <MoreHorizontal />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onSelect={() => setFormState({ open: true, item })}>
-                        <Pencil />
-                        Editar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem variant="destructive" onSelect={() => setToDelete(item)}>
-                        <Trash2 />
-                        Eliminar
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </Card>
-              ))}
+                      <ProgressSummary
+                        progress={item.progress}
+                        className="w-full sm:w-60"
+                        barClassName={
+                          kind === 'cycles'
+                            ? (CYCLE_STATUS[item.status] ?? CYCLE_STATUS.DRAFT).bar
+                            : undefined
+                        }
+                      />
+                      <span
+                        aria-hidden="true"
+                        className="text-muted-foreground group-hover:text-foreground hidden sm:inline"
+                      >
+                        →
+                      </span>
+                    </Link>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="size-8 shrink-0" aria-label="Acciones">
+                          <MoreHorizontal />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onSelect={() => setFormState({ open: true, item })}>
+                          <Pencil />
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem variant="destructive" onSelect={() => setToDelete(item)}>
+                          <Trash2 />
+                          Eliminar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
@@ -123,7 +169,7 @@ export function PlanningListPage({ kind }) {
         open={Boolean(toDelete)}
         onOpenChange={(open) => !open && setToDelete(null)}
         title={`¿Eliminar «${toDelete?.name}»?`}
-        description="Los issues no se borran: solo dejan de pertenecer a él."
+        description="Las tareas no se borran: solo dejan de pertenecer a él."
         confirmLabel="Eliminar"
         loading={remove.isPending}
         onConfirm={() =>

@@ -1,31 +1,33 @@
 import { cn } from '@/lib/utils'
 
+/** Pares fondo/texto para la pastilla del proyecto; el color depende del identificador para que sea estable. */
 const COLORS = [
-  'bg-sky-500/15 text-sky-700 dark:text-sky-300',
-  'bg-violet-500/15 text-violet-700 dark:text-violet-300',
-  'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
-  'bg-amber-500/15 text-amber-700 dark:text-amber-300',
-  'bg-rose-500/15 text-rose-700 dark:text-rose-300',
-  'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300',
+  'bg-[#2EC4A0] text-[#0B2A22]',
+  'bg-[#FFC145] text-[#3A2A00]',
+  'bg-[#8CCBFF] text-[#0B2540]',
+  'bg-[#FFA6CB] text-[#3D0F24]',
+  'bg-[#B6A6FF] text-[#1C1240]',
+  'bg-[#F6A35C] text-[#3A1E05]',
+  'bg-[#9BE7B4] text-[#0E3A1E]',
 ]
 
-function colorFor(text = '') {
+export function projectColor(text = '') {
   let hash = 0
   for (const char of text) hash = (hash * 31 + char.charCodeAt(0)) | 0
   return COLORS[Math.abs(hash) % COLORS.length]
 }
 
-/** Cuadro con la inicial del proyecto; el color depende del identificador. */
+/** Pastilla con el identificador del proyecto en monoespaciada («WEB»). */
 export function ProjectIcon({ project, className }) {
   return (
     <span
       className={cn(
-        'flex size-6 shrink-0 items-center justify-center rounded-md text-[11px] font-semibold',
-        colorFor(project?.identifier),
+        'inline-flex h-5 shrink-0 items-center justify-center rounded-[5px] px-1.5 font-mono text-[10px] font-semibold',
+        projectColor(project?.identifier),
         className,
       )}
     >
-      {project?.name?.trim().charAt(0).toUpperCase() ?? '?'}
+      {project?.identifier ?? '?'}
     </span>
   )
 }

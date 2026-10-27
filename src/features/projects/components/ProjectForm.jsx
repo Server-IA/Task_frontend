@@ -79,7 +79,7 @@ export function ProjectForm({ defaultValues, onSubmit, pending, submitLabel, dis
           />
         </div>
         <FormDescription className="-mt-2">
-          El identificador es el prefijo de los issues: {identifier || 'WEB'}-1, -2, -3…
+          El identificador es el prefijo de las tareas: {identifier || 'WEB'}-1, -2, -3…
         </FormDescription>
         <FormField
           control={form.control}

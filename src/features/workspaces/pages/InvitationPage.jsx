@@ -1,13 +1,12 @@
 import { useEffect } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
-import { CircleX, MailOpen } from 'lucide-react'
+import { X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { CenteredSpinner, Spinner } from '@/components/common/Loaders'
 import { useLogout } from '@/features/auth/hooks'
-import { Status } from '@/features/auth/pages/VerifyEmailPage'
-import { formatLongDate } from '@/lib/dates'
+import { AuthCard, AuthHeader, AuthIcon, CenteredShell } from '@/layouts/AuthLayout'
+import { formatRelative } from '@/lib/dates'
 import { getErrorMessage } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { pendingInvitation } from '@/lib/pendingInvitation'
@@ -15,6 +14,12 @@ import { ROLE_LABELS } from '@/lib/permissions'
 import { useSessionStore } from '@/stores/sessionStore'
 import { WorkspaceLogo } from '../components/WorkspaceSwitcher'
 import { useAcceptInvitation, useInvitationDetails } from '../hooks'
+
+/** Qué permite cada rol, para explicarlo en la invitación. */
+const ROLE_HINTS = {
+  ADMIN: 'gestionar miembros, proyectos y tareas',
+  MEMBER: 'crear y editar tareas',
+}
 
 /** Página pública que abre el enlace del correo de invitación. */
 export function InvitationPage() {
@@ -34,20 +39,39 @@ export function InvitationPage() {
     if (invitation && !isAuthenticated) pendingInvitation.set(token)
   }, [invitation, isAuthenticated, token])
 
-  if (isLoading) return <CenteredSpinner />
+  const meta = isAuthenticated ? (
+    <span className="font-sans text-[13px]">
+      Sesión: <strong className="font-semibold text-foreground">{user?.email}</strong>
+    </span>
+  ) : (
+    '~/invitaciones'
+  )
+
+  if (isLoading) {
+    return (
+      <CenteredShell meta={meta}>
+        <CenteredSpinner />
+      </CenteredShell>
+    )
+  }
 
   if (error) {
     return (
-      <Card>
-        <CardContent className="space-y-5 pt-8 text-center">
-          <Status icon={<CircleX className="size-6" />} tone="error" title="Invitación no válida">
-            {getErrorMessage(error)}. Pide a un administrador del workspace que te invite de nuevo.
-          </Status>
-          <Button asChild className="w-full">
+      <CenteredShell meta={meta}>
+        <AuthCard>
+          <AuthIcon tone="late">
+            <X className="size-7" strokeWidth={2.6} />
+          </AuthIcon>
+          <AuthHeader
+            size="md"
+            title="Invitación no válida"
+            description={`${getErrorMessage(error)}. Pide a un administrador del workspace que te invite de nuevo.`}
+          />
+          <Button asChild className="h-11 rounded-xl">
             <Link to="/">Ir a TaskFlow</Link>
           </Button>
-        </CardContent>
-      </Card>
+        </AuthCard>
+      </CenteredShell>
     )
   }
 
@@ -63,66 +87,83 @@ export function InvitationPage() {
   }
 
   const authState = { from: location, email: invitation.email }
+  const inviter = invitation.invitedByName ?? 'Un administrador'
 
   return (
-    <Card>
-      <CardContent className="space-y-6 pt-8 text-center">
-        <div className="flex justify-center">
-          <div className="relative">
-            <WorkspaceLogo name={invitation.workspaceName} className="size-14 rounded-xl text-xl" />
-            <span className="absolute -right-2 -bottom-2 flex size-7 items-center justify-center rounded-full border-2 border-card bg-primary text-primary-foreground">
-              <MailOpen className="size-3.5" />
-            </span>
+    <CenteredShell meta={meta}>
+      <section aria-labelledby="invitacion-titulo" className="w-full max-w-[520px] overflow-hidden rounded-[22px] border bg-card">
+        <div className="flex flex-col gap-4 bg-sidebar px-6 py-6.5 text-sidebar-foreground sm:px-7.5">
+          <p className="font-mono text-xs text-sidebar-muted">~/invitaciones/••••</p>
+          <div className="flex items-center gap-3.5">
+            <WorkspaceLogo name={invitation.workspaceName} className="size-14 rounded-2xl text-xl" />
+            <div className="min-w-0">
+              <p className="text-[13px] text-sidebar-muted">Te invitaron a</p>
+              <p className="mt-0.5 font-display text-[30px] leading-[1.05] font-extrabold tracking-[-0.02em]">
+                {invitation.workspaceName}
+              </p>
+            </div>
           </div>
         </div>
-        <div className="space-y-1.5">
-          <h1 className="text-xl font-semibold">Te invitaron a {invitation.workspaceName}</h1>
-          <p className="text-sm text-muted-foreground">
-            {invitation.invitedByName ?? 'Un administrador'} te invitó como{' '}
-            <span className="font-medium text-foreground">{ROLE_LABELS[invitation.role]}</span>. La invitación
-            es para <span className="font-medium text-foreground">{invitation.email}</span> y vence el{' '}
-            {formatLongDate(invitation.expiresAt)}.
+
+        <div className="flex flex-col gap-4.5 px-6 py-6 sm:px-7.5">
+          <h1 id="invitacion-titulo" className="text-[17px] font-semibold">
+            <span className="font-medium text-muted-foreground">{inviter} te invita como</span>{' '}
+            {ROLE_LABELS[invitation.role]?.toLowerCase()}
+          </h1>
+          <dl className="grid grid-cols-[auto_1fr] gap-x-3.5 gap-y-1.5 rounded-xl bg-muted px-3.5 py-3 font-mono text-xs">
+            <dt className="text-muted-foreground">para</dt>
+            <dd className="truncate">{invitation.email}</dd>
+            <dt className="text-muted-foreground">rol</dt>
+            <dd>
+              {invitation.role} · {ROLE_HINTS[invitation.role] ?? ROLE_LABELS[invitation.role]}
+            </dd>
+            <dt className="text-muted-foreground">expira</dt>
+            <dd>{formatRelative(invitation.expiresAt)}</dd>
+          </dl>
+
+          {!isAuthenticated && (
+            <div className="flex flex-wrap gap-2">
+              <Button asChild className="h-11 flex-[2_1_200px] rounded-xl">
+                <Link to="/login" state={authState}>
+                  Iniciar sesión para aceptar
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="h-11 flex-[1_1_140px] rounded-xl">
+                <Link to="/register" state={authState}>
+                  Crear una cuenta
+                </Link>
+              </Button>
+            </div>
+          )}
+
+          {isAuthenticated && emailMatches && (
+            <Button className="h-11 rounded-xl" onClick={handleAccept} disabled={accept.isPending}>
+              {accept.isPending && <Spinner />}
+              Unirme a {invitation.workspaceName}
+            </Button>
+          )}
+
+          {isAuthenticated && !emailMatches && (
+            <div className="space-y-3 rounded-xl border border-dashed border-dash p-4 text-sm">
+              <p>
+                Iniciaste sesión como <span className="font-semibold">{user?.email}</span>, pero la invitación es para otro
+                correo.
+              </p>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => logout.mutate(undefined, { onSettled: () => pendingInvitation.set(token) })}
+              >
+                Cambiar de cuenta
+              </Button>
+            </div>
+          )}
+
+          <p className="border-t border-dashed border-dash pt-3.5 text-[13px] text-muted-foreground">
+            La invitación es para este correo. Si entraste con otra cuenta, cierra sesión y vuelve a abrir el enlace.
           </p>
         </div>
-
-        {!isAuthenticated && (
-          <div className="space-y-2">
-            <Button asChild className="w-full">
-              <Link to="/login" state={authState}>
-                Iniciar sesión para aceptar
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="w-full">
-              <Link to="/register" state={authState}>
-                Crear una cuenta
-              </Link>
-            </Button>
-          </div>
-        )}
-
-        {isAuthenticated && emailMatches && (
-          <Button className="w-full" onClick={handleAccept} disabled={accept.isPending}>
-            {accept.isPending && <Spinner />}
-            Aceptar invitación
-          </Button>
-        )}
-
-        {isAuthenticated && !emailMatches && (
-          <div className="space-y-3 rounded-lg border bg-muted/50 p-4 text-sm">
-            <p>
-              Iniciaste sesión como <span className="font-medium">{user?.email}</span>, pero la invitación es
-              para otro correo.
-            </p>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => logout.mutate(undefined, { onSettled: () => pendingInvitation.set(token) })}
-            >
-              Cambiar de cuenta
-            </Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      </section>
+    </CenteredShell>
   )
 }

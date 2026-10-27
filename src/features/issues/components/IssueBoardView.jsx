@@ -12,7 +12,6 @@ import {
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Plus, TriangleAlert } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ErrorState } from '@/components/common/States'
 import { StateIcon } from '@/components/common/StateIcon'
@@ -21,7 +20,8 @@ import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { BOARD_PAGE_SIZE } from '../constants'
 import { useIssues, useMoveIssue } from '../hooks'
-import { InlineIssueProperties } from './IssueProperties'
+import { isClosed, useIssueUpdater } from '../useIssueHelpers'
+import { AssigneesPicker, DatePicker, LabelsPicker, PriorityPicker } from './PropertyPickers'
 
 /** Kanban: una columna por estado; las tarjetas se arrastran entre columnas y dentro de ellas. */
 export function IssueBoardView({ slug, project, meta, filters, openIssue, onCreateInState, extraParams }) {
@@ -101,15 +101,15 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
         state: meta.states.find((state) => state.id === targetState),
         sortOrder,
       },
-      { onError: (moveError) => notifyError(moveError, 'No se pudo mover el issue') },
+      { onError: (moveError) => notifyError(moveError, 'No se pudo mover la tarea') },
     )
   }
 
   if (isLoading) {
     return (
-      <div className="flex gap-3 p-4">
+      <div className="flex gap-3">
         {Array.from({ length: 4 }, (_, index) => (
-          <Skeleton key={index} className="h-96 w-72 shrink-0 rounded-xl" />
+          <Skeleton key={index} className="h-96 w-[284px] shrink-0 rounded-2xl" />
         ))}
       </div>
     )
@@ -121,9 +121,9 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
   return (
     <div className="flex h-full min-h-0 flex-col">
       {data.totalElements > BOARD_PAGE_SIZE && (
-        <div className="flex items-center gap-2 border-b bg-amber-500/10 px-4 py-2 text-sm text-amber-700 dark:text-amber-300">
+        <div className="mb-3 flex items-center gap-2 rounded-xl bg-soon-soft px-4 py-2 text-sm text-soon">
           <TriangleAlert className="size-4" />
-          Se muestran {BOARD_PAGE_SIZE} de {data.totalElements} issues. Usa los filtros o la vista de lista para ver el resto.
+          Se muestran {BOARD_PAGE_SIZE} de {data.totalElements} tareas. Usa los filtros o la vista de lista para ver el resto.
         </div>
       )}
       <DndContext
@@ -137,7 +137,7 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
           setDragColumns(null)
         }}
       >
-        <div className="flex min-h-0 flex-1 gap-3 overflow-x-auto p-4">
+        <div className="flex min-h-0 flex-1 items-start gap-3 overflow-x-auto pb-2">
           {meta.states.map((state) => (
             <BoardColumn
               key={state.id}
@@ -164,19 +164,24 @@ function BoardColumn({ state, ids, issuesById, slug, project, meta, openIssue, o
   const { setNodeRef, isOver } = useDroppable({ id: `column:${state.id}` })
 
   return (
-    <section className="flex w-72 shrink-0 flex-col rounded-xl bg-muted/50" aria-label={state.name}>
-      <header className="flex items-center gap-2 px-3 py-2.5">
-        <StateIcon group={state.group} color={state.color} />
-        <h3 className="min-w-0 flex-1 truncate text-sm font-medium">{state.name}</h3>
-        <span className="text-xs text-muted-foreground">{ids.length}</span>
-        <Button variant="ghost" size="icon" className="size-6 text-muted-foreground" onClick={onCreate} aria-label={`Nuevo issue en ${state.name}`}>
-          <Plus className="size-3.5" />
-        </Button>
+    <section className="flex max-h-full w-[284px] shrink-0 flex-col gap-2 rounded-2xl bg-column p-2" aria-label={state.name}>
+      <header className="flex items-center gap-2 px-1.5 pt-1.5 pb-1 font-mono text-[11px] tracking-[0.08em] uppercase">
+        <StateIcon group={state.group} color={state.color} className="size-3.5" />
+        <h3 className="min-w-0 truncate font-semibold">{state.name}</h3>
+        <span className="text-muted-foreground">{ids.length}</span>
+        <button
+          type="button"
+          className="ml-auto flex size-6.5 items-center justify-center rounded-lg border bg-card text-muted-foreground hover:text-foreground"
+          onClick={onCreate}
+          aria-label={`Nueva tarea en ${state.name}`}
+        >
+          <Plus className="size-3" strokeWidth={3} />
+        </button>
       </header>
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
         <div
           ref={setNodeRef}
-          className={cn('flex min-h-24 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2', isOver && 'rounded-b-xl bg-primary/5')}
+          className={cn('-mx-1 flex min-h-24 flex-1 flex-col gap-2 overflow-y-auto px-1 pb-1', isOver && 'rounded-xl bg-accent-soft/60')}
         >
           {ids.map((id) =>
             issuesById[id] ? (
@@ -195,7 +200,7 @@ function SortableIssueCard({ issue, openIssue, ...props }) {
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={cn(isDragging && 'opacity-40')}
+      className={cn('rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring', isDragging && 'opacity-40')}
       {...attributes}
       {...listeners}
       onClick={() => openIssue(issue.id)}
@@ -209,24 +214,68 @@ function SortableIssueCard({ issue, openIssue, ...props }) {
   )
 }
 
+/** Evita que los selectores de la tarjeta inicien el arrastre o abran el detalle. */
+const stop = (event) => event.stopPropagation()
+const revealOnHover = 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100'
+
 function IssueCard({ issue, slug, project, meta, overlay = false }) {
+  const { update } = useIssueUpdater(slug, project.id, issue.id)
+  const hasLabels = issue.labels?.length > 0
+
   return (
     <article
       className={cn(
-        'group cursor-grab space-y-2 rounded-lg border bg-card p-3 shadow-xs transition-shadow hover:shadow-md active:cursor-grabbing',
+        'group flex cursor-grab flex-col gap-2.5 rounded-xl border bg-card p-3 shadow-card transition-shadow hover:shadow-md active:cursor-grabbing',
         overlay && 'rotate-2 shadow-lg',
       )}
     >
-      <p className="font-mono text-xs text-muted-foreground">{issue.code}</p>
-      <h4 className="line-clamp-3 text-sm font-medium">{issue.title}</h4>
-      <div onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
-        <InlineIssueProperties
-          slug={slug}
-          projectId={project.id}
-          issue={issue}
-          meta={meta}
-          compact
-          show={{ state: false }}
+      <div className="flex items-center gap-2 font-mono text-[11px]">
+        <span className="text-muted-foreground">{issue.code}</span>
+        <span className="ml-auto" onPointerDown={stop} onKeyDown={stop} onClick={stop}>
+          <PriorityPicker
+            chip
+            value={issue.priority}
+            onChange={(priority) => update({ priority })}
+            className={cn(issue.priority === 'NONE' && revealOnHover)}
+          />
+        </span>
+      </div>
+      <h4 className="line-clamp-3 text-[14.5px] leading-snug font-medium">{issue.title}</h4>
+      {hasLabels && (
+        <div onPointerDown={stop} onKeyDown={stop} onClick={stop}>
+          <LabelsPicker
+            compact
+            labels={meta.labels}
+            value={issue.labels.map((label) => label.id)}
+            onChange={(labelIds) => update({ labelIds })}
+            className="-ml-2"
+          />
+        </div>
+      )}
+      <div className="flex items-center gap-2 text-xs" onPointerDown={stop} onKeyDown={stop} onClick={stop}>
+        <DatePicker
+          value={issue.dueDate}
+          placeholder="Fecha límite"
+          due={{ closed: isClosed(issue) }}
+          minDate={issue.startDate}
+          onChange={(dueDate) => update(dueDate ? { dueDate } : { clearDueDate: true })}
+          className={cn(!issue.dueDate && cn('-ml-2', revealOnHover))}
+        />
+        {issue.subIssueCount > 0 && (
+          <span className="font-mono text-[11px] text-muted-foreground" title="Subtareas completadas">
+            ↳ {issue.completedSubIssueCount}/{issue.subIssueCount}
+          </span>
+        )}
+        {!hasLabels && meta.labels.length > 0 && (
+          <LabelsPicker compact labels={meta.labels} value={[]} onChange={(labelIds) => update({ labelIds })} className={revealOnHover} />
+        )}
+        <AssigneesPicker
+          members={meta.users}
+          value={issue.assignees?.map((user) => user.id) ?? []}
+          onChange={(assigneeIds) => update({ assigneeIds })}
+          showLabel={false}
+          avatarSize="sm"
+          className={cn('ml-auto px-1', !issue.assignees?.length && revealOnHover)}
         />
       </div>
     </article>

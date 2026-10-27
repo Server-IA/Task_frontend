@@ -15,14 +15,22 @@ import { useWorkspaces } from '../hooks'
 import { CreateWorkspaceDialog } from './CreateWorkspaceDialog'
 
 export function WorkspaceLogo({ name = '', className }) {
+  const letters = name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join('')
+    .toUpperCase()
   return (
     <span
       className={cn(
-        'flex size-7 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground',
+        'flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-primary font-mono text-sm font-semibold text-primary-foreground',
         className,
       )}
     >
-      {name.trim().charAt(0).toUpperCase() || '?'}
+      {letters || '?'}
     </span>
   )
 }
@@ -39,7 +47,7 @@ export function WorkspaceSwitcher({ currentSlug, collapsed }) {
       <DropdownMenu>
         <DropdownMenuTrigger
           className={cn(
-            'flex w-full items-center gap-2 rounded-md p-1.5 text-left text-sm outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring',
+            'flex w-full items-center gap-2.5 rounded-xl p-1.5 text-left text-sm text-sidebar-foreground outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring',
             collapsed && 'justify-center',
           )}
           aria-label="Cambiar de workspace"
@@ -47,8 +55,11 @@ export function WorkspaceSwitcher({ currentSlug, collapsed }) {
           <WorkspaceLogo name={current?.name ?? 'TaskFlow'} />
           {!collapsed && (
             <>
-              <span className="min-w-0 flex-1 truncate font-semibold">{current?.name ?? 'Elige un workspace'}</span>
-              <ChevronsUpDown className="size-4 text-muted-foreground" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-semibold">{current?.name ?? 'Elige un workspace'}</span>
+                {current && <span className="block truncate font-mono text-[11px] text-sidebar-muted">{current.slug}</span>}
+              </span>
+              <ChevronsUpDown className="size-4 text-sidebar-muted" />
             </>
           )}
         </DropdownMenuTrigger>
@@ -56,7 +67,7 @@ export function WorkspaceSwitcher({ currentSlug, collapsed }) {
           <DropdownMenuLabel className="text-xs text-muted-foreground">Workspaces</DropdownMenuLabel>
           {workspaces.map((workspace) => (
             <DropdownMenuItem key={workspace.id} onSelect={() => navigate(`/${workspace.slug}`)}>
-              <WorkspaceLogo name={workspace.name} className="size-6" />
+              <WorkspaceLogo name={workspace.name} className="size-7 rounded-lg text-xs" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate">{workspace.name}</span>
                 <span className="block text-xs text-muted-foreground">{ROLE_LABELS[workspace.myRole]}</span>

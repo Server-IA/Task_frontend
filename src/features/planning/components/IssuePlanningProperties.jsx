@@ -92,7 +92,7 @@ function ModulesPicker({ slug, projectId, issue }) {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <PropertyButton className="h-auto min-h-7 flex-wrap py-1" aria-label="Módulos">
+        <PropertyButton className="h-auto min-h-7 py-1" aria-label="Módulos">
           <Layers className="size-3.5 text-muted-foreground" />
           {issue.modules?.length ? (
             <span className="truncate">{issue.modules.map((module) => module.name).join(', ')}</span>

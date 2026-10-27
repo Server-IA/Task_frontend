@@ -1,11 +1,12 @@
 import { useNavigate, useParams } from 'react-router'
 import { useCurrentProject } from '@/features/projects/hooks'
 import { useCurrentWorkspace } from '@/features/workspaces/hooks'
+import { projectPath } from '@/lib/paths'
 import { PageHeader } from '@/layouts/PageHeader'
 import { useIssue } from '../hooks'
 import { IssueDetailWithExtras } from '../components/IssueDetailWithExtras'
 
-/** Issue en página completa (/:slug/projects/:projectId/issues/:issueId). */
+/** Tarea en página completa (/:slug/projects/:projectId/issues/:issueId). */
 export function IssuePage() {
   const workspace = useCurrentWorkspace()
   const project = useCurrentProject()
@@ -17,14 +18,11 @@ export function IssuePage() {
   return (
     <>
       <PageHeader
-        breadcrumbs={[
-          { label: workspace.name, to: `/${workspace.slug}` },
-          { label: project.name, to: issuesUrl },
-          { label: 'Issues', to: issuesUrl },
-          { label: issue?.code ?? '…' },
-        ]}
+        path={[...projectPath(workspace, project), { label: 'tareas', to: issuesUrl }]}
+        title={issue?.code ?? '…'}
+        documentTitle={[issue?.code ?? 'Tarea', project.name]}
       />
-      <div className="min-h-0 flex-1">
+      <div className="tf-panel min-h-0 flex-1 overflow-hidden">
         <IssueDetailWithExtras
           slug={workspace.slug}
           project={project}

@@ -19,7 +19,7 @@ export function useProjectMeta(slug, projectId) {
   }
 }
 
-/** Devuelve `update(cambios)` para un issue; muestra un toast si el backend lo rechaza. */
+/** Devuelve `update(cambios)` para una tarea; muestra un toast si el backend lo rechaza. */
 export function useIssueUpdater(slug, projectId, issueId) {
   const mutation = useUpdateIssue(slug, projectId)
   const update = (changes, options) =>
@@ -27,9 +27,13 @@ export function useIssueUpdater(slug, projectId, issueId) {
   return { update, isPending: mutation.isPending }
 }
 
-/** Fecha límite vencida (solo si el issue no está completado ni cancelado). */
+/** La tarea está cerrada (completada o cancelada). */
+export function isClosed(issue) {
+  return issue?.state?.group === 'COMPLETED' || issue?.state?.group === 'CANCELLED'
+}
+
+/** Fecha límite vencida (solo si la tarea no está completada ni cancelada). */
 export function isOverdue(issue) {
-  if (!issue?.dueDate) return false
-  if (issue.state?.group === 'COMPLETED' || issue.state?.group === 'CANCELLED') return false
+  if (!issue?.dueDate || isClosed(issue)) return false
   return isBefore(parseISO(issue.dueDate), startOfToday())
 }

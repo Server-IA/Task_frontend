@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CalendarDays, Check, Tag, UserRound, X } from 'lucide-react'
+import { CalendarDays, Check, Clock3, Tag, UserRound, X } from 'lucide-react'
 import { es } from 'date-fns/locale'
 import { parseISO } from 'date-fns'
 import { Button } from '@/components/ui/button'
@@ -10,18 +10,18 @@ import { AvatarStack } from '@/components/common/AvatarStack'
 import { ColorDot, LabelChip } from '@/components/common/LabelChip'
 import { StateIcon } from '@/components/common/StateIcon'
 import { UserAvatar } from '@/components/common/UserAvatar'
-import { formatShortDate, toIsoDate } from '@/lib/dates'
+import { describeDueDate, formatShortDate, toIsoDate } from '@/lib/dates'
 import { cn } from '@/lib/utils'
 import { PRIORITIES, PRIORITY_LABELS } from '../constants'
-import { PriorityIcon } from './PriorityIcon'
+import { PriorityChip, PriorityIcon } from './PriorityIcon'
 
-/** Botón pequeño para mostrar/editar una propiedad (estilo Plane). */
+/** Botón pequeño para mostrar/editar una propiedad; sin borde hasta pasar el mouse. */
 export function PropertyButton({ className, children, ...props }) {
   return (
     <button
       type="button"
       className={cn(
-        'inline-flex h-7 max-w-full min-w-0 items-center gap-1.5 rounded-md border border-transparent px-2 text-xs text-foreground/90 outline-none hover:border-border hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-60',
+        'inline-flex h-7 max-w-full min-w-0 items-center gap-1.5 rounded-lg border border-transparent px-2 text-xs text-foreground/90 outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-60',
         className,
       )}
       {...props}
@@ -105,7 +105,8 @@ export function StatePicker({ states = [], value, onChange, disabled, showLabel 
   )
 }
 
-export function PriorityPicker({ value = 'NONE', onChange, disabled, showLabel = true, className }) {
+/** `chip`: muestra la pastilla de prioridad del diseño («▮▮▯ media») en lugar de solo el ícono. */
+export function PriorityPicker({ value = 'NONE', onChange, disabled, showLabel = true, chip = false, className }) {
   return (
     <OptionsPicker
       disabled={disabled}
@@ -118,10 +119,16 @@ export function PriorityPicker({ value = 'NONE', onChange, disabled, showLabel =
         icon: <PriorityIcon priority={priority.value} />,
       }))}
       trigger={
-        <PropertyButton className={className} aria-label="Prioridad">
-          <PriorityIcon priority={value} />
-          {showLabel && <span className="truncate">{PRIORITY_LABELS[value]}</span>}
-        </PropertyButton>
+        chip ? (
+          <PropertyButton className={cn('h-auto p-0 hover:bg-transparent hover:opacity-80', className)} aria-label="Prioridad">
+            <PriorityChip priority={value} />
+          </PropertyButton>
+        ) : (
+          <PropertyButton className={className} aria-label="Prioridad">
+            <PriorityIcon priority={value} />
+            {showLabel && <span className="truncate">{PRIORITY_LABELS[value]}</span>}
+          </PropertyButton>
+        )
       }
     />
   )
@@ -130,7 +137,7 @@ export function PriorityPicker({ value = 'NONE', onChange, disabled, showLabel =
 /**
  * @param {{ members: import('@/api/types').UserSummary[], value: string[], onChange: (ids: string[]) => void }} props
  */
-export function AssigneesPicker({ members = [], value = [], onChange, disabled, showLabel = true, className }) {
+export function AssigneesPicker({ members = [], value = [], onChange, disabled, showLabel = true, avatarSize = 'xs', className }) {
   const selectedUsers = members.filter((user) => value.includes(user.id))
   return (
     <OptionsPicker
@@ -150,7 +157,7 @@ export function AssigneesPicker({ members = [], value = [], onChange, disabled, 
         <PropertyButton className={className} aria-label="Asignados">
           {selectedUsers.length ? (
             <>
-              <AvatarStack users={selectedUsers} size="xs" />
+              <AvatarStack users={selectedUsers} size={avatarSize} />
               {showLabel && selectedUsers.length === 1 && <span className="truncate">{selectedUsers[0].fullName}</span>}
             </>
           ) : (
@@ -186,11 +193,11 @@ export function LabelsPicker({ labels = [], value = [], onChange, disabled, clas
             </>
           )}
           {selected.length > 0 && compact && (
-            <span className="flex items-center gap-1">
-              {selected.slice(0, 3).map((label) => (
-                <ColorDot key={label.id} color={label.color} />
+            <span className="flex flex-wrap items-center gap-1.5">
+              {selected.slice(0, 2).map((label) => (
+                <LabelChip key={label.id} label={label} />
               ))}
-              <span>{selected.length === 1 ? selected[0].name : `${selected.length} etiquetas`}</span>
+              {selected.length > 2 && <span className="font-mono text-[11px] text-muted-foreground">+{selected.length - 2}</span>}
             </span>
           )}
           {selected.length > 0 && !compact && selected.map((label) => <LabelChip key={label.id} label={label} />)}
@@ -200,21 +207,40 @@ export function LabelsPicker({ labels = [], value = [], onChange, disabled, clas
   )
 }
 
+const DUE_TONES = {
+  late: 'bg-late-soft text-late',
+  soon: 'bg-soon-soft text-soon',
+  normal: 'bg-muted text-muted-foreground',
+}
+
 /**
  * Fecha opcional (LocalDate 'yyyy-MM-dd'). `onChange(null)` la quita.
  * `isOverdue` pinta la fecha en rojo (fecha límite vencida).
+ * `due`: se muestra como pastilla de fecha límite en lenguaje humano («mañana», «venció hace 2 días»).
  */
-export function DatePicker({ value, onChange, placeholder = 'Fecha', disabled, className, isOverdue = false, minDate, maxDate }) {
+export function DatePicker({ value, onChange, placeholder = 'Fecha', disabled, className, isOverdue = false, due, minDate, maxDate }) {
   const [open, setOpen] = useState(false)
   const date = value ? parseISO(value) : undefined
+  const dueInfo = due && value ? describeDueDate(value, due) : null
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild disabled={disabled}>
-        <PropertyButton className={cn(isOverdue && 'text-destructive', className)} aria-label={placeholder}>
-          <CalendarDays className={cn('size-3.5', !value && 'text-muted-foreground')} />
-          <span className={cn(!value && 'text-muted-foreground')}>{value ? formatShortDate(value) : placeholder}</span>
-        </PropertyButton>
+        {dueInfo ? (
+          <PropertyButton
+            className={cn('h-6 gap-1 rounded-md px-2 font-medium hover:opacity-85', DUE_TONES[dueInfo.tone], className)}
+            aria-label={`${placeholder}: ${formatShortDate(value)}`}
+            title={formatShortDate(value)}
+          >
+            <Clock3 className="size-3" />
+            {dueInfo.text}
+          </PropertyButton>
+        ) : (
+          <PropertyButton className={cn(isOverdue && 'text-late', className)} aria-label={placeholder}>
+            <CalendarDays className={cn('size-3.5', !value && 'text-muted-foreground')} />
+            <span className={cn(!value && 'text-muted-foreground')}>{value ? formatShortDate(value) : placeholder}</span>
+          </PropertyButton>
+        )}
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start" onClick={(event) => event.stopPropagation()}>
         <Calendar

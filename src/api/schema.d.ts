@@ -899,6 +899,12 @@ export interface components {
             name?: string;
             identifier?: string;
             description?: string;
+            /** Format: int32 */
+            issueCount?: number;
+            /** Format: int32 */
+            openIssueCount?: number;
+            /** Format: int32 */
+            overdueIssueCount?: number;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -1015,6 +1021,10 @@ export interface components {
             labels?: components["schemas"]["LabelResponse"][];
             cycle?: components["schemas"]["PlanningRefResponse"];
             modules?: components["schemas"]["PlanningRefResponse"][];
+            /** Format: int32 */
+            subIssueCount?: number;
+            /** Format: int32 */
+            completedSubIssueCount?: number;
             createdBy?: components["schemas"]["UserSummaryResponse"];
             /** Format: date-time */
             createdAt?: string;

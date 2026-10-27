@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 import { ChevronsUpDown, LogOut, Palette, UserRound } from 'lucide-react'
 import {
   DropdownMenu,
@@ -21,23 +21,25 @@ export function UserMenu({ collapsed = false }) {
   const user = useSessionStore((state) => state.user)
   const logout = useLogout()
   const navigate = useNavigate()
+  const onProfile = useLocation().pathname === '/profile'
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         className={cn(
-          'flex w-full items-center gap-2 rounded-md p-1.5 text-left text-sm outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring',
+          'flex w-full items-center gap-2.5 rounded-xl p-1.5 text-left text-sm text-sidebar-foreground outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring aria-[current=page]:bg-sidebar-active aria-[current=page]:text-sidebar-active-foreground',
           collapsed && 'justify-center',
         )}
+        aria-current={onProfile ? 'page' : undefined}
       >
         <UserAvatar user={user} size="md" />
         {!collapsed && (
           <>
             <span className="min-w-0 flex-1">
-              <span className="block truncate font-medium">{user?.fullName}</span>
-              <span className="block truncate text-xs text-muted-foreground">{user?.email}</span>
+              <span className="block truncate text-[13px] font-semibold">{user?.fullName}</span>
+              <span className="block truncate text-[11px] text-sidebar-muted">{user?.email}</span>
             </span>
-            <ChevronsUpDown className="size-4 text-muted-foreground" />
+            <ChevronsUpDown className="size-4 text-sidebar-muted" />
           </>
         )}
       </DropdownMenuTrigger>

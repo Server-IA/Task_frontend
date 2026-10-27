@@ -17,6 +17,10 @@ function invalidateAfterIssueChange(queryClient, projectId, issueId) {
   queryClient.invalidateQueries({ queryKey: ['subIssues'] })
   queryClient.invalidateQueries({ queryKey: queryKeys.cycles(projectId) })
   queryClient.invalidateQueries({ queryKey: queryKeys.modules(projectId) })
+  // Los conteos de tareas (abiertas, vencidas, subtareas) vienen en el proyecto y en las tareas padre
+  queryClient.invalidateQueries({ queryKey: ['project'] })
+  queryClient.invalidateQueries({ queryKey: ['projects'] })
+  queryClient.invalidateQueries({ queryKey: ['issue'] })
   if (issueId) queryClient.invalidateQueries({ queryKey: queryKeys.activity(issueId) })
 }
 

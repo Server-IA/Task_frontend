@@ -9,16 +9,16 @@ const SIZES = {
   xl: 'size-20 text-2xl',
 }
 
-/** Paleta para el fondo de las iniciales; el color depende del nombre para que sea estable. */
+/** Paleta pastel para el fondo de las iniciales (texto oscuro); el color depende del nombre para que sea estable. */
 const COLORS = [
-  'bg-sky-500',
-  'bg-violet-500',
-  'bg-emerald-500',
-  'bg-amber-500',
-  'bg-rose-500',
-  'bg-teal-500',
-  'bg-indigo-500',
-  'bg-orange-500',
+  'bg-[#FFB8D2]',
+  'bg-[#7FE0C4]',
+  'bg-[#B6A6FF]',
+  'bg-[#FFC145]',
+  'bg-[#8CCBFF]',
+  'bg-[#F6A35C]',
+  'bg-[#9BE7B4]',
+  'bg-[#E4CF9C]',
 ]
 
 export function initials(name = '') {
@@ -41,7 +41,7 @@ export function UserAvatar({ user, size = 'md', className }) {
   return (
     <Avatar className={cn(SIZES[size], className)} title={name}>
       {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt={name} />}
-      <AvatarFallback className={cn('font-medium text-white', colorFor(name))}>{initials(name)}</AvatarFallback>
+      <AvatarFallback className={cn('font-bold text-[#23201B]', colorFor(name))}>{initials(name)}</AvatarFallback>
     </Avatar>
   )
 }

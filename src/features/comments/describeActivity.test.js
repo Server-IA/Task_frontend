@@ -19,7 +19,7 @@ describe('describeActivity', () => {
   it('describe asignados, ciclos y creación', () => {
     expect(describeActivity({ field: 'ASSIGNEES', oldValue: null, newValue: 'Ana, Luis' })).toBe('asignó a Ana, Luis')
     expect(describeActivity({ field: 'ASSIGNEES', oldValue: 'Ana', newValue: null })).toBe('quitó a todos los asignados')
-    expect(describeActivity({ field: 'CYCLE', oldValue: 'Sprint 1', newValue: null })).toBe('quitó el issue del ciclo «Sprint 1»')
-    expect(describeActivity({ field: 'CREATED', newValue: 'Login' })).toBe('creó el issue')
+    expect(describeActivity({ field: 'CYCLE', oldValue: 'Sprint 1', newValue: null })).toBe('quitó la tarea del ciclo «Sprint 1»')
+    expect(describeActivity({ field: 'CREATED', newValue: 'Login' })).toBe('creó la tarea')
   })
 })

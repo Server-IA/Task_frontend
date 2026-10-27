@@ -24,7 +24,7 @@ export function ProjectGeneralSettings({ workspace, project }) {
       <Card>
         <CardHeader>
           <CardTitle>General</CardTitle>
-          <CardDescription>Si cambias el identificador, cambian los códigos de todos los issues.</CardDescription>
+          <CardDescription>Si cambias el identificador, cambian los códigos de todas las tareas.</CardDescription>
         </CardHeader>
         <CardContent>
           <ProjectForm
@@ -65,7 +65,7 @@ function DeleteProjectCard({ workspace, project }) {
       <CardHeader>
         <CardTitle className="text-destructive">Eliminar proyecto</CardTitle>
         <CardDescription>
-          Se borrarán sus issues, comentarios, ciclos y módulos. Esta acción no se puede deshacer.
+          Se borrarán sus tareas, comentarios, ciclos y módulos. Esta acción no se puede deshacer.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -76,7 +76,7 @@ function DeleteProjectCard({ workspace, project }) {
           open={open}
           onOpenChange={setOpen}
           title={`¿Eliminar «${project.name}»?`}
-          description="Todos los issues del proyecto se perderán para siempre."
+          description="Todas las tareas del proyecto se perderán para siempre."
           confirmLabel="Eliminar definitivamente"
           loading={remove.isPending}
           onConfirm={handleDelete}
