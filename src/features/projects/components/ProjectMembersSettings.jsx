@@ -7,9 +7,10 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { CenteredSpinner } from '@/components/common/Loaders'
+import { LockNote } from '@/components/common/LockNote'
 import { ErrorState } from '@/components/common/States'
 import { UserAvatar } from '@/components/common/UserAvatar'
-import { useMembers } from '@/features/workspaces/hooks'
+import { useIsManager, useMembers } from '@/features/workspaces/hooks'
 import { formatShortDate } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
 import { useSessionStore } from '@/stores/sessionStore'
@@ -20,6 +21,7 @@ export function ProjectMembersSettings({ slug, project }) {
   const remove = useRemoveProjectMember(slug, project.id)
   const currentUserId = useSessionStore((state) => state.user?.id)
   const [toRemove, setToRemove] = useState(null)
+  const canManage = useIsManager()
 
   const handleRemove = () => {
     remove.mutate(toRemove.user.id, {
@@ -37,11 +39,11 @@ export function ProjectMembersSettings({ slug, project }) {
         <div className="space-y-1.5">
           <CardTitle>Miembros del proyecto</CardTitle>
           <CardDescription>
-            Pueden ver el proyecto y ser asignados a sus tareas. Los administradores del workspace ven todos los
-            proyectos.
+            Pueden ver el proyecto y ser asignados a sus tareas. Los project managers ven todos los proyectos.
           </CardDescription>
+          {!canManage && <LockNote>Solo el project manager puede agregar o quitar miembros.</LockNote>}
         </div>
-        {members && <AddMemberButton slug={slug} project={project} members={members} />}
+        {canManage && members && <AddMemberButton slug={slug} project={project} members={members} />}
       </CardHeader>
       <CardContent>
         {isLoading && <CenteredSpinner />}
@@ -63,15 +65,17 @@ export function ProjectMembersSettings({ slug, project }) {
                 <span className="hidden text-xs text-muted-foreground sm:inline">
                   desde el {formatShortDate(member.joinedAt)}
                 </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-8 text-muted-foreground"
-                  aria-label={`Quitar a ${member.user.fullName}`}
-                  onClick={() => setToRemove(member)}
-                >
-                  <UserMinus />
-                </Button>
+                {canManage && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 text-muted-foreground"
+                    aria-label={`Quitar a ${member.user.fullName}`}
+                    onClick={() => setToRemove(member)}
+                  >
+                    <UserMinus />
+                  </Button>
+                )}
               </li>
             ))}
           </ul>
@@ -81,7 +85,7 @@ export function ProjectMembersSettings({ slug, project }) {
         open={Boolean(toRemove)}
         onOpenChange={(open) => !open && setToRemove(null)}
         title={`¿Quitar a ${toRemove?.user.fullName} del proyecto?`}
-        description="Dejará de ver el proyecto (salvo que sea administrador del workspace)."
+        description="Dejará de ver el proyecto (salvo que sea project manager del workspace)."
         confirmLabel="Quitar"
         loading={remove.isPending}
         onConfirm={handleRemove}

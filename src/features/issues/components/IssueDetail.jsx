@@ -14,9 +14,12 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { CenteredSpinner } from '@/components/common/Loaders'
 import { ErrorState } from '@/components/common/States'
 import { StateIcon } from '@/components/common/StateIcon'
+import { useCurrentWorkspace } from '@/features/workspaces/hooks'
 import { formatDateTime, formatRelative } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
+import { canDeleteIssue } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
+import { useSessionStore } from '@/stores/sessionStore'
 import { useDeleteIssue, useIssue, useSubIssues } from '../hooks'
 import { isOverdue, useIssueUpdater, useProjectMeta } from '../useIssueHelpers'
 import { CreateIssueDialog } from './CreateIssueDialog'
@@ -168,6 +171,10 @@ function IssueTopBar({ slug, project, issue, variant, pageUrl, onClose }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const remove = useDeleteIssue(slug, project.id)
   const navigate = useNavigate()
+  const workspace = useCurrentWorkspace()
+  const currentUserId = useSessionStore((state) => state.user?.id)
+  // Eliminar: el project manager o quien creó la tarea (el backend responde 403 a los demás)
+  const canDelete = canDeleteIssue(workspace?.myRole, issue, currentUserId)
 
   const copyLink = async () => {
     try {
@@ -209,19 +216,21 @@ function IssueTopBar({ slug, project, issue, variant, pageUrl, onClose }) {
             </Link>
           </Button>
         )}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className={iconButton} aria-label="Más acciones">
-              <MoreHorizontal />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(true)}>
-              <Trash2 />
-              Eliminar tarea
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {canDelete && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className={iconButton} aria-label="Más acciones">
+                <MoreHorizontal />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(true)}>
+                <Trash2 />
+                Eliminar tarea
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
         {variant === 'panel' && (
           <Button variant="ghost" size="icon" className={iconButton} onClick={onClose} aria-label="Cerrar">
             <X />

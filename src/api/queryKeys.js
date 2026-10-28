@@ -29,6 +29,15 @@ export const queryKeys = {
   modules: (projectId) => ['modules', projectId],
   module: (moduleId) => ['module', moduleId],
 
+  stats: (projectId, weeks) => ['stats', projectId, weeks],
+
+  myWork: (slug, view) => ['myWork', slug, view],
+  /** Prefijo del feed y del resumen de actividad del workspace (con cualquier filtro). */
+  workspaceActivityOf: (slug) => ['workspaceActivity', slug],
+  workspaceActivity: (slug, params) => ['workspaceActivity', slug, 'feed', params],
+  activitySummary: (slug, days) => ['workspaceActivity', slug, 'summary', days],
+  search: (slug, q) => ['search', slug, q],
+
   notifications: (params) => ['notifications', 'list', params],
   notificationsAll: ['notifications'],
   unreadCount: ['notifications', 'unread-count'],

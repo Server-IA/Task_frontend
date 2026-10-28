@@ -16,7 +16,7 @@ export interface paths {
         put?: never;
         /**
          * Crear workspace
-         * @description El creador queda como OWNER. Si no se envía slug, se genera.
+         * @description El creador queda como project manager (OWNER). Si no se envía slug, se genera.
          */
         post: operations["create"];
         delete?: never;
@@ -34,12 +34,12 @@ export interface paths {
         };
         /**
          * Listar proyectos
-         * @description Los ADMIN ven todos los proyectos; los MEMBER, solo aquellos de los que son miembros.
+         * @description El project manager ve todos los proyectos; los MEMBER, solo aquellos de los que son miembros.
          */
         get: operations["getProjects"];
         put?: never;
         /**
-         * Crear proyecto
+         * Crear proyecto (project manager)
          * @description Crea los estados por defecto (Backlog, Todo, In Progress, Done, Cancelled).
          */
         post: operations["create_1"];
@@ -59,7 +59,7 @@ export interface paths {
         /** Listar estados (ordenados por posición) */
         get: operations["getStates"];
         put?: never;
-        /** Crear estado */
+        /** Crear estado (project manager) */
         post: operations["create_2"];
         delete?: never;
         options?: never;
@@ -77,7 +77,7 @@ export interface paths {
         /** Listar módulos con su avance */
         get: operations["getModules"];
         put?: never;
-        /** Crear módulo */
+        /** Crear módulo (project manager) */
         post: operations["create_3"];
         delete?: never;
         options?: never;
@@ -113,7 +113,7 @@ export interface paths {
         get: operations["getMembers"];
         put?: never;
         /**
-         * Agregar miembro al proyecto
+         * Agregar miembro al proyecto (project manager)
          * @description Debe ser miembro del workspace.
          */
         post: operations["addMember"];
@@ -133,7 +133,7 @@ export interface paths {
         /** Listar etiquetas */
         get: operations["getLabels"];
         put?: never;
-        /** Crear etiqueta */
+        /** Crear etiqueta (project manager) */
         post: operations["create_4"];
         delete?: never;
         options?: never;
@@ -193,7 +193,7 @@ export interface paths {
         /** Listar ciclos con su avance */
         get: operations["getCycles"];
         put?: never;
-        /** Crear ciclo */
+        /** Crear ciclo (project manager) */
         post: operations["create_7"];
         delete?: never;
         options?: never;
@@ -225,10 +225,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Invitaciones pendientes del workspace (ADMIN) */
+        /** Invitaciones pendientes del workspace (project manager) */
         get: operations["getPending"];
         put?: never;
-        /** Invitar por correo (ADMIN) */
+        /**
+         * Invitar por correo (project manager)
+         * @description La persona entra como MEMBER.
+         */
         post: operations["invite"];
         delete?: never;
         options?: never;
@@ -430,13 +433,13 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Eliminar workspace (OWNER)
-         * @description Borra también sus proyectos e issues.
+         * Eliminar workspace (project manager)
+         * @description Borra también sus proyectos y tareas.
          */
         delete: operations["delete"];
         options?: never;
         head?: never;
-        /** Editar workspace (ADMIN) */
+        /** Editar workspace (project manager) */
         patch: operations["update"];
         trace?: never;
     };
@@ -451,11 +454,11 @@ export interface paths {
         get: operations["get_1"];
         put?: never;
         post?: never;
-        /** Eliminar proyecto (ADMIN del workspace) */
+        /** Eliminar proyecto (project manager) */
         delete: operations["delete_1"];
         options?: never;
         head?: never;
-        /** Editar proyecto */
+        /** Editar proyecto (project manager) */
         patch: operations["update_1"];
         trace?: never;
     };
@@ -470,13 +473,13 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Eliminar estado
-         * @description No se puede si tiene issues o si es el único estado.
+         * Eliminar estado (project manager)
+         * @description No se puede si tiene tareas o si es el único estado.
          */
         delete: operations["delete_2"];
         options?: never;
         head?: never;
-        /** Editar estado */
+        /** Editar o reordenar estado (project manager) */
         patch: operations["update_2"];
         trace?: never;
     };
@@ -492,13 +495,13 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Eliminar módulo
-         * @description Los issues no se borran, solo se desvinculan.
+         * Eliminar módulo (project manager)
+         * @description Las tareas no se borran, solo se desvinculan.
          */
         delete: operations["delete_3"];
         options?: never;
         head?: never;
-        /** Editar módulo */
+        /** Editar módulo (project manager) */
         patch: operations["update_3"];
         trace?: never;
     };
@@ -512,11 +515,11 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Eliminar etiqueta */
+        /** Eliminar etiqueta (project manager) */
         delete: operations["delete_4"];
         options?: never;
         head?: never;
-        /** Editar etiqueta */
+        /** Editar etiqueta (project manager) */
         patch: operations["update_4"];
         trace?: never;
     };
@@ -532,8 +535,8 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Eliminar issue
-         * @description Sus sub-issues se conservan sin padre.
+         * Eliminar issue (project manager o quien la creó)
+         * @description Sus sub-issues se conservan sin padre. Cualquier otro miembro recibe 403.
          */
         delete: operations["delete_5"];
         options?: never;
@@ -575,7 +578,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Borrar comentario (autor o ADMIN) */
+        /** Borrar comentario (autor o project manager) */
         delete: operations["delete_6"];
         options?: never;
         head?: never;
@@ -595,13 +598,13 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Eliminar ciclo
-         * @description Los issues no se borran, solo se desvinculan.
+         * Eliminar ciclo (project manager)
+         * @description Las tareas no se borran, solo se desvinculan.
          */
         delete: operations["delete_7"];
         options?: never;
         head?: never;
-        /** Editar ciclo */
+        /** Editar ciclo (project manager) */
         patch: operations["update_7"];
         trace?: never;
     };
@@ -617,14 +620,14 @@ export interface paths {
         post?: never;
         /**
          * Quitar miembro o salir del workspace
-         * @description Un ADMIN puede quitar a cualquiera menos al dueño; un miembro puede quitarse a sí mismo.
+         * @description El project manager puede quitar a cualquiera; un miembro puede quitarse a sí mismo. El último project manager no puede salir ni ser quitado (409).
          */
         delete: operations["removeMember"];
         options?: never;
         head?: never;
         /**
-         * Cambiar rol de un miembro (ADMIN)
-         * @description Roles permitidos: ADMIN o MEMBER.
+         * Cambiar rol de un miembro (project manager)
+         * @description Roles: OWNER (project manager) o MEMBER. Puede haber varios project managers, pero nunca menos de uno: degradar al último responde 409.
          */
         patch: operations["updateMemberRole"];
         trace?: never;
@@ -687,6 +690,46 @@ export interface paths {
         patch: operations["markAsRead"];
         trace?: never;
     };
+    "/api/v1/workspaces/{slug}/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Buscar tareas
+         * @description Busca en el título (sin importar mayúsculas) y por código («WEB-12», o «12» en cualquier proyecto), solo en los proyectos a los que tengo acceso. Primero el código exacto y luego las actualizadas más recientemente. Con q vacío devuelve una lista vacía.
+         */
+        get: operations["search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{slug}/projects/{projectId}/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Estadísticas del proyecto
+         * @description Tareas abiertas, creadas y completadas por semana (desde el lunes, hora de Bogotá), vencidas, cycle time (mediana de días de creación a completado), throughput semanal, burndown del ciclo en curso, abiertas por estado, carga por persona y tareas estancadas (más de 14 días sin cambios). weeks fija el periodo del throughput y del cycle time.
+         */
+        get: operations["getStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{slug}/projects/{projectId}/issues/{issueId}/sub-issues": {
         parameters: {
             query?: never;
@@ -721,6 +764,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{slug}/my-work": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Mis tareas abiertas
+         * @description Tareas abiertas (ni completadas ni canceladas) de los proyectos a los que tengo acceso: asignadas a mí (assigned), creadas por mí (created) o en las que comenté (commented). Orden: fecha límite (sin fecha al final), prioridad (URGENT primero) y número. Incluye los contadores de las tres vistas, las asignadas completadas esta semana y las que están en curso.
+         */
+        get: operations["getMyWork"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{slug}/members": {
         parameters: {
             query?: never;
@@ -730,6 +793,46 @@ export interface paths {
         };
         /** Listar miembros */
         get: operations["getMembers_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{slug}/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Feed de actividad (lo más reciente primero)
+         * @description Historial de las tareas de los proyectos a los que tengo acceso. type: all (todo), state (cambios de estado, incluido completar), comments (comentarios: newValue trae el texto, recortado a 240 caracteres) o assignments (cambios de asignados). Tamaño máximo de página: 100.
+         */
+        get: operations["getFeed"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{slug}/activity/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resumen de actividad de los últimos días
+         * @description changes = entradas del historial de cualquier tipo; comments = comentarios; completed y created = tareas completadas y creadas; byProject = entradas por proyecto, de más a menos.
+         */
+        get: operations["getSummary"];
         put?: never;
         post?: never;
         delete?: never;
@@ -819,7 +922,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Quitar miembro del proyecto */
+        /** Quitar miembro del proyecto (project manager) */
         delete: operations["removeMember_1"];
         options?: never;
         head?: never;
@@ -853,7 +956,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Cancelar una invitación pendiente (ADMIN) */
+        /** Cancelar una invitación pendiente (project manager) */
         delete: operations["revoke"];
         options?: never;
         head?: never;
@@ -882,7 +985,7 @@ export interface components {
             slug?: string;
             owner?: components["schemas"]["UserSummaryResponse"];
             /** @enum {string} */
-            myRole?: "OWNER" | "ADMIN" | "MEMBER";
+            myRole?: "OWNER" | "MEMBER";
             /** Format: date-time */
             createdAt?: string;
         };
@@ -1030,6 +1133,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+            /** Format: date-time */
+            completedAt?: string;
         };
         IssueSummaryResponse: {
             /** Format: uuid */
@@ -1083,15 +1188,13 @@ export interface components {
         InviteMemberRequest: {
             /** Format: email */
             email: string;
-            /** @enum {string} */
-            role: "OWNER" | "ADMIN" | "MEMBER";
         };
         InvitationResponse: {
             /** Format: uuid */
             id?: string;
             email?: string;
             /** @enum {string} */
-            role?: "OWNER" | "ADMIN" | "MEMBER";
+            role?: "OWNER" | "MEMBER";
             invitedBy?: components["schemas"]["UserSummaryResponse"];
             /** Format: date-time */
             expiresAt?: string;
@@ -1207,12 +1310,12 @@ export interface components {
         };
         UpdateMemberRoleRequest: {
             /** @enum {string} */
-            role: "OWNER" | "ADMIN" | "MEMBER";
+            role: "OWNER" | "MEMBER";
         };
         WorkspaceMemberResponse: {
             user?: components["schemas"]["UserSummaryResponse"];
             /** @enum {string} */
-            role?: "OWNER" | "ADMIN" | "MEMBER";
+            role?: "OWNER" | "MEMBER";
             /** Format: date-time */
             joinedAt?: string;
         };
@@ -1245,6 +1348,75 @@ export interface components {
             /** Format: date-time */
             createdAt?: string;
         };
+        Burndown: {
+            /** Format: uuid */
+            cycleId?: string;
+            name?: string;
+            /** Format: date */
+            startDate?: string;
+            /** Format: date */
+            endDate?: string;
+            /** Format: int64 */
+            total?: number;
+            points?: components["schemas"]["BurndownPoint"][];
+        };
+        BurndownPoint: {
+            /** Format: date */
+            date?: string;
+            /** Format: int64 */
+            remaining?: number;
+        };
+        OpenStateCount: {
+            /** Format: uuid */
+            stateId?: string;
+            name?: string;
+            color?: string;
+            /** @enum {string} */
+            group?: "BACKLOG" | "UNSTARTED" | "STARTED" | "COMPLETED" | "CANCELLED";
+            /** Format: int64 */
+            count?: number;
+        };
+        ProjectStatsResponse: {
+            /** Format: int64 */
+            openCount?: number;
+            /** Format: int64 */
+            createdThisWeek?: number;
+            /** Format: int64 */
+            completedThisWeek?: number;
+            /** Format: int64 */
+            completedLastWeek?: number;
+            overdue?: components["schemas"]["IssueSummaryResponse"][];
+            /** Format: double */
+            cycleTimeDays?: number;
+            /** Format: double */
+            previousCycleTimeDays?: number;
+            throughput?: components["schemas"]["ThroughputWeek"][];
+            burndown?: components["schemas"]["Burndown"];
+            openByState?: components["schemas"]["OpenStateCount"][];
+            workload?: components["schemas"]["WorkloadEntry"][];
+            stale?: components["schemas"]["StaleIssue"][];
+        };
+        StaleIssue: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            title?: string;
+            /** Format: int64 */
+            daysWithoutChanges?: number;
+        };
+        ThroughputWeek: {
+            /** Format: date */
+            weekStart?: string;
+            /** Format: int64 */
+            completed?: number;
+        };
+        WorkloadEntry: {
+            user?: components["schemas"]["UserSummaryResponse"];
+            /** Format: int64 */
+            open?: number;
+            /** Format: int64 */
+            overdue?: number;
+        };
         PageResponseIssueResponse: {
             content?: components["schemas"]["IssueResponse"][];
             /** Format: int32 */
@@ -1269,6 +1441,70 @@ export interface components {
             /** Format: date-time */
             createdAt?: string;
         };
+        MyWorkResponse: {
+            issues?: components["schemas"]["IssueResponse"][];
+            /** Format: int64 */
+            assignedCount?: number;
+            /** Format: int64 */
+            createdCount?: number;
+            /** Format: int64 */
+            commentedCount?: number;
+            /** Format: int64 */
+            completedThisWeek?: number;
+            /** Format: int64 */
+            inProgressCount?: number;
+        };
+        ActivityFeedItemResponse: {
+            /** Format: uuid */
+            id?: string;
+            actor?: components["schemas"]["UserSummaryResponse"];
+            /** @enum {string} */
+            field?: "CREATED" | "TITLE" | "DESCRIPTION" | "STATE" | "PRIORITY" | "PARENT" | "START_DATE" | "DUE_DATE" | "ASSIGNEES" | "LABELS" | "CYCLE" | "MODULE" | "COMMENT";
+            oldValue?: string;
+            newValue?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            issue?: components["schemas"]["IssueSummaryResponse"];
+            project?: components["schemas"]["ProjectRefResponse"];
+        };
+        PageResponseActivityFeedItemResponse: {
+            content?: components["schemas"]["ActivityFeedItemResponse"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+        };
+        ProjectRefResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            identifier?: string;
+        };
+        ActivitySummaryResponse: {
+            /** Format: int64 */
+            changes?: number;
+            /** Format: int64 */
+            comments?: number;
+            /** Format: int64 */
+            completed?: number;
+            /** Format: int64 */
+            created?: number;
+            byProject?: components["schemas"]["ProjectActivity"][];
+        };
+        ProjectActivity: {
+            /** Format: uuid */
+            projectId?: string;
+            name?: string;
+            identifier?: string;
+            /** Format: int64 */
+            count?: number;
+        };
         PageResponseNotificationResponse: {
             content?: components["schemas"]["NotificationResponse"][];
             /** Format: int32 */
@@ -1291,7 +1527,7 @@ export interface components {
             workspaceSlug?: string;
             email?: string;
             /** @enum {string} */
-            role?: "OWNER" | "ADMIN" | "MEMBER";
+            role?: "OWNER" | "MEMBER";
             invitedByName?: string;
             /** Format: date-time */
             expiresAt?: string;
@@ -2783,6 +3019,59 @@ export interface operations {
             };
         };
     };
+    search: {
+        parameters: {
+            query?: {
+                /** @description Texto o código a buscar */
+                q?: string;
+                /** @description Máximo de resultados (1 a 20) */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IssueResponse"][];
+                };
+            };
+        };
+    };
+    getStats: {
+        parameters: {
+            query?: {
+                /** @description Semanas del periodo: 4, 8 o 12 (otro valor responde 400) */
+                weeks?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProjectStatsResponse"];
+                };
+            };
+        };
+    };
     getSubIssues: {
         parameters: {
             query?: never;
@@ -2831,6 +3120,31 @@ export interface operations {
             };
         };
     };
+    getMyWork: {
+        parameters: {
+            query?: {
+                /** @description Vista */
+                view?: "assigned" | "created" | "commented";
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MyWorkResponse"];
+                };
+            };
+        };
+    };
     getMembers_1: {
         parameters: {
             query?: never;
@@ -2849,6 +3163,64 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["WorkspaceMemberResponse"][];
+                };
+            };
+        };
+    };
+    getFeed: {
+        parameters: {
+            query?: {
+                /** @description Página (desde 0) */
+                page?: number;
+                /** @description Tamaño de página (máximo 100) */
+                size?: number;
+                /** @description Tipo de actividad */
+                type?: "all" | "state" | "comments" | "assignments";
+                /** @description Solo este proyecto */
+                projectId?: string;
+                /** @description Solo los cambios de esta persona */
+                actorId?: string;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseActivityFeedItemResponse"];
+                };
+            };
+        };
+    };
+    getSummary: {
+        parameters: {
+            query?: {
+                /** @description Días hacia atrás desde ahora (1 a 365) */
+                days?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ActivitySummaryResponse"];
                 };
             };
         };

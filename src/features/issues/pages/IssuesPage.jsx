@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { useIsFetching } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -27,9 +28,27 @@ export function IssuesPage() {
   const issueFilters = useIssueFilters()
   const { filters, activeCount, view, sort, page, openIssueId } = issueFilters
   const [createState, setCreateState] = useState({ open: false, stateId: undefined })
+  // La paleta de comandos (Ctrl/⌘ K) pide crear una tarea con ?create=1 (y lo que se escribió en ?title=)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const createFromUrl = searchParams.get('create') === '1'
 
   const openCreate = useCallback((stateId) => setCreateState({ open: true, stateId }), [])
   useHotkey('c', openCreate)
+
+  const onCreateOpenChange = (open) => {
+    setCreateState((current) => ({ ...current, open }))
+    if (!open && createFromUrl) {
+      setSearchParams(
+        (previous) => {
+          const next = new URLSearchParams(previous)
+          next.delete('create')
+          next.delete('title')
+          return next
+        },
+        { replace: true },
+      )
+    }
+  }
 
   return (
     <>
@@ -113,9 +132,9 @@ export function IssuesPage() {
       <CreateIssueDialog
         slug={workspace.slug}
         project={project}
-        open={createState.open}
-        onOpenChange={(open) => setCreateState((current) => ({ ...current, open }))}
-        defaults={{ stateId: createState.stateId }}
+        open={createState.open || createFromUrl}
+        onOpenChange={onCreateOpenChange}
+        defaults={{ stateId: createState.stateId, title: createFromUrl ? (searchParams.get('title') ?? '') : undefined }}
       />
     </>
   )
@@ -170,7 +189,7 @@ function ShortcutsBar() {
         <kbd className="text-foreground">Enter</kbd> abrir
       </span>
       <span>
-        <kbd className="text-foreground">I Y M</kbd> secciones
+        <kbd className="text-foreground">I Y M R S</kbd> secciones
       </span>
       <span className="ml-auto flex items-center gap-1.5">
         <span aria-hidden="true" className={cn('size-1.5 rounded-full bg-ok-dot', fetching && 'animate-pulse bg-soon')} />

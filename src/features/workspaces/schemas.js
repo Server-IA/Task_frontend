@@ -15,7 +15,7 @@ export const workspaceSchema = z.object({
   slug: slugSchema,
 })
 
+/** Invitar: solo el correo. Las personas entran como miembros; el project manager cambia el rol después. */
 export const inviteSchema = z.object({
   email: emailSchema,
-  role: z.enum(['ADMIN', 'MEMBER']),
 })

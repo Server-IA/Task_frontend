@@ -4,7 +4,8 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
-import { isAdminRole, isOwnerRole } from '@/lib/permissions'
+import { LockNote } from '@/components/common/LockNote'
+import { isManager } from '@/lib/permissions'
 import { notifyError } from '@/lib/notify'
 import { useSessionStore } from '@/stores/sessionStore'
 import { usePreferencesStore } from '@/stores/preferencesStore'
@@ -15,8 +16,7 @@ import { WorkspaceForm } from './WorkspaceForm'
 export function GeneralSettings({ workspace }) {
   const navigate = useNavigate()
   const update = useUpdateWorkspace(workspace.slug)
-  const isAdmin = isAdminRole(workspace.myRole)
-  const isOwner = isOwnerRole(workspace.myRole)
+  const canManage = isManager(workspace.myRole)
 
   const handleSubmit = (values, { onError }) => {
     update.mutate(values, {
@@ -35,11 +35,11 @@ export function GeneralSettings({ workspace }) {
       <Card>
         <CardHeader>
           <CardTitle>General</CardTitle>
-          <CardDescription>
-            {isAdmin
-              ? 'Cambiar la URL rompe los enlaces que hayas compartido.'
-              : 'Solo los administradores pueden editar el workspace.'}
-          </CardDescription>
+          {canManage ? (
+            <CardDescription>Cambiar la URL rompe los enlaces que hayas compartido.</CardDescription>
+          ) : (
+            <LockNote>Solo el project manager puede editar el workspace.</LockNote>
+          )}
         </CardHeader>
         <CardContent>
           <WorkspaceForm
@@ -48,12 +48,13 @@ export function GeneralSettings({ workspace }) {
             onSubmit={handleSubmit}
             pending={update.isPending}
             submitLabel="Guardar cambios"
-            disabled={!isAdmin}
+            disabled={!canManage}
           />
         </CardContent>
       </Card>
 
-      {isOwner ? <DeleteWorkspaceCard workspace={workspace} /> : <LeaveWorkspaceCard workspace={workspace} />}
+      <LeaveWorkspaceCard workspace={workspace} isManager={canManage} />
+      {canManage && <DeleteWorkspaceCard workspace={workspace} />}
     </div>
   )
 }
@@ -80,7 +81,7 @@ function DeleteWorkspaceCard({ workspace }) {
       <CardHeader>
         <CardTitle className="text-destructive">Eliminar workspace</CardTitle>
         <CardDescription>
-          Se borrarán todos sus proyectos, issues, ciclos y módulos. Esta acción no se puede deshacer.
+          Se borrarán todos sus proyectos, tareas, ciclos y módulos. Esta acción no se puede deshacer.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -101,7 +102,7 @@ function DeleteWorkspaceCard({ workspace }) {
   )
 }
 
-function LeaveWorkspaceCard({ workspace }) {
+function LeaveWorkspaceCard({ workspace, isManager }) {
   const [open, setOpen] = useState(false)
   const user = useSessionStore((state) => state.user)
   const leave = useRemoveMember(workspace.slug)
@@ -123,7 +124,10 @@ function LeaveWorkspaceCard({ workspace }) {
     <Card>
       <CardHeader>
         <CardTitle>Salir del workspace</CardTitle>
-        <CardDescription>Dejarás de ver sus proyectos. Necesitarás otra invitación para volver.</CardDescription>
+        <CardDescription>
+          Dejarás de ver sus proyectos. Necesitarás otra invitación para volver.
+          {isManager && ' Si eres el único project manager, antes nombra a otro.'}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <Button variant="outline" onClick={() => setOpen(true)}>

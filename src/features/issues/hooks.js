@@ -11,7 +11,7 @@ function replaceInLists(queryClient, projectId, issue) {
   )
 }
 
-/** Lo que cambia cuando cambia un issue: listas, avance de ciclos/módulos e historial. */
+/** Lo que cambia cuando cambia un issue: listas, avance de ciclos/módulos, historial y resúmenes. */
 function invalidateAfterIssueChange(queryClient, projectId, issueId) {
   queryClient.invalidateQueries({ queryKey: queryKeys.issuesOf(projectId) })
   queryClient.invalidateQueries({ queryKey: ['subIssues'] })
@@ -21,6 +21,10 @@ function invalidateAfterIssueChange(queryClient, projectId, issueId) {
   queryClient.invalidateQueries({ queryKey: ['project'] })
   queryClient.invalidateQueries({ queryKey: ['projects'] })
   queryClient.invalidateQueries({ queryKey: ['issue'] })
+  // Vistas que resumen tareas de varios lados: estadísticas, Mi trabajo y la actividad del workspace
+  queryClient.invalidateQueries({ queryKey: ['stats', projectId] })
+  queryClient.invalidateQueries({ queryKey: ['myWork'] })
+  queryClient.invalidateQueries({ queryKey: ['workspaceActivity'] })
   if (issueId) queryClient.invalidateQueries({ queryKey: queryKeys.activity(issueId) })
 }
 

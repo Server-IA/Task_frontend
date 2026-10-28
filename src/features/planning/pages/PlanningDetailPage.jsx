@@ -15,7 +15,7 @@ import { useIssues } from '@/features/issues/hooks'
 import { isClosed } from '@/features/issues/useIssueHelpers'
 import { useIssueFilters } from '@/features/issues/useIssueFilters'
 import { useCurrentProject } from '@/features/projects/hooks'
-import { useCurrentWorkspace } from '@/features/workspaces/hooks'
+import { useCurrentWorkspace, useIsManager } from '@/features/workspaces/hooks'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { notifyError } from '@/lib/notify'
 import { projectPath } from '@/lib/paths'
@@ -47,6 +47,8 @@ export function PlanningDetailPage({ kind }) {
   const [editOpen, setEditOpen] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  // Editar y eliminar el ciclo/módulo es del project manager; agregar o quitar tareas, de todos
+  const canManage = useIsManager()
   const listUrl = `/${workspace.slug}/projects/${project.id}/${kind}`
   const listPath = [...projectPath(workspace, project), { label: kind === 'cycles' ? 'ciclos' : 'modulos', to: listUrl }]
 
@@ -84,19 +86,23 @@ export function PlanningDetailPage({ kind }) {
         actions={
           <div className="flex w-full flex-col gap-3 sm:w-72">
             <div className="flex items-center gap-2 sm:justify-end">
-              <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-                <Pencil />
-                Editar
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-8 text-muted-foreground"
-                onClick={() => setConfirmDelete(true)}
-                aria-label={`Eliminar ${text.singular}`}
-              >
-                <Trash2 />
-              </Button>
+              {canManage && (
+                <>
+                  <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+                    <Pencil />
+                    Editar
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 text-muted-foreground"
+                    onClick={() => setConfirmDelete(true)}
+                    aria-label={`Eliminar ${text.singular}`}
+                  >
+                    <Trash2 />
+                  </Button>
+                </>
+              )}
               <Button size="sm" onClick={() => setAddOpen(true)}>
                 <Plus strokeWidth={3} />
                 Agregar tareas

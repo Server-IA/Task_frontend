@@ -25,6 +25,25 @@
 /** @typedef {Schemas['NotificationResponse']} NotificationResponse */
 /** @typedef {Schemas['CycleResponse']} CycleResponse */
 /** @typedef {Schemas['ModuleResponse']} ModuleResponse */
+/** @typedef {Schemas['IssueSummaryResponse']} IssueSummary */
+/** @typedef {Schemas['ProjectRefResponse']} ProjectRef */
+
+/** @typedef {Schemas['ProjectStatsResponse']} ProjectStats */
+/** @typedef {Schemas['ThroughputWeek']} ThroughputWeek */
+/** @typedef {Schemas['Burndown']} Burndown */
+/** @typedef {Schemas['BurndownPoint']} BurndownPoint */
+/** @typedef {Schemas['OpenStateCount']} OpenStateCount */
+/** @typedef {Schemas['WorkloadEntry']} WorkloadEntry */
+/** @typedef {Schemas['StaleIssue']} StaleIssue */
+
+/** @typedef {Schemas['MyWorkResponse']} MyWorkResponse */
+
+/** @typedef {Schemas['ActivityFeedItemResponse']} ActivityFeedItem */
+/** @typedef {NonNullable<ActivityFeedItem['field']>} ActivityField */
+/** @typedef {Schemas['ActivitySummaryResponse']} ActivitySummary */
+/** @typedef {Schemas['ProjectActivity']} ProjectActivity */
+
+/** @typedef {'OWNER' | 'MEMBER'} WorkspaceRole */
 
 /**
  * @template T

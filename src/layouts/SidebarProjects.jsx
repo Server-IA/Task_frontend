@@ -7,6 +7,8 @@ import { usePlanningList } from '@/features/planning/hooks'
 import { CreateProjectDialog } from '@/features/projects/components/CreateProjectDialog'
 import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
 import { useProjects } from '@/features/projects/hooks'
+import { useWorkspace } from '@/features/workspaces/hooks'
+import { isManager } from '@/lib/permissions'
 import { SidebarLink } from './Sidebar'
 
 /** Secciones de un proyecto con su atajo de teclado (ver ProjectLayout). */
@@ -14,6 +16,8 @@ export const PROJECT_SECTIONS = [
   { path: 'issues', label: 'Tareas', hint: 'I' },
   { path: 'cycles', label: 'Ciclos', hint: 'Y' },
   { path: 'modules', label: 'Módulos', hint: 'M' },
+  { path: 'roadmap', label: 'Hoja de ruta', hint: 'R' },
+  { path: 'stats', label: 'Estadísticas', hint: 'S' },
   { path: 'settings', label: 'Ajustes', hint: ',' },
 ]
 
@@ -24,26 +28,30 @@ const openLabel = (count = 0) => `${count} ${count === 1 ? 'abierta' : 'abiertas
 export function SidebarProjects({ slug, currentProjectId, collapsed }) {
   const { data: projects = [] } = useProjects(slug)
   const [createOpen, setCreateOpen] = useState(false)
+  // Solo el project manager crea proyectos
+  const canCreate = isManager(useWorkspace(slug).data?.myRole)
 
   return (
     <div className="flex flex-col gap-0.5">
       {!collapsed && (
-        <div className="flex items-center justify-between pr-1 pb-1.5 pl-2.5">
+        <div className="flex min-h-7.5 items-center justify-between pr-1 pb-1.5 pl-2.5">
           <span className="font-mono text-[11px] text-sidebar-muted">// proyectos</span>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-6 text-sidebar-muted hover:bg-sidebar-accent"
-                onClick={() => setCreateOpen(true)}
-                aria-label="Nuevo proyecto"
-              >
-                <Plus className="size-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">Nuevo proyecto</TooltipContent>
-          </Tooltip>
+          {canCreate && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-6 text-sidebar-muted hover:bg-sidebar-accent"
+                  onClick={() => setCreateOpen(true)}
+                  aria-label="Nuevo proyecto"
+                >
+                  <Plus className="size-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Nuevo proyecto</TooltipContent>
+            </Tooltip>
+          )}
         </div>
       )}
       {projects.map((project) => {
@@ -63,7 +71,7 @@ export function SidebarProjects({ slug, currentProjectId, collapsed }) {
         }
         return <CurrentProject key={project.id} slug={slug} project={project} base={base} />
       })}
-      <CreateProjectDialog slug={slug} open={createOpen} onOpenChange={setCreateOpen} />
+      {canCreate && <CreateProjectDialog slug={slug} open={createOpen} onOpenChange={setCreateOpen} />}
     </div>
   )
 }

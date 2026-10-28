@@ -17,7 +17,7 @@ import { useAcceptInvitation, useInvitationDetails } from '../hooks'
 
 /** Qué permite cada rol, para explicarlo en la invitación. */
 const ROLE_HINTS = {
-  ADMIN: 'gestionar miembros, proyectos y tareas',
+  OWNER: 'gestionar proyectos, ciclos, módulos y miembros',
   MEMBER: 'crear y editar tareas',
 }
 
@@ -65,7 +65,7 @@ export function InvitationPage() {
           <AuthHeader
             size="md"
             title="Invitación no válida"
-            description={`${getErrorMessage(error)}. Pide a un administrador del workspace que te invite de nuevo.`}
+            description={`${getErrorMessage(error)}. Pide al project manager del workspace que te invite de nuevo.`}
           />
           <Button asChild className="h-11 rounded-xl">
             <Link to="/">Ir a TaskFlow</Link>
@@ -87,7 +87,7 @@ export function InvitationPage() {
   }
 
   const authState = { from: location, email: invitation.email }
-  const inviter = invitation.invitedByName ?? 'Un administrador'
+  const inviter = invitation.invitedByName ?? 'El project manager'
 
   return (
     <CenteredShell meta={meta}>

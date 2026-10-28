@@ -1,11 +1,14 @@
 import { NavLink } from 'react-router'
-import { FolderClosed, PanelLeftClose, PanelLeftOpen, SlidersHorizontal } from 'lucide-react'
+import { Activity, FolderClosed, PanelLeftClose, PanelLeftOpen, Search, SlidersHorizontal, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { useMyWork } from '@/features/my-work/hooks'
 import { NotificationsLink } from '@/features/notifications/NotificationsLink'
 import { WorkspaceSwitcher } from '@/features/workspaces/components/WorkspaceSwitcher'
 import { useRouteParams } from '@/hooks/useRouteParams'
+import { COMMAND_SHORTCUT } from '@/lib/shortcuts'
 import { cn } from '@/lib/utils'
+import { useLayoutStore } from '@/stores/layoutStore'
 import { usePreferencesStore } from '@/stores/preferencesStore'
 import { SidebarProjects } from './SidebarProjects'
 import { UserMenu } from './UserMenu'
@@ -42,9 +45,12 @@ export function Sidebar({ collapsed }) {
 
       <nav className="flex min-h-0 flex-1 flex-col gap-4.5 overflow-y-auto" aria-label="Principal">
         <div className="flex flex-col gap-0.5">
+          <SearchButton collapsed={collapsed} />
           <NotificationsLink collapsed={collapsed} />
           {slug && (
             <>
+              <MyWorkLink slug={slug} collapsed={collapsed} />
+              <SidebarLink to={`/${slug}/activity`} icon={Activity} label="Actividad" collapsed={collapsed} />
               <SidebarLink to={`/${slug}`} end icon={FolderClosed} label="Proyectos" collapsed={collapsed} />
               <SidebarLink to={`/${slug}/settings`} icon={SlidersHorizontal} label="Ajustes" collapsed={collapsed} />
             </>
@@ -55,6 +61,55 @@ export function Sidebar({ collapsed }) {
 
       <UserMenu collapsed={collapsed} />
     </div>
+  )
+}
+
+/** «Mi trabajo» con el número de tareas abiertas asignadas a ti. */
+function MyWorkLink({ slug, collapsed }) {
+  const { data } = useMyWork(slug, 'assigned')
+  const count = data?.assignedCount ?? 0
+  return (
+    <SidebarLink
+      to={`/${slug}/my-work`}
+      icon={User}
+      label="Mi trabajo"
+      meta={count > 0 ? String(count) : undefined}
+      collapsed={collapsed}
+    />
+  )
+}
+
+/** Abre la paleta de búsqueda y comandos (también con Ctrl/⌘ K desde cualquier pantalla). */
+function SearchButton({ collapsed }) {
+  const setCommandOpen = useLayoutStore((state) => state.setCommandOpen)
+  const button = (
+    <button
+      type="button"
+      onClick={() => setCommandOpen(true)}
+      aria-label={collapsed ? `Buscar (${COMMAND_SHORTCUT})` : undefined}
+      aria-keyshortcuts={COMMAND_SHORTCUT === '⌘K' ? 'Meta+K' : 'Control+K'}
+      className={cn(
+        'flex h-9 w-full items-center gap-2.5 rounded-[10px] px-2.5 text-sm whitespace-nowrap text-sidebar-foreground transition-colors duration-150 outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring',
+        collapsed && 'justify-center px-0',
+      )}
+    >
+      <Search className="size-4 shrink-0" />
+      {!collapsed && (
+        <>
+          <span className="min-w-0 flex-1 truncate text-left">Buscar</span>
+          <kbd className="rounded-[5px] border border-sidebar-border px-1.5 font-mono text-[11px] text-sidebar-muted">
+            {COMMAND_SHORTCUT}
+          </kbd>
+        </>
+      )}
+    </button>
+  )
+  if (!collapsed) return button
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{button}</TooltipTrigger>
+      <TooltipContent side="right">Buscar · {COMMAND_SHORTCUT}</TooltipContent>
+    </Tooltip>
   )
 }
 

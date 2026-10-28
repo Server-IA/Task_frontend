@@ -7,6 +7,7 @@ import { Calendar } from '@/components/ui/calendar'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { AvatarStack } from '@/components/common/AvatarStack'
+import { DUE_TONES } from '@/components/common/DueChip'
 import { ColorDot, LabelChip } from '@/components/common/LabelChip'
 import { StateIcon } from '@/components/common/StateIcon'
 import { UserAvatar } from '@/components/common/UserAvatar'
@@ -205,12 +206,6 @@ export function LabelsPicker({ labels = [], value = [], onChange, disabled, clas
       }
     />
   )
-}
-
-const DUE_TONES = {
-  late: 'bg-late-soft text-late',
-  soon: 'bg-soon-soft text-soon',
-  normal: 'bg-muted text-muted-foreground',
 }
 
 /**

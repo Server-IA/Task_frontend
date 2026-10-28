@@ -49,6 +49,10 @@
   --overlay: rgb(35 32 27 / 0.35);
   --dot: #ddd8ce;
   --card-shadow: 0 1px 2px rgb(35 32 27 / 0.05), 0 4px 12px rgb(35 32 27 / 0.05);
+  /* Gráficos: serie (dorado), línea de referencia (gris punteado) y cuadrícula (casi del color de la tarjeta) */
+  --chart-series: #9a7428;
+  --chart-ref: #9e978c;
+  --chart-grid: #efebe4;
 
   --sidebar: #ece9e3;
   --sidebar-foreground: #23201b;
@@ -101,6 +105,9 @@
   --overlay: rgb(5 4 10 / 0.6);
   --dot: #26231f;
   --card-shadow: none;
+  --chart-series: #b08a3a;
+  --chart-ref: #6e685f;
+  --chart-grid: #24211d;
 
   --sidebar: #0c0b0a;
   --sidebar-foreground: #f0ece4;
@@ -159,6 +166,9 @@
   --color-ok-soft: var(--ok-soft);
   --color-overlay: var(--overlay);
   --shadow-card: var(--card-shadow);
+  --color-chart-series: var(--chart-series);
+  --color-chart-ref: var(--chart-ref);
+  --color-chart-grid: var(--chart-grid);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-muted: var(--sidebar-muted);

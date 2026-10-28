@@ -10,8 +10,10 @@ import { Input } from '@/components/ui/input'
 import { ColorPicker, PRESET_COLORS } from '@/components/common/ColorPicker'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { ColorDot } from '@/components/common/LabelChip'
+import { LockNote } from '@/components/common/LockNote'
 import { CenteredSpinner, Spinner } from '@/components/common/Loaders'
 import { EmptyState, ErrorState } from '@/components/common/States'
+import { useIsManager } from '@/features/workspaces/hooks'
 import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { useCreateLabel, useDeleteLabel, useLabels, useUpdateLabel } from '../hooks'
@@ -27,6 +29,7 @@ export function LabelsSettings({ slug, project }) {
   const [creating, setCreating] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [toDelete, setToDelete] = useState(null)
+  const canManage = useIsManager()
 
   const handleDelete = () => {
     remove.mutate(toDelete.id, {
@@ -44,8 +47,9 @@ export function LabelsSettings({ slug, project }) {
         <div className="space-y-1.5">
           <CardTitle>Etiquetas</CardTitle>
           <CardDescription>Clasifica las tareas (bug, mejora, diseño…).</CardDescription>
+          {!canManage && <LockNote>Solo el project manager puede cambiar las etiquetas.</LockNote>}
         </div>
-        {!creating && (
+        {canManage && !creating && (
           <Button size="sm" onClick={() => setCreating(true)}>
             <Plus />
             Nueva etiqueta
@@ -74,7 +78,12 @@ export function LabelsSettings({ slug, project }) {
         {isLoading && <CenteredSpinner />}
         {error && <ErrorState error={error} onRetry={refetch} />}
         {labels?.length === 0 && !creating && (
-          <EmptyState icon={Tags} title="Sin etiquetas" description="Crea la primera para clasificar tareas." className="py-6" />
+          <EmptyState
+            icon={Tags}
+            title="Sin etiquetas"
+            description={canManage ? 'Crea la primera para clasificar tareas.' : undefined}
+            className="py-6"
+          />
         )}
         {labels?.length > 0 && (
           <ul className="divide-y rounded-lg border">
@@ -106,24 +115,28 @@ export function LabelsSettings({ slug, project }) {
                 <li key={label.id} className="flex items-center gap-3 px-3 py-2.5">
                   <ColorDot color={label.color} className="size-3" />
                   <span className="min-w-0 flex-1 truncate text-sm font-medium">{label.name}</span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-8 text-muted-foreground"
-                    aria-label="Editar"
-                    onClick={() => setEditingId(label.id)}
-                  >
-                    <Pencil />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-8 text-muted-foreground"
-                    aria-label="Eliminar"
-                    onClick={() => setToDelete(label)}
-                  >
-                    <Trash2 />
-                  </Button>
+                  {canManage && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 text-muted-foreground"
+                        aria-label="Editar"
+                        onClick={() => setEditingId(label.id)}
+                      >
+                        <Pencil />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 text-muted-foreground"
+                        aria-label="Eliminar"
+                        onClick={() => setToDelete(label)}
+                      >
+                        <Trash2 />
+                      </Button>
+                    </>
+                  )}
                 </li>
               ),
             )}

@@ -2,7 +2,7 @@ import { useSearchParams } from 'react-router'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { workspacePath } from '@/lib/paths'
-import { isAdminRole } from '@/lib/permissions'
+import { isManager } from '@/lib/permissions'
 import { GeneralSettings } from '../components/GeneralSettings'
 import { InvitationsSettings } from '../components/InvitationsSettings'
 import { MembersSettings } from '../components/MembersSettings'
@@ -14,9 +14,9 @@ export function WorkspaceSettingsPage() {
   const workspace = useCurrentWorkspace()
   const { data: members } = useMembers(workspace.slug)
   const [searchParams, setSearchParams] = useSearchParams()
-  const isAdmin = isAdminRole(workspace.myRole)
+  const canManage = isManager(workspace.myRole)
   const requested = searchParams.get('tab')
-  const tab = TABS.includes(requested) && (requested !== 'invitations' || isAdmin) ? requested : 'general'
+  const tab = TABS.includes(requested) && (requested !== 'invitations' || canManage) ? requested : 'general'
 
   return (
     <Tabs
@@ -34,7 +34,7 @@ export function WorkspaceSettingsPage() {
           <TabsTrigger value="members">
             Miembros {members && <span className="font-mono">{members.length}</span>}
           </TabsTrigger>
-          {isAdmin && <TabsTrigger value="invitations">Invitaciones</TabsTrigger>}
+          {canManage && <TabsTrigger value="invitations">Invitaciones</TabsTrigger>}
         </TabsList>
       </PageHeader>
       <PageBody>
@@ -45,7 +45,7 @@ export function WorkspaceSettingsPage() {
           <TabsContent value="members">
             <MembersSettings workspace={workspace} />
           </TabsContent>
-          {isAdmin && (
+          {canManage && (
             <TabsContent value="invitations">
               <InvitationsSettings workspace={workspace} />
             </TabsContent>

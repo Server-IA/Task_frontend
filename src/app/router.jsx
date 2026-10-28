@@ -7,14 +7,18 @@ import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { RegisterPage } from '@/features/auth/pages/RegisterPage'
 import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage'
 import { VerifyEmailPage } from '@/features/auth/pages/VerifyEmailPage'
+import { ActivityPage } from '@/features/activity/pages/ActivityPage'
 import { IssuePage } from '@/features/issues/pages/IssuePage'
+import { MyWorkPage } from '@/features/my-work/pages/MyWorkPage'
 import { NotificationsPage } from '@/features/notifications/NotificationsPage'
 import { PlanningDetailPage } from '@/features/planning/pages/PlanningDetailPage'
 import { PlanningListPage } from '@/features/planning/pages/PlanningListPage'
+import { RoadmapPage } from '@/features/planning/pages/RoadmapPage'
 import { IssuesPage } from '@/features/issues/pages/IssuesPage'
 import { ProfilePage } from '@/features/profile/ProfilePage'
 import { ProjectLayout } from '@/features/projects/pages/ProjectLayout'
 import { ProjectSettingsPage } from '@/features/projects/pages/ProjectSettingsPage'
+import { StatsPage } from '@/features/stats/pages/StatsPage'
 import { HomeRedirect } from '@/features/workspaces/pages/HomeRedirect'
 import { InvitationPage } from '@/features/workspaces/pages/InvitationPage'
 import { OnboardingPage } from '@/features/workspaces/pages/OnboardingPage'
@@ -63,6 +67,8 @@ export const router = createBrowserRouter([
                 children: [
                   { index: true, element: <WorkspaceHomePage /> },
                   { path: 'settings', element: <WorkspaceSettingsPage /> },
+                  { path: 'my-work', element: <MyWorkPage /> },
+                  { path: 'activity', element: <ActivityPage /> },
                   {
                     path: 'projects/:projectId',
                     element: <ProjectLayout />,
@@ -74,6 +80,8 @@ export const router = createBrowserRouter([
                       { path: 'cycles/:itemId', element: <PlanningDetailPage kind="cycles" key="cycle" /> },
                       { path: 'modules', element: <PlanningListPage kind="modules" key="modules" /> },
                       { path: 'modules/:itemId', element: <PlanningDetailPage kind="modules" key="module" /> },
+                      { path: 'roadmap', element: <RoadmapPage /> },
+                      { path: 'stats', element: <StatsPage /> },
                       { path: 'settings', element: <ProjectSettingsPage /> },
                       { path: '*', element: <NotFoundPage /> },
                     ],

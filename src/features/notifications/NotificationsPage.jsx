@@ -1,6 +1,5 @@
 import { Fragment } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
-import { isToday, isYesterday, parseISO } from 'date-fns'
 import { BellOff, CheckCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -10,7 +9,7 @@ import { Segmented } from '@/components/common/Segmented'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
-import { formatDateTime, formatLongDate, formatRelative } from '@/lib/dates'
+import { formatDateTime, formatRelative, groupByDay } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { useMarkAllAsRead, useMarkAsRead, useNotifications, useUnreadCount } from './hooks'
@@ -19,14 +18,6 @@ import { useMarkAllAsRead, useMarkAsRead, useNotifications, useUnreadCount } fro
 const TYPE_MARKS = {
   ISSUE_ASSIGNED: '@',
   ISSUE_COMMENTED: '“',
-}
-
-/** «Hoy», «Ayer» o la fecha completa. */
-function dayLabel(value) {
-  const date = parseISO(value)
-  if (isToday(date)) return 'Hoy'
-  if (isYesterday(date)) return 'Ayer'
-  return formatLongDate(date)
 }
 
 export function NotificationsPage() {
@@ -38,12 +29,7 @@ export function NotificationsPage() {
   const notifications = data?.pages.flatMap((page) => page.content) ?? []
 
   // Agrupadas por día, en el orden en que llegan (más recientes primero)
-  const days = []
-  for (const notification of notifications) {
-    const label = dayLabel(notification.createdAt)
-    if (days.at(-1)?.label !== label) days.push({ label, items: [] })
-    days.at(-1).items.push(notification)
-  }
+  const days = groupByDay(notifications, (notification) => notification.createdAt)
 
   return (
     <div className="mx-auto flex w-full max-w-[820px] min-h-0 flex-1 flex-col gap-3.5">

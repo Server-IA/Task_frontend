@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router'
 import { queryKeys } from '@/api/queryKeys'
+import { isManager } from '@/lib/permissions'
 import { invitationsApi, workspacesApi } from './api'
 
 export function useWorkspaces() {
@@ -20,6 +21,11 @@ export function useCurrentWorkspace() {
   const { slug } = useParams()
   const { data } = useWorkspace(slug)
   return data
+}
+
+/** Si el usuario es project manager del workspace de la URL (decide qué acciones se muestran). */
+export function useIsManager() {
+  return isManager(useCurrentWorkspace()?.myRole)
 }
 
 export function useCreateWorkspace() {

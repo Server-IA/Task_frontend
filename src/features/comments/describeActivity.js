@@ -49,3 +49,57 @@ function describeDate(name, oldValue, newValue) {
   if (!oldValue) return `fijó ${name} en ${date(newValue)}`
   return `cambió ${name} de ${date(oldValue)} a ${date(newValue)}`
 }
+
+/**
+ * @typedef {{ verb: string, suffix?: string, mark: string, tone: 'neutral' | 'accent' | 'ok',
+ *             change?: { from: string, to: string, done: boolean }, quote?: string }} FeedSentence
+ */
+
+/**
+ * Frase de una entrada del feed de actividad del workspace, alrededor de la tarea:
+ * «{quién} {verb} WEB-4 Recuperar contraseña {suffix}». `mark` es el símbolo sobre el avatar.
+ * `stateGroup` es el grupo del estado nuevo (si se conoce) para distinguir «completó» de «movió».
+ * @param {import('@/api/types').ActivityFeedItem} entry
+ * @param {{ stateGroup?: string }} [options]
+ * @returns {FeedSentence}
+ */
+export function describeFeedEntry({ field, oldValue, newValue }, { stateGroup } = {}) {
+  const neutral = (verb, suffix, mark = '·') => ({ verb, suffix, mark, tone: 'neutral' })
+  switch (field) {
+    case 'CREATED':
+      return { verb: 'creó', mark: '+', tone: 'accent' }
+    case 'STATE': {
+      const done = stateGroup === 'COMPLETED'
+      const verb = done ? 'completó' : stateGroup === 'CANCELLED' ? 'canceló' : 'movió'
+      return { verb, mark: done ? '✓' : '→', tone: done ? 'ok' : 'neutral', change: { from: oldValue, to: newValue, done } }
+    }
+    case 'COMMENT':
+      return { verb: 'comentó en', mark: '“', tone: 'neutral', quote: newValue ?? '' }
+    case 'ASSIGNEES':
+      if (!newValue) return neutral('quitó los asignados de', undefined, '@')
+      return neutral(oldValue ? 'cambió los asignados de' : 'asignó', `a ${newValue}`, '@')
+    case 'TITLE':
+      return neutral('cambió el título de')
+    case 'DESCRIPTION':
+      return neutral('actualizó la descripción de')
+    case 'PRIORITY':
+      return neutral('cambió la prioridad de', `a ${(PRIORITY_LABELS[newValue] ?? newValue ?? '').toLowerCase()}`)
+    case 'PARENT':
+      return newValue ? neutral('puso', `como subtarea de ${newValue}`) : neutral('quitó el padre de')
+    case 'START_DATE':
+      if (!newValue) return neutral('quitó la fecha de inicio de')
+      return neutral(oldValue ? 'cambió el inicio de' : 'fijó el inicio de', `al ${date(newValue)}`)
+    case 'DUE_DATE':
+      if (!newValue) return neutral('quitó la fecha límite de')
+      return neutral(oldValue ? 'cambió la fecha límite de' : 'fijó la fecha límite de', `al ${date(newValue)}`)
+    case 'LABELS':
+      if (!newValue) return neutral('quitó las etiquetas de')
+      return neutral(oldValue ? 'cambió las etiquetas de' : 'etiquetó', oldValue ? `a ${newValue}` : `como ${newValue}`)
+    case 'CYCLE':
+      return newValue ? neutral('agregó', `al ciclo ${quote(newValue)}`) : neutral('quitó', `del ciclo ${quote(oldValue)}`)
+    case 'MODULE':
+      return newValue ? neutral('agregó', `al módulo ${quote(newValue)}`) : neutral('quitó', `del módulo ${quote(oldValue)}`)
+    default:
+      return neutral('actualizó')
+  }
+}

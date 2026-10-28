@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { useCurrentProject } from '@/features/projects/hooks'
-import { useCurrentWorkspace } from '@/features/workspaces/hooks'
+import { useCurrentWorkspace, useIsManager } from '@/features/workspaces/hooks'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { projectPath } from '@/lib/paths'
 import { cn } from '@/lib/utils'
@@ -38,6 +38,8 @@ export function PlanningListPage({ kind }) {
   const remove = useDeletePlanning(kind, workspace.slug, project.id)
   const [formState, setFormState] = useState({ open: false, item: null })
   const [toDelete, setToDelete] = useState(null)
+  // Crear, editar y eliminar ciclos/módulos es del project manager; los miembros sí mueven tareas dentro
+  const canManage = useIsManager()
   const Icon = kind === 'cycles' ? RefreshCcw : Layers
   const base = `/${workspace.slug}/projects/${project.id}/${kind}`
 
@@ -49,10 +51,12 @@ export function PlanningListPage({ kind }) {
         documentTitle={[text.title, project.name]}
         description={text.headerDescription}
         actions={
-          <Button className="h-10 rounded-xl px-3.5" onClick={() => setFormState({ open: true, item: null })}>
-            <Plus strokeWidth={3} />
-            {text.newLabel}
-          </Button>
+          canManage && (
+            <Button className="h-10 rounded-xl px-3.5" onClick={() => setFormState({ open: true, item: null })}>
+              <Plus strokeWidth={3} />
+              {text.newLabel}
+            </Button>
+          )
         }
       />
       <PageBody>
@@ -69,12 +73,14 @@ export function PlanningListPage({ kind }) {
             <EmptyState
               icon={Icon}
               title={`Todavía no hay ${text.title.toLowerCase()}`}
-              description={text.emptyDescription}
+              description={canManage ? text.emptyDescription : text.memberEmptyDescription}
               action={
-                <Button onClick={() => setFormState({ open: true, item: null })}>
-                  <Plus />
-                  {text.newLabel}
-                </Button>
+                canManage && (
+                  <Button onClick={() => setFormState({ open: true, item: null })}>
+                    <Plus />
+                    {text.newLabel}
+                  </Button>
+                )
               }
             />
           )}
@@ -133,23 +139,25 @@ export function PlanningListPage({ kind }) {
                         →
                       </span>
                     </Link>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="size-8 shrink-0" aria-label="Acciones">
-                          <MoreHorizontal />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onSelect={() => setFormState({ open: true, item })}>
-                          <Pencil />
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem variant="destructive" onSelect={() => setToDelete(item)}>
-                          <Trash2 />
-                          Eliminar
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    {canManage && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="size-8 shrink-0" aria-label="Acciones">
+                            <MoreHorizontal />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onSelect={() => setFormState({ open: true, item })}>
+                            <Pencil />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem variant="destructive" onSelect={() => setToDelete(item)}>
+                            <Trash2 />
+                            Eliminar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </div>
                 )
               })}

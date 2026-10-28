@@ -9,7 +9,7 @@ export const STATE_GROUP_LABELS = {
 }
 
 /** Colores muy oscuros (luminancia relativa baja) que no se verían sobre el fondo oscuro. */
-function isTooDark(hex) {
+export function isTooDark(hex) {
   const match = /^#([0-9a-f]{6})$/i.exec(hex ?? '')
   if (!match) return false
   const [r, g, b] = [0, 2, 4].map((index) => parseInt(match[1].slice(index, index + 2), 16) / 255)

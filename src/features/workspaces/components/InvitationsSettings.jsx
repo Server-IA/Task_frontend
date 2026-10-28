@@ -6,14 +6,12 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { CenteredSpinner, Spinner } from '@/components/common/Loaders'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { formatRelative, formatShortDate } from '@/lib/dates'
 import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
-import { ROLE_LABELS } from '@/lib/permissions'
 import { useInvitations, useInvite, useRevokeInvitation } from '../hooks'
 import { inviteSchema } from '../schemas'
 
@@ -29,13 +27,13 @@ export function InvitationsSettings({ workspace }) {
 
 function InviteCard({ workspace }) {
   const invite = useInvite(workspace.slug)
-  const form = useForm({ resolver: zodResolver(inviteSchema), defaultValues: { email: '', role: 'MEMBER' } })
+  const form = useForm({ resolver: zodResolver(inviteSchema), defaultValues: { email: '' } })
 
   const onSubmit = (values) => {
     invite.mutate(values, {
       onSuccess: (invitation) => {
         toast.success(`Invitación enviada a ${invitation.email}`)
-        form.reset({ email: '', role: values.role })
+        form.reset({ email: '' })
       },
       onError: (error) => {
         if (!applyFieldErrors(error, form.setError)) notifyError(error)
@@ -49,7 +47,7 @@ function InviteCard({ workspace }) {
         <CardTitle>Invitar personas</CardTitle>
         <CardDescription>
           Les llegará un correo con un enlace válido por 7 días. Si no tienen cuenta, podrán crearla con ese
-          correo.
+          correo. Entran como miembros; desde Miembros puedes nombrarlos project manager.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -64,25 +62,6 @@ function InviteCard({ workspace }) {
                     <Input type="email" placeholder="persona@correo.com" aria-label="Correo" {...field} />
                   </FormControl>
                   <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="role"
-              render={({ field }) => (
-                <FormItem>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger className="w-full sm:w-40" aria-label="Rol">
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="MEMBER">{ROLE_LABELS.MEMBER}</SelectItem>
-                      <SelectItem value="ADMIN">{ROLE_LABELS.ADMIN}</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </FormItem>
               )}
             />
@@ -126,7 +105,7 @@ function PendingInvitations({ workspace }) {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{invitation.email}</p>
                   <p className="text-xs text-muted-foreground">
-                    {ROLE_LABELS[invitation.role]} · enviada {formatRelative(invitation.createdAt)}
+                    Enviada {formatRelative(invitation.createdAt)}
                     {invitation.invitedBy && ` por ${invitation.invitedBy.fullName}`} · vence el{' '}
                     {formatShortDate(invitation.expiresAt)}
                   </p>

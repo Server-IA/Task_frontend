@@ -18,7 +18,7 @@ import { ErrorState } from '@/components/common/States'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { formatShortDate } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
-import { isAdminRole, ROLE_LABELS } from '@/lib/permissions'
+import { isManager, ROLE_LABELS } from '@/lib/permissions'
 import { useSessionStore } from '@/stores/sessionStore'
 import { useMembers, useRemoveMember, useUpdateMemberRole } from '../hooks'
 
@@ -29,14 +29,15 @@ export function MembersSettings({ workspace }) {
   const removeMember = useRemoveMember(workspace.slug)
   const currentUserId = useSessionStore((state) => state.user?.id)
   const [toRemove, setToRemove] = useState(null)
-  const canManage = isAdminRole(workspace.myRole)
+  const canManage = isManager(workspace.myRole)
 
   const handleRoleChange = (member, role) => {
     updateRole.mutate(
       { userId: member.user.id, role },
       {
         onSuccess: () => toast.success(`${member.user.fullName} ahora es ${ROLE_LABELS[role].toLowerCase()}`),
-        onError: (error) => notifyError(error),
+        // 409 si el workspace se quedaría sin project manager: se muestra el mensaje del backend
+        onError: (error) => notifyError(error, 'No se pudo cambiar el rol'),
       },
     )
   }
@@ -47,7 +48,7 @@ export function MembersSettings({ workspace }) {
         toast.success(`${toRemove.user.fullName} ya no es miembro`)
         setToRemove(null)
       },
-      onError: (error) => notifyError(error),
+      onError: (error) => notifyError(error, 'No se pudo quitar'),
     })
   }
 
@@ -56,7 +57,8 @@ export function MembersSettings({ workspace }) {
       <CardHeader>
         <CardTitle>Miembros</CardTitle>
         <CardDescription>
-          {members ? `${members.length} ${members.length === 1 ? 'persona' : 'personas'} en el workspace.` : ' '}
+          {members ? `${members.length} ${members.length === 1 ? 'persona' : 'personas'} en el workspace.` : ' '} El
+          project manager gestiona proyectos, ciclos, módulos y miembros; puede haber más de uno.
         </CardDescription>
       </CardHeader>
       <CardContent className="px-0 sm:px-6">
@@ -74,7 +76,6 @@ export function MembersSettings({ workspace }) {
             </TableHeader>
             <TableBody>
               {members.map((member) => {
-                const isOwner = member.role === 'OWNER'
                 const isMe = member.user.id === currentUserId
                 return (
                   <TableRow key={member.user.id}>
@@ -91,25 +92,30 @@ export function MembersSettings({ workspace }) {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {canManage && !isOwner ? (
-                        <Select value={member.role} onValueChange={(role) => handleRoleChange(member, role)}>
-                          <SelectTrigger size="sm" className="w-36">
+                      {/* El rol propio no se cambia desde aquí: así nadie se quita los permisos sin querer */}
+                      {canManage && !isMe ? (
+                        <Select
+                          value={member.role}
+                          onValueChange={(role) => handleRoleChange(member, role)}
+                          disabled={updateRole.isPending}
+                        >
+                          <SelectTrigger size="sm" className="w-40" aria-label={`Rol de ${member.user.fullName}`}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="ADMIN">{ROLE_LABELS.ADMIN}</SelectItem>
+                            <SelectItem value="OWNER">{ROLE_LABELS.OWNER}</SelectItem>
                             <SelectItem value="MEMBER">{ROLE_LABELS.MEMBER}</SelectItem>
                           </SelectContent>
                         </Select>
                       ) : (
-                        <Badge variant={isOwner ? 'default' : 'secondary'}>{ROLE_LABELS[member.role]}</Badge>
+                        <Badge variant={isManager(member.role) ? 'default' : 'secondary'}>{ROLE_LABELS[member.role]}</Badge>
                       )}
                     </TableCell>
                     <TableCell className="hidden text-sm text-muted-foreground sm:table-cell">
                       {formatShortDate(member.joinedAt)}
                     </TableCell>
                     <TableCell>
-                      {canManage && !isOwner && !isMe && (
+                      {canManage && !isMe && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="size-8" aria-label="Acciones">

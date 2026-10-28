@@ -1,12 +1,13 @@
 import { useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
+import { CommandPalette } from '@/features/search/CommandPalette'
 import { cn } from '@/lib/utils'
 import { useLayoutStore } from '@/stores/layoutStore'
 import { usePreferencesStore } from '@/stores/preferencesStore'
 import { Sidebar } from './Sidebar'
 
-/** Layout de la app con sesión: sidebar (drawer en móvil) + contenido. */
+/** Layout de la app con sesión: sidebar (drawer en móvil) + contenido, y la paleta de comandos (Ctrl/⌘ K). */
 export function AppLayout() {
   const collapsed = usePreferencesStore((state) => state.sidebarCollapsed)
   const mobileOpen = useLayoutStore((state) => state.mobileSidebarOpen)
@@ -43,6 +44,8 @@ export function AppLayout() {
           <Outlet />
         </div>
       </main>
+
+      <CommandPalette />
     </div>
   )
 }

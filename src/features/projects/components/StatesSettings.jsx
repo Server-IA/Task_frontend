@@ -11,9 +11,11 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ColorPicker } from '@/components/common/ColorPicker'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
+import { LockNote } from '@/components/common/LockNote'
 import { CenteredSpinner, Spinner } from '@/components/common/Loaders'
 import { ErrorState } from '@/components/common/States'
 import { STATE_GROUP_LABELS, StateIcon } from '@/components/common/StateIcon'
+import { useIsManager } from '@/features/workspaces/hooks'
 import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { useCreateState, useDeleteState, useStates, useUpdateState } from '../hooks'
@@ -27,6 +29,7 @@ export function StatesSettings({ slug, project }) {
   const [creating, setCreating] = useState(false)
   const [toDelete, setToDelete] = useState(null)
   const [moving, setMoving] = useState(false)
+  const canManage = useIsManager()
 
   /** Intercambia la posición con el estado vecino (el orden es el de las columnas del tablero). */
   const move = async (index, direction) => {
@@ -69,11 +72,14 @@ export function StatesSettings({ slug, project }) {
           <CardDescription>
             Son las columnas del tablero, en este orden. El grupo define cuándo una tarea cuenta como completada.
           </CardDescription>
+          {!canManage && <LockNote>Solo el project manager puede cambiar los estados.</LockNote>}
         </div>
-        <Button size="sm" onClick={() => setCreating(true)}>
-          <Plus />
-          Nuevo estado
-        </Button>
+        {canManage && (
+          <Button size="sm" onClick={() => setCreating(true)}>
+            <Plus />
+            Nuevo estado
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
         {isLoading && <CenteredSpinner />}
@@ -92,29 +98,31 @@ export function StatesSettings({ slug, project }) {
                   <span className="size-3 rounded-[4px] ring-1 ring-foreground/15" style={{ backgroundColor: state.color }} aria-hidden="true" />
                   {state.color.toUpperCase()}
                 </span>
-                <div className="ml-auto flex items-center">
-                  <IconButton label="Subir" disabled={index === 0 || moving} onClick={() => move(index, -1)}>
-                    <ArrowUp />
-                  </IconButton>
-                  <IconButton
-                    label="Bajar"
-                    disabled={index === states.length - 1 || moving}
-                    onClick={() => move(index, 1)}
-                  >
-                    <ArrowDown />
-                  </IconButton>
-                  <IconButton label="Editar" onClick={() => setEditing(state)}>
-                    <Pencil />
-                  </IconButton>
-                  <IconButton label="Eliminar" disabled={states.length <= 1} onClick={() => setToDelete(state)}>
-                    <Trash2 />
-                  </IconButton>
-                </div>
+                {canManage && (
+                  <div className="ml-auto flex items-center">
+                    <IconButton label="Subir" disabled={index === 0 || moving} onClick={() => move(index, -1)}>
+                      <ArrowUp />
+                    </IconButton>
+                    <IconButton
+                      label="Bajar"
+                      disabled={index === states.length - 1 || moving}
+                      onClick={() => move(index, 1)}
+                    >
+                      <ArrowDown />
+                    </IconButton>
+                    <IconButton label="Editar" onClick={() => setEditing(state)}>
+                      <Pencil />
+                    </IconButton>
+                    <IconButton label="Eliminar" disabled={states.length <= 1} onClick={() => setToDelete(state)}>
+                      <Trash2 />
+                    </IconButton>
+                  </div>
+                )}
               </li>
             ))}
           </ol>
         )}
-        <p className="mt-3 font-mono text-xs text-muted-foreground">un estado con tareas no se puede eliminar</p>
+        {canManage && <p className="mt-3 font-mono text-xs text-muted-foreground">un estado con tareas no se puede eliminar</p>}
       </CardContent>
 
       <StateDialog

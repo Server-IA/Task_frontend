@@ -1,4 +1,13 @@
-import { differenceInCalendarDays, format, formatDistanceToNow, isThisYear, parseISO, startOfToday } from 'date-fns'
+import {
+  differenceInCalendarDays,
+  format,
+  formatDistanceToNow,
+  isThisYear,
+  isToday,
+  isYesterday,
+  parseISO,
+  startOfToday,
+} from 'date-fns'
 import { es } from 'date-fns/locale'
 
 const toDate = (value) => (value instanceof Date ? value : parseISO(value))
@@ -26,6 +35,31 @@ export function formatDateTime(value) {
 export function formatRelative(value) {
   if (!value) return ''
   return formatDistanceToNow(toDate(value), { addSuffix: true, locale: es })
+}
+
+/** «Hoy», «Ayer» o la fecha completa: título de cada día en las listas agrupadas por día. */
+export function dayLabel(value) {
+  const date = toDate(value)
+  if (isToday(date)) return 'Hoy'
+  if (isYesterday(date)) return 'Ayer'
+  return formatLongDate(date)
+}
+
+/**
+ * Agrupa por día una lista ya ordenada (más recientes primero), conservando el orden.
+ * @template T
+ * @param {T[]} items
+ * @param {(item: T) => string} getDate
+ * @returns {{ label: string, items: T[] }[]}
+ */
+export function groupByDay(items, getDate) {
+  const days = []
+  for (const item of items) {
+    const label = dayLabel(getDate(item))
+    if (days.at(-1)?.label !== label) days.push({ label, items: [] })
+    days.at(-1).items.push(item)
+  }
+  return days
 }
 
 /** Date → «2026-10-30» (formato que espera el backend para LocalDate). */

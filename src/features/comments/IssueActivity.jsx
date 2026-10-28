@@ -17,7 +17,7 @@ import { useActivity } from '@/features/issues/hooks'
 import { useCurrentWorkspace } from '@/features/workspaces/hooks'
 import { formatDateTime, formatRelative } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
-import { isAdminRole } from '@/lib/permissions'
+import { canDeleteComment } from '@/lib/permissions'
 import { useSessionStore } from '@/stores/sessionStore'
 import { describeActivity } from './describeActivity'
 import { useComments, useCreateComment, useDeleteComment, useUpdateComment } from './hooks'
@@ -110,7 +110,7 @@ function CommentCard({ slug, projectId, issueId, comment }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const isAuthor = comment.author?.id === currentUserId
-  const canDelete = isAuthor || isAdminRole(workspace?.myRole)
+  const canDelete = canDeleteComment(workspace?.myRole, comment, currentUserId)
   const edited = comment.updatedAt !== comment.createdAt
 
   const save = () => {

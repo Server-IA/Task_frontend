@@ -35,9 +35,10 @@ const issueSchema = z
   })
 
 /**
- * Crear tarea. `defaults` permite preseleccionar estado (columna del tablero) o padre (subtarea).
+ * Crear tarea. `defaults` permite preseleccionar estado (columna del tablero), padre (subtarea) o un título
+ * (lo escrito en la paleta de comandos).
  * @param {{ slug: string, project: import('@/api/types').ProjectResponse, open: boolean, onOpenChange: Function,
- *           defaults?: { stateId?: string, parentId?: string, parentCode?: string }, onCreated?: Function }} props
+ *           defaults?: { stateId?: string, parentId?: string, parentCode?: string, title?: string }, onCreated?: Function }} props
  */
 export function CreateIssueDialog({ slug, project, open, onOpenChange, defaults = {}, onCreated }) {
   return (
@@ -71,7 +72,7 @@ function CreateIssueForm({ slug, project, defaults, onCancel, onCreated }) {
   const create = useCreateIssue(slug, project.id)
   const [createMore, setCreateMore] = useState(false)
   const emptyValues = {
-    title: '',
+    title: defaults.title ?? '',
     description: '',
     stateId: defaults.stateId ?? null,
     priority: 'NONE',
