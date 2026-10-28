@@ -410,16 +410,21 @@ function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted
               Eliminar plantilla
             </Button>
           )}
-          {dirty && !isNew && <span className="ml-auto font-mono text-[11px] text-muted-foreground">cambios sin guardar</span>}
-          {!isNew && (
-            <Button type="button" variant="outline" className={cn(!dirty && 'ml-auto')} disabled={!dirty || pending} onClick={() => form.reset()}>
-              Descartar
-            </Button>
-          )}
-          <Button type="submit" className={cn(isNew && 'ml-auto')} disabled={pending || (!isNew && !dirty)}>
-            {pending && <Spinner />}
-            {isNew ? 'Crear plantilla' : 'Guardar plantilla'}
-          </Button>
+          {/* Los dos botones van juntos: si no cabe todo, el aviso sube a su propia línea */}
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-x-2.5 gap-y-1.5">
+            {dirty && !isNew && <span className="font-mono text-[11px] text-muted-foreground">cambios sin guardar</span>}
+            <div className="flex items-center gap-2.5">
+              {!isNew && (
+                <Button type="button" variant="outline" disabled={!dirty || pending} onClick={() => form.reset()}>
+                  Descartar
+                </Button>
+              )}
+              <Button type="submit" disabled={pending || (!isNew && !dirty)}>
+                {pending && <Spinner />}
+                {isNew ? 'Crear plantilla' : 'Guardar plantilla'}
+              </Button>
+            </div>
+          </div>
         </div>
       )}
       {template && (

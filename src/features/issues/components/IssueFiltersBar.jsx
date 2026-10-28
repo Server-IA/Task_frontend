@@ -21,7 +21,7 @@ const KIND_ICONS = { state: CircleDot, priority: Flag, assignee: UserRound, labe
 const BLOCKED_HINT = 'Solo las tareas que esperan a otra tarea abierta'
 
 /**
- * Búsqueda tipo consola («> buscar o saltar a WEB-12») y filtros como pastillas: punteadas cuando están vacías
+ * Búsqueda tipo consola («> buscar o saltar a WEB-12»: Enter con un código abre esa tarea) y filtros como pastillas: punteadas cuando están vacías
  * («+ prioridad») y oscuras cuando tienen valor («asignado: Luis ×»). «+ filtro» agrega los demás (ciclo, módulo,
  * bloqueadas); con una vista guardada aplicada (`compact`) solo se ven los filtros con valor y todo lo demás se
  * agrega desde ahí. Los valores viven en la URL (useIssueFilters). `changed` marca los filtros que ya no coinciden
@@ -36,6 +36,8 @@ export function IssueFiltersBar({
   hideState = false,
   compact = false,
   changed = [],
+  onJumpToCode,
+  codeExample = 'WEB-12',
   children,
 }) {
   const cycles = meta.cycles ?? []
@@ -99,7 +101,7 @@ export function IssueFiltersBar({
 
   return (
     <div className="flex flex-wrap items-center gap-2 px-1">
-      <SearchBox value={filters.search} onChange={(value) => setFilter('search', value)} />
+      <SearchBox value={filters.search} onChange={(value) => setFilter('search', value)} onJump={onJumpToCode} codeExample={codeExample} />
       {pills.map((key) =>
         key === 'blocked' ? (
           <ToggleFilter
@@ -141,7 +143,10 @@ export function IssueFiltersBar({
   )
 }
 
-function SearchBox({ value, onChange }) {
+/** Código de tarea («WEB-12», «web-12»): Enter salta a esa tarea en vez de solo filtrar. */
+const ISSUE_CODE_PATTERN = /^[A-Za-z][A-Za-z0-9]*-\d+$/
+
+function SearchBox({ value, onChange, onJump, codeExample }) {
   const [draft, setDraft] = useState(value)
   const debounced = useDebouncedValue(draft, 350)
   const inputRef = useRef(null)
@@ -172,8 +177,16 @@ function SearchBox({ value, onChange }) {
         type="search"
         value={draft}
         onChange={(event) => setDraft(event.target.value)}
-        onKeyDown={(event) => event.key === 'Escape' && event.currentTarget.blur()}
-        placeholder="buscar o saltar a WEB-12"
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') event.currentTarget.blur()
+          const code = draft.trim()
+          if (event.key === 'Enter' && onJump && ISSUE_CODE_PATTERN.test(code)) {
+            event.preventDefault()
+            setDraft('')
+            onJump(code.toUpperCase())
+          }
+        }}
+        placeholder={`buscar o saltar a ${codeExample}`}
         className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
       />
       <kbd className="text-[11px] text-muted-foreground">/</kbd>

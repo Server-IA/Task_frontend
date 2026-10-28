@@ -1,16 +1,19 @@
 import { useCallback, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import { useIsFetching } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Segmented } from '@/components/common/Segmented'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { usePlanningList } from '@/features/planning/hooks'
 import { useCurrentProject } from '@/features/projects/hooks'
 import { SavedViewsBar } from '@/features/saved-views/components/SavedViewsBar'
+import { searchApi } from '@/features/search/api'
 import { useActiveSavedView } from '@/features/saved-views/hooks'
 import { useCurrentWorkspace } from '@/features/workspaces/hooks'
 import { useHotkey } from '@/hooks/useHotkey'
+import { notifyError } from '@/lib/notify'
 import { projectPath } from '@/lib/paths'
 import { slugify } from '@/lib/slug'
 import { cn } from '@/lib/utils'
@@ -41,6 +44,37 @@ export function IssuesPage() {
   // La paleta de comandos (Ctrl/⌘ K) pide crear una tarea con ?create=1 (y lo que se escribió en ?title=)
   const [searchParams, setSearchParams] = useSearchParams()
   const createFromUrl = searchParams.get('create') === '1'
+
+  const navigate = useNavigate()
+
+  /** «WEB-12» + Enter en la búsqueda: abre esa tarea (si es de otro proyecto, va a ese proyecto con el panel abierto). */
+  const jumpToCode = async (code) => {
+    try {
+      const results = await searchApi.issues(workspace.slug, code, 5)
+      const match = results.find((issue) => issue.code.toUpperCase() === code)
+      if (!match) {
+        toast(`No encontramos la tarea ${code}`, { description: 'Revisa el código o busca por el título.' })
+        return
+      }
+      const projectId = match.project?.id ?? project.id
+      if (projectId !== project.id) {
+        navigate(`/${workspace.slug}/projects/${projectId}/issues?issue=${match.id}`)
+        return
+      }
+      setSearchParams(
+        (previous) => {
+          const next = new URLSearchParams(previous)
+          next.delete('search')
+          next.delete('page')
+          next.set('issue', match.id)
+          return next
+        },
+        { replace: true },
+      )
+    } catch (error) {
+      notifyError(error, 'No se pudo buscar la tarea')
+    }
+  }
 
   const openCreate = useCallback((stateId) => setCreateState({ open: true, stateId }), [])
   useHotkey('c', openCreate)
@@ -99,6 +133,8 @@ export function IssuesPage() {
         meta={meta}
         compact={Boolean(activeView)}
         changed={changedFromView}
+        onJumpToCode={jumpToCode}
+        codeExample={`${project.identifier}-12`}
       >
         {view === 'list' && (
           <Select value={groupBy} onValueChange={issueFilters.setGroupBy}>
