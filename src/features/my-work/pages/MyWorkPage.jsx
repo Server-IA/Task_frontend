@@ -139,7 +139,12 @@ export function MyWorkPage() {
                   </header>
                   <ul>
                     {group.issues.map((issue) => (
-                      <MyWorkRow key={issue.id} slug={slug} issue={issue} project={projectsById.get(issue.projectId)} />
+                      <MyWorkRow
+                        key={issue.id}
+                        slug={slug}
+                        issue={issue}
+                        project={projectsById.get(issue.projectId) ?? issue.project}
+                      />
                     ))}
                   </ul>
                 </section>

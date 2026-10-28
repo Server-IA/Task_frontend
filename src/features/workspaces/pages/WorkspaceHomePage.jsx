@@ -113,8 +113,8 @@ function ProjectCard({ slug, project }) {
       to={`/${slug}/projects/${project.id}/issues`}
       className="group flex flex-col gap-3.5 rounded-2xl border bg-card p-5 transition-[box-shadow,transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-dash hover:shadow-card focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
     >
-      <div className="flex items-start gap-3">
-        <ProjectIcon project={project} className="h-7 rounded-lg px-2 text-xs" />
+      <div className="flex items-center gap-3">
+        <ProjectIcon project={project} variant="soft" className="h-11 min-w-11 rounded-xl px-2 text-[13px]" />
         <div className="min-w-0">
           <h2 className="truncate text-[17px] font-semibold">{project.name}</h2>
           <p className="font-mono text-xs text-muted-foreground">

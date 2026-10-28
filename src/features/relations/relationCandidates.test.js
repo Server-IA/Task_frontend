@@ -28,6 +28,13 @@ describe('agregar relación', () => {
     const projects = new Map([[amc, { id: amc, name: 'App Móvil Clientes', identifier: 'AMC' }]])
     expect(projectOf({ projectId: amc, code: 'AMC-4' }, projects).name).toBe('App Móvil Clientes')
     expect(projectOf({ projectId: 'p-x', code: 'MKT-12' }, projects)).toEqual({ id: 'p-x', identifier: 'MKT' })
+    // Si la tarea trae su proyecto (con el color), se usa ese
+    const mkt = { id: 'p-x', name: 'Marketing', identifier: 'MKT', color: 'PINK' }
+    expect(projectOf({ projectId: 'p-x', code: 'MKT-12', project: mkt }, projects)).toBe(mkt)
+    // La lista de proyectos manda: está al día si el project manager acaba de cambiar el color
+    expect(projectOf({ projectId: amc, code: 'AMC-4', project: { id: amc, color: 'TEAL' } }, projects).name).toBe(
+      'App Móvil Clientes',
+    )
     expect(identifierFromCode('APP-WEB-3')).toBe('APP-WEB')
     expect(identifierFromCode('raro')).toBe('')
   })

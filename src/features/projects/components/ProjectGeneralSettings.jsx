@@ -39,6 +39,7 @@ export function ProjectGeneralSettings({ workspace, project }) {
               name: project.name,
               identifier: project.identifier,
               description: project.description ?? '',
+              color: project.color ?? 'TEAL',
             }}
             onSubmit={handleSubmit}
             pending={update.isPending}

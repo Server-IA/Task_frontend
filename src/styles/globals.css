@@ -220,6 +220,91 @@
 }
 
 /*
+ * Colores de proyecto (claves de ProjectColor del backend), con data-project-color en el elemento:
+ * --project / --project-ink: la pastilla con el identificador («WEB»), igual en los dos temas;
+ * --project-soft / --project-soft-ink: la versión suave (tarjetas de Proyectos), una por tema.
+ * Sin color conocido, la pastilla queda neutra. Se usan con bg-(--project) text-(--project-ink).
+ */
+@layer base {
+  [data-project-color] {
+    --project: var(--muted);
+    --project-ink: var(--muted-foreground);
+    --project-soft: var(--muted);
+    --project-soft-ink: var(--muted-foreground);
+  }
+  [data-project-color='TEAL'] {
+    --project: #2ec4a0;
+    --project-ink: #0b2a22;
+    --project-soft: #d6f5ee;
+    --project-soft-ink: #0a6656;
+  }
+  [data-project-color='AMBER'] {
+    --project: #ffc145;
+    --project-ink: #3a2a00;
+    --project-soft: #fff1d6;
+    --project-soft-ink: #7a5a00;
+  }
+  [data-project-color='BLUE'] {
+    --project: #8ccbff;
+    --project-ink: #0b2540;
+    --project-soft: #e1f0ff;
+    --project-soft-ink: #1c4e86;
+  }
+  [data-project-color='PINK'] {
+    --project: #ffa6cb;
+    --project-ink: #3d0f24;
+    --project-soft: #ffe6ef;
+    --project-soft-ink: #9a2457;
+  }
+  [data-project-color='VIOLET'] {
+    --project: #b6a6ff;
+    --project-ink: #1c1240;
+    --project-soft: #ece8ff;
+    --project-soft-ink: #4b3a9e;
+  }
+  [data-project-color='ORANGE'] {
+    --project: #f6a35c;
+    --project-ink: #3a1e05;
+    --project-soft: #ffebdc;
+    --project-soft-ink: #8f420c;
+  }
+  [data-project-color='GREEN'] {
+    --project: #9be7b4;
+    --project-ink: #0e3a1e;
+    --project-soft: #e3f5ec;
+    --project-soft-ink: #1d6b47;
+  }
+  .dark [data-project-color='TEAL'] {
+    --project-soft: #0f2e29;
+    --project-soft-ink: #6fe0c6;
+  }
+  .dark [data-project-color='AMBER'] {
+    --project-soft: #3a2e10;
+    --project-soft-ink: #ffd27a;
+  }
+  .dark [data-project-color='BLUE'] {
+    --project-soft: #132a3d;
+    --project-soft-ink: #8ccbff;
+  }
+  .dark [data-project-color='PINK'] {
+    --project-soft: #3a1a2b;
+    --project-soft-ink: #ffa6cb;
+  }
+  .dark [data-project-color='VIOLET'] {
+    --project-soft: #251f3f;
+    --project-soft-ink: #c4b8ff;
+  }
+  .dark [data-project-color='ORANGE'] {
+    --project-soft: #3a2414;
+    --project-soft-ink: #f6a35c;
+  }
+  .dark [data-project-color='GREEN'] {
+    --project-soft: #1b3324;
+    --project-soft-ink: #9be7b4;
+  }
+}
+
+/*
  * Movimiento. Curva «ease-out-quint» para entradas: arranca rápido y frena suave.
  * - .tf-enter: páginas y tarjetas que aparecen (sube 6 px y aparece).
  * - .tf-fade: contenido que cambia en el mismo lugar (vista, pestaña, tarea abierta).

@@ -6,6 +6,7 @@ import {
   markReadInPages,
   notificationIssue,
   notificationProject,
+  notificationProjectColor,
   notificationTarget,
   openedIssueFromParams,
   withOpenedIssue,
@@ -33,6 +34,12 @@ describe('avisos de la Bandeja', () => {
     expect(notificationProject({ issue: null, cycle })).toBe('web')
     expect(notificationProject({ issue: { code: 'APP-WEB-3' } })).toBe('app-web')
     expect(notificationProject({})).toBe('')
+  })
+
+  it('color del proyecto, del ciclo o de la tarea', () => {
+    expect(notificationProjectColor({ issue: { ...issue, projectColor: 'GREEN' } })).toBe('GREEN')
+    expect(notificationProjectColor({ issue: null, cycle: { ...cycle, projectColor: 'AMBER' } })).toBe('AMBER')
+    expect(notificationProjectColor({ issue })).toBeNull()
   })
 
   it('resalta mi mención en el extracto', () => {

@@ -208,7 +208,7 @@ function PaletteContent({ onClose }) {
         {issues.length > 0 && (
           <PaletteGroup heading="Tareas">
             {issues.map((issue) => {
-              const issueProject = projectsById.get(issue.projectId)
+              const issueProject = projectsById.get(issue.projectId) ?? issue.project
               const assignee = issue.assignees?.[0]
               return (
                 <PaletteItem

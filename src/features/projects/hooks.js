@@ -47,6 +47,10 @@ export function useUpdateProject(slug, projectId) {
       // Si cambió el identificador, cambian todos los códigos de issue (WEB-1 → APP-1)
       queryClient.invalidateQueries({ queryKey: queryKeys.issuesOf(projectId) })
       queryClient.invalidateQueries({ queryKey: ['issue'] })
+      // Las tareas de otras listas traen el proyecto (identificador y color) dentro
+      for (const key of [['myWork', slug], queryKeys.workspaceActivityOf(slug), ['relations'], queryKeys.notificationsAll]) {
+        queryClient.invalidateQueries({ queryKey: key })
+      }
     },
   })
 }
@@ -88,6 +92,8 @@ export function useRemoveProjectMember(slug, projectId) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projectMembers(projectId) })
       queryClient.invalidateQueries({ queryKey: queryKeys.projects(slug) })
+      // Quien sale del proyecto deja de ser asignado por defecto en sus plantillas
+      queryClient.invalidateQueries({ queryKey: queryKeys.templates(projectId) })
     },
   })
 }
@@ -101,7 +107,10 @@ export function useStates(slug, projectId) {
   })
 }
 
-/** Al cambiar un estado, los issues muestran su nombre y color: también se refrescan. */
+/**
+ * Al cambiar un estado, los issues muestran su nombre y color: también se refrescan. Las plantillas también
+ * (el estado por defecto de una plantilla se quita si se borra el estado).
+ */
 function useStateMutation(slug, projectId, mutationFn) {
   const queryClient = useQueryClient()
   return useMutation({
@@ -109,6 +118,7 @@ function useStateMutation(slug, projectId, mutationFn) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.states(projectId) })
       queryClient.invalidateQueries({ queryKey: queryKeys.issuesOf(projectId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.templates(projectId) })
     },
   })
 }

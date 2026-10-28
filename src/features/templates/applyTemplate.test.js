@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { applyTemplate, appliedParts, checklistLabel, stripPrefix, templateSummary, usesLabel } from './applyTemplate'
+import {
+  applyTemplate,
+  appliedParts,
+  checklistLabel,
+  fromTemplateFlags,
+  stripPrefix,
+  templateSummary,
+  usesLabel,
+} from './applyTemplate'
 
 const bug = {
   name: 'Reporte de bug',
@@ -14,7 +22,12 @@ const bug = {
   ],
 }
 const story = { name: 'Historia de usuario', titlePrefix: null, description: 'Como … quiero …', priority: null, labels: [], checklist: [] }
-const base = { title: '', description: '', priority: 'NONE', labelIds: [] }
+const base = { title: '', description: '', priority: 'NONE', stateId: null, assigneeIds: [], labelIds: [] }
+const todo = { id: 's-todo', name: 'Por hacer', group: 'UNSTARTED', color: '#3A3A3A' }
+const ana = { id: 'u-ana', fullName: 'Ana Gómez' }
+const luis = { id: 'u-luis', fullName: 'Luis Muñoz' }
+/** Plantilla que además fija estado y asignados. */
+const triage = { ...bug, name: 'Triage', state: todo, assignees: [ana, luis] }
 
 describe('aplicar plantillas', () => {
   it('pone prefijo, descripción, prioridad y etiquetas y conserva el título escrito', () => {
@@ -23,17 +36,55 @@ describe('aplicar plantillas', () => {
       title: '[Bug] El botón no responde',
       description: '## Pasos para reproducir',
       priority: 'HIGH',
+      stateId: null,
+      assigneeIds: [],
       labelIds: ['l-bug'],
     })
   })
 
+  it('pone el estado y los asignados por defecto y «Deshacer» vuelve a los de antes', () => {
+    // La tarea se abrió desde la columna «En curso» y ya tenía a Carla asignada
+    const userValues = { ...base, title: 'Login', stateId: 's-doing', assigneeIds: ['u-carla'] }
+    const withTriage = applyTemplate(userValues, triage, { base: userValues })
+    expect(withTriage.stateId).toBe('s-todo')
+    expect(withTriage.assigneeIds).toEqual(['u-ana', 'u-luis'])
+
+    const undone = applyTemplate(withTriage, null, { previous: triage, base: userValues })
+    expect(undone).toEqual(userValues)
+  })
+
+  it('una plantilla sin estado ni asignados no los cambia (y al cambiar de plantilla vuelven a los de antes)', () => {
+    const userValues = { ...base, title: 'x', stateId: 's-doing', assigneeIds: ['u-carla'] }
+    expect(applyTemplate(userValues, story, { base: userValues })).toMatchObject({ stateId: 's-doing', assigneeIds: ['u-carla'] })
+    const withTriage = applyTemplate(userValues, triage, { base: userValues })
+    expect(applyTemplate(withTriage, story, { previous: triage, base: userValues })).toMatchObject({
+      stateId: 's-doing',
+      assigneeIds: ['u-carla'],
+    })
+  })
+
+  it('marca lo que sigue igual que en la plantilla', () => {
+    const applied = applyTemplate(base, triage, { base })
+    expect(fromTemplateFlags(triage, applied)).toEqual({ priority: true, state: true, assignees: true, labels: true })
+    expect(fromTemplateFlags(triage, { ...applied, stateId: 's-doing', assigneeIds: ['u-ana'] })).toEqual({
+      priority: true,
+      state: false,
+      assignees: false,
+      labels: true,
+    })
+    expect(fromTemplateFlags(null, applied)).toEqual({ priority: false, state: false, assignees: false, labels: false })
+    expect(fromTemplateFlags(story, base)).toEqual({ priority: false, state: false, assignees: false, labels: false })
+  })
+
   it('al cambiar de plantilla quita el prefijo anterior y vuelve a lo de antes en lo que la nueva no fija', () => {
-    const userValues = { title: 'Login', description: '', priority: 'LOW', labelIds: ['l-ui'] }
+    const userValues = { ...base, title: 'Login', priority: 'LOW', labelIds: ['l-ui'] }
     const withBug = applyTemplate(userValues, bug, { base: userValues })
     expect(applyTemplate(withBug, story, { previous: bug, base: userValues })).toEqual({
       title: 'Login',
       description: 'Como … quiero …',
       priority: 'LOW',
+      stateId: null,
+      assigneeIds: [],
       labelIds: ['l-ui'],
     })
   })
@@ -59,6 +110,9 @@ describe('aplicar plantillas', () => {
     expect(templateSummary(story)).toBe('')
     expect(appliedParts(bug)).toBe('prefijo, descripción, etiqueta, prioridad, 2 pasos y 1 criterio')
     expect(appliedParts(story)).toBe('descripción')
+    expect(templateSummary(triage)).toBe('[Bug] · bug · alta · Por hacer · @Ana · @Luis · 2 pasos · 1 criterio')
+    expect(appliedParts(triage)).toBe('prefijo, descripción, etiqueta, prioridad, estado, asignados, 2 pasos y 1 criterio')
+    expect(appliedParts({ ...story, assignees: [ana] })).toBe('descripción y asignado')
   })
 })
 

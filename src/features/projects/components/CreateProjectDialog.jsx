@@ -2,11 +2,13 @@ import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { useCreateProject } from '../hooks'
+import { useCreateProject, useProjects } from '../hooks'
+import { suggestProjectColor } from '../projectColors'
 import { ProjectForm } from './ProjectForm'
 
 export function CreateProjectDialog({ slug, open, onOpenChange }) {
   const createProject = useCreateProject(slug)
+  const { data: projects } = useProjects(slug)
   const navigate = useNavigate()
 
   const handleSubmit = (values, { onError }) => {
@@ -31,6 +33,7 @@ export function CreateProjectDialog({ slug, open, onOpenChange }) {
         </DialogHeader>
         {/* El formulario vive mientras exista el diálogo: así no desaparece durante la animación de cierre */}
         <ProjectForm
+          suggestedColor={suggestProjectColor(projects)}
           onSubmit={handleSubmit}
           pending={createProject.isPending}
           submitLabel="Crear proyecto"

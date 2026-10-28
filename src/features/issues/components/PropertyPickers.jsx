@@ -82,20 +82,35 @@ function OptionsPicker({ trigger, options, value, onChange, multiple = false, pl
   )
 }
 
-/** @param {{ states: import('@/api/types').StateResponse[], value: string, onChange: (id: string) => void }} props */
-export function StatePicker({ states = [], value, onChange, disabled, showLabel = true, className }) {
+/** Opción «sin estado» del selector cuando el estado es opcional. */
+const NO_STATE = '__none__'
+
+/**
+ * `noneLabel`: el estado es opcional; agrega esa opción («Sin estado») y `onChange(null)` al elegirla.
+ * @param {{ states: import('@/api/types').StateResponse[], value: string | null, onChange: (id: string | null) => void,
+ *           noneLabel?: string }} props
+ */
+export function StatePicker({ states = [], value, onChange, disabled, showLabel = true, noneLabel, className }) {
   const current = states.find((state) => state.id === value)
+  const options = states.map((state) => ({
+    value: state.id,
+    label: state.name,
+    icon: <StateIcon group={state.group} color={state.color} />,
+  }))
+  if (noneLabel) {
+    options.unshift({
+      value: NO_STATE,
+      label: noneLabel,
+      icon: <span aria-hidden="true" className="size-3.5 shrink-0 rounded-full border-[1.5px] border-dashed border-dash" />,
+    })
+  }
   return (
     <OptionsPicker
       disabled={disabled}
       placeholder="Cambiar estado…"
-      value={value}
-      onChange={onChange}
-      options={states.map((state) => ({
-        value: state.id,
-        label: state.name,
-        icon: <StateIcon group={state.group} color={state.color} />,
-      }))}
+      value={current ? value : noneLabel ? NO_STATE : value}
+      onChange={(next) => onChange(next === NO_STATE ? null : next)}
+      options={options}
       trigger={
         <PropertyButton className={className} aria-label="Estado">
           {current ? <StateIcon group={current.group} color={current.color} /> : <StateIcon group="UNSTARTED" />}

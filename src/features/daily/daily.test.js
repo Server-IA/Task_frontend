@@ -16,6 +16,7 @@ import {
   stepStatus,
   summaryItems,
   todayNotes,
+  yesterdayDetail,
 } from './daily'
 
 const ana = { id: 'ana', fullName: 'Ana' }
@@ -47,6 +48,15 @@ describe('fechas', () => {
   it('nombra el día de «Ayer» (el viernes después de un fin de semana)', () => {
     expect(previousDayLabel('2026-10-28', '2026-10-27')).toBe('ayer, 27 oct')
     expect(previousDayLabel('2026-10-26', '2026-10-23')).toBe('el viernes 23 oct')
+    // «Ayer» es el último día con actividad: tras días sin movimiento puede ser varios días antes
+    expect(previousDayLabel('2026-10-28', '2026-10-22')).toBe('el jueves 22 oct')
+  })
+
+  it('el bloque «Ayer» lleva la fecha solo si no fue el día anterior', () => {
+    expect(yesterdayDetail('2026-10-28', '2026-10-27')).toBeNull()
+    expect(yesterdayDetail('2026-10-26', '2026-10-23')).toBe('vie 23 oct')
+    expect(yesterdayDetail('2026-10-28', '2026-10-22')).toBe('jue 22 oct')
+    expect(yesterdayDetail('2026-10-28', undefined)).toBeNull()
   })
 
   it('cuenta el día del ciclo en curso que manda el backend', () => {

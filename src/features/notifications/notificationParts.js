@@ -43,6 +43,15 @@ export function notificationProject(notification) {
   return identifier ? identifier.toLowerCase() : ''
 }
 
+/**
+ * Color del proyecto del aviso (clave de la paleta), del ciclo o de la tarea; null si no lo trae.
+ * @param {NotificationResponse} notification
+ * @returns {string | null}
+ */
+export function notificationProjectColor(notification) {
+  return notification.cycle?.projectColor ?? notification.issue?.projectColor ?? null
+}
+
 function codePrefix(code = '') {
   const dash = code.lastIndexOf('-')
   return dash > 0 ? code.slice(0, dash) : ''

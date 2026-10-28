@@ -27,8 +27,8 @@ import {
 import { useDaily } from '../hooks'
 
 /**
- * Daily del proyecto: por persona, lo que hizo el día hábil anterior, lo de hoy y sus bloqueos, más la nota
- * del día. «Presentar» muestra una persona a la vez con un tiempo sugerido. La fecha va en `?date=`.
+ * Daily del proyecto: por persona, lo que hizo «ayer» (el último día con actividad, que elige el backend), lo de
+ * hoy y sus bloqueos, más la nota del día. «Presentar» muestra una persona a la vez con un tiempo sugerido. La fecha va en `?date=`.
  */
 export function DailyPage() {
   const workspace = useCurrentWorkspace()
@@ -115,6 +115,7 @@ export function DailyPage() {
             onExit={exitPresenting}
             cycle={cycle}
             date={daily.date}
+            previousDate={daily.previousDate}
             projectId={project.id}
             blocking={blocking}
             onOpenIssue={issueFilters.openIssue}
@@ -134,6 +135,7 @@ export function DailyPage() {
                   person={person}
                   cycle={cycle}
                   date={daily.date}
+                  previousDate={daily.previousDate}
                   projectId={project.id}
                   blocking={blocking.get(person.user?.id)}
                   onOpenIssue={issueFilters.openIssue}
@@ -199,8 +201,8 @@ function PresentSwitch({ checked, disabled, onToggle }) {
 }
 
 /**
- * «// desde ayer, 27 oct  2 tareas movidas  1 nueva en curso  4 comentarios  ⊘ 1 bloqueo   Ayer = día hábil
- * anterior». Los números los calcula el backend para todo el proyecto.
+ * «// desde ayer, 27 oct  2 tareas movidas  1 nueva en curso  4 comentarios  ⊘ 1 bloqueo   Ayer = último día con
+ * actividad». Los números los calcula el backend para todo el proyecto.
  */
 function DailySummaryStrip({ daily }) {
   const { items, blocked } = summaryItems(daily.summary)
@@ -223,7 +225,12 @@ function DailySummaryStrip({ daily }) {
           {blocked} {blocked === 1 ? 'bloqueo' : 'bloqueos'}
         </span>
       )}
-      <span className="ml-auto text-xs text-muted-foreground">Ayer = día hábil anterior</span>
+      <span
+        className="ml-auto text-xs text-muted-foreground"
+        title="El último día antes de la reunión en que hubo cambios o comentarios en el proyecto (como mucho, el día hábil anterior)"
+      >
+        Ayer = último día con actividad
+      </span>
     </section>
   )
 }

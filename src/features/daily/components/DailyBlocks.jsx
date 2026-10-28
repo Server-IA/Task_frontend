@@ -2,7 +2,7 @@ import { Fragment } from 'react'
 import { Ban } from 'lucide-react'
 import { StateIcon } from '@/components/common/StateIcon'
 import { cn } from '@/lib/utils'
-import { blockerOwner, changeNote, todayNotes } from '../daily'
+import { blockerOwner, changeNote, todayNotes, yesterdayDetail } from '../daily'
 
 /** Color y peso de cada nota bajo una tarea. */
 const TONES = {
@@ -13,14 +13,14 @@ const TONES = {
 }
 
 /**
- * Los tres bloques de una persona: «Ayer» (tarea + su cambio de estado), «Hoy» (en curso o con fecha hasta ese
- * día, con «vence mañana» y similares) y «Bloqueos» (con las tareas que la bloquean y de quién son).
- * Cada tarea del proyecto abre el panel lateral.
- * @param {{ person: import('@/api/types').DailyPerson, date: string, projectId: string,
+ * Los tres bloques de una persona: «Ayer» (tarea + su cambio de estado; con su fecha si no fue el día anterior),
+ * «Hoy» (en curso o con fecha hasta ese día, con «vence mañana» y similares) y «Bloqueos» (con las tareas que la
+ * bloquean y de quién son). Cada tarea del proyecto abre el panel lateral.
+ * @param {{ person: import('@/api/types').DailyPerson, date: string, previousDate?: string, projectId: string,
  *           blocking?: { code: string, blockedCode: string, ownerName: string }[],
  *           onOpenIssue: (issueId: string) => void, size?: 'card' | 'focus' }} props
  */
-export function personBlocks({ person, date, projectId, blocking = [], onOpenIssue, size = 'card' }) {
+export function personBlocks({ person, date, previousDate, projectId, blocking = [], onOpenIssue, size = 'card' }) {
   const userId = person.user?.id
   const yesterday = (person.yesterday ?? []).map((entry) => ({
     key: `y-${entry.issue?.id}`,
@@ -49,7 +49,13 @@ export function personBlocks({ person, date, projectId, blocking = [], onOpenIss
       : ''
 
   return [
-    { key: 'yesterday', title: 'Ayer', items: yesterday, empty: 'Sin cambios registrados.' },
+    {
+      key: 'yesterday',
+      title: 'Ayer',
+      detail: yesterdayDetail(date, previousDate),
+      items: yesterday,
+      empty: 'Sin cambios registrados.',
+    },
     { key: 'today', title: 'Hoy', items: today, empty: 'Nada en curso ni con fecha para hoy.' },
     {
       key: 'blockers',
@@ -76,6 +82,7 @@ export function DailyBlock({ block, className, headingClassName }) {
       >
         {block.late && <Ban className="size-3" strokeWidth={2.5} aria-hidden="true" />}
         {block.title}
+        {block.detail && <span className="font-normal tracking-normal normal-case">· {block.detail}</span>}
         {block.items.length > 0 && <span className="font-normal">· {block.items.length}</span>}
       </h3>
       {block.items.length === 0 ? (

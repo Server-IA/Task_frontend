@@ -7,12 +7,12 @@ import { DailyBlock, personBlocks } from './DailyBlocks'
  * Tarjeta de una persona en la vista general de la daily: «3 tareas asignadas · 1 hecha» (del ciclo en curso)
  * y sus bloques Ayer, Hoy y Bloqueos.
  * @param {{ person: import('@/api/types').DailyPerson, cycle: import('@/api/types').DailyCycle | null,
- *           date: string, projectId: string,
+ *           date: string, previousDate?: string, projectId: string,
  *           blocking?: { code: string, blockedCode: string, ownerName: string }[], onOpenIssue: (issueId: string) => void }} props
  */
-export function DailyPersonCard({ person, cycle, date, projectId, blocking, onOpenIssue }) {
+export function DailyPersonCard({ person, cycle, date, previousDate, projectId, blocking, onOpenIssue }) {
   const me = useSessionStore((state) => state.user?.id) === person.user?.id
-  const blocks = personBlocks({ person, date, projectId, blocking, onOpenIssue })
+  const blocks = personBlocks({ person, date, previousDate, projectId, blocking, onOpenIssue })
   const open = person.openCount ?? 0
   return (
     <article aria-label={person.user?.fullName} className="tf-enter flex min-w-0 flex-col gap-3 rounded-[18px] border bg-card px-4 py-3.5">

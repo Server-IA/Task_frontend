@@ -39,13 +39,25 @@ export function shiftWorkday(iso, delta) {
 /** «mar 27 oct». */
 export const weekdayDate = (iso) => format(parseISO(iso), 'EEE d MMM', { locale: es }).replace('.', '')
 
-/** De qué día habla «Ayer»: «ayer, 27 oct» o, tras un fin de semana, «el viernes 23 oct». */
+/**
+ * De qué día habla «Ayer» (el último día con actividad que eligió el backend): «ayer, 27 oct» o, tras un fin de
+ * semana o días sin movimiento, «el viernes 23 oct».
+ */
 export function previousDayLabel(date, previousDate) {
   if (!date || !previousDate) return ''
   const days = differenceInCalendarDays(parseISO(date), parseISO(previousDate))
   const short = format(parseISO(previousDate), 'd MMM', { locale: es }).replace('.', '')
   if (days === 1) return `ayer, ${short}`
   return `el ${format(parseISO(previousDate), 'EEEE', { locale: es })} ${short}`
+}
+
+/**
+ * Fecha corta de «Ayer» para el título del bloque («vie 23 oct») cuando no es el día anterior a la reunión; null si
+ * lo es (entonces «Ayer» ya lo dice todo).
+ */
+export function yesterdayDetail(date, previousDate) {
+  if (!date || !previousDate) return null
+  return differenceInCalendarDays(parseISO(date), parseISO(previousDate)) === 1 ? null : weekdayDate(previousDate)
 }
 
 /** Tipo de cambio de «Ayer» según el texto del backend (completó > movió a … > creó > comentó > actualizó). */

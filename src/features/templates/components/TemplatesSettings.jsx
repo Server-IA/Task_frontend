@@ -11,14 +11,16 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { AvatarStack } from '@/components/common/AvatarStack'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { LabelChip } from '@/components/common/LabelChip'
 import { CenteredSpinner, Spinner } from '@/components/common/Loaders'
 import { LockNote } from '@/components/common/LockNote'
+import { StateIcon } from '@/components/common/StateIcon'
 import { EmptyState, ErrorState } from '@/components/common/States'
-import { LabelsPicker, PriorityPicker } from '@/features/issues/components/PropertyPickers'
+import { AssigneesPicker, LabelsPicker, PriorityPicker, StatePicker } from '@/features/issues/components/PropertyPickers'
 import { PriorityChip } from '@/features/issues/components/PriorityIcon'
-import { useLabels } from '@/features/projects/hooks'
+import { useProjectMeta } from '@/features/issues/useIssueHelpers'
 import { useIsManager } from '@/features/workspaces/hooks'
 import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
@@ -34,6 +36,8 @@ const templateSchema = z.object({
   titlePrefix: z.string().max(40, 'Máximo 40 caracteres'),
   description: z.string().max(50000, 'La descripción es demasiado larga'),
   priority: z.string(),
+  stateId: z.string().nullable(),
+  assigneeIds: z.array(z.string()).max(20, 'Máximo 20 asignados'),
   labelIds: z.array(z.string()).max(20, 'Máximo 20 etiquetas'),
   checklist: z
     .array(z.object({ kind: z.enum(['CRITERION', 'CHECK']), text: z.string().max(500, 'Máximo 500 caracteres') }))
@@ -41,7 +45,16 @@ const templateSchema = z.object({
 })
 
 const NEW = 'new'
-const EMPTY_VALUES = { name: '', titlePrefix: '', description: '', priority: 'NONE', labelIds: [], checklist: [] }
+const EMPTY_VALUES = {
+  name: '',
+  titlePrefix: '',
+  description: '',
+  priority: 'NONE',
+  stateId: null,
+  assigneeIds: [],
+  labelIds: [],
+  checklist: [],
+}
 
 /** @param {IssueTemplate} template */
 const toFormValues = (template) => ({
@@ -49,13 +62,19 @@ const toFormValues = (template) => ({
   titlePrefix: template.titlePrefix ?? '',
   description: template.description ?? '',
   priority: template.priority ?? 'NONE',
+  stateId: template.state?.id ?? null,
+  assigneeIds: (template.assignees ?? []).map((user) => user.id),
   labelIds: (template.labels ?? []).map((label) => label.id),
   checklist: (template.checklist ?? []).map(({ kind, text }) => ({ kind, text })),
 })
 
-/** Lo que se envía: sin elementos vacíos en la checklist. Prefijo o descripción vacíos los quitan. */
-const toRequest = (values) => ({
+/**
+ * Lo que se envía: sin elementos vacíos en la checklist. Prefijo o descripción vacíos los quitan; al editar, sin
+ * estado se envía `clearState` para quitarlo.
+ */
+const toRequest = ({ stateId, ...values }, isNew) => ({
   ...values,
+  ...(stateId ? { stateId } : isNew ? {} : { clearState: true }),
   name: values.name.trim(),
   checklist: values.checklist
     .map((item) => ({ kind: item.kind, text: item.text.trim() }))
@@ -89,8 +108,8 @@ export function TemplatesSettings({ slug, project }) {
         <div className="space-y-1.5">
           <CardTitle>Plantillas de tareas</CardTitle>
           <CardDescription>
-            Rellenan la tarea nueva con título, descripción, etiquetas, prioridad y checklist. Todo el equipo las usa al crear
-            tareas.
+            Rellenan la tarea nueva con título, descripción, estado, prioridad, etiquetas, asignados y checklist. Todo el equipo
+            las usa al crear tareas.
           </CardDescription>
           {!canManage && <LockNote>Solo el project manager puede cambiar las plantillas.</LockNote>}
         </div>
@@ -211,7 +230,7 @@ const fieldLabel = 'flex flex-col gap-1.5 text-xs font-medium text-muted-foregro
 
 /** Formulario de una plantilla (nueva si `template` es null). Para los miembros, solo lectura. */
 function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted, onCancelNew }) {
-  const { data: labels = [] } = useLabels(slug, project.id)
+  const { states, labels, users } = useProjectMeta(slug, project.id)
   const create = useCreateTemplate(slug, project.id)
   const update = useUpdateTemplate(slug, project.id)
   const remove = useDeleteTemplate(slug, project.id)
@@ -229,7 +248,7 @@ function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted
   const errors = form.formState.errors
 
   const onSubmit = (formValues) => {
-    const body = toRequest(formValues)
+    const body = toRequest(formValues, isNew)
     const options = {
       onSuccess: (saved) => {
         toast.success(isNew ? `Plantilla «${saved.name}» creada` : 'Plantilla guardada')
@@ -257,6 +276,9 @@ function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted
   const chip = (empty) =>
     cn('h-8 rounded-full border px-3 text-[13px]', empty ? 'border-dashed border-dash text-muted-foreground' : 'border-border bg-card')
   const selectedLabels = labels.filter((label) => values.labelIds?.includes(label.id))
+  const selectedState = states.find((state) => state.id === values.stateId)
+  const selectedUsers = users.filter((user) => values.assigneeIds?.includes(user.id))
+  const hasDefaults = Boolean(selectedState) || values.priority !== 'NONE' || selectedLabels.length > 0 || selectedUsers.length > 0
 
   return (
     <form
@@ -298,16 +320,33 @@ function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted
         <p className="text-xs font-medium text-muted-foreground">Valores por defecto</p>
         {readOnly ? (
           <div className="flex flex-wrap items-center gap-1.5">
+            {selectedState && (
+              <span className={cn(chip(false), 'inline-flex items-center gap-1.5')}>
+                <StateIcon group={selectedState.group} color={selectedState.color} />
+                {selectedState.name}
+              </span>
+            )}
             {values.priority !== 'NONE' ? <PriorityChip priority={values.priority} /> : null}
             {selectedLabels.map((label) => (
               <LabelChip key={label.id} label={label} />
             ))}
-            {values.priority === 'NONE' && selectedLabels.length === 0 && (
-              <span className="text-sm text-muted-foreground">Sin prioridad ni etiquetas</span>
+            {selectedUsers.length > 0 && (
+              <span className={cn(chip(false), 'inline-flex items-center gap-1.5')}>
+                <AvatarStack users={selectedUsers} size="xs" />
+                {selectedUsers.map((user) => user.fullName.split(' ')[0]).join(', ')}
+              </span>
             )}
+            {!hasDefaults && <span className="text-sm text-muted-foreground">Sin valores por defecto</span>}
           </div>
         ) : (
           <div className="flex flex-wrap items-center gap-1.5">
+            <StatePicker
+              states={states}
+              value={values.stateId}
+              onChange={(stateId) => form.setValue('stateId', stateId, { shouldDirty: true })}
+              noneLabel="Sin estado fijo"
+              className={chip(!selectedState)}
+            />
             <PriorityPicker
               value={values.priority}
               onChange={(priority) => form.setValue('priority', priority, { shouldDirty: true })}
@@ -320,8 +359,15 @@ function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted
               compact
               className={chip(!values.labelIds?.length)}
             />
+            <AssigneesPicker
+              members={users}
+              value={values.assigneeIds ?? []}
+              onChange={(assigneeIds) => form.setValue('assigneeIds', assigneeIds, { shouldDirty: true })}
+              className={chip(!values.assigneeIds?.length)}
+            />
           </div>
         )}
+        {errors.assigneeIds?.message && <span className="text-xs text-destructive">{errors.assigneeIds.message}</span>}
       </div>
 
       <div className="flex flex-col gap-1.5">

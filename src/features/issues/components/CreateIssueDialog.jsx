@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { Spinner } from '@/components/common/Loaders'
-import { applyTemplate, appliedParts, checklistLabel } from '@/features/templates/applyTemplate'
+import { applyTemplate, appliedParts, checklistLabel, fromTemplateFlags } from '@/features/templates/applyTemplate'
 import { useTemplates } from '@/features/templates/hooks'
 import { useIsManager } from '@/features/workspaces/hooks'
 import { applyFieldErrors } from '@/lib/errors'
@@ -45,7 +45,8 @@ const CHECKLIST_ON_CREATE = 50
 /**
  * Crear tarea. `defaults` permite preseleccionar estado (columna del tablero), padre (subtarea) o un título
  * (lo escrito en la paleta de comandos). Una plantilla del proyecto puede rellenar prefijo del título,
- * descripción, prioridad y etiquetas, y agrega su checklist a la tarea.
+ * descripción, prioridad, estado, asignados y etiquetas, y agrega su checklist a la tarea; «Deshacer» vuelve a
+ * los valores de antes.
  * @param {{ slug: string, project: import('@/api/types').ProjectResponse, open: boolean, onOpenChange: Function,
  *           defaults?: { stateId?: string, parentId?: string, parentCode?: string, title?: string }, onCreated?: Function }} props
  */
@@ -119,8 +120,8 @@ function CreateIssueForm({ slug, project, defaults, onCancel, onCreated }) {
   const caretToEnd = () => setCaretRequest((count) => count + 1)
 
   const chooseTemplate = (next) => {
-    const { title, description, priority, labelIds } = form.getValues()
-    const current = { title, description, priority, labelIds }
+    const { title, description, priority, stateId: currentState, assigneeIds, labelIds } = form.getValues()
+    const current = { title, description, priority, stateId: currentState, assigneeIds, labelIds }
     const baseValues = base ?? current
     const applied = applyTemplate(current, next, { previous: template, base: baseValues })
     Object.entries(applied).forEach(([name, value]) => form.setValue(name, value, { shouldDirty: true }))
@@ -128,13 +129,7 @@ function CreateIssueForm({ slug, project, defaults, onCancel, onCreated }) {
     setBase(next ? baseValues : null)
     caretToEnd()
   }
-  const fromTemplate = {
-    priority: Boolean(template?.priority) && template.priority !== 'NONE' && values.priority === template.priority,
-    labels:
-      template?.labels?.length > 0 &&
-      template.labels.length === values.labelIds.length &&
-      template.labels.every((label) => values.labelIds.includes(label.id)),
-  }
+  const fromTemplate = fromTemplateFlags(template, values)
 
   const onSubmit = (data) => {
     const body = {
@@ -234,16 +229,20 @@ function CreateIssueForm({ slug, project, defaults, onCancel, onCreated }) {
           )}
         />
         <div className="flex flex-wrap items-center gap-1.5">
-          <StatePicker states={meta.states} value={stateId} onChange={setField('stateId')} className={chip(false)} />
+          <FromTemplate active={fromTemplate.state}>
+            <StatePicker states={meta.states} value={stateId} onChange={setField('stateId')} className={chip(false)} />
+          </FromTemplate>
           <FromTemplate active={fromTemplate.priority}>
             <PriorityPicker value={values.priority} onChange={setField('priority')} className={chip(values.priority === 'NONE')} />
           </FromTemplate>
-          <AssigneesPicker
-            members={meta.users}
-            value={values.assigneeIds}
-            onChange={setField('assigneeIds')}
-            className={chip(values.assigneeIds.length === 0)}
-          />
+          <FromTemplate active={fromTemplate.assignees}>
+            <AssigneesPicker
+              members={meta.users}
+              value={values.assigneeIds}
+              onChange={setField('assigneeIds')}
+              className={chip(values.assigneeIds.length === 0)}
+            />
+          </FromTemplate>
           <FromTemplate active={fromTemplate.labels}>
             <LabelsPicker
               labels={meta.labels}

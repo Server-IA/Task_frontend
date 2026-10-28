@@ -4,7 +4,7 @@
 
 /** @typedef {import('@/api/types').IssueResponse} IssueResponse */
 /** @typedef {import('@/api/types').IssueRelation} IssueRelation */
-/** @typedef {{ id?: string, name?: string, identifier?: string }} ProjectRef */
+/** @typedef {{ id?: string, name?: string, identifier?: string, color?: string | null }} ProjectRef */
 
 /**
  * Resultados del buscador: primero las de este proyecto (la lista de tareas) y luego las del resto del workspace
@@ -32,14 +32,17 @@ export function identifierFromCode(code = '') {
 }
 
 /**
- * Proyecto de un resultado de búsqueda (trae solo `projectId`): el de la lista de proyectos o, si no está,
- * el identificador del código.
+ * Proyecto de un resultado de búsqueda: el de la lista de proyectos (al día si se acaba de editar) o, si no está,
+ * el que trae la tarea; sin ninguno, el identificador del código (sin color).
  * @param {IssueResponse} issue
  * @param {Map<string, ProjectRef>} projectsById
  * @returns {ProjectRef}
  */
 export function projectOf(issue, projectsById) {
-  return projectsById.get(issue.projectId) ?? { id: issue.projectId, identifier: identifierFromCode(issue.code) }
+  return (
+    projectsById.get(issue.projectId) ??
+    issue.project ?? { id: issue.projectId, identifier: identifierFromCode(issue.code) }
+  )
 }
 
 /**

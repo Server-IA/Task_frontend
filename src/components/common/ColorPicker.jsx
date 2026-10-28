@@ -23,6 +23,25 @@ export const PRESET_COLORS = [
 
 const HEX = /^#[0-9A-Fa-f]{6}$/
 
+/**
+ * Muestra redonda de un color, con ✓ si está elegida. El fondo va en `style` o en `className`;
+ * `checkClassName` es el color del ✓ (blanco por defecto).
+ */
+export function ColorSwatch({ selected, className, checkClassName = 'text-white', ...props }) {
+  return (
+    <button
+      type="button"
+      className={cn(
+        'flex size-7 items-center justify-center rounded-full ring-offset-2 ring-offset-popover outline-none hover:ring-2 hover:ring-ring focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50',
+        className,
+      )}
+      {...props}
+    >
+      {selected && <Check className={cn('size-3.5', checkClassName)} />}
+    </button>
+  )
+}
+
 /** Selector de color: paleta de colores + campo hexadecimal. */
 export function ColorPicker({ value, onChange, disabled, className }) {
   const [draft, setDraft] = useState(value ?? '')
@@ -57,19 +76,16 @@ export function ColorPicker({ value, onChange, disabled, className }) {
       <PopoverContent className="w-60 space-y-3 p-3" align="start">
         <div className="grid grid-cols-7 gap-1.5">
           {PRESET_COLORS.map((color) => (
-            <button
+            <ColorSwatch
               key={color}
-              type="button"
               onClick={() => {
                 choose(color)
                 setOpen(false)
               }}
-              className="flex size-7 items-center justify-center rounded-full ring-offset-2 ring-offset-popover hover:ring-2 hover:ring-ring"
               style={{ backgroundColor: color }}
               aria-label={color}
-            >
-              {value?.toUpperCase() === color && <Check className="size-3.5 text-white" />}
-            </button>
+              selected={value?.toUpperCase() === color}
+            />
           ))}
         </div>
         <div className="flex items-center gap-2">

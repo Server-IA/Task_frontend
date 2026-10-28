@@ -2,11 +2,15 @@ import { PRIORITY_LABELS } from '@/features/issues/constants'
 
 /**
  * Aplicar una plantilla al formulario de nueva tarea y textos que la resumen.
- * Una plantilla pone el prefijo del título, la descripción, la prioridad, las etiquetas y la checklist.
+ * Una plantilla pone el prefijo del título, la descripción, la prioridad, el estado, los asignados, las etiquetas
+ * y la checklist.
  */
 
 /** @typedef {import('@/api/types').IssueTemplate} IssueTemplate */
-/** @typedef {{ title: string, description: string, priority: string, labelIds: string[] }} TemplateFields */
+/**
+ * @typedef {{ title: string, description: string, priority: string, stateId: string | null, assigneeIds: string[],
+ *             labelIds: string[] }} TemplateFields
+ */
 
 /** Quita el prefijo de una plantilla del inicio del título (si lo tiene). */
 export function stripPrefix(title = '', prefix) {
@@ -30,14 +34,40 @@ export function stripPrefix(title = '', prefix) {
 export function applyTemplate(values, template, { previous = null, base }) {
   const title = stripPrefix(values.title, previous?.titlePrefix)
   if (!template) {
-    return { title, description: base.description, priority: base.priority, labelIds: base.labelIds }
+    return {
+      title,
+      description: base.description,
+      priority: base.priority,
+      stateId: base.stateId,
+      assigneeIds: base.assigneeIds,
+      labelIds: base.labelIds,
+    }
   }
   const prefix = template.titlePrefix ?? ''
   return {
     title: prefix && !title.startsWith(prefix) ? `${prefix}${title}` : title,
     description: template.description ?? base.description,
     priority: template.priority && template.priority !== 'NONE' ? template.priority : base.priority,
+    stateId: template.state?.id ?? base.stateId,
+    assigneeIds: template.assignees?.length ? template.assignees.map((user) => user.id) : base.assigneeIds,
     labelIds: template.labels?.length ? template.labels.map((label) => label.id) : base.labelIds,
+  }
+}
+
+/**
+ * Qué valores del formulario siguen siendo los de la plantilla (para el punto dorado de cada pastilla): solo los
+ * que la plantilla fija y nadie cambió después.
+ * @param {IssueTemplate | null} template
+ * @param {{ priority: string, stateId: string | null, assigneeIds: string[], labelIds: string[] }} values
+ */
+export function fromTemplateFlags(template, values) {
+  const sameIds = (list = [], ids = []) =>
+    list.length > 0 && list.length === ids.length && list.every((item) => ids.includes(item.id))
+  return {
+    priority: Boolean(template?.priority) && template.priority !== 'NONE' && values.priority === template.priority,
+    state: Boolean(template?.state) && values.stateId === template.state.id,
+    assignees: sameIds(template?.assignees, values.assigneeIds),
+    labels: sameIds(template?.labels, values.labelIds),
   }
 }
 
@@ -56,12 +86,17 @@ export function checklistLabel(checklist = []) {
   return checklistParts(checklist).join(' · ')
 }
 
-/** Resumen de la lista de plantillas: «[Bug] · bug · alta · 4 pasos · 1 criterio». */
+/** «Luis Muñoz» → «@Luis». */
+const mention = (user) => `@${user.fullName?.trim().split(/\s+/)[0] ?? ''}`
+
+/** Resumen de la lista de plantillas: «[Bug] · bug · alta · Por hacer · @Ana · 4 pasos · 1 criterio». */
 export function templateSummary(template) {
   return [
     template.titlePrefix?.trim(),
     ...(template.labels ?? []).map((label) => label.name),
     template.priority && template.priority !== 'NONE' ? PRIORITY_LABELS[template.priority].toLowerCase() : null,
+    template.state?.name,
+    ...(template.assignees ?? []).map(mention),
     checklistLabel(template.checklist),
   ]
     .filter(Boolean)
@@ -75,6 +110,8 @@ export function appliedParts(template) {
     template.description && 'descripción',
     template.labels?.length && (template.labels.length === 1 ? 'etiqueta' : 'etiquetas'),
     template.priority && template.priority !== 'NONE' && 'prioridad',
+    template.state && 'estado',
+    template.assignees?.length && (template.assignees.length === 1 ? 'asignado' : 'asignados'),
     ...checklistParts(template.checklist),
   ].filter(Boolean)
   if (parts.length <= 1) return parts[0] ?? 'nada'

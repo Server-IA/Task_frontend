@@ -80,7 +80,7 @@ export interface paths {
         put?: never;
         /**
          * Crear proyecto (project manager)
-         * @description Crea los estados por defecto (Backlog, Todo, In Progress, Done, Cancelled) y las plantillas de tarea por defecto (Reporte de bug, Historia de usuario y Tarea técnica).
+         * @description Crea los estados por defecto (Backlog, Todo, In Progress, Done, Cancelled) y las plantillas de tarea por defecto (Reporte de bug, Historia de usuario y Tarea técnica). color es una clave de la paleta (TEAL, AMBER, BLUE, PINK, VIOLET, ORANGE, GREEN); sin color, el menos usado del workspace (entre empatados, el primero de la paleta).
          */
         post: operations["create_1"];
         delete?: never;
@@ -104,7 +104,7 @@ export interface paths {
         put?: never;
         /**
          * Guardar vista
-         * @description Personal por defecto; shared: true solo lo puede usar el project manager (403). filters: { state, priority, assignee, label, search, cycle, module, blocked, view: list|board, sort, groupBy: state|priority|assignee|label } (ej. sort "dueDate,asc").
+         * @description Personal por defecto; shared: true solo lo puede usar el project manager (403). filters: { state, priority, assignee, label, search, cycle, module, blocked, view: list|board, sort, groupBy: state|priority|assignee|label } (ej. sort "dueDate,asc" o "priorityRank,asc").
          */
         post: operations["create_2"];
         delete?: never;
@@ -122,13 +122,13 @@ export interface paths {
         };
         /**
          * Listar plantillas (en su orden)
-         * @description Al crear una tarea desde una plantilla, el frontend antepone titlePrefix al título, usa description, priority y labels, envía checklist en el campo checklist de la tarea y el id de la plantilla en templateId. usageCount = tareas creadas con la plantilla.
+         * @description Al crear una tarea desde una plantilla, el frontend antepone titlePrefix al título, usa description, priority, state, assignees y labels, envía checklist en el campo checklist de la tarea y el id de la plantilla en templateId. usageCount = tareas creadas con la plantilla.
          */
         get: operations["getTemplates"];
         put?: never;
         /**
          * Crear plantilla (project manager)
-         * @description El nombre no se repite en el proyecto (409) y las etiquetas deben ser del proyecto (400). Queda al final de la lista.
+         * @description El nombre no se repite en el proyecto (409); las etiquetas y el estado deben ser del proyecto y los asignados, miembros del proyecto (400). Queda al final de la lista.
          */
         post: operations["create_3"];
         delete?: never;
@@ -238,7 +238,7 @@ export interface paths {
         };
         /**
          * Listar issues con filtros y paginación
-         * @description Orden por defecto: sortOrder (el del Kanban). Ej.: ?state=…&priority=HIGH&search=login&page=0&size=20. blocked=true deja solo las bloqueadas (su totalElements es el «N bloqueadas» del encabezado).
+         * @description Orden por defecto: sortOrder (el del Kanban). Ej.: ?state=…&priority=HIGH&search=login&page=0&size=20. blocked=true deja solo las bloqueadas (su totalElements es el «N bloqueadas» del encabezado). sort=priorityRank,asc ordena por prioridad (urgente, alta, media, baja, sin prioridad) y luego por fecha límite y número.
          */
         get: operations["getIssues"];
         put?: never;
@@ -724,7 +724,10 @@ export interface paths {
         delete: operations["delete_1"];
         options?: never;
         head?: never;
-        /** Editar proyecto (project manager) */
+        /**
+         * Editar proyecto (project manager)
+         * @description Edición parcial: los campos nulos no se modifican. color es una clave de la paleta.
+         */
         patch: operations["update_1"];
         trace?: never;
     };
@@ -768,7 +771,7 @@ export interface paths {
         head?: never;
         /**
          * Editar o reordenar plantilla (project manager)
-         * @description Edición parcial. titlePrefix o description vacíos los quitan y priority NONE quita la prioridad; labelIds y checklist reemplazan la lista; position = nuevo índice (desde 0).
+         * @description Edición parcial. titlePrefix o description vacíos los quitan y priority NONE quita la prioridad; stateId cambia el estado por defecto y clearState lo quita; labelIds, assigneeIds y checklist reemplazan la lista; position = nuevo índice (desde 0).
          */
         patch: operations["update_3"];
         trace?: never;
@@ -1135,7 +1138,7 @@ export interface paths {
         };
         /**
          * Daily del proyecto
-         * @description previousDate = día hábil anterior (el día antes; si date es lunes, sábado o domingo, el viernes). Por persona (miembros del proyecto y asignados a sus tareas abiertas, por nombre): yesterday = lo que hizo desde previousDate hasta antes de date, una entrada por tarea con el cambio más importante (completó > movió a {estado} > creó > comentó > actualizó), máximo 8; today = sus tareas abiertas en curso (STARTED) o con fecha límite hasta date, por fecha límite, máximo 8; blockers = sus tareas abiertas con bloqueos abiertos (blockedBy con estado y asignados de cada tarea que bloquea; de un proyecto al que no tengo acceso, sin título ni asignados); openCount = sus abiertas; cycleAssignedCount y cycleCompletedCount = sus tareas del ciclo en curso (sin canceladas) y cuántas completó. cycle = ciclo en curso ese día o null. summary = tareas movidas, empezadas y completadas, comentarios y bloqueadas en el periodo. note = nota del día o null.
+         * @description previousDate = «ayer»: el último día antes de date con actividad en el proyecto (historial de las tareas y comentarios), sin pasar del día hábil anterior (el día antes; si date es lunes, sábado o domingo, el viernes); sin actividad en los 14 días anteriores, el día hábil anterior. Por persona (miembros del proyecto y asignados a sus tareas abiertas, por nombre): yesterday = lo que hizo desde previousDate hasta antes de date, una entrada por tarea con el cambio más importante (completó > movió a {estado} > creó > comentó > actualizó), máximo 8; today = sus tareas abiertas en curso (STARTED) o con fecha límite hasta date, por fecha límite, máximo 8; blockers = sus tareas abiertas con bloqueos abiertos (blockedBy con estado y asignados de cada tarea que bloquea; de un proyecto al que no tengo acceso, sin título ni asignados); openCount = sus abiertas; cycleAssignedCount y cycleCompletedCount = sus tareas del ciclo en curso (sin canceladas) y cuántas completó. cycle = ciclo en curso ese día o null. summary = tareas movidas, empezadas y completadas, comentarios y bloqueadas en el periodo. note = nota del día o null.
          */
         get: operations["getDaily"];
         put?: never;
@@ -1499,6 +1502,8 @@ export interface components {
             name: string;
             identifier: string;
             description?: string;
+            /** @enum {string} */
+            color?: "TEAL" | "AMBER" | "BLUE" | "PINK" | "VIOLET" | "ORANGE" | "GREEN";
         };
         ProjectResponse: {
             /** Format: uuid */
@@ -1507,6 +1512,8 @@ export interface components {
             workspaceId?: string;
             name?: string;
             identifier?: string;
+            /** @enum {string} */
+            color?: "TEAL" | "AMBER" | "BLUE" | "PINK" | "VIOLET" | "ORANGE" | "GREEN";
             description?: string;
             /** Format: int32 */
             issueCount?: number;
@@ -1538,6 +1545,9 @@ export interface components {
             priority?: "URGENT" | "HIGH" | "MEDIUM" | "LOW" | "NONE";
             labelIds?: string[];
             checklist?: components["schemas"]["ChecklistItemRequest"][];
+            /** Format: uuid */
+            stateId?: string;
+            assigneeIds?: string[];
         };
         IssueTemplateResponse: {
             /** Format: uuid */
@@ -1548,6 +1558,8 @@ export interface components {
             /** @enum {string} */
             priority?: "URGENT" | "HIGH" | "MEDIUM" | "LOW" | "NONE";
             labels?: components["schemas"]["LabelResponse"][];
+            state?: components["schemas"]["StateResponse"];
+            assignees?: components["schemas"]["UserSummaryResponse"][];
             checklist?: components["schemas"]["TemplateChecklistItemResponse"][];
             /** Format: int32 */
             position?: number;
@@ -1560,6 +1572,16 @@ export interface components {
             name?: string;
             color?: string;
         };
+        StateResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            color?: string;
+            /** @enum {string} */
+            group?: "BACKLOG" | "UNSTARTED" | "STARTED" | "COMPLETED" | "CANCELLED";
+            /** Format: int32 */
+            position?: number;
+        };
         TemplateChecklistItemResponse: {
             /** @enum {string} */
             kind?: "CRITERION" | "CHECK";
@@ -1570,16 +1592,6 @@ export interface components {
             color: string;
             /** @enum {string} */
             group: "BACKLOG" | "UNSTARTED" | "STARTED" | "COMPLETED" | "CANCELLED";
-            /** Format: int32 */
-            position?: number;
-        };
-        StateResponse: {
-            /** Format: uuid */
-            id?: string;
-            name?: string;
-            color?: string;
-            /** @enum {string} */
-            group?: "BACKLOG" | "UNSTARTED" | "STARTED" | "COMPLETED" | "CANCELLED";
             /** Format: int32 */
             position?: number;
         };
@@ -1657,6 +1669,7 @@ export interface components {
             sequenceId?: number;
             /** Format: uuid */
             projectId?: string;
+            project?: components["schemas"]["ProjectRefResponse"];
             title?: string;
             description?: string;
             state?: components["schemas"]["StateResponse"];
@@ -1712,6 +1725,14 @@ export interface components {
             id?: string;
             name?: string;
         };
+        ProjectRefResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            identifier?: string;
+            /** @enum {string} */
+            color?: "TEAL" | "AMBER" | "BLUE" | "PINK" | "VIOLET" | "ORANGE" | "GREEN";
+        };
         CreateIssueRelationRequest: {
             /** @enum {string} */
             type: "BLOCKS" | "BLOCKED_BY" | "RELATES";
@@ -1723,12 +1744,6 @@ export interface components {
             relationId?: string;
             issue?: components["schemas"]["RelatedIssueResponse"];
             accessible?: boolean;
-        };
-        ProjectRefResponse: {
-            /** Format: uuid */
-            id?: string;
-            name?: string;
-            identifier?: string;
         };
         RelatedIssueResponse: {
             /** Format: uuid */
@@ -1945,6 +1960,8 @@ export interface components {
             name?: string;
             identifier?: string;
             description?: string;
+            /** @enum {string} */
+            color?: "TEAL" | "AMBER" | "BLUE" | "PINK" | "VIOLET" | "ORANGE" | "GREEN";
         };
         UpdateSavedViewRequest: {
             name?: string;
@@ -1963,6 +1980,10 @@ export interface components {
             checklist?: components["schemas"]["ChecklistItemRequest"][];
             /** Format: int32 */
             position?: number;
+            /** Format: uuid */
+            stateId?: string;
+            clearState?: boolean;
+            assigneeIds?: string[];
         };
         UpdateStateRequest: {
             name?: string;
@@ -2060,6 +2081,8 @@ export interface components {
             /** Format: uuid */
             projectId?: string;
             projectIdentifier?: string;
+            /** @enum {string} */
+            projectColor?: "TEAL" | "AMBER" | "BLUE" | "PINK" | "VIOLET" | "ORANGE" | "GREEN";
             workspaceSlug?: string;
         };
         NotificationIssueResponse: {
@@ -2069,6 +2092,8 @@ export interface components {
             title?: string;
             /** Format: uuid */
             projectId?: string;
+            /** @enum {string} */
+            projectColor?: "TEAL" | "AMBER" | "BLUE" | "PINK" | "VIOLET" | "ORANGE" | "GREEN";
             workspaceSlug?: string;
         };
         NotificationResponse: {
@@ -2317,6 +2342,8 @@ export interface components {
             projectId?: string;
             name?: string;
             identifier?: string;
+            /** @enum {string} */
+            color?: "TEAL" | "AMBER" | "BLUE" | "PINK" | "VIOLET" | "ORANGE" | "GREEN";
             /** Format: int64 */
             count?: number;
         };

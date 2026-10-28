@@ -25,6 +25,7 @@ import {
   isOpenedNotification,
   notificationIssue,
   notificationProject,
+  notificationProjectColor,
   notificationTarget,
   openedIssueFromParams,
   withOpenedIssue,
@@ -349,7 +350,16 @@ function NotificationItem({ notification, first, current, onOpen }) {
             className="mt-1.5 block font-mono text-[11px] text-muted-foreground"
             title={[workspaceSlug, formatDateTime(notification.createdAt)].filter(Boolean).join(' · ')}
           >
-            {project ? `${project} · ` : ''}
+            {project && (
+              <>
+                <span
+                  aria-hidden="true"
+                  data-project-color={notificationProjectColor(notification) ?? ''}
+                  className="mr-1.5 inline-block size-2 rounded-[3px] bg-(--project) align-[0.5px]"
+                />
+                {project} ·{' '}
+              </>
+            )}
             {formatRelative(notification.createdAt)}
           </span>
         </span>

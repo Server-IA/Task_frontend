@@ -9,17 +9,27 @@ import { Spinner } from '@/components/common/Loaders'
 import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { projectSchema, suggestIdentifier } from '../schemas'
+import { ProjectColorPicker } from './ProjectColorPicker'
 
 /**
- * Nombre, identificador (prefijo de los issues) y descripción.
- * Al crear, el identificador se sugiere desde el nombre hasta que el usuario lo edita.
+ * Nombre, identificador (prefijo de los issues), color y descripción.
+ * Al crear, el identificador se sugiere desde el nombre hasta que el usuario lo edita, y el color empieza en
+ * `suggestedColor` (el menos usado del workspace).
  */
-export function ProjectForm({ defaultValues, onSubmit, pending, submitLabel, disabled = false, footer }) {
+export function ProjectForm({
+  defaultValues,
+  suggestedColor = 'TEAL',
+  onSubmit,
+  pending,
+  submitLabel,
+  disabled = false,
+  footer,
+}) {
   const isEdit = Boolean(defaultValues)
   const identifierTouched = useRef(isEdit)
   const form = useForm({
     resolver: zodResolver(projectSchema),
-    defaultValues: defaultValues ?? { name: '', identifier: '', description: '' },
+    defaultValues: defaultValues ?? { name: '', identifier: '', description: '', color: suggestedColor },
   })
   const [name, identifier] = useWatch({ control: form.control, name: ['name', 'identifier'] })
 
@@ -81,6 +91,22 @@ export function ProjectForm({ defaultValues, onSubmit, pending, submitLabel, dis
         <FormDescription className="-mt-2">
           El identificador es el prefijo de las tareas: {identifier || 'WEB'}-1, -2, -3…
         </FormDescription>
+        <FormField
+          control={form.control}
+          name="color"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Color</FormLabel>
+              <ProjectColorPicker
+                value={field.value}
+                onChange={(color) => field.onChange(color)}
+                identifier={identifier}
+                disabled={disabled}
+              />
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="description"

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { PROJECT_COLOR_KEYS } from './projectColors'
 
 /** Mismas reglas que el backend. */
 export const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/
@@ -16,6 +17,7 @@ export const projectSchema = z.object({
     .min(1, 'El identificador es obligatorio')
     .regex(PROJECT_IDENTIFIER, 'Debe empezar por letra; solo letras y números, hasta 12'),
   description: z.string().max(10000, 'La descripción es demasiado larga'),
+  color: z.enum(PROJECT_COLOR_KEYS, 'Elige un color de la paleta'),
 })
 
 export const stateSchema = z.object({

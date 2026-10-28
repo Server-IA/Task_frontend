@@ -12,11 +12,23 @@ const STEP_LABEL = { done: 'lista', current: 'ahora', next: 'sigue', later: '' }
  * Modo «Presentar»: una persona a la vez, con quién ya habló y quién sigue, y un tiempo sugerido por
  * persona (solo visual). ← → cambian de persona y Esc sale (los atajos los pone la página).
  * @param {{ people: import('@/api/types').DailyPerson[], current: number, onSelect: (index: number) => void,
- *           onExit: () => void, cycle: import('@/api/types').DailyCycle | null, date: string, projectId: string,
+ *           onExit: () => void, cycle: import('@/api/types').DailyCycle | null, date: string, previousDate?: string,
+ *           projectId: string,
  *           blocking: Map<string, { code: string, blockedCode: string, ownerName: string }[]>,
  *           onOpenIssue: (issueId: string) => void }} props
  */
-export function DailyPresenter({ people, current, onSelect, onExit, cycle, date, projectId, blocking, onOpenIssue }) {
+export function DailyPresenter({
+  people,
+  current,
+  onSelect,
+  onExit,
+  cycle,
+  date,
+  previousDate,
+  projectId,
+  blocking,
+  onOpenIssue,
+}) {
   const person = people[current]
   if (!person) return null
   const previous = people[current - 1]
@@ -24,6 +36,7 @@ export function DailyPresenter({ people, current, onSelect, onExit, cycle, date,
   const blocks = personBlocks({
     person,
     date,
+    previousDate,
     projectId,
     blocking: blocking.get(person.user?.id),
     onOpenIssue,
