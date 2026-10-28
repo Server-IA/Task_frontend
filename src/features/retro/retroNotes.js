@@ -20,6 +20,16 @@ export const RETRO_COLUMNS = /** @type {const} */ ([
   { key: 'ACTION', name: 'Acciones', placeholder: 'Algo concreto que el equipo hará en el próximo ciclo…' },
 ])
 
+/**
+ * Nombre corto del responsable de una acción, como en el diseño: nombre y primer apellido
+ * («Luis Muñoz Pérez» → «Luis Muñoz»). El nombre completo va en el título del elemento.
+ * @param {{ fullName?: string } | null | undefined} user
+ */
+export function shortName(user) {
+  const words = (user?.fullName ?? '').trim().split(/\s+/).filter(Boolean)
+  return words.slice(0, 2).join(' ')
+}
+
 /** En curso (se puede escribir y votar), terminada (solo lectura) o sin empezar. */
 export function retroPhase(retro) {
   if (!retro?.started) return 'NOT_STARTED'

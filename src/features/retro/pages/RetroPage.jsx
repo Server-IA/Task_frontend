@@ -261,14 +261,17 @@ function RetroSummary({ summary }) {
   const { completedCount = 0, totalCount = 0, carriedToCycle = 0, carriedToBacklog = 0, cycleTimeDays } = summary
   const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
   return (
-    <section aria-label="Resumen automático del ciclo" className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-3.5">
+    // En filas que se reparten el ancho: en el teléfono la tercera no queda sola a media fila
+    <section aria-label="Resumen automático del ciclo" className="flex flex-wrap gap-3.5">
       <SummaryTile
+        className="flex-[1_1_180px]"
         label="Completadas"
         value={completedCount}
         unit={`de ${totalCount} ${totalCount === 1 ? 'tarea' : 'tareas'}`}
         note={`${percentage} % de lo planificado`}
       />
       <SummaryTile
+        className="flex-[1_1_180px]"
         label="Pasaron a otro ciclo"
         value={carriedToCycle}
         unit={carriedToCycle === 1 ? 'tarea' : 'tareas'}
@@ -279,6 +282,7 @@ function RetroSummary({ summary }) {
         }
       />
       <SummaryTile
+        className="flex-[1_1_180px]"
         label="Tiempo de ciclo"
         value={cycleTimeDays != null ? formatDecimal(cycleTimeDays) : '—'}
         unit={cycleTimeDays != null ? (cycleTimeDays === 1 ? 'día' : 'días') : undefined}

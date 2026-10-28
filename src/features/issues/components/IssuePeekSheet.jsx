@@ -2,8 +2,11 @@ import { useState } from 'react'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
 import { IssueDetailWithExtras } from './IssueDetailWithExtras'
 
-/** Panel flotante a la derecha con el detalle de la tarea abierta (?issue=<id>). */
-export function IssuePeekSheet({ slug, project, issueId, onClose, onOpenIssue }) {
+/**
+ * Panel flotante a la derecha con el detalle de la tarea abierta (?issue=<id>). `focusCommentId` lleva la vista
+ * hasta ese comentario.
+ */
+export function IssuePeekSheet({ slug, project, issueId, onClose, onOpenIssue, focusCommentId }) {
   // Al cerrar, la URL pierde ?issue enseguida: se sigue mostrando la última tarea mientras el panel sale
   const [lastIssueId, setLastIssueId] = useState(issueId)
   if (issueId && issueId !== lastIssueId) setLastIssueId(issueId)
@@ -17,7 +20,7 @@ export function IssuePeekSheet({ slug, project, issueId, onClose, onOpenIssue })
       >
         <SheetTitle className="sr-only">Detalle de la tarea</SheetTitle>
         <SheetDescription className="sr-only">Propiedades, subtareas y actividad</SheetDescription>
-        {shownId && (
+        {shownId && project && (
           // Al pasar de una tarea a otra (subtarea, padre) el contenido cambia con un fundido
           <div key={shownId} className="tf-fade h-full min-h-0">
             <IssueDetailWithExtras
@@ -25,6 +28,7 @@ export function IssuePeekSheet({ slug, project, issueId, onClose, onOpenIssue })
               project={project}
               issueId={shownId}
               variant="panel"
+              focusCommentId={focusCommentId}
               onClose={onClose}
               onOpenIssue={onOpenIssue}
             />

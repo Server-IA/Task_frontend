@@ -125,7 +125,7 @@ export function summarizeViewFilters(filters, meta) {
     const group = GROUP_BY_OPTIONS.find((option) => option.value === (filters.groupBy || GROUP_BY_DEFAULT))
     rows.push({ key: 'agrupar', value: `por ${(group?.label ?? filters.groupBy).toLowerCase()}` })
     const sort = SORT_OPTIONS.find((option) => option.value === (filters.sort || DEFAULT_SORT))
-    rows.push({ key: 'orden', value: (sort?.label ?? filters.sort).toLowerCase() })
+    rows.push({ key: 'orden', value: sort?.summary ?? (sort?.label ?? filters.sort).toLowerCase() })
   }
   return rows
 }

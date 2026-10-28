@@ -17,7 +17,7 @@ import { notifyError } from '@/lib/notify'
 import { IS_MAC } from '@/lib/shortcuts'
 import { cn } from '@/lib/utils'
 import { useConvertRetroNote, useDeleteRetroNote, useUpdateRetroNote, useVoteRetroNote } from '../hooks'
-import { buildNoteUpdate, MAX_VOTES, NOTE_MAX_LENGTH, voteState } from '../retroNotes'
+import { buildNoteUpdate, MAX_VOTES, NOTE_MAX_LENGTH, shortName, voteState } from '../retroNotes'
 import { OwnerButton, OwnerPicker } from './OwnerPicker'
 
 /** Atajo para guardar una nota, como se muestra en la interfaz. */
@@ -73,42 +73,45 @@ export function RetroNoteCard({ note, retro, ctx }) {
       ) : (
         <p className="text-sm leading-relaxed break-words whitespace-pre-wrap">{note.text}</p>
       )}
-      <div className="flex min-w-0 flex-wrap items-center gap-2 text-xs">
-        {isAction && note.owner ? (
-          <NoteOwner note={note} ctx={ctx} editable={editable && !editing} pending={update.isPending} onChange={save} />
-        ) : (
-          <NoteAuthor note={note} ctx={ctx} />
-        )}
-        {isAction && !note.owner && editable && !editing && (
-          <OwnerPicker members={ctx.members} value={null} onChange={(ownerId) => save({ ownerId })} disabled={update.isPending}>
-            <OwnerButton owner={null} className="h-6" />
-          </OwnerPicker>
-        )}
-        {isAction && note.issue && (
-          <button
-            type="button"
-            onClick={() => ctx.openIssue(note.issue.id)}
-            title={`${note.issue.code} · ${note.issue.state?.name ?? ''} · abrir`}
-            className="inline-flex items-center gap-1 rounded-md bg-ok-soft px-2 py-0.5 font-semibold text-ok transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-          >
-            <Check className="size-3" strokeWidth={3} aria-hidden="true" />
-            <span className="font-mono text-[11px]">{note.issue.code}</span> creada
-          </button>
-        )}
-        {isAction && !note.issue && ctx.manager && (
-          <Button
-            variant="outline"
-            size="xs"
-            className="rounded-md"
-            onClick={convertNote}
-            disabled={convert.isPending}
-            title={note.owner ? `Crea la tarea asignada a ${note.owner.fullName}` : 'Crea la tarea sin asignar'}
-          >
-            {convert.isPending && <Spinner className="size-3" />}
-            Crear tarea
-          </Button>
-        )}
-        <span className="ml-auto flex items-center gap-1">
+      {/* Quién y la tarea a la izquierda (bajan de línea dentro de su grupo si no caben); el voto siempre arriba a la derecha */}
+      <div className="flex min-w-0 items-start gap-2 text-xs">
+        <div className="flex min-h-7 min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1.5">
+          {isAction && note.owner ? (
+            <NoteOwner note={note} ctx={ctx} editable={editable && !editing} pending={update.isPending} onChange={save} />
+          ) : (
+            <NoteAuthor note={note} ctx={ctx} />
+          )}
+          {isAction && !note.owner && editable && !editing && (
+            <OwnerPicker members={ctx.members} value={null} onChange={(ownerId) => save({ ownerId })} disabled={update.isPending}>
+              <OwnerButton owner={null} className="h-6" />
+            </OwnerPicker>
+          )}
+          {isAction && note.issue && (
+            <button
+              type="button"
+              onClick={() => ctx.openIssue(note.issue.id)}
+              title={`${note.issue.code} · ${note.issue.state?.name ?? ''} · abrir`}
+              className="inline-flex shrink-0 items-center gap-1 rounded-md bg-ok-soft px-2 py-0.5 font-semibold text-ok transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            >
+              <Check className="size-3" strokeWidth={3} aria-hidden="true" />
+              <span className="font-mono text-[11px]">{note.issue.code}</span> creada
+            </button>
+          )}
+          {isAction && !note.issue && ctx.manager && (
+            <Button
+              variant="outline"
+              size="xs"
+              className="shrink-0 rounded-md"
+              onClick={convertNote}
+              disabled={convert.isPending}
+              title={note.owner ? `Crea la tarea asignada a ${note.owner.fullName}` : 'Crea la tarea sin asignar'}
+            >
+              {convert.isPending && <Spinner className="size-3" />}
+              Crear tarea
+            </Button>
+          )}
+        </div>
+        <span className="flex shrink-0 items-center gap-1">
           {editable && !editing && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -161,12 +164,12 @@ export function RetroNoteCard({ note, retro, ctx }) {
 function NoteAuthor({ note, ctx }) {
   const mine = note.author?.id === ctx.userId
   return (
-    <>
+    <span className="flex min-w-0 items-center gap-2">
       <UserAvatar user={note.author} size="xs" />
       <span className="min-w-0 truncate text-muted-foreground" title={formatDateTime(note.createdAt)}>
         {mine ? 'Tú' : note.author?.fullName}
       </span>
-    </>
+    </span>
   )
 }
 
@@ -176,9 +179,9 @@ function NoteAuthor({ note, ctx }) {
  */
 function NoteOwner({ note, ctx, editable, pending, onChange }) {
   const owner = note.owner
-  const name = owner.id === ctx.userId ? 'tú' : owner.fullName
+  const name = owner.id === ctx.userId ? 'tú' : shortName(owner)
   const author = note.author?.id === ctx.userId ? 'ti' : note.author?.fullName
-  const title = `Escrita por ${author} · ${formatDateTime(note.createdAt)}`
+  const title = `Responsable: ${owner.fullName} · escrita por ${author} · ${formatDateTime(note.createdAt)}`
   const content = (
     <>
       <UserAvatar user={owner} size="xs" />

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { Check, ChevronDown } from 'lucide-react'
 import { useForm, useWatch } from 'react-hook-form'
@@ -105,6 +105,19 @@ function CreateIssueForm({ slug, project, defaults, onCancel, onCreated }) {
   const values = useWatch({ control: form.control })
   const stateId = values.stateId ?? meta.states[0]?.id
 
+  // Después de aplicar una plantilla (o de «Crear otra») el cursor va al final del título, para seguir escribiendo
+  // después del prefijo. Se hace cuando React ya escribió el título nuevo en el campo: `setFocus` de react-hook-form
+  // enfoca en un setTimeout y el navegador dejaba el cursor al principio.
+  const titleRef = useRef(null)
+  const [caretRequest, setCaretRequest] = useState(0)
+  useEffect(() => {
+    const input = titleRef.current
+    if (!caretRequest || !input) return
+    input.focus()
+    input.setSelectionRange(input.value.length, input.value.length)
+  }, [caretRequest])
+  const caretToEnd = () => setCaretRequest((count) => count + 1)
+
   const chooseTemplate = (next) => {
     const { title, description, priority, labelIds } = form.getValues()
     const current = { title, description, priority, labelIds }
@@ -113,12 +126,7 @@ function CreateIssueForm({ slug, project, defaults, onCancel, onCreated }) {
     Object.entries(applied).forEach(([name, value]) => form.setValue(name, value, { shouldDirty: true }))
     setTemplate(next)
     setBase(next ? baseValues : null)
-    // El cursor al final del título, para seguir escribiendo después del prefijo
-    form.setFocus('title')
-    requestAnimationFrame(() => {
-      const input = document.activeElement
-      if (input instanceof HTMLInputElement) input.setSelectionRange(input.value.length, input.value.length)
-    })
+    caretToEnd()
   }
   const fromTemplate = {
     priority: Boolean(template?.priority) && template.priority !== 'NONE' && values.priority === template.priority,
@@ -147,8 +155,8 @@ function CreateIssueForm({ slug, project, defaults, onCancel, onCreated }) {
         toast.success(`${issue.code} creada`, { description: issue.title })
         if (createMore) {
           // Conserva las propiedades (y la plantilla) para crear varios parecidos seguidos
+          caretToEnd()
           form.reset({ ...data, title: template?.titlePrefix ?? '', description: template?.description ?? '' })
-          form.setFocus('title')
         }
         onCreated(issue, createMore)
       },
@@ -190,6 +198,10 @@ function CreateIssueForm({ slug, project, defaults, onCancel, onCreated }) {
               <FormControl>
                 <input
                   {...field}
+                  ref={(element) => {
+                    field.ref(element)
+                    titleRef.current = element
+                  }}
                   autoFocus
                   placeholder="Título"
                   aria-label="Título"

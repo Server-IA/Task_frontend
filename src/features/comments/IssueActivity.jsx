@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -17,7 +17,7 @@ import { useMentionDraft, useMentionPeople } from '@/features/mentions/hooks'
 import { joinNames, mentionedIds } from '@/features/mentions/mentions'
 import { MentionText } from '@/features/mentions/MentionText'
 import { MentionTextarea } from '@/features/mentions/MentionTextarea'
-import { useCurrentWorkspace } from '@/features/workspaces/hooks'
+import { useWorkspace } from '@/features/workspaces/hooks'
 import { formatDateTime, formatRelative } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
 import { canDeleteComment } from '@/lib/permissions'
@@ -31,7 +31,7 @@ import { useComments, useCreateComment, useDeleteComment, useUpdateComment } fro
  * Las entradas COMMENT del historial no se repiten: el comentario ya aparece como tarjeta.
  * Los comentarios admiten menciones («@» abre la lista de personas del proyecto).
  */
-export function IssueActivity({ slug, projectId, issueId, issueCode }) {
+export function IssueActivity({ slug, projectId, issueId, issueCode, focusCommentId }) {
   const [filter, setFilter] = useState('all')
   const comments = useComments(slug, projectId, issueId)
   const activity = useActivity(slug, projectId, issueId)
@@ -49,6 +49,12 @@ export function IssueActivity({ slug, projectId, issueId, issueCode }) {
 
   const isLoading = comments.isLoading || activity.isLoading
 
+  // Abierta desde un aviso de la Bandeja: la vista baja hasta ese comentario
+  useEffect(() => {
+    if (!focusCommentId || isLoading) return
+    document.getElementById(commentAnchor(focusCommentId))?.scrollIntoView?.({ block: 'center', behavior: 'smooth' })
+  }, [focusCommentId, isLoading])
+
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
@@ -62,7 +68,7 @@ export function IssueActivity({ slug, projectId, issueId, issueCode }) {
         <ol className="flex flex-col gap-2.5">
           {timeline.map((item) =>
             item.type === 'comment' ? (
-              <li key={`c-${item.comment.id}`}>
+              <li key={`c-${item.comment.id}`} id={commentAnchor(item.comment.id)} className="scroll-mt-4">
                 <CommentCard slug={slug} projectId={projectId} issueId={issueId} comment={item.comment} people={people} />
               </li>
             ) : (
@@ -83,6 +89,9 @@ export function IssueActivity({ slug, projectId, issueId, issueCode }) {
     </section>
   )
 }
+
+/** Id del elemento de un comentario (para llevar la vista hasta él). */
+const commentAnchor = (commentId) => `comentario-${commentId}`
 
 const FILTERS = [
   { value: 'all', label: 'Todo' },
@@ -107,7 +116,8 @@ function ActivityLine({ entry }) {
 }
 
 function CommentCard({ slug, projectId, issueId, comment, people }) {
-  const workspace = useCurrentWorkspace()
+  // Del workspace de la tarea (no de la URL): la actividad también se ve desde la Bandeja
+  const { data: workspace } = useWorkspace(slug)
   const currentUserId = useSessionStore((state) => state.user?.id)
   const update = useUpdateComment(slug, projectId, issueId)
   const remove = useDeleteComment(slug, projectId, issueId)
@@ -143,13 +153,14 @@ function CommentCard({ slug, projectId, issueId, comment, people }) {
         )}
       >
         <div className={cn('flex items-center gap-2 rounded-t-[11px] border-b px-3 py-1.5 text-xs', mentionsMe && 'bg-accent-soft')}>
-          <span className="font-semibold">{comment.author?.fullName}</span>
-          <span className="font-mono text-muted-foreground" title={formatDateTime(comment.createdAt)}>
+          <span className="shrink-0 font-semibold">{comment.author?.fullName}</span>
+          {/* En un panel angosto la fecha se corta (completa en el título) y «te mencionó» no se parte */}
+          <span className="min-w-0 truncate font-mono text-muted-foreground" title={formatDateTime(comment.createdAt)}>
             · {formatRelative(comment.createdAt)}
             {edited && ' · editado'}
           </span>
-          <span className="ml-auto flex items-center gap-1.5">
-            {mentionsMe && <span className="font-semibold text-accent-text">te mencionó</span>}
+          <span className="ml-auto flex shrink-0 items-center gap-1.5">
+            {mentionsMe && <span className="font-semibold whitespace-nowrap text-accent-text">te mencionó</span>}
             {(isAuthor || canDelete) && !editing && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

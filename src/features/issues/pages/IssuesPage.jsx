@@ -97,6 +97,7 @@ export function IssuesPage() {
         setFilter={issueFilters.setFilter}
         clearFilters={issueFilters.clearFilters}
         meta={meta}
+        compact={Boolean(activeView)}
         changed={changedFromView}
       >
         {view === 'list' && (

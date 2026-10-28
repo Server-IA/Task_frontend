@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/api/queryKeys'
 import { notificationsApi } from './api'
-import { INBOX_TABS } from './notificationParts'
+import { INBOX_TABS, markReadInPages } from './notificationParts'
 
 const PAGE_SIZE = 20
 
@@ -45,6 +45,21 @@ function useNotificationMutation(mutationFn) {
   })
 }
 
-export const useMarkAsRead = () => useNotificationMutation(notificationsApi.markAsRead)
+/**
+ * Marcar un aviso como leído: se marca en las listas en caché sin recargarlas, así el aviso abierto junto a la
+ * Bandeja no desaparece de «No leídas» mientras se lee (sale en la próxima recarga). Los contadores sí se recargan.
+ */
+export function useMarkAsRead() {
+  const queryClient = useQueryClient()
+  const lists = { queryKey: [...queryKeys.notificationsAll, 'list'] }
+  return useMutation({
+    mutationFn: notificationsApi.markAsRead,
+    onSuccess: (_result, notificationId) => {
+      queryClient.setQueriesData(lists, (data) => markReadInPages(data, notificationId))
+      queryClient.invalidateQueries({ ...lists, refetchType: 'none' })
+      queryClient.invalidateQueries({ queryKey: queryKeys.notificationCounts })
+    },
+  })
+}
 
 export const useMarkAllAsRead = () => useNotificationMutation(notificationsApi.markAllAsRead)

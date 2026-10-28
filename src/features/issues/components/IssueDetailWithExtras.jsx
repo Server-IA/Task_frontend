@@ -6,10 +6,11 @@ import { IssueDetail } from './IssueDetail'
 
 /**
  * IssueDetail con las secciones de otras features: aviso de bloqueo, criterios y checklist, relaciones,
- * comentarios e historial; y en las propiedades, ciclo, módulos y progreso.
+ * comentarios e historial; y en las propiedades, ciclo, módulos y progreso. `focusCommentId` lleva la vista hasta ese
+ * comentario (al abrir la tarea desde un aviso de la Bandeja).
  * Se mantiene aparte para que IssueDetail no dependa de esas features.
  */
-export function IssueDetailWithExtras(props) {
+export function IssueDetailWithExtras({ focusCommentId, ...props }) {
   const { slug, project, onOpenIssue } = props
   return (
     <IssueDetail
@@ -20,7 +21,13 @@ export function IssueDetailWithExtras(props) {
         <IssueRelations slug={slug} projectId={project.id} issue={issue} onOpenIssue={onOpenIssue} />
       )}
       renderActivity={(issue) => (
-        <IssueActivity slug={slug} projectId={project.id} issueId={issue.id} issueCode={issue.code} />
+        <IssueActivity
+          slug={slug}
+          projectId={project.id}
+          issueId={issue.id}
+          issueCode={issue.code}
+          focusCommentId={focusCommentId}
+        />
       )}
       renderProperties={(issue) => (
         <>

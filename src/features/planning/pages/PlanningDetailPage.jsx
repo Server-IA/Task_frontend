@@ -218,14 +218,16 @@ function ProgressBlock({ kind, item, issues }) {
       <p className="mb-1.5 flex items-baseline justify-between gap-2">
         <span className="font-display text-[28px] leading-none font-extrabold">{percentage}%</span>
         <span className="text-xs text-muted-foreground">
-          {completedIssues} de {totalIssues} completadas
+          {totalIssues === 0 ? 'Sin tareas' : `${completedIssues} de ${totalIssues} completadas`}
         </span>
       </p>
       <ProgressBar value={percentage} className={bar} />
       <p className="mt-1.5 flex justify-between gap-2 font-mono text-[11px] text-muted-foreground">
         <span>○ {pending} por hacer</span>
         <span>◐ {started} en curso</span>
-        <span>● {completedIssues} hechas</span>
+        <span>
+          ● {completedIssues} {completedIssues === 1 ? 'hecha' : 'hechas'}
+        </span>
       </p>
     </div>
   )

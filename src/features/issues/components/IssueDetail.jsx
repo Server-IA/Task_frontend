@@ -14,7 +14,7 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { CenteredSpinner } from '@/components/common/Loaders'
 import { ErrorState } from '@/components/common/States'
 import { StateIcon } from '@/components/common/StateIcon'
-import { useCurrentWorkspace } from '@/features/workspaces/hooks'
+import { useWorkspace } from '@/features/workspaces/hooks'
 import { formatDateTime, formatRelative } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
 import { canDeleteIssue } from '@/lib/permissions'
@@ -206,7 +206,8 @@ function IssueTopBar({ slug, project, issue, variant, pageUrl, onClose }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const remove = useDeleteIssue(slug, project.id)
   const navigate = useNavigate()
-  const workspace = useCurrentWorkspace()
+  // Del workspace de la tarea (no de la URL): el panel también se abre desde la Bandeja
+  const { data: workspace } = useWorkspace(slug)
   const currentUserId = useSessionStore((state) => state.user?.id)
   // Eliminar: el project manager o quien creó la tarea (el backend responde 403 a los demás)
   const canDelete = canDeleteIssue(workspace?.myRole, issue, currentUserId)

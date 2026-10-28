@@ -77,6 +77,11 @@ describe('vistas guardadas', () => {
       { key: 'filtros', value: 'ninguno (todas las tareas)' },
       { key: 'vista', value: 'tablero' },
     ])
+    // Por prioridad, el backend desempata por fecha límite
+    expect(summarizeViewFilters({ view: 'list', sort: 'priorityRank,asc' }, meta).at(-1)).toEqual({
+      key: 'orden',
+      value: 'prioridad, luego fecha',
+    })
   })
 
   it('guarda ciclo, módulo, bloqueadas y agrupación solo si están puestos', () => {

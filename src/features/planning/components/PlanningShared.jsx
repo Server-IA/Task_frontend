@@ -172,7 +172,7 @@ export function ProgressSummary({ progress, className, barClassName = 'bg-accent
     <div className={cn('space-y-1.5', className)}>
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>
-          {progress.completedIssues} de {progress.totalIssues} completadas
+          {progress.totalIssues === 0 ? 'Sin tareas' : `${progress.completedIssues} de ${progress.totalIssues} completadas`}
         </span>
         <span className="font-mono font-semibold text-foreground">{progress.percentage}%</span>
       </div>

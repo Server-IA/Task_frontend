@@ -8,9 +8,13 @@ export const PRIORITIES = [
 
 export const PRIORITY_LABELS = Object.fromEntries(PRIORITIES.map(({ value, label }) => [value, label]))
 
-/** Opciones de orden del listado (el backend acepta `sort=campo,dirección`). */
+/**
+ * Opciones de orden del listado (el backend acepta `sort=campo,dirección`). `priorityRank` ordena de urgente a sin
+ * prioridad y, dentro de cada prioridad, por fecha límite y número. `summary`: cómo se lee en el resumen de una vista.
+ */
 export const SORT_OPTIONS = [
   { value: 'sortOrder,asc', label: 'Manual' },
+  { value: 'priorityRank,asc', label: 'Prioridad', summary: 'prioridad, luego fecha' },
   { value: 'sequenceId,desc', label: 'Más recientes' },
   { value: 'sequenceId,asc', label: 'Más antiguos' },
   { value: 'updatedAt,desc', label: 'Actualizados recientemente' },

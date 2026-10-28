@@ -72,3 +72,83 @@ export function excerptSegments(excerpt = '', myName) {
   if (rest) segments.push({ text: rest, me: false })
   return segments
 }
+
+/**
+ * Tarea abierta junto a la Bandeja: parámetros de la URL que la identifican (la Bandeja no es de ningún workspace
+ * ni proyecto, así que van los tres). `comment` es el comentario del aviso, para llevar la vista hasta él.
+ */
+const OPEN_PARAMS = ['workspace', 'project', 'issue', 'comment']
+
+/** @typedef {{ slug: string, projectId: string, issueId: string, commentId: string | null }} OpenedIssue */
+
+/**
+ * La tarea de un aviso para abrirla junto a la Bandeja; null en los avisos de retrospectiva (llevan a su página)
+ * o sin tarea.
+ * @param {NotificationResponse} notification
+ * @returns {OpenedIssue | null}
+ */
+export function notificationIssue(notification) {
+  const { issue, cycle } = notification
+  if (cycle || !issue?.workspaceSlug || !issue.projectId || !issue.id) return null
+  return { slug: issue.workspaceSlug, projectId: issue.projectId, issueId: issue.id, commentId: notification.comment?.id ?? null }
+}
+
+/**
+ * Tarea abierta según la URL, o null si falta alguno de sus datos.
+ * @param {URLSearchParams} searchParams
+ * @returns {OpenedIssue | null}
+ */
+export function openedIssueFromParams(searchParams) {
+  const slug = searchParams.get('workspace')
+  const projectId = searchParams.get('project')
+  const issueId = searchParams.get('issue')
+  if (!slug || !projectId || !issueId) return null
+  return { slug, projectId, issueId, commentId: searchParams.get('comment') || null }
+}
+
+/**
+ * Parámetros con esa tarea abierta (o sin ninguna, con null); conserva lo demás, como la pestaña.
+ * @param {URLSearchParams} searchParams
+ * @param {OpenedIssue | null} opened
+ */
+export function withOpenedIssue(searchParams, opened) {
+  const next = new URLSearchParams(searchParams)
+  for (const key of OPEN_PARAMS) next.delete(key)
+  if (opened) {
+    next.set('workspace', opened.slug)
+    next.set('project', opened.projectId)
+    next.set('issue', opened.issueId)
+    if (opened.commentId) next.set('comment', opened.commentId)
+  }
+  return next
+}
+
+/**
+ * El aviso es el de la tarea abierta (la misma tarea y, si el aviso es de un comentario, el mismo comentario).
+ * @param {NotificationResponse} notification
+ * @param {OpenedIssue | null} opened
+ */
+export function isOpenedNotification(notification, opened) {
+  const target = notificationIssue(notification)
+  if (!target || !opened) return false
+  return target.issueId === opened.issueId && (target.commentId ?? null) === (opened.commentId ?? null)
+}
+
+/**
+ * Marca un aviso como leído dentro de las páginas en caché de una lista (sin quitarlo: en «No leídas» sigue a la
+ * vista hasta la próxima recarga).
+ * @param {{ pages: { content: NotificationResponse[] }[] } | undefined} data
+ * @param {string} notificationId
+ */
+export function markReadInPages(data, notificationId) {
+  if (!data?.pages) return data
+  return {
+    ...data,
+    pages: data.pages.map((page) => ({
+      ...page,
+      content: (page.content ?? []).map((notification) =>
+        notification.id === notificationId ? { ...notification, read: true } : notification,
+      ),
+    })),
+  }
+}

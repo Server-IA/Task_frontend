@@ -244,10 +244,11 @@ function CloseCycleForm({ slug, projectId, cycle: initialCycle, onClose }) {
                   const destination = split.toCycle.includes(issue) ? 'CYCLE' : 'BACKLOG'
                   const exception = split.exceptions.includes(issue)
                   return (
-                    <li key={issue.id} className={cn('flex items-center gap-2.5 py-1.5 pr-2 pl-3', index > 0 && 'border-t')}>
+                    // En el teléfono el destino baja a su propia línea si el título no cabe
+                    <li key={issue.id} className={cn('flex flex-wrap items-center gap-x-2.5 gap-y-1 py-1.5 pr-2 pl-3', index > 0 && 'border-t')}>
                       <StateIcon group={issue.state?.group} color={issue.state?.color} className="size-3.5" />
                       <span className="w-14 shrink-0 font-mono text-xs text-muted-foreground">{issue.code}</span>
-                      <span className="min-w-0 flex-1 truncate text-sm font-medium" title={issue.title}>
+                      <span className="min-w-0 flex-[1_1_8rem] truncate text-sm font-medium" title={issue.title}>
                         {issue.title}
                       </span>
                       {/* Cada tarea de la vista previa trae cuántas tareas abiertas la bloquean */}
@@ -257,7 +258,7 @@ function CloseCycleForm({ slug, projectId, cycle: initialCycle, onClose }) {
                         <SelectTrigger
                           size="sm"
                           aria-label={`Destino de ${issue.code}`}
-                          className={cn('h-7 w-32 shrink-0 bg-card text-xs sm:w-36', exception && 'border-accent-text bg-accent-soft dark:bg-accent-soft')}
+                          className={cn('ml-auto h-7 w-32 shrink-0 bg-card text-xs sm:w-36', exception && 'border-accent-text bg-accent-soft dark:bg-accent-soft')}
                         >
                           <SelectValue />
                         </SelectTrigger>

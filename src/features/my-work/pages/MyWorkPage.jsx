@@ -22,21 +22,25 @@ const VIEWS = {
   assigned: {
     label: 'Asignadas',
     countKey: 'assignedCount',
-    summary: (count) => `${count} ${count === 1 ? 'tarea asignada' : 'tareas asignadas'} a ti`,
+    summary: (count) => (count ? `${count} ${count === 1 ? 'tarea asignada' : 'tareas asignadas'} a ti` : 'Ninguna tarea asignada a ti'),
     emptyTitle: 'No tienes tareas asignadas abiertas',
     emptyDescription: 'Cuando alguien te asigne una tarea aparecerá aquí, ordenada por fecha límite.',
   },
   created: {
     label: 'Creadas por mí',
+    // En el teléfono las tres pestañas caben en una línea con la etiqueta corta
+    shortLabel: 'Creadas',
     countKey: 'createdCount',
-    summary: (count) => `${count} ${count === 1 ? 'tarea abierta creada' : 'tareas abiertas creadas'} por ti`,
+    summary: (count) =>
+      count ? `${count} ${count === 1 ? 'tarea abierta creada' : 'tareas abiertas creadas'} por ti` : 'Ninguna tarea abierta creada por ti',
     emptyTitle: 'Ninguna tarea abierta creada por ti',
     emptyDescription: 'Las tareas que crees y sigan abiertas aparecerán aquí.',
   },
   commented: {
     label: 'Comentadas',
     countKey: 'commentedCount',
-    summary: (count) => `${count} ${count === 1 ? 'tarea abierta' : 'tareas abiertas'} en las que comentaste`,
+    summary: (count) =>
+      count ? `${count} ${count === 1 ? 'tarea abierta' : 'tareas abiertas'} en las que comentaste` : 'Ninguna tarea abierta en la que comentaste',
     emptyTitle: 'Sin tareas comentadas abiertas',
     emptyDescription: 'Las tareas abiertas en las que dejes un comentario aparecerán aquí.',
   },
@@ -93,7 +97,14 @@ export function MyWorkPage() {
               value,
               label: (
                 <>
-                  {item.label}
+                  {item.shortLabel ? (
+                    <>
+                      <span className="sm:hidden">{item.shortLabel}</span>
+                      <span className="hidden sm:inline">{item.label}</span>
+                    </>
+                  ) : (
+                    item.label
+                  )}
                   {data && <span className="ml-1.5 font-mono">{data[item.countKey] ?? 0}</span>}
                 </>
               ),

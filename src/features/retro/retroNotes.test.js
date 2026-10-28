@@ -10,6 +10,7 @@ import {
   previousClosedCycle,
   removeNote,
   retroPhase,
+  shortName,
   sortByVotes,
   takesOwner,
   upsertNote,
@@ -143,5 +144,11 @@ describe('responsable de las acciones', () => {
 
   it('un texto vacío no se manda (el backend respondería 400)', () => {
     expect(buildNoteUpdate(note('a', 'IMPROVE', 0, '', { text: 'algo' }), { text: '   ' })).toBeNull()
+  })
+
+  it('el responsable se muestra con nombre y primer apellido', () => {
+    expect(shortName({ fullName: 'Luis Muñoz Pérez' })).toBe('Luis Muñoz')
+    expect(shortName({ fullName: '  Ana  ' })).toBe('Ana')
+    expect(shortName(null)).toBe('')
   })
 })

@@ -62,7 +62,8 @@ describe('RetroNoteCard: responsable de una acción', () => {
 
   it('muestra al responsable en lugar del autor', () => {
     renderCard(action({ owner: luis }))
-    expect(screen.getByText('responsable: Luis Muñoz Pérez')).toBeInTheDocument()
+    // Nombre y primer apellido, como en el diseño; el completo va en el botón para cambiarlo
+    expect(screen.getByText('responsable: Luis Muñoz')).toBeInTheDocument()
     expect(screen.queryByText('Tú')).not.toBeInTheDocument()
   })
 
@@ -87,7 +88,8 @@ describe('RetroNoteCard: responsable de una acción', () => {
   it('sin permiso para editar no se puede cambiar', () => {
     renderCard(action({ owner: luis }), { canEdit: () => false, manager: false })
     expect(screen.queryByRole('button', { name: /Responsable:/ })).not.toBeInTheDocument()
-    expect(screen.getByText('responsable: Luis Muñoz Pérez')).toBeInTheDocument()
+    // Nombre y primer apellido, como en el diseño; el completo va en el botón para cambiarlo
+    expect(screen.getByText('responsable: Luis Muñoz')).toBeInTheDocument()
   })
 
   it('el project manager crea la tarea desde la acción', async () => {
