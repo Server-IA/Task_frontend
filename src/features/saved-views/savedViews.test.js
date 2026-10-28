@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { applyViewToParams, canEditView, clearViewParams, diffViewFilters, summarizeViewFilters, toViewFilters } from './savedViews'
+import {
+  applyViewToParams,
+  canEditView,
+  clearViewParams,
+  diffViewFilters,
+  moveView,
+  reorderableGroups,
+  summarizeViewFilters,
+  toViewFilters,
+} from './savedViews'
 
 const empty = { state: [], priority: [], assignee: [], label: [], search: '' }
 
@@ -61,12 +70,99 @@ describe('vistas guardadas', () => {
       { key: 'asignado', value: 'Luis Muñoz' },
       { key: 'etiqueta', value: 'bug' },
       { key: 'vista', value: 'lista' },
+      { key: 'agrupar', value: 'por estado' },
       { key: 'orden', value: 'fecha límite' },
     ])
     expect(summarizeViewFilters({ view: 'board' }, meta)).toEqual([
       { key: 'filtros', value: 'ninguno (todas las tareas)' },
       { key: 'vista', value: 'tablero' },
     ])
+  })
+
+  it('guarda ciclo, módulo, bloqueadas y agrupación solo si están puestos', () => {
+    expect(toViewFilters({ filters: empty, view: 'list', sort: 'sortOrder,asc', groupBy: 'state' })).toMatchObject({
+      cycle: null,
+      module: null,
+      blocked: null,
+      groupBy: null,
+    })
+    expect(
+      toViewFilters({
+        filters: { ...empty, cycle: 'c1', module: 'm1', blocked: true },
+        view: 'list',
+        sort: 'sortOrder,asc',
+        groupBy: 'assignee',
+      }),
+    ).toMatchObject({ cycle: 'c1', module: 'm1', blocked: true, groupBy: 'assignee' })
+  })
+
+  it('marca cambiados el ciclo, el módulo, las bloqueadas y la agrupación (esta solo en la lista)', () => {
+    const saved = { state: [], cycle: 'c1', module: null, blocked: null, groupBy: 'assignee', view: 'list' }
+    const same = toViewFilters({ filters: { ...empty, cycle: 'c1' }, view: 'list', sort: 'sortOrder,asc', groupBy: 'assignee' })
+    expect(diffViewFilters(saved, same)).toEqual([])
+    const other = toViewFilters({ filters: { ...empty, module: 'm1', blocked: true }, view: 'list', sort: 'sortOrder,asc', groupBy: 'state' })
+    expect(diffViewFilters(saved, other)).toEqual(['cycle', 'module', 'blocked', 'groupBy'])
+    // En el tablero la agrupación no cuenta (siempre va por estado)
+    expect(diffViewFilters({ ...saved, view: 'board' }, { ...same, view: 'board', groupBy: null })).toEqual([])
+  })
+
+  it('aplicar una vista pone ciclo, módulo, bloqueadas y agrupación; «Todas» los quita', () => {
+    const next = applyViewToParams(new URLSearchParams('blocked=true&groupBy=label&cycle=viejo'), {
+      id: 'v2',
+      filters: { cycle: 'c1', module: 'm1', blocked: true, groupBy: 'assignee', view: 'list' },
+    })
+    expect(next.get('cycle')).toBe('c1')
+    expect(next.get('module')).toBe('m1')
+    expect(next.get('blocked')).toBe('true')
+    expect(next.get('groupBy')).toBe('assignee')
+    const plain = applyViewToParams(next, { id: 'v3', filters: { groupBy: null, blocked: null } })
+    expect(plain.get('cycle')).toBeNull()
+    expect(plain.get('blocked')).toBeNull()
+    expect(plain.get('groupBy')).toBeNull()
+    expect(clearViewParams(next).toString()).toBe('view=list')
+  })
+
+  it('resume ciclo, módulo, bloqueadas y agrupación', () => {
+    const meta = { states: [], users: [], labels: [], cycles: [{ id: 'c1', name: 'Sprint 1' }], modules: [{ id: 'm1', name: 'Pagos' }] }
+    expect(summarizeViewFilters({ cycle: 'c1', module: 'm1', blocked: true, groupBy: 'assignee', view: 'list' }, meta)).toEqual([
+      { key: 'ciclo', value: 'Sprint 1' },
+      { key: 'módulo', value: 'Pagos' },
+      { key: 'bloqueo', value: 'solo bloqueadas' },
+      { key: 'vista', value: 'lista' },
+      { key: 'agrupar', value: 'por asignado' },
+      { key: 'orden', value: 'manual' },
+    ])
+  })
+
+  it('ordenar: compartidas solo el project manager, personales cada uno', () => {
+    const views = [
+      { id: 's1', shared: true, mine: true },
+      { id: 's2', shared: true, mine: false },
+      { id: 'p1', shared: false, mine: true },
+    ]
+    expect(reorderableGroups(views, true)).toMatchObject({ canShared: true, canPersonal: false })
+    expect(reorderableGroups(views, false)).toMatchObject({ canShared: false, canPersonal: false })
+    expect(reorderableGroups([...views, { id: 'p2', shared: false, mine: true }], false)).toMatchObject({
+      canShared: false,
+      canPersonal: true,
+    })
+  })
+
+  it('mover una vista cambia solo su grupo y arma el cuerpo de PUT /views/order', () => {
+    const views = [
+      { id: 's1', shared: true },
+      { id: 's2', shared: true },
+      { id: 'p1', shared: false },
+      { id: 'p2', shared: false },
+      { id: 'p3', shared: false },
+    ]
+    expect(moveView(views, 'p3', 0)).toEqual({
+      views: [views[0], views[1], views[4], views[2], views[3]],
+      body: { personal: ['p3', 'p1', 'p2'] },
+    })
+    expect(moveView(views, 's1', 5)).toEqual({ views: [views[1], views[0], ...views.slice(2)], body: { shared: ['s2', 's1'] } })
+    expect(moveView(views, 'p1', 0)).toBeNull()
+    expect(moveView(views, 'nada', 0)).toBeNull()
   })
 
   it('permisos: compartidas el project manager, personales su dueño', () => {

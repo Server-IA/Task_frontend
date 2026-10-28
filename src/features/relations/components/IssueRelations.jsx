@@ -1,16 +1,21 @@
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router'
 import { Command as CommandPrimitive } from 'cmdk'
-import { ArrowRight, Ban, Info, Link2, X } from 'lucide-react'
+import { ArrowRight, Ban, Info, Link2, Lock, X } from 'lucide-react'
 import { Command, CommandItem, CommandList } from '@/components/ui/command'
 import { CenteredSpinner, Spinner } from '@/components/common/Loaders'
 import { StateIcon } from '@/components/common/StateIcon'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { useIssues } from '@/features/issues/hooks'
+import { blockedCount, joinCodes } from '@/features/issues/issueFlags'
+import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
+import { useProjects } from '@/features/projects/hooks'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { useLocalEscape } from '@/hooks/useLocalEscape'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
-import { useAddRelation, useRelations, useRemoveRelation } from '../hooks'
+import { useAddRelation, useRelations, useRemoveRelation, useWorkspaceIssueSearch } from '../hooks'
+import { mergeCandidates, projectOf, relationTarget } from '../relationCandidates'
 
 /** @typedef {import('@/api/types').IssueResponse} IssueResponse */
 /** @typedef {import('@/api/types').IssueRelation} IssueRelation */
@@ -35,50 +40,88 @@ const isOpen = (issue) => issue?.state?.group !== 'COMPLETED' && issue?.state?.g
 const openBlockers = (relations) => (relations?.blockedBy ?? []).filter((relation) => isOpen(relation.issue))
 
 /**
+ * Enlace a una tarea relacionada: en este proyecto la abre en el panel; en otro proyecto lleva a ese proyecto;
+ * sin acceso a su proyecto no es un enlace.
+ */
+function RelatedLink({ relation, slug, projectId, onOpenIssue, className, title, children }) {
+  const target = relationTarget(relation, { slug, projectId })
+  if (target.kind === 'none') return <span className={className}>{children}</span>
+  if (target.kind === 'link') {
+    return (
+      <Link to={target.to} className={className} title={title}>
+        {children}
+      </Link>
+    )
+  }
+  return (
+    <button type="button" className={cn('text-left', className)} title={title} onClick={() => onOpenIssue(relation.issue.id)}>
+      {children}
+    </button>
+  )
+}
+
+/**
  * Aviso rojo sobre el título cuando otra tarea abierta la bloquea: a quién espera y un enlace para abrirla.
+ * Los códigos vienen en la tarea (se ve enseguida); el título y el estado, de sus relaciones.
  * @param {{ slug: string, projectId: string, issue: IssueResponse, onOpenIssue: (id: string) => void }} props
  */
 export function BlockedBanner({ slug, projectId, issue, onOpenIssue }) {
-  const count = issue.blockedByCount ?? 0
+  const count = blockedCount(issue)
   const { data: relations } = useRelations(slug, projectId, issue.id, { enabled: count > 0 })
   if (count === 0) return null
-  const blockers = relations ? openBlockers(relations).map((relation) => relation.issue) : []
-  const code = (blocker) => <span className="font-mono text-[13px]">{blocker.code}</span>
+  const blockers = relations ? openBlockers(relations) : []
+  const codes = issue.blockedByCodes ?? []
+  const code = (text) => <span className="font-mono text-[13px]">{text}</span>
+  const linkProps = { slug, projectId, onOpenIssue }
+  const single = blockers.length === 1 ? blockers[0] : null
+
+  let text
+  if (single) {
+    const other = single.issue
+    text =
+      single.accessible === false ? (
+        <>Espera a {code(other.code)}, de un proyecto al que no tienes acceso.</>
+      ) : (
+        <>
+          Espera a {code(other.code)} {other.title}, que sigue en {other.state?.name}.
+        </>
+      )
+  } else if (blockers.length > 1) {
+    text = (
+      <>
+        Espera a{' '}
+        {blockers.map((blocker, index) => (
+          <span key={blocker.relationId}>
+            {index > 0 && (index === blockers.length - 1 ? ' y ' : ', ')}
+            <RelatedLink relation={blocker} {...linkProps} className="underline-offset-2 hover:underline">
+              {code(blocker.issue.code)}
+            </RelatedLink>
+          </span>
+        ))}
+        , que siguen abiertas.
+      </>
+    )
+  } else if (codes.length > 0) {
+    text = (
+      <>
+        Espera a {code(joinCodes(codes))}
+        {codes.length === 1 ? '.' : ', que siguen abiertas.'}
+      </>
+    )
+  } else {
+    text = `Espera a ${count} ${count === 1 ? 'tarea abierta' : 'tareas abiertas'}.`
+  }
 
   return (
     <p role="status" className="tf-fade flex items-start gap-2.5 rounded-xl bg-late-soft px-3 py-2.5 text-sm text-late">
       <Ban className="mt-0.5 size-4 shrink-0" strokeWidth={2.3} aria-hidden="true" />
       <span className="min-w-0 flex-1 leading-relaxed">
-        <strong className="font-semibold">Bloqueada.</strong>{' '}
-        {blockers.length === 1 ? (
-          <>
-            Espera a {code(blockers[0])} {blockers[0].title}, que sigue en {blockers[0].state?.name}.
-          </>
-        ) : blockers.length > 1 ? (
-          <>
-            Espera a{' '}
-            {blockers.map((blocker, index) => (
-              <span key={blocker.id}>
-                {index > 0 && (index === blockers.length - 1 ? ' y ' : ', ')}
-                <button type="button" className="underline-offset-2 hover:underline" onClick={() => onOpenIssue(blocker.id)}>
-                  {code(blocker)}
-                </button>
-              </span>
-            ))}
-            , que siguen abiertas.
-          </>
-        ) : (
-          `Espera a ${count} ${count === 1 ? 'tarea abierta' : 'tareas abiertas'}.`
-        )}
+        <strong className="font-semibold">Bloqueada.</strong> {text}
       </span>
-      {blockers.length === 1 && (
-        <button
-          type="button"
-          className="shrink-0 text-[13px] font-semibold underline-offset-2 hover:underline"
-          onClick={() => onOpenIssue(blockers[0].id)}
-        >
-          Abrir {blockers[0].code}
-        </button>
+      {single && single.accessible !== false && (
+        <RelatedLink relation={single} {...linkProps} className="shrink-0 text-[13px] font-semibold underline-offset-2 hover:underline">
+          Abrir {single.issue.code}
+        </RelatedLink>
       )}
     </p>
   )
@@ -86,7 +129,8 @@ export function BlockedBanner({ slug, projectId, issue, onOpenIssue }) {
 
 /**
  * Sección «Relaciones» del detalle: bloqueada por, bloquea y relacionada con, con quitar y agregar
- * (buscando entre las tareas del proyecto). Al hacer clic en una tarea se abre en el panel.
+ * (buscando en este proyecto y en los demás del workspace). Al hacer clic en una tarea de este proyecto se abre
+ * en el panel; las de otro proyecto llevan a ese proyecto y las de un proyecto sin acceso muestran solo el código.
  * @param {{ slug: string, projectId: string, issue: IssueResponse, onOpenIssue: (id: string) => void }} props
  */
 export function IssueRelations({ slug, projectId, issue, onOpenIssue }) {
@@ -104,7 +148,7 @@ export function IssueRelations({ slug, projectId, issue, onOpenIssue }) {
 
   const handleRemove = (relation) =>
     remove.mutate(
-      { relationId: relation.relationId, otherId: relation.issue.id },
+      { relationId: relation.relationId, otherId: relation.issue.id, otherProjectId: relation.issue.project?.id },
       { onError: (error) => notifyError(error, 'No se pudo quitar la relación') },
     )
 
@@ -151,7 +195,9 @@ export function IssueRelations({ slug, projectId, issue, onOpenIssue }) {
                     key={relation.relationId}
                     relation={relation}
                     first={index === 0}
-                    onOpen={() => onOpenIssue(relation.issue.id)}
+                    slug={slug}
+                    projectId={projectId}
+                    onOpenIssue={onOpenIssue}
                     onRemove={() => handleRemove(relation)}
                   />
                 ))}
@@ -186,33 +232,51 @@ export function IssueRelations({ slug, projectId, issue, onOpenIssue }) {
   )
 }
 
-/** @param {{ relation: IssueRelation, first: boolean, onOpen: () => void, onRemove: () => void }} props */
-function RelationRow({ relation, first, onOpen, onRemove }) {
+/**
+ * Fila de una tarea relacionada. Las de otro proyecto llevan la pastilla de su proyecto; si no tengo acceso a ese
+ * proyecto, solo se ve el código (sin título, estado ni asignados) y no es un enlace.
+ * @param {{ relation: IssueRelation, first: boolean, slug: string, projectId: string,
+ *           onOpenIssue: (id: string) => void, onRemove: () => void }} props
+ */
+function RelationRow({ relation, first, slug, projectId, onOpenIssue, onRemove }) {
   const other = relation.issue
+  const accessible = relation.accessible !== false
+  const external = Boolean(other.project?.id) && other.project.id !== projectId
   const assignee = other.assignees?.[0]
   const closed = !isOpen(other)
+
   return (
     <li className={cn('flex items-center gap-2.5 py-1.5 pr-1.5 pl-3 transition-colors duration-150 hover:bg-subtle', !first && 'border-t')}>
-      <StateIcon group={other.state?.group} color={other.state?.color} className="size-3.5" />
-      <span className="shrink-0 font-mono text-xs text-muted-foreground">{other.code}</span>
-      <button
-        type="button"
-        onClick={onOpen}
-        className={cn('min-w-0 flex-1 truncate text-left text-sm font-medium hover:underline', closed && 'text-muted-foreground line-through')}
-        title={`Abrir ${other.code}`}
-      >
-        {other.title}
-      </button>
-      <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">{other.state?.name}</span>
-      {assignee ? (
-        <UserAvatar user={assignee} size="xs" className="size-5.5" />
+      {accessible ? (
+        <StateIcon group={other.state?.group} color={other.state?.color} className="size-3.5" />
       ) : (
-        <span
-          title="Sin asignar"
-          aria-label="Sin asignar"
-          className="size-5.5 shrink-0 rounded-full border border-dashed border-dash"
-        />
+        <Lock className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
       )}
+      {external && <ProjectIcon project={other.project} />}
+      <span className="shrink-0 font-mono text-xs text-muted-foreground">{other.code}</span>
+      {accessible ? (
+        <RelatedLink
+          relation={relation}
+          slug={slug}
+          projectId={projectId}
+          onOpenIssue={onOpenIssue}
+          title={external ? `Abrir ${other.code} en ${other.project.name ?? 'su proyecto'}` : `Abrir ${other.code}`}
+          className={cn('min-w-0 flex-1 truncate text-sm font-medium hover:underline', closed && 'text-muted-foreground line-through')}
+        >
+          {other.title}
+        </RelatedLink>
+      ) : (
+        <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground" title="No tienes acceso al proyecto de esta tarea">
+          sin acceso{other.project?.name ? ` · ${other.project.name}` : ''}
+        </span>
+      )}
+      {accessible && <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">{other.state?.name}</span>}
+      {accessible &&
+        (assignee ? (
+          <UserAvatar user={assignee} size="xs" className="size-5.5" />
+        ) : (
+          <span title="Sin asignar" aria-label="Sin asignar" className="size-5.5 shrink-0 rounded-full border border-dashed border-dash" />
+        ))}
       <button
         type="button"
         onClick={onRemove}
@@ -228,22 +292,22 @@ function RelationRow({ relation, first, onOpen, onRemove }) {
 
 /** «Cuando WEB-2 se complete, WEB-15 deja de estar bloqueada y Ana recibe un aviso en su bandeja.» */
 function UnblockNote({ issue, blockers }) {
-  const codes = blockers.map((blocker) => blocker.code)
+  const codes = blockers.map((blocker) => blocker.issue.code)
   const who = (issue.assignees ?? []).map((user) => user.fullName.split(' ')[0])
-  const list = (items) => (items.length === 1 ? items[0] : `${items.slice(0, -1).join(', ')} y ${items.at(-1)}`)
   return (
     <p className="flex items-start gap-2 text-xs leading-normal text-muted-foreground">
       <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
       <span>
-        Cuando {list(codes)} {codes.length === 1 ? 'se complete' : 'se completen'}, {issue.code} deja de estar bloqueada
-        {who.length > 0 ? ` y ${list(who)} ${who.length === 1 ? 'recibe' : 'reciben'} un aviso en su bandeja.` : '.'}
+        Cuando {joinCodes(codes)} {codes.length === 1 ? 'se complete' : 'se completen'}, {issue.code} deja de estar bloqueada
+        {who.length > 0 ? ` y ${joinCodes(who)} ${who.length === 1 ? 'recibe' : 'reciben'} un aviso en su bandeja.` : '.'}
       </span>
     </p>
   )
 }
 
 /**
- * Recuadro para agregar una relación: tipo (Tab lo cambia), búsqueda de tareas del proyecto y Enter para agregar.
+ * Recuadro para agregar una relación: tipo (Tab lo cambia), búsqueda de tareas de este proyecto y, al escribir,
+ * de los demás proyectos del workspace (cada resultado con su proyecto). Enter agrega.
  * Queda abierto para agregar varias; Escape lo cierra sin cerrar el panel.
  */
 function RelationAdder({ slug, projectId, issue, relatedIds, onClose }) {
@@ -252,8 +316,19 @@ function RelationAdder({ slug, projectId, issue, relatedIds, onClose }) {
   const [search, setSearch] = useState('')
   const debounced = useDebouncedValue(search, 300)
   const add = useAddRelation(slug, projectId, issue.id)
-  const { data, isFetching } = useIssues(slug, projectId, { search: debounced || undefined, size: 20, sort: 'sequenceId,desc' })
-  const candidates = (data?.content ?? []).filter((candidate) => candidate.id !== issue.id)
+  const local = useIssues(slug, projectId, { search: debounced || undefined, size: 20, sort: 'sequenceId,desc' })
+  const global = useWorkspaceIssueSearch(slug, debounced)
+  const { data: projects } = useProjects(slug)
+  const projectsById = useMemo(() => new Map((projects ?? []).map((project) => [project.id, project])), [projects])
+  const isFetching = local.isFetching || global.isFetching
+
+  const candidates = mergeCandidates({
+    projectIssues: local.data?.content,
+    // Sin texto, solo las recientes de este proyecto (la búsqueda global necesita texto)
+    workspaceIssues: debounced.trim() ? global.data : [],
+    projectId,
+    issueId: issue.id,
+  })
   // Elegida con ↑ ↓; si no hay una (o ya no está en los resultados) va la primera que se puede agregar
   const [selected, setSelected] = useState('')
   const selectable = candidates.filter((candidate) => !relatedIds.has(candidate.id))
@@ -268,7 +343,7 @@ function RelationAdder({ slug, projectId, issue, relatedIds, onClose }) {
   const choose = (candidate) => {
     if (add.isPending) return
     add.mutate(
-      { type, otherId: candidate.id },
+      { type, otherId: candidate.id, otherProjectId: candidate.projectId },
       {
         onSuccess: () => setSearch(''),
         onError: (error) => notifyError(error, 'No se pudo agregar la relación'),
@@ -308,7 +383,7 @@ function RelationAdder({ slug, projectId, issue, relatedIds, onClose }) {
           <span aria-hidden="true" className="font-semibold text-accent-text">
             &gt;
           </span>
-          <span className="sr-only">Buscar tarea para relacionar</span>
+          <span className="sr-only">Buscar tarea para relacionar, en este proyecto o en otros del workspace</span>
           <CommandPrimitive.Input
             autoFocus
             value={search}
@@ -324,12 +399,13 @@ function RelationAdder({ slug, projectId, issue, relatedIds, onClose }) {
           />
           {(isFetching || add.isPending) && <Spinner className="size-3.5 text-muted-foreground" />}
         </label>
-        <CommandList className="max-h-[240px] px-1.5 pb-1.5">
+        <CommandList className="max-h-[260px] px-1.5 pb-1.5">
           {!isFetching && candidates.length === 0 && (
             <p className="px-3 py-4 text-center text-sm text-muted-foreground">Ninguna tarea coincide</p>
           )}
           {candidates.map((candidate) => {
             const already = relatedIds.has(candidate.id)
+            const project = projectOf(candidate, projectsById)
             return (
               <CommandItem
                 key={candidate.id}
@@ -338,11 +414,13 @@ function RelationAdder({ slug, projectId, issue, relatedIds, onClose }) {
                 onSelect={() => choose(candidate)}
                 className="group gap-2.5 rounded-[10px] px-2.5 py-2 data-[disabled=true]:opacity-60 data-[selected=true]:bg-accent-soft"
               >
-                <StateIcon group={candidate.state?.group} color={candidate.state?.color} className="size-3.5" />
+                <ProjectIcon project={project} className="min-w-10" />
                 <span className="w-14 shrink-0 font-mono text-xs text-muted-foreground">{candidate.code}</span>
-                <span className="min-w-0 flex-1 truncate font-medium">{candidate.title}</span>
+                <span className="min-w-0 flex-1 truncate font-medium" title={project.name ? `${candidate.title} · ${project.name}` : candidate.title}>
+                  {candidate.title}
+                </span>
                 {already ? (
-                  <span className="font-mono text-[11px] text-muted-foreground">ya relacionada</span>
+                  <span className="shrink-0 font-mono text-[11px] text-muted-foreground">ya relacionada</span>
                 ) : (
                   <span className="hidden font-mono text-[11px] text-muted-foreground group-data-[selected=true]:inline">↵</span>
                 )}

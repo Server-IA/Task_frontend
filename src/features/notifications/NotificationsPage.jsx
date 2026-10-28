@@ -1,5 +1,5 @@
 import { useNavigate, useSearchParams } from 'react-router'
-import { BellOff, CheckCheck } from 'lucide-react'
+import { AtSign, BellOff, CheckCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -12,7 +12,9 @@ import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { formatDateTime, formatRelative, groupByDay } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
-import { useMarkAllAsRead, useMarkAsRead, useNotifications, useUnreadCount } from './hooks'
+import { useSessionStore } from '@/stores/sessionStore'
+import { useMarkAllAsRead, useMarkAsRead, useNotificationCounts, useNotifications } from './hooks'
+import { excerptSegments, inboxTab, notificationProject, notificationTarget } from './notificationParts'
 
 /** Marca pequeña sobre el avatar según el tipo de aviso: las menciones van con el acento y el desbloqueo en verde. */
 const TYPE_MARKS = {
@@ -20,16 +22,25 @@ const TYPE_MARKS = {
   ISSUE_COMMENTED: { mark: '“', className: 'bg-card text-muted-foreground' },
   ISSUE_MENTIONED: { mark: '@', className: 'border-transparent bg-primary text-primary-foreground' },
   ISSUE_UNBLOCKED: { mark: '✓', className: 'border-transparent bg-ok-soft text-ok' },
+  RETRO_STARTED: { mark: '↻', className: 'bg-card text-accent-text' },
 }
 const DEFAULT_MARK = { mark: '·', className: 'bg-card text-muted-foreground' }
 
+const EMPTY = {
+  unread: { icon: BellOff, title: 'Estás al día', description: 'Te avisaremos cuando te asignen una tarea, comenten en una tuya o te mencionen.' },
+  mentions: { icon: AtSign, title: 'Nadie te ha mencionado', description: 'Cuando alguien escriba @ y tu nombre en un comentario, aparecerá aquí.' },
+  all: { icon: BellOff, title: 'Sin notificaciones', description: 'Te avisaremos cuando te asignen una tarea, comenten en una tuya o te mencionen.' },
+}
+
 export function NotificationsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const unread = searchParams.get('tab') !== 'all'
-  const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useNotifications({ unread })
-  const { data: unreadCount = 0 } = useUnreadCount()
+  const tab = inboxTab(searchParams.get('tab'))
+  const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useNotifications({ tab })
+  const { data: counts } = useNotificationCounts()
+  const unreadCount = counts?.unread ?? 0
   const markAll = useMarkAllAsRead()
   const notifications = data?.pages.flatMap((page) => page.content) ?? []
+  const empty = EMPTY[tab]
 
   // Agrupadas por día, en el orden en que llegan (más recientes primero)
   const days = groupByDay(notifications, (notification) => notification.createdAt)
@@ -39,7 +50,7 @@ export function NotificationsPage() {
       <PageHeader
         path={[{ label: '~' }, { label: 'bandeja' }]}
         title="Bandeja"
-        description="Asignaciones, comentarios en tus tareas, menciones y tareas desbloqueadas."
+        description="Asignaciones, comentarios en tus tareas, menciones, tareas desbloqueadas y retrospectivas."
         actions={
           <Button
             variant="outline"
@@ -60,8 +71,8 @@ export function NotificationsPage() {
         <Segmented
           label="Filtrar"
           className="self-start bg-card"
-          value={unread ? 'unread' : 'all'}
-          onChange={(value) => setSearchParams(value === 'all' ? { tab: 'all' } : {}, { replace: true })}
+          value={tab}
+          onChange={(value) => setSearchParams(value === 'unread' ? {} : { tab: value }, { replace: true })}
           options={[
             {
               value: 'unread',
@@ -69,6 +80,22 @@ export function NotificationsPage() {
                 <>
                   No leídas{unreadCount > 0 && <span className="ml-1.5 font-mono">{unreadCount}</span>}
                 </>
+              ),
+            },
+            {
+              value: 'mentions',
+              label: (
+                <span className="flex items-center">
+                  Menciones
+                  {counts?.mentions > 0 && <span className="ml-1.5 font-mono">{counts.mentions}</span>}
+                  {counts?.unreadMentions > 0 && (
+                    <span
+                      className="ml-1 size-1.5 rounded-full bg-ring"
+                      title={`${counts.unreadMentions} sin leer`}
+                      aria-label={`${counts.unreadMentions} sin leer`}
+                    />
+                  )}
+                </span>
               ),
             },
             { value: 'all', label: 'Todas' },
@@ -84,14 +111,10 @@ export function NotificationsPage() {
         )}
         {error && <ErrorState error={error} onRetry={refetch} />}
         {!isLoading && !error && notifications.length === 0 && (
-          <EmptyState
-            icon={BellOff}
-            title={unread ? 'Estás al día' : 'Sin notificaciones'}
-            description="Te avisaremos cuando te asignen una tarea, comenten en una tuya o te mencionen."
-          />
+          <EmptyState icon={empty.icon} title={empty.title} description={empty.description} />
         )}
         {days.map((day) => (
-          <section key={day.label} aria-label={day.label} className="flex flex-col gap-1.5">
+          <section key={`${tab}-${day.label}`} aria-label={day.label} className="flex flex-col gap-1.5">
             <h2 className="mx-1 mt-1.5 font-mono text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
               {day.label}
             </h2>
@@ -128,16 +151,39 @@ function MessageText({ message = '', code }) {
   )
 }
 
+/** «Extracto del comentario» entre comillas, con mi mención resaltada. */
+function CommentExcerpt({ excerpt }) {
+  const myName = useSessionStore((state) => state.user?.fullName)
+  return (
+    <span className="mt-1.5 block rounded-[10px] bg-subtle px-2.5 py-1.5 leading-snug break-words text-muted-foreground">
+      «
+      {excerptSegments(excerpt, myName).map((segment, index) =>
+        segment.me ? (
+          <span key={index} className="rounded-md bg-accent-soft px-1 font-semibold text-accent-text [box-decoration-break:clone]">
+            {segment.text}
+          </span>
+        ) : (
+          <span key={index}>{segment.text}</span>
+        ),
+      )}
+      »
+    </span>
+  )
+}
+
 /** @param {{ notification: import('@/api/types').NotificationResponse, first: boolean }} props */
 function NotificationItem({ notification, first }) {
   const navigate = useNavigate()
   const markAsRead = useMarkAsRead()
   const issue = notification.issue
   const mark = TYPE_MARKS[notification.type] ?? DEFAULT_MARK
+  const target = notificationTarget(notification)
+  const project = notificationProject(notification)
+  const workspaceSlug = issue?.workspaceSlug ?? notification.cycle?.workspaceSlug
 
   const open = () => {
     if (!notification.read) markAsRead.mutate(notification.id)
-    if (issue) navigate(`/${issue.workspaceSlug}/projects/${issue.projectId}/issues?issue=${issue.id}`)
+    if (target) navigate(target)
   }
 
   return (
@@ -166,8 +212,12 @@ function NotificationItem({ notification, first }) {
           <span className={cn('block leading-snug', !notification.read && 'font-semibold')}>
             <MessageText message={notification.message} code={issue?.code} />
           </span>
-          <span className="mt-1.5 block font-mono text-[11px] text-muted-foreground" title={formatDateTime(notification.createdAt)}>
-            {issue ? `${issue.workspaceSlug} · ` : ''}
+          {notification.comment?.excerpt && <CommentExcerpt excerpt={notification.comment.excerpt} />}
+          <span
+            className="mt-1.5 block font-mono text-[11px] text-muted-foreground"
+            title={[workspaceSlug, formatDateTime(notification.createdAt)].filter(Boolean).join(' · ')}
+          >
+            {project ? `${project} · ` : ''}
             {formatRelative(notification.createdAt)}
           </span>
         </span>

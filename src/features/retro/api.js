@@ -20,14 +20,19 @@ export const retroApi = {
   finish: (slug, projectId, cycleId) => api.post(`${base(slug, projectId, cycleId)}/finish`).then(data),
 
   /**
-   * @param {{ column: RetroColumn, text: string }} body
+   * `ownerId`: responsable de una acción (solo ACTION y miembro del proyecto; si no, 400).
+   * @param {{ column: RetroColumn, text: string, ownerId?: string }} body
    * @returns {Promise<RetroNote>}
    */
   createNote: (slug, projectId, cycleId, body) => api.post(`${base(slug, projectId, cycleId)}/notes`, body).then(data),
 
-  /** @returns {Promise<RetroNote>} */
-  updateNote: (slug, projectId, cycleId, noteId, text) =>
-    api.patch(`${base(slug, projectId, cycleId)}/notes/${noteId}`, { text }).then(data),
+  /**
+   * Edición parcial: solo viaja lo que cambia (`clearOwner: true` quita el responsable).
+   * @param {import('@/api/types').UpdateRetroNoteRequest} patch
+   * @returns {Promise<RetroNote>}
+   */
+  updateNote: (slug, projectId, cycleId, noteId, patch) =>
+    api.patch(`${base(slug, projectId, cycleId)}/notes/${noteId}`, patch).then(data),
 
   removeNote: (slug, projectId, cycleId, noteId) => api.delete(`${base(slug, projectId, cycleId)}/notes/${noteId}`),
 
@@ -38,7 +43,7 @@ export const retroApi = {
   unvote: (slug, projectId, cycleId, noteId) =>
     api.delete(`${base(slug, projectId, cycleId)}/notes/${noteId}/vote`).then(data),
 
-  /** Acción → tarea (project manager). @returns {Promise<import('@/api/types').IssueResponse>} */
+  /** Acción → tarea asignada a su responsable (project manager). @returns {Promise<import('@/api/types').IssueResponse>} */
   convert: (slug, projectId, cycleId, noteId) =>
     api.post(`${base(slug, projectId, cycleId)}/notes/${noteId}/convert`).then(data),
 }

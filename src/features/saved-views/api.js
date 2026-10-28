@@ -24,4 +24,12 @@ export const savedViewsApi = {
   update: (slug, projectId, viewId, body) => api.patch(`${base(slug, projectId)}/${viewId}`, body).then(data),
 
   remove: (slug, projectId, viewId) => api.delete(`${base(slug, projectId)}/${viewId}`),
+
+  /**
+   * Orden nuevo de un grupo (o de los dos): cada lista con todas las vistas de ese grupo. `shared` solo el
+   * project manager (403). Devuelve la lista completa, como GET.
+   * @param {{ shared?: string[], personal?: string[] }} body
+   * @returns {Promise<SavedView[]>}
+   */
+  reorder: (slug, projectId, body) => api.put(`${base(slug, projectId)}/order`, body).then(data),
 }

@@ -58,6 +58,11 @@ export function CreateIssueDialog({ slug, project, open, onOpenChange, defaults 
           <DialogTitle className="flex items-center gap-2 text-sm font-semibold">
             <ProjectIcon project={project} className="rounded-md px-2 text-[11px]" />
             {defaults.parentId ? `Nueva subtarea de ${defaults.parentCode}` : 'Nueva tarea'}
+            {project.nextIssueCode && (
+              <span className="font-mono text-xs font-normal text-muted-foreground" title="Código que tendrá si nadie crea otra antes">
+                → será {project.nextIssueCode}
+              </span>
+            )}
           </DialogTitle>
           <DialogDescription className="sr-only">Escribe el título y elige sus propiedades.</DialogDescription>
         </DialogHeader>
@@ -131,6 +136,8 @@ function CreateIssueForm({ slug, project, defaults, onCancel, onCreated }) {
       startDate: data.startDate ?? undefined,
       dueDate: data.dueDate ?? undefined,
       parentId: defaults.parentId,
+      // La plantilla suma un uso (se ve en los ajustes de plantillas)
+      templateId: template?.id,
       checklist: template?.checklist?.length
         ? template.checklist.slice(0, CHECKLIST_ON_CREATE).map(({ kind, text }) => ({ kind, text }))
         : undefined,

@@ -47,6 +47,37 @@ export const useDeleteSavedView = (slug, projectId) =>
   )
 
 /**
+ * `mutate({ views, body })`: `views` es la lista con el orden nuevo (se pinta enseguida) y `body` lo que va a
+ * PUT /views/order. Si falla, vuelve el orden anterior.
+ */
+export function useReorderSavedViews(slug, projectId) {
+  const queryClient = useQueryClient()
+  const key = queryKeys.savedViews(projectId)
+  const mutationKey = ['savedViewsOrder', projectId]
+  // Con varios movimientos seguidos, solo el último toma la respuesta y recarga (si no, pisaría a los pendientes)
+  const othersPending = () => queryClient.isMutating({ mutationKey }) > 1
+  return useMutation({
+    mutationKey,
+    mutationFn: ({ body }) => savedViewsApi.reorder(slug, projectId, body),
+    onMutate: async ({ views }) => {
+      await queryClient.cancelQueries({ queryKey: key })
+      const previous = queryClient.getQueryData(key)
+      queryClient.setQueryData(key, views)
+      return { previous }
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previous) queryClient.setQueryData(key, context.previous)
+    },
+    onSuccess: (list) => {
+      if (!othersPending()) queryClient.setQueryData(key, list)
+    },
+    onSettled: () => {
+      if (!othersPending()) queryClient.invalidateQueries({ queryKey: key })
+    },
+  })
+}
+
+/**
  * Vista guardada activa (la de `?savedView=` en la URL), lo que hay en pantalla con la forma de una vista
  * y qué partes cambiaron respecto de ella.
  * @param {ReturnType<typeof import('@/features/issues/useIssueFilters').useIssueFilters>} issueFilters

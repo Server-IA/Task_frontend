@@ -1,5 +1,46 @@
 import { describe, expect, it } from 'vitest'
-import { checklistProgress, needsCriteriaConfirm, pendingCriteria } from './issueFlags'
+import {
+  blockedBySummary,
+  blockedCount,
+  blockingSummary,
+  checklistProgress,
+  joinCodes,
+  needsCriteriaConfirm,
+  pendingCriteria,
+} from './issueFlags'
+
+describe('dependencias en tarjetas y filas', () => {
+  it('bloqueada por: primer código y cuántos más', () => {
+    expect(blockedBySummary({ blockedByCount: 0, blockedByCodes: [] })).toBeNull()
+    expect(blockedBySummary({ blockedByCount: 1, blockedByCodes: ['WEB-2'] })).toEqual({
+      count: 1,
+      codes: ['WEB-2'],
+      first: 'WEB-2',
+      more: 0,
+    })
+    expect(blockedBySummary({ blockedByCount: 3, blockedByCodes: ['AMC-4', 'WEB-2', 'WEB-7'] })).toMatchObject({
+      first: 'AMC-4',
+      more: 2,
+    })
+    // Sin códigos (respuesta sin el campo) queda solo el número
+    expect(blockedBySummary({ blockedByCount: 2 })).toEqual({ count: 2, codes: [], first: null, more: 0 })
+    expect(blockedCount({ blockedByCodes: ['WEB-2'] })).toBe(1)
+  })
+
+  it('bloquea: el código con una, el número con varias', () => {
+    expect(blockingSummary({ blockingCodes: [] })).toBeNull()
+    expect(blockingSummary({})).toBeNull()
+    expect(blockingSummary({ blockingCodes: ['WEB-7'] })).toMatchObject({ count: 1, label: 'WEB-7' })
+    expect(blockingSummary({ blockingCodes: ['WEB-7', 'WEB-9'] })).toMatchObject({ count: 2, label: '2' })
+  })
+
+  it('une códigos en español', () => {
+    expect(joinCodes([])).toBe('')
+    expect(joinCodes(['WEB-2'])).toBe('WEB-2')
+    expect(joinCodes(['WEB-2', 'WEB-7'])).toBe('WEB-2 y WEB-7')
+    expect(joinCodes(['WEB-2', 'WEB-7', 'AMC-3'])).toBe('WEB-2, WEB-7 y AMC-3')
+  })
+})
 
 const done = { id: 's-done', group: 'COMPLETED' }
 const doing = { id: 's-doing', group: 'STARTED' }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dueGroup, groupByDue, nextDue } from './groupByDue'
+import { dueGroup, groupByDue } from './groupByDue'
 
 // Lunes 26 de octubre de 2026 (la semana termina el domingo 1 de noviembre)
 const monday = new Date(2026, 9, 26, 15, 30)
@@ -36,13 +36,5 @@ describe('groupByDue', () => {
     const groups = groupByDue(issues, monday)
     expect(groups.map((group) => group.key)).toEqual(['overdue', 'week', 'later', 'none'])
     expect(groups[1].issues.map((issue) => issue.id)).toEqual(['d', 'e'])
-  })
-})
-
-describe('nextDue', () => {
-  it('es la primera fecha de hoy en adelante (las vencidas no cuentan)', () => {
-    const issues = [{ id: 'old', dueDate: '2026-10-01' }, { id: 'later', dueDate: '2026-11-05' }, { id: 'soon', dueDate: '2026-10-28' }]
-    expect(nextDue(issues, monday).id).toBe('soon')
-    expect(nextDue([{ id: 'x', dueDate: null }], monday)).toBeUndefined()
   })
 })

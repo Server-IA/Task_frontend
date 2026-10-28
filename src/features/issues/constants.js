@@ -18,6 +18,15 @@ export const SORT_OPTIONS = [
   { value: 'title,asc', label: 'Título (A-Z)' },
 ]
 
+/** Cómo se agrupan las filas de la lista (el tablero siempre va por estado). Lo mismo acepta `groupBy` en las vistas guardadas. */
+export const GROUP_BY_OPTIONS = [
+  { value: 'state', label: 'Estado' },
+  { value: 'priority', label: 'Prioridad' },
+  { value: 'assignee', label: 'Asignado' },
+  { value: 'label', label: 'Etiqueta' },
+]
+export const GROUP_BY_DEFAULT = 'state'
+
 /** Tamaño de página del listado y de la carga del Kanban (el backend permite hasta 200). */
 export const LIST_PAGE_SIZE = 50
 export const BOARD_PAGE_SIZE = 200

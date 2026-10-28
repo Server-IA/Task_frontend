@@ -17,13 +17,15 @@ import { notifyError } from '@/lib/notify'
 import { IS_MAC } from '@/lib/shortcuts'
 import { cn } from '@/lib/utils'
 import { useConvertRetroNote, useDeleteRetroNote, useUpdateRetroNote, useVoteRetroNote } from '../hooks'
-import { MAX_VOTES, NOTE_MAX_LENGTH, voteState } from '../retroNotes'
+import { buildNoteUpdate, MAX_VOTES, NOTE_MAX_LENGTH, voteState } from '../retroNotes'
+import { OwnerButton, OwnerPicker } from './OwnerPicker'
 
 /** Atajo para guardar una nota, como se muestra en la interfaz. */
 export const SAVE_HINT = IS_MAC ? '⌘ ↵' : 'ctrl ↵'
 
 /**
- * Una nota de la retro: texto, autor, votos y, en las acciones, su tarea (o «Convertir en tarea» para el PM).
+ * Una nota de la retro: texto, autor (o responsable, en las acciones), votos y, en las acciones, su tarea
+ * (o «Crear tarea» para el PM, que queda asignada al responsable).
  * @param {{ note: import('@/api/types').RetroNote, retro: import('@/api/types').RetroResponse, ctx: RetroContext }} props
  */
 export function RetroNoteCard({ note, retro, ctx }) {
@@ -34,15 +36,23 @@ export function RetroNoteCard({ note, retro, ctx }) {
   const convert = useConvertRetroNote(ctx.slug, ctx.projectId, ctx.cycleId)
   const isAction = note.column === 'ACTION'
   const editable = ctx.canEdit(note)
-  const mine = note.author?.id === ctx.userId
+
+  /** Guarda solo lo que cambió (texto, responsable o ambos). */
+  const save = (changes, options) => {
+    const patch = buildNoteUpdate(note, changes)
+    if (!patch) return options?.onSuccess?.()
+    update.mutate({ noteId: note.id, ...patch }, { onError: (error) => notifyError(error), ...options })
+  }
 
   const convertNote = () =>
     convert.mutate(note, {
-      onSuccess: (issue) =>
+      onSuccess: (issue) => {
+        const assignee = issue.assignees?.[0]
         toast.success(`Se creó ${issue.code}`, {
-          description: issue.title,
+          description: assignee ? `${issue.title} · asignada a ${assignee.fullName}` : issue.title,
           action: { label: 'Abrir', onClick: () => ctx.openIssue(issue.id) },
-        }),
+        })
+      },
       onError: (error) => notifyError(error, 'No se pudo crear la tarea'),
     })
 
@@ -51,25 +61,29 @@ export function RetroNoteCard({ note, retro, ctx }) {
       {editing ? (
         <NoteEditor
           initialText={note.text}
+          initialOwner={note.owner ?? null}
+          withOwner={isAction}
+          members={ctx.members}
           label="Editar nota"
           submitLabel="Guardar"
           pending={update.isPending}
           onCancel={() => setEditing(false)}
-          onSubmit={(text) =>
-            update.mutate(
-              { noteId: note.id, text },
-              { onSuccess: () => setEditing(false), onError: (error) => notifyError(error) },
-            )
-          }
+          onSubmit={(changes) => save(changes, { onSuccess: () => setEditing(false) })}
         />
       ) : (
         <p className="text-sm leading-relaxed break-words whitespace-pre-wrap">{note.text}</p>
       )}
       <div className="flex min-w-0 flex-wrap items-center gap-2 text-xs">
-        <UserAvatar user={note.author} size="xs" />
-        <span className="min-w-0 truncate text-muted-foreground" title={formatDateTime(note.createdAt)}>
-          {mine ? 'Tú' : note.author?.fullName}
-        </span>
+        {isAction && note.owner ? (
+          <NoteOwner note={note} ctx={ctx} editable={editable && !editing} pending={update.isPending} onChange={save} />
+        ) : (
+          <NoteAuthor note={note} ctx={ctx} />
+        )}
+        {isAction && !note.owner && editable && !editing && (
+          <OwnerPicker members={ctx.members} value={null} onChange={(ownerId) => save({ ownerId })} disabled={update.isPending}>
+            <OwnerButton owner={null} className="h-6" />
+          </OwnerPicker>
+        )}
         {isAction && note.issue && (
           <button
             type="button"
@@ -82,9 +96,16 @@ export function RetroNoteCard({ note, retro, ctx }) {
           </button>
         )}
         {isAction && !note.issue && ctx.manager && (
-          <Button variant="outline" size="xs" className="rounded-md" onClick={convertNote} disabled={convert.isPending}>
+          <Button
+            variant="outline"
+            size="xs"
+            className="rounded-md"
+            onClick={convertNote}
+            disabled={convert.isPending}
+            title={note.owner ? `Crea la tarea asignada a ${note.owner.fullName}` : 'Crea la tarea sin asignar'}
+          >
             {convert.isPending && <Spinner className="size-3" />}
-            Convertir en tarea
+            Crear tarea
           </Button>
         )}
         <span className="ml-auto flex items-center gap-1">
@@ -133,6 +154,56 @@ export function RetroNoteCard({ note, retro, ctx }) {
         }
       />
     </article>
+  )
+}
+
+/** Avatar y nombre de quien escribió la nota («Tú» si es tuya). */
+function NoteAuthor({ note, ctx }) {
+  const mine = note.author?.id === ctx.userId
+  return (
+    <>
+      <UserAvatar user={note.author} size="xs" />
+      <span className="min-w-0 truncate text-muted-foreground" title={formatDateTime(note.createdAt)}>
+        {mine ? 'Tú' : note.author?.fullName}
+      </span>
+    </>
+  )
+}
+
+/**
+ * «responsable: Luis Muñoz» con su avatar (quién la escribió va en el globo). Quien puede editar la nota lo
+ * cambia o lo quita desde aquí mismo.
+ */
+function NoteOwner({ note, ctx, editable, pending, onChange }) {
+  const owner = note.owner
+  const name = owner.id === ctx.userId ? 'tú' : owner.fullName
+  const author = note.author?.id === ctx.userId ? 'ti' : note.author?.fullName
+  const title = `Escrita por ${author} · ${formatDateTime(note.createdAt)}`
+  const content = (
+    <>
+      <UserAvatar user={owner} size="xs" />
+      <span className="min-w-0 truncate text-muted-foreground">responsable: {name}</span>
+    </>
+  )
+
+  if (!editable) {
+    return (
+      <span className="flex min-w-0 items-center gap-2" title={title}>
+        {content}
+      </span>
+    )
+  }
+  return (
+    <OwnerPicker members={ctx.members} value={owner.id} onChange={(ownerId) => onChange({ ownerId })} disabled={pending}>
+      <button
+        type="button"
+        title={`${title}. Cambiar responsable`}
+        aria-label={`Responsable: ${owner.fullName}. Cambiar`}
+        className="-mx-1 flex min-w-0 items-center gap-2 rounded-md px-1 py-0.5 outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+      >
+        {content}
+      </button>
+    </OwnerPicker>
   )
 }
 
@@ -187,19 +258,40 @@ function VoteButton({ note, retro, ctx }) {
 }
 
 /**
- * Campo para escribir o editar una nota: ctrl/⌘ + Enter guarda y Escape cancela.
+ * Campo para escribir o editar una nota: ctrl/⌘ + Enter guarda y Escape cancela. En las acciones
+ * (`withOwner`) se elige también el responsable entre los miembros del proyecto.
  * `keepOpen`: al agregar, el campo se vacía y sigue abierto para escribir la siguiente.
+ * `onSubmit({ text, ownerId }, reset)`: `ownerId` solo viene con `withOwner` (null = sin responsable).
  */
-export function NoteEditor({ initialText = '', label, placeholder, submitLabel, pending, onSubmit, onCancel, keepOpen = false }) {
+export function NoteEditor({
+  initialText = '',
+  initialOwner = null,
+  withOwner = false,
+  members = [],
+  label,
+  placeholder,
+  submitLabel,
+  pending,
+  onSubmit,
+  onCancel,
+  keepOpen = false,
+}) {
   const [text, setText] = useState(initialText)
+  const [ownerId, setOwnerId] = useState(initialOwner?.id ?? null)
   const wrapperRef = useRef(null)
   useLocalEscape(wrapperRef, onCancel)
   const value = text.trim()
+  // Quien ya no es miembro sigue apareciendo mientras sea el responsable guardado
+  const owner = members.find((user) => user.id === ownerId) ?? (ownerId && ownerId === initialOwner?.id ? initialOwner : null)
 
   const submit = () => {
     if (!value || pending) return
-    if (value === initialText.trim() && !keepOpen) return onCancel()
-    onSubmit(value, () => setText(''))
+    const unchanged = value === initialText.trim() && ownerId === (initialOwner?.id ?? null)
+    if (unchanged && !keepOpen) return onCancel()
+    onSubmit({ text: value, ...(withOwner && { ownerId }) }, () => {
+      setText('')
+      setOwnerId(null)
+    })
   }
 
   return (
@@ -221,6 +313,14 @@ export function NoteEditor({ initialText = '', label, placeholder, submitLabel, 
         }}
         className="field-sizing-content block max-h-60 min-h-12 w-full resize-none bg-transparent text-sm leading-relaxed outline-none placeholder:text-muted-foreground"
       />
+      {withOwner && (
+        <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+          <span className="font-mono text-[11px]">responsable</span>
+          <OwnerPicker members={members} value={ownerId} onChange={setOwnerId}>
+            <OwnerButton owner={owner} />
+          </OwnerPicker>
+        </div>
+      )}
       <div className="flex items-center gap-2">
         <span className="min-w-0 truncate font-mono text-[11px] text-muted-foreground" title="Escape cancela">
           {SAVE_HINT} {submitLabel.toLowerCase()}
@@ -244,5 +344,6 @@ export function NoteEditor({ initialText = '', label, placeholder, submitLabel, 
 
 /**
  * @typedef {{ slug: string, projectId: string, cycleId: string, userId?: string, manager: boolean,
+ *             members: import('@/api/types').UserSummary[],
  *             canEdit: (note: import('@/api/types').RetroNote) => boolean, openIssue: (issueId: string) => void }} RetroContext
  */

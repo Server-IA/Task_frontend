@@ -59,6 +59,38 @@ export function canEditNote(note, { userId, manager, phase }) {
   return manager || (Boolean(userId) && note.author?.id === userId)
 }
 
+/** Solo las acciones tienen responsable (en las otras columnas el backend responde 400). */
+export const takesOwner = (column) => column === 'ACTION'
+
+/**
+ * Cuerpo de POST /notes: el responsable viaja solo en las acciones y si se eligió.
+ * @param {RetroColumn} column
+ * @param {string} text
+ * @param {string | null} [ownerId]
+ * @returns {{ column: RetroColumn, text: string, ownerId?: string }}
+ */
+export function buildNewNote(column, text, ownerId) {
+  const body = { column, text: text.trim() }
+  if (ownerId && takesOwner(column)) body.ownerId = ownerId
+  return body
+}
+
+/**
+ * Cuerpo parcial de PATCH /notes/{id}: solo lo que cambió. Quitar el responsable es `clearOwner: true`.
+ * @param {RetroNote} note
+ * @param {{ text?: string, ownerId?: string | null }} changes `ownerId` null = sin responsable
+ * @returns {import('@/api/types').UpdateRetroNoteRequest | null} null si no cambió nada
+ */
+export function buildNoteUpdate(note, { text, ownerId }) {
+  const patch = {}
+  if (text !== undefined && text.trim() && text.trim() !== (note.text ?? '').trim()) patch.text = text.trim()
+  if (ownerId !== undefined && takesOwner(note.column) && ownerId !== (note.owner?.id ?? null)) {
+    if (ownerId) patch.ownerId = ownerId
+    else patch.clearOwner = true
+  }
+  return Object.keys(patch).length > 0 ? patch : null
+}
+
 /** Votar (o quitar el voto): con la retro en curso y, para votar, si te quedan votos. */
 export function voteState(note, retro) {
   if (retroPhase(retro) !== 'OPEN') return { enabled: false, reason: 'closed' }

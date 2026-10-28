@@ -1,24 +1,36 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/api/queryKeys'
 import { notificationsApi } from './api'
+import { INBOX_TABS } from './notificationParts'
 
 const PAGE_SIZE = 20
 
-/** Contador del badge: se consulta cada 30 s mientras la pestaña está visible. */
-export function useUnreadCount() {
-  return useQuery({
-    queryKey: queryKeys.unreadCount,
-    queryFn: notificationsApi.unreadCount,
-    refetchInterval: 30_000,
-    refetchIntervalInBackground: false,
-    select: (result) => result.count,
-  })
+/**
+ * Contadores de la Bandeja (sin leer, menciones sin leer, menciones): se consultan cada 30 s mientras la pestaña
+ * está visible. El badge de la barra lateral y las pestañas leen la misma consulta, así siempre coinciden.
+ */
+const countsQuery = {
+  queryKey: queryKeys.notificationCounts,
+  queryFn: notificationsApi.counts,
+  refetchInterval: 30_000,
+  refetchIntervalInBackground: false,
 }
 
-export function useNotifications({ unread }) {
+export function useNotificationCounts() {
+  return useQuery(countsQuery)
+}
+
+/** Sin leer (badge de la barra lateral). */
+export function useUnreadCount() {
+  return useQuery({ ...countsQuery, select: (counts) => counts.unread })
+}
+
+/** @param {{ tab: keyof typeof INBOX_TABS }} options */
+export function useNotifications({ tab }) {
+  const filter = INBOX_TABS[tab] ?? INBOX_TABS.unread
   return useInfiniteQuery({
-    queryKey: queryKeys.notifications({ unread }),
-    queryFn: ({ pageParam }) => notificationsApi.list({ unread, page: pageParam, size: PAGE_SIZE }),
+    queryKey: queryKeys.notifications({ tab }),
+    queryFn: ({ pageParam }) => notificationsApi.list({ ...filter, page: pageParam, size: PAGE_SIZE }),
     initialPageParam: 0,
     getNextPageParam: (lastPage) => (lastPage.last ? undefined : lastPage.page + 1),
     refetchInterval: 30_000,

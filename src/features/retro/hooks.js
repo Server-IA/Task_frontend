@@ -40,7 +40,7 @@ function useRetroPhase(slug, projectId, cycleId, action) {
 export const useStartRetro = (slug, projectId, cycleId) => useRetroPhase(slug, projectId, cycleId, 'start')
 export const useFinishRetro = (slug, projectId, cycleId) => useRetroPhase(slug, projectId, cycleId, 'finish')
 
-/** `mutate({ column, text })`: la nota nueva aparece en su columna sin esperar a recargar. */
+/** `mutate({ column, text, ownerId? })`: la nota nueva aparece en su columna sin esperar a recargar. */
 export function useCreateRetroNote(slug, projectId, cycleId) {
   const setRetro = useSetRetro(cycleId)
   return useMutation({
@@ -49,11 +49,11 @@ export function useCreateRetroNote(slug, projectId, cycleId) {
   })
 }
 
-/** `mutate({ noteId, text })`. */
+/** `mutate({ noteId, ...patch })` con `patch` = `{ text?, ownerId?, clearOwner? }` (ver buildNoteUpdate). */
 export function useUpdateRetroNote(slug, projectId, cycleId) {
   const setRetro = useSetRetro(cycleId)
   return useMutation({
-    mutationFn: ({ noteId, text }) => retroApi.updateNote(slug, projectId, cycleId, noteId, text),
+    mutationFn: ({ noteId, ...patch }) => retroApi.updateNote(slug, projectId, cycleId, noteId, patch),
     onSuccess: (note) => setRetro((retro) => upsertNote(retro, note)),
   })
 }

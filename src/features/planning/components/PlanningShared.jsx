@@ -21,6 +21,7 @@ import { formatShortDate } from '@/lib/dates'
 import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
+import { closedText } from '../closeCycle'
 import { useAddPlanningIssues, useCreatePlanning, useUpdatePlanning } from '../hooks'
 
 /** Textos y nombres de campos que cambian entre ciclos y módulos. */
@@ -84,10 +85,14 @@ export function cycleStatusKey(cycle) {
   return cycle?.closedAt ? 'CLOSED' : (cycle?.status ?? 'DRAFT')
 }
 
-/** Pastilla del estado del ciclo. Con `cycle` se usa su estado (y «Cerrado el 27 oct» si se cerró). */
+/**
+ * Pastilla del estado del ciclo. Con `cycle` se usa su estado; si se cerró dice «Cerrado» con un candado
+ * (cuándo y quién van en la línea de fechas, ver ClosedByText).
+ */
 export function CycleStatusBadge({ status, cycle, className }) {
   const key = cycle ? cycleStatusKey(cycle) : status
   const config = CYCLE_STATUS[key] ?? CYCLE_STATUS.DRAFT
+  const closed = key === 'CLOSED' && cycle ? closedText(cycle) : ''
   return (
     <span
       className={cn(
@@ -95,12 +100,19 @@ export function CycleStatusBadge({ status, cycle, className }) {
         config.className,
         className,
       )}
-      title={key === 'CLOSED' ? `Cerrado el ${formatShortDate(cycle.closedAt)}` : undefined}
+      title={closed ? closed[0].toUpperCase() + closed.slice(1) : undefined}
     >
       {key === 'CLOSED' && <Lock className="size-3" strokeWidth={2.5} aria-hidden="true" />}
-      {key === 'CLOSED' ? `Cerrado el ${formatShortDate(cycle.closedAt)}` : config.label}
+      {config.label}
     </span>
   )
+}
+
+/** « · cerrado hoy por Ana» para la línea de fechas de un ciclo cerrado (nada si sigue abierto). */
+export function ClosedByText({ cycle, className }) {
+  const text = closedText(cycle)
+  if (!text) return null
+  return <span className={className}> · {text}</span>
 }
 
 /**

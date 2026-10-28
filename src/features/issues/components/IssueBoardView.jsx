@@ -28,7 +28,7 @@ import { useIssues, useMoveIssue } from '../hooks'
 import { needsCriteriaConfirm } from '../issueFlags'
 import { useCriteriaGuard } from '../useCriteriaGuard'
 import { isClosed, useIssueUpdater } from '../useIssueHelpers'
-import { BlockedChip, ChecklistChip } from './IssueBadges'
+import { BlockedChip, BlockingChip, ChecklistChip } from './IssueBadges'
 import { AssigneesPicker, DatePicker, LabelsPicker, PriorityPicker } from './PropertyPickers'
 
 /** Kanban: una columna por estado; las tarjetas se arrastran entre columnas y dentro de ellas. */
@@ -335,7 +335,8 @@ function IssueCard({ issue, slug, project, meta, overlay = false }) {
         </span>
       </div>
       <h4 className="line-clamp-3 text-[14.5px] leading-snug font-medium">{issue.title}</h4>
-      <BlockedChip issue={issue} className="self-start" />
+      <BlockedChip issue={issue} codes="by" className="self-start" />
+      <BlockingChip issue={issue} className="self-start" />
       {hasLabels && (
         <div onPointerDown={stop} onKeyDown={stop} onClick={stop}>
           <LabelsPicker

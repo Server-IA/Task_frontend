@@ -1,49 +1,46 @@
+import { Fragment } from 'react'
 import { Ban } from 'lucide-react'
 import { StateIcon } from '@/components/common/StateIcon'
 import { cn } from '@/lib/utils'
-import { changeKind, changeLabel, firstName } from '../daily'
+import { blockerOwner, changeNote, todayNotes } from '../daily'
 
-/** Color y peso de la nota bajo cada tarea. */
+/** Color y peso de cada nota bajo una tarea. */
 const TONES = {
   normal: 'font-normal text-muted-foreground',
   ok: 'font-semibold text-ok',
+  soon: 'font-semibold text-soon',
   late: 'font-semibold text-late',
 }
 
 /**
- * Los tres bloques de una persona: «Ayer» (tarea + qué cambió), «Hoy» (en curso o con fecha hasta hoy) y
- * «Bloqueos» (con las tareas que la bloquean). Cada tarea abre el panel lateral.
- * @param {{ person: import('@/api/types').DailyPerson, index: Map<string, import('@/api/types').IssueRef>,
+ * Los tres bloques de una persona: «Ayer» (tarea + su cambio de estado), «Hoy» (en curso o con fecha hasta ese
+ * día, con «vence mañana» y similares) y «Bloqueos» (con las tareas que la bloquean y de quién son).
+ * Cada tarea del proyecto abre el panel lateral.
+ * @param {{ person: import('@/api/types').DailyPerson, date: string, projectId: string,
  *           blocking?: { code: string, blockedCode: string, ownerName: string }[],
  *           onOpenIssue: (issueId: string) => void, size?: 'card' | 'focus' }} props
  */
-export function personBlocks({ person, index, blocking = [], onOpenIssue, size = 'card' }) {
+export function personBlocks({ person, date, projectId, blocking = [], onOpenIssue, size = 'card' }) {
   const userId = person.user?.id
   const yesterday = (person.yesterday ?? []).map((entry) => ({
     key: `y-${entry.issue?.id}`,
     issue: entry.issue,
-    note: changeLabel(entry.change),
-    tone: changeKind(entry.change) === 'completed' ? 'ok' : 'normal',
+    notes: [changeNote(entry)],
   }))
-  const today = (person.today ?? []).map((issue) => {
-    const others = (issue.assignees ?? []).filter((user) => user.id !== userId)
-    return {
-      key: `t-${issue.id}`,
-      issue,
-      note: [issue.state?.name, others.length > 0 && `compartida con ${others.map(firstName).join(' y ')}`]
-        .filter(Boolean)
-        .join(' · '),
-      tone: 'normal',
-    }
-  })
+  const today = (person.today ?? []).map((issue) => ({
+    key: `t-${issue.id}`,
+    issue,
+    notes: todayNotes(issue, userId, date),
+  }))
   const blockers = (person.blockers ?? []).map((blocker) => ({
     key: `b-${blocker.issue?.id}`,
     issue: blocker.issue,
-    blockedBy: (blocker.blockedBy ?? []).map((by) => {
-      const owners = (index.get(by.id)?.assignees ?? []).filter((user) => user.id !== userId)
-      return { ...by, owner: owners.length > 0 ? owners.map(firstName).join(' y ') : null }
-    }),
-    tone: 'late',
+    blockedBy: (blocker.blockedBy ?? []).map((by) => ({
+      ...by,
+      owner: blockerOwner(by, userId),
+      // Una tarea de otro proyecto no se abre en el panel de este
+      openable: !by.project?.id || by.project.id === projectId,
+    })),
   }))
 
   const blockingText =
@@ -95,14 +92,15 @@ export function DailyBlock({ block, className, headingClassName }) {
 }
 
 /**
- * Tarea de la daily: estado, código, título y una nota (qué cambió, estado, bloqueada por…). Toda la fila abre
- * la tarea; los códigos de las tareas que la bloquean abren esas.
+ * Tarea de la daily: estado, código, título y sus notas (cambio de estado, fecha límite, bloqueada por…).
+ * Toda la fila abre la tarea; los códigos de las tareas que la bloquean abren esas.
  */
 function DailyIssueItem({ item, size, onOpenIssue }) {
   const focus = size === 'focus'
   const { issue } = item
   if (!issue) return null
   const blocked = Boolean(item.blockedBy)
+  const noteSize = focus ? 'text-[13px]' : 'text-xs'
 
   return (
     <li
@@ -125,38 +123,46 @@ function DailyIssueItem({ item, size, onOpenIssue }) {
           <span className="break-words">{issue.title}</span>
         </button>
         {blocked ? (
-          <span className={cn('mt-0.5 flex flex-wrap items-center gap-x-1', focus ? 'text-[13px]' : 'text-xs', TONES.late)}>
+          <span className={cn('mt-0.5 flex flex-wrap items-center gap-x-1', noteSize, TONES.late)}>
             <Ban className="size-3" strokeWidth={2.5} aria-hidden="true" />
             bloqueada por
             {item.blockedBy.map((by, index) => (
               <span key={by.id}>
-                <button
-                  type="button"
-                  onClick={() => onOpenIssue(by.id)}
-                  title={by.title}
-                  className="relative z-10 rounded font-mono underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                >
-                  {by.code}
-                </button>
+                {by.openable ? (
+                  <button
+                    type="button"
+                    onClick={() => onOpenIssue(by.id)}
+                    title={by.title ?? undefined}
+                    className="relative z-10 rounded font-mono underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  >
+                    {by.code}
+                  </button>
+                ) : (
+                  <span
+                    className="font-mono"
+                    title={by.title ? `${by.title} · ${by.project?.name ?? 'otro proyecto'}` : 'De un proyecto al que no tienes acceso'}
+                  >
+                    {by.code}
+                  </span>
+                )}
                 {by.owner && <span className="font-normal"> ({by.owner})</span>}
                 {index < item.blockedBy.length - 1 && ','}
               </span>
             ))}
           </span>
         ) : (
-          item.note && (
-            <span className={cn('mt-0.5 block', focus ? 'text-[13px]' : 'text-xs', TONES[item.tone])}>{item.note}</span>
+          item.notes?.length > 0 && (
+            <span className={cn('mt-0.5 block', noteSize)}>
+              {item.notes.map((note, index) => (
+                <Fragment key={note.text}>
+                  {index > 0 && <span className={TONES.normal}> · </span>}
+                  <span className={TONES[note.tone] ?? TONES.normal}>{note.text}</span>
+                </Fragment>
+              ))}
+            </span>
           )
         )}
       </span>
     </li>
   )
-}
-
-/** «2 ayer · 3 hoy · 1 bloqueo». */
-export function personMeta(person) {
-  const parts = [`${person.yesterday?.length ?? 0} ayer`, `${person.today?.length ?? 0} hoy`]
-  const blockers = person.blockers?.length ?? 0
-  if (blockers > 0) parts.push(`${blockers} ${blockers === 1 ? 'bloqueo' : 'bloqueos'}`)
-  return parts.join(' · ')
 }

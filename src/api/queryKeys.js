@@ -52,4 +52,6 @@ export const queryKeys = {
   notifications: (params) => ['notifications', 'list', params],
   notificationsAll: ['notifications'],
   unreadCount: ['notifications', 'unread-count'],
+  /** Sin leer, menciones sin leer y menciones en total (badge de la Bandeja y sus pestañas). */
+  notificationCounts: ['notifications', 'counts'],
 }

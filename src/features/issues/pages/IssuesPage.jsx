@@ -1,24 +1,27 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { useIsFetching } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Segmented } from '@/components/common/Segmented'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { usePlanningList } from '@/features/planning/hooks'
 import { useCurrentProject } from '@/features/projects/hooks'
 import { SavedViewsBar } from '@/features/saved-views/components/SavedViewsBar'
 import { useActiveSavedView } from '@/features/saved-views/hooks'
 import { useCurrentWorkspace } from '@/features/workspaces/hooks'
 import { useHotkey } from '@/hooks/useHotkey'
 import { projectPath } from '@/lib/paths'
+import { slugify } from '@/lib/slug'
 import { cn } from '@/lib/utils'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
-import { SORT_OPTIONS } from '../constants'
+import { GROUP_BY_OPTIONS, SORT_OPTIONS } from '../constants'
 import { CreateIssueDialog } from '../components/CreateIssueDialog'
 import { IssueBoardView } from '../components/IssueBoardView'
 import { IssueFiltersBar } from '../components/IssueFiltersBar'
 import { IssueListView } from '../components/IssueListView'
 import { IssuePeekSheet } from '../components/IssuePeekSheet'
+import { useIssues } from '../hooks'
 import { useIssueFilters } from '../useIssueFilters'
 import { useProjectMeta } from '../useIssueHelpers'
 
@@ -26,10 +29,14 @@ import { useProjectMeta } from '../useIssueHelpers'
 export function IssuesPage() {
   const workspace = useCurrentWorkspace()
   const project = useCurrentProject()
-  const meta = useProjectMeta(workspace.slug, project.id)
+  const projectMeta = useProjectMeta(workspace.slug, project.id)
+  const { data: cycles } = usePlanningList('cycles', workspace.slug, project.id)
+  const { data: modules } = usePlanningList('modules', workspace.slug, project.id)
+  // Ciclos y módulos para sus filtros y para el resumen de las vistas guardadas
+  const meta = useMemo(() => ({ ...projectMeta, cycles: cycles ?? [], modules: modules ?? [] }), [projectMeta, cycles, modules])
   const issueFilters = useIssueFilters()
-  const { filters, activeCount, view, sort, page, openIssueId } = issueFilters
-  const { changed: changedFromView } = useActiveSavedView(workspace.slug, project.id, issueFilters)
+  const { filters, activeCount, view, sort, groupBy, page, openIssueId } = issueFilters
+  const { active: activeView, changed: changedFromView } = useActiveSavedView(workspace.slug, project.id, issueFilters)
   const [createState, setCreateState] = useState({ open: false, stateId: undefined })
   // La paleta de comandos (Ctrl/⌘ K) pide crear una tarea con ?create=1 (y lo que se escribió en ?title=)
   const [searchParams, setSearchParams] = useSearchParams()
@@ -56,10 +63,22 @@ export function IssuesPage() {
   return (
     <>
       <PageHeader
-        path={[...projectPath(workspace, project), { label: 'tareas' }]}
+        path={[
+          ...projectPath(workspace, project),
+          { label: 'tareas' },
+          ...(activeView ? [{ label: 'vistas' }, { label: slugify(activeView.name) || 'vista' }] : []),
+        ]}
         title="Tareas"
         documentTitle={['Tareas', project.name]}
-        description={<IssueCounts project={project} />}
+        description={
+          <IssueCounts
+            slug={workspace.slug}
+            project={project}
+            filters={filters}
+            activeView={activeView}
+            onShowBlocked={() => issueFilters.setFilter('blocked', true)}
+          />
+        }
         actions={
           <>
             <ViewSwitch value={view} onChange={issueFilters.setView} />
@@ -80,6 +99,28 @@ export function IssuesPage() {
         meta={meta}
         changed={changedFromView}
       >
+        {view === 'list' && (
+          <Select value={groupBy} onValueChange={issueFilters.setGroupBy}>
+            <SelectTrigger
+              size="sm"
+              className={cn('h-8 rounded-full bg-card font-mono text-xs', changedFromView.includes('groupBy') && 'border-accent-text')}
+              aria-label="Agrupar"
+            >
+              <span className="text-muted-foreground">agrupar:</span>
+              <SelectValue />
+              {changedFromView.includes('groupBy') && (
+                <span className="rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">cambiado</span>
+              )}
+            </SelectTrigger>
+            <SelectContent align="end">
+              {GROUP_BY_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label.toLowerCase()}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         {view === 'list' ? (
           <Select value={sort} onValueChange={issueFilters.setSort}>
             <SelectTrigger size="sm" className="h-8 rounded-full bg-card font-mono text-xs" aria-label="Ordenar">
@@ -122,6 +163,7 @@ export function IssuesPage() {
             onCreate={() => openCreate()}
             onCreateInState={openCreate}
             hasFilters={activeCount > 0}
+            groupBy={groupBy}
           />
         )}
       </PageBody>
@@ -145,19 +187,57 @@ export function IssuesPage() {
   )
 }
 
-/** «10 tareas abiertas · 1 vencida» con los conteos que manda el backend en el proyecto. */
-function IssueCounts({ project }) {
+/**
+ * «10 tareas abiertas · 1 vencida · 2 bloqueadas», o con una vista guardada aplicada «Vista «Para la daily» ·
+ * 4 tareas · 1 bloqueada». Abiertas y vencidas vienen en el proyecto; las bloqueadas (y las tareas de la vista)
+ * se cuentan con los filtros que hay en pantalla. «N bloqueadas» aplica el filtro.
+ */
+function IssueCounts({ slug, project, filters, activeView, onShowBlocked }) {
+  const countParams = { ...filters, page: 0, size: 1 }
+  const { data: blockedPage } = useIssues(slug, project.id, { ...countParams, blocked: true })
+  const { data: viewPage } = useIssues(slug, project.id, countParams, { enabled: Boolean(activeView) })
+  const blocked = blockedPage?.totalElements ?? 0
   const open = project.openIssueCount ?? 0
   const overdue = project.overdueIssueCount ?? 0
+  const shown = viewPage?.totalElements
+
   return (
     <>
-      {open} {open === 1 ? 'tarea abierta' : 'tareas abiertas'}
-      {overdue > 0 && (
+      {activeView ? (
+        <>
+          Vista «{activeView.name}»
+          {shown != null && ` · ${shown} ${shown === 1 ? 'tarea' : 'tareas'}`}
+        </>
+      ) : (
+        <>
+          {open} {open === 1 ? 'tarea abierta' : 'tareas abiertas'}
+          {overdue > 0 && (
+            <>
+              {' · '}
+              <span className="font-semibold text-late">
+                {overdue} {overdue === 1 ? 'vencida' : 'vencidas'}
+              </span>
+            </>
+          )}
+        </>
+      )}
+      {blocked > 0 && (
         <>
           {' · '}
-          <span className="font-semibold text-late">
-            {overdue} {overdue === 1 ? 'vencida' : 'vencidas'}
-          </span>
+          {filters.blocked ? (
+            <span className="font-semibold text-late">
+              {blocked} {blocked === 1 ? 'bloqueada' : 'bloqueadas'}
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={onShowBlocked}
+              title="Ver solo las bloqueadas"
+              className="tf-fade rounded-sm font-semibold text-late underline-offset-2 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {blocked} {blocked === 1 ? 'bloqueada' : 'bloqueadas'}
+            </button>
+          )}
         </>
       )}
     </>

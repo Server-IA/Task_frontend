@@ -82,9 +82,11 @@ export function KpiTiles({ stats, onOpenIssue }) {
           )
         }
       />
+      {/* Mediana de startedAt → completedAt: las que nunca pasaron por un estado «en curso» no cuentan */}
       <KpiTile
         label="Tiempo de ciclo"
         value={cycleTime != null ? formatDecimal(cycleTime) : '—'}
+        valueClassName={cycleTime == null && 'text-muted-foreground'}
         unit={cycleTime != null ? (cycleTime === 1 ? 'día' : 'días') : undefined}
         detail={
           cycleTime != null ? (
@@ -94,10 +96,12 @@ export function KpiTiles({ stats, onOpenIssue }) {
                   <Delta value={Math.round(cycleDelta * 10) / 10} className={deltaTone(cycleDelta, false)} />{' '}
                 </>
               )}
-              mediana, de creada a hecha
+              mediana, de En curso a Hecho
             </>
           ) : (
-            'sin tareas cerradas en el periodo'
+            <span title="Mediana de días desde que una tarea entra en curso hasta que se completa">
+              ninguna pasó de En curso a Hecho en el periodo
+            </span>
           )
         }
       />

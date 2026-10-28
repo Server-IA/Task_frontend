@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+    "/api/v1/workspaces/{slug}/projects/{projectId}/views/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Ordenar vistas
+         * @description shared = ids de todas las vistas compartidas del proyecto en el nuevo orden (solo el project manager: 403); personal = ids de todas mis vistas personales en el nuevo orden. Al menos una de las dos; cada una debe tener exactamente las vistas de su grupo, sin repetir (400). Devuelve las vistas visibles, como el listado.
+         */
+        put: operations["reorder"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{slug}/projects/{projectId}/daily/note": {
         parameters: {
             query?: never;
@@ -78,13 +98,13 @@ export interface paths {
         };
         /**
          * Listar vistas
-         * @description Las compartidas del proyecto y luego mis vistas personales, cada grupo por position. mine = la creé yo.
+         * @description Las compartidas del proyecto y luego mis vistas personales, cada grupo por position. mine = la creé yo. issueCount = tareas que cumplen sus filtros (las mismas que GET /issues con esos filtros).
          */
         get: operations["getViews"];
         put?: never;
         /**
          * Guardar vista
-         * @description Personal por defecto; shared: true solo lo puede usar el project manager (403). filters: { state, priority, assignee, label, search, view: list|board, sort } (ej. sort "dueDate,asc").
+         * @description Personal por defecto; shared: true solo lo puede usar el project manager (403). filters: { state, priority, assignee, label, search, cycle, module, blocked, view: list|board, sort, groupBy: state|priority|assignee|label } (ej. sort "dueDate,asc").
          */
         post: operations["create_2"];
         delete?: never;
@@ -102,7 +122,7 @@ export interface paths {
         };
         /**
          * Listar plantillas (en su orden)
-         * @description Al crear una tarea desde una plantilla, el frontend antepone titlePrefix al título, usa description, priority y labels, y envía checklist en el campo checklist de la tarea.
+         * @description Al crear una tarea desde una plantilla, el frontend antepone titlePrefix al título, usa description, priority y labels, envía checklist en el campo checklist de la tarea y el id de la plantilla en templateId. usageCount = tareas creadas con la plantilla.
          */
         get: operations["getTemplates"];
         put?: never;
@@ -218,11 +238,14 @@ export interface paths {
         };
         /**
          * Listar issues con filtros y paginación
-         * @description Orden por defecto: sortOrder (el del Kanban). Ej.: ?state=…&priority=HIGH&search=login&page=0&size=20
+         * @description Orden por defecto: sortOrder (el del Kanban). Ej.: ?state=…&priority=HIGH&search=login&page=0&size=20. blocked=true deja solo las bloqueadas (su totalElements es el «N bloqueadas» del encabezado).
          */
         get: operations["getIssues"];
         put?: never;
-        /** Crear issue */
+        /**
+         * Crear issue
+         * @description templateId (opcional) = plantilla con la que se rellenó el formulario: suma un uso a la plantilla (400 si no es de este proyecto).
+         */
         post: operations["create_7"];
         delete?: never;
         options?: never;
@@ -239,13 +262,13 @@ export interface paths {
         };
         /**
          * Dependencias de la tarea
-         * @description blocks = tareas que esta bloquea; blockedBy = tareas que la bloquean; related = relacionadas. Cada lista va ordenada por número de tarea.
+         * @description blocks = tareas que esta bloquea; blockedBy = tareas que la bloquean; related = relacionadas. La otra tarea puede ser de otro proyecto del workspace (issue.project). Cada lista va ordenada por código: primero las de este proyecto. accessible = false si no tengo acceso al proyecto de la otra tarea: entonces viene sin título ni asignados.
          */
         get: operations["getRelations"];
         put?: never;
         /**
          * Agregar dependencia
-         * @description type: BLOCKS (esta tarea bloquea a issueId), BLOCKED_BY (issueId bloquea a esta) o RELATES. La otra tarea debe ser del mismo proyecto (400). Responde 409 si es la misma tarea, si la relación ya existe o si las dos tareas quedarían bloqueándose mutuamente. Devuelve la relación vista desde esta tarea y la registra en el historial de ambas.
+         * @description type: BLOCKS (esta tarea bloquea a issueId), BLOCKED_BY (issueId bloquea a esta) o RELATES. La otra tarea puede ser de cualquier proyecto del workspace al que tenga acceso (si no, 400). Responde 409 si es la misma tarea, si la relación ya existe o si las dos tareas quedarían bloqueándose mutuamente. Devuelve la relación vista desde esta tarea y la registra en el historial de ambas.
          */
         post: operations["create_8"];
         delete?: never;
@@ -328,7 +351,7 @@ export interface paths {
         put?: never;
         /**
          * Abrir retrospectiva (project manager)
-         * @description También se abre al cerrar el ciclo con startRetro. Si ya estaba abierta, no cambia nada.
+         * @description También se abre al cerrar el ciclo con startRetro. Al abrirse avisa a los miembros del proyecto (notificación RETRO_STARTED, menos a quien la abre). Si ya estaba abierta, no cambia nada ni vuelve a avisar.
          */
         post: operations["start"];
         delete?: never;
@@ -348,7 +371,7 @@ export interface paths {
         put?: never;
         /**
          * Agregar nota
-         * @description column: WENT_WELL (qué salió bien), IMPROVE (qué mejorar) o ACTION (acciones); text de 1 a 500. Solo con la retrospectiva abierta y sin terminar (409).
+         * @description column: WENT_WELL (qué salió bien), IMPROVE (qué mejorar) o ACTION (acciones); text de 1 a 500; ownerId = responsable de una acción (solo ACTION y miembro del proyecto: si no, 400). Solo con la retrospectiva abierta y sin terminar (409).
          */
         post: operations["createNote"];
         delete?: never;
@@ -392,7 +415,7 @@ export interface paths {
         put?: never;
         /**
          * Convertir acción en tarea (project manager)
-         * @description Solo notas ACTION (400). Crea la tarea en el primer estado «sin empezar» (UNSTARTED) del proyecto, o en el estado por defecto si no hay, con el texto como título y una descripción que apunta a la retrospectiva. 409 si ya se convirtió.
+         * @description Solo notas ACTION (400). Crea la tarea en el primer estado «sin empezar» (UNSTARTED) del proyecto, o en el estado por defecto si no hay, con el texto como título y una descripción que apunta a la retrospectiva, asignada al responsable de la acción (si sigue siendo miembro del proyecto). 409 si ya se convirtió.
          */
         post: operations["convert"];
         delete?: never;
@@ -452,7 +475,7 @@ export interface paths {
         put?: never;
         /**
          * Cerrar ciclo (project manager)
-         * @description Las tareas sin terminar van a moveTo (NEXT_CYCLE: al ciclo targetCycleId o, sin él, al siguiente; BACKLOG: salen del ciclo sin cambiar de estado), salvo las de overrides. Sin ciclo siguiente y con alguna tarea hacia NEXT_CYCLE responde 400. Si el ciclo terminaba después de hoy, su fin pasa a hoy. startRetro abre la retrospectiva. Un ciclo ya cerrado, o que aún no empezó, responde 409.
+         * @description Las tareas sin terminar van a moveTo (NEXT_CYCLE: al ciclo targetCycleId o, sin él, al siguiente; BACKLOG: salen del ciclo sin cambiar de estado), salvo las de overrides. Sin ciclo siguiente y con alguna tarea hacia NEXT_CYCLE responde 400. Si el ciclo terminaba después de hoy, su fin pasa a hoy. startRetro abre la retrospectiva y avisa a los miembros del proyecto (notificación RETRO_STARTED, menos a mí). Un ciclo ya cerrado, o que aún no empezó, responde 409.
          */
         post: operations["close"];
         delete?: never;
@@ -893,7 +916,7 @@ export interface paths {
         head?: never;
         /**
          * Editar, marcar o reordenar
-         * @description Edición parcial. position = nuevo índice (desde 0) entre los elementos del mismo tipo; los demás se renumeran.
+         * @description Edición parcial. position = nuevo índice (desde 0) entre los elementos del mismo tipo; los demás se renumeran. Al marcarlo (done: true) guarda checkedBy (yo) y checkedAt; al desmarcarlo los borra. Cualquier cambio de la checklist actualiza checklistUpdatedAt de la tarea.
          */
         patch: operations["update_9"];
         trace?: never;
@@ -942,7 +965,7 @@ export interface paths {
         head?: never;
         /**
          * Editar nota
-         * @description Solo su autor o el project manager (403), con la retrospectiva sin terminar (409).
+         * @description Edición parcial: text, ownerId (responsable de una acción, miembro del proyecto) o clearOwner: true para quitarlo. Solo su autor o el project manager (403), con la retrospectiva sin terminar (409).
          */
         patch: operations["updateNote"];
         trace?: never;
@@ -1058,7 +1081,7 @@ export interface paths {
         };
         /**
          * Estadísticas del proyecto
-         * @description Tareas abiertas, creadas y completadas por semana (desde el lunes, hora de Bogotá), vencidas, cycle time (mediana de días de creación a completado), throughput semanal, burndown del ciclo en curso, abiertas por estado, carga por persona y tareas estancadas (más de 14 días sin cambios). weeks fija el periodo del throughput y del cycle time.
+         * @description Tareas abiertas, creadas y completadas por semana (desde el lunes, hora de Bogotá), vencidas, cycle time (mediana de días de En curso a Hecho: de startedAt a completedAt; las que nunca pasaron por un estado STARTED no cuentan), throughput semanal, burndown del ciclo en curso, abiertas por estado, carga por persona y tareas estancadas (más de 14 días sin cambios). weeks fija el periodo del throughput y del cycle time. assignee («+ persona», acepta varios) limita todas las métricas a las tareas asignadas a esas personas, y la carga a esas personas.
          */
         get: operations["getStats"];
         put?: never;
@@ -1112,7 +1135,7 @@ export interface paths {
         };
         /**
          * Daily del proyecto
-         * @description previousDate = día hábil anterior (el día antes; si date es lunes, sábado o domingo, el viernes). Por persona (miembros del proyecto y asignados a sus tareas abiertas, por nombre): yesterday = lo que hizo desde previousDate hasta antes de date, una entrada por tarea con el cambio más importante (completó > movió a {estado} > creó > comentó > actualizó), máximo 8; today = sus tareas abiertas en curso (STARTED) o con fecha límite hasta date, por fecha límite, máximo 8; blockers = sus tareas abiertas con bloqueos abiertos. note = nota del día o null.
+         * @description previousDate = día hábil anterior (el día antes; si date es lunes, sábado o domingo, el viernes). Por persona (miembros del proyecto y asignados a sus tareas abiertas, por nombre): yesterday = lo que hizo desde previousDate hasta antes de date, una entrada por tarea con el cambio más importante (completó > movió a {estado} > creó > comentó > actualizó), máximo 8; today = sus tareas abiertas en curso (STARTED) o con fecha límite hasta date, por fecha límite, máximo 8; blockers = sus tareas abiertas con bloqueos abiertos (blockedBy con estado y asignados de cada tarea que bloquea; de un proyecto al que no tengo acceso, sin título ni asignados); openCount = sus abiertas; cycleAssignedCount y cycleCompletedCount = sus tareas del ciclo en curso (sin canceladas) y cuántas completó. cycle = ciclo en curso ese día o null. summary = tareas movidas, empezadas y completadas, comentarios y bloqueadas en el periodo. note = nota del día o null.
          */
         get: operations["getDaily"];
         put?: never;
@@ -1152,7 +1175,7 @@ export interface paths {
         };
         /**
          * Vista previa del cierre (project manager)
-         * @description Tareas completadas (grupo COMPLETED) y sin terminar (ni completadas ni canceladas) del ciclo, por número; cycleTimeDays = mediana de días de creación a completado de las completadas (null si no hay); nextCycle = siguiente ciclo sin cerrar por fecha de inicio (destino por defecto), o null.
+         * @description Tareas completadas (grupo COMPLETED) y sin terminar (ni completadas ni canceladas) del ciclo, por número; cycleTimeDays = mediana de días de En curso a Hecho (startedAt a completedAt) de las completadas que pasaron por un estado STARTED (null si no hay); nextCycle = siguiente ciclo sin cerrar por fecha de inicio (destino por defecto), o null.
          */
         get: operations["closePreview"];
         put?: never;
@@ -1172,7 +1195,7 @@ export interface paths {
         };
         /**
          * Mis tareas abiertas
-         * @description Tareas abiertas (ni completadas ni canceladas) de los proyectos a los que tengo acceso: asignadas a mí (assigned), creadas por mí (created) o en las que comenté (commented). Orden: fecha límite (sin fecha al final), prioridad (URGENT primero) y número. Incluye los contadores de las tres vistas, las asignadas completadas esta semana y las que están en curso.
+         * @description Tareas abiertas (ni completadas ni canceladas) de los proyectos a los que tengo acceso: asignadas a mí (assigned), creadas por mí (created) o en las que comenté (commented). Orden: fecha límite (sin fecha al final), prioridad (URGENT primero) y número. Incluye los contadores de las tres vistas y, de las asignadas (sea cual sea la vista): completadas esta semana, en curso, vencidas, proyectos distintos, cantidad por estado (byState: name, color, group, count; los estados con el mismo nombre y grupo en varios proyectos se suman) y la próxima fecha límite después de hoy (nextDue).
          */
         get: operations["getMyWork"];
         put?: never;
@@ -1247,7 +1270,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Mis notificaciones (las más recientes primero) */
+        /**
+         * Mis notificaciones (las más recientes primero)
+         * @description type filtra por tipo (acepta varios: ?type=ISSUE_MENTIONED&type=ISSUE_COMMENTED); sin type, todos. issue = la tarea (null en RETRO_STARTED); cycle = el ciclo de RETRO_STARTED; comment = extracto del comentario de ISSUE_COMMENTED e ISSUE_MENTIONED.
+         */
         get: operations["getMyNotifications"];
         put?: never;
         post?: never;
@@ -1266,6 +1292,26 @@ export interface paths {
         };
         /** Cantidad de notificaciones sin leer */
         get: operations["countUnread"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Contadores de las pestañas de la bandeja
+         * @description unread = sin leer; unreadMentions = menciones sin leer; mentions = menciones en total.
+         */
+        get: operations["counts"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1386,6 +1432,45 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ReorderSavedViewsRequest: {
+            shared?: string[];
+            personal?: string[];
+        };
+        SavedViewFilters: {
+            state?: string[];
+            priority?: ("URGENT" | "HIGH" | "MEDIUM" | "LOW" | "NONE")[];
+            assignee?: string[];
+            label?: string[];
+            search?: string;
+            view?: string;
+            sort?: string;
+            /** Format: uuid */
+            cycle?: string;
+            /** Format: uuid */
+            module?: string;
+            blocked?: boolean;
+            groupBy?: string;
+        };
+        SavedViewResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            shared?: boolean;
+            owner?: components["schemas"]["UserSummaryResponse"];
+            filters?: components["schemas"]["SavedViewFilters"];
+            /** Format: int32 */
+            position?: number;
+            mine?: boolean;
+            /** Format: int64 */
+            issueCount?: number;
+        };
+        UserSummaryResponse: {
+            /** Format: uuid */
+            id?: string;
+            email?: string;
+            fullName?: string;
+            avatarUrl?: string;
+        };
         DailyNoteRequest: {
             text?: string;
         };
@@ -1394,13 +1479,6 @@ export interface components {
             updatedBy?: components["schemas"]["UserSummaryResponse"];
             /** Format: date-time */
             updatedAt?: string;
-        };
-        UserSummaryResponse: {
-            /** Format: uuid */
-            id?: string;
-            email?: string;
-            fullName?: string;
-            avatarUrl?: string;
         };
         CreateWorkspaceRequest: {
             name: string;
@@ -1436,6 +1514,7 @@ export interface components {
             openIssueCount?: number;
             /** Format: int32 */
             overdueIssueCount?: number;
+            nextIssueCode?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -1445,26 +1524,6 @@ export interface components {
             name: string;
             shared?: boolean;
             filters?: components["schemas"]["SavedViewFilters"];
-        };
-        SavedViewFilters: {
-            state?: string[];
-            priority?: ("URGENT" | "HIGH" | "MEDIUM" | "LOW" | "NONE")[];
-            assignee?: string[];
-            label?: string[];
-            search?: string;
-            view?: string;
-            sort?: string;
-        };
-        SavedViewResponse: {
-            /** Format: uuid */
-            id?: string;
-            name?: string;
-            shared?: boolean;
-            owner?: components["schemas"]["UserSummaryResponse"];
-            filters?: components["schemas"]["SavedViewFilters"];
-            /** Format: int32 */
-            position?: number;
-            mine?: boolean;
         };
         ChecklistItemRequest: {
             /** @enum {string} */
@@ -1492,6 +1551,8 @@ export interface components {
             checklist?: components["schemas"]["TemplateChecklistItemResponse"][];
             /** Format: int32 */
             position?: number;
+            /** Format: int32 */
+            usageCount?: number;
         };
         LabelResponse: {
             /** Format: uuid */
@@ -1585,6 +1646,8 @@ export interface components {
             assigneeIds?: string[];
             labelIds?: string[];
             checklist?: components["schemas"]["ChecklistItemRequest"][];
+            /** Format: uuid */
+            templateId?: string;
         };
         IssueResponse: {
             /** Format: uuid */
@@ -1616,6 +1679,8 @@ export interface components {
             completedSubIssueCount?: number;
             /** Format: int32 */
             blockedByCount?: number;
+            blockedByCodes?: string[];
+            blockingCodes?: string[];
             /** Format: int32 */
             checklistTotal?: number;
             /** Format: int32 */
@@ -1624,11 +1689,15 @@ export interface components {
             criteriaTotal?: number;
             /** Format: int32 */
             criteriaDone?: number;
+            /** Format: date-time */
+            checklistUpdatedAt?: string;
             createdBy?: components["schemas"]["UserSummaryResponse"];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+            /** Format: date-time */
+            startedAt?: string;
             /** Format: date-time */
             completedAt?: string;
         };
@@ -1653,6 +1722,13 @@ export interface components {
             /** Format: uuid */
             relationId?: string;
             issue?: components["schemas"]["RelatedIssueResponse"];
+            accessible?: boolean;
+        };
+        ProjectRefResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            identifier?: string;
         };
         RelatedIssueResponse: {
             /** Format: uuid */
@@ -1661,6 +1737,19 @@ export interface components {
             title?: string;
             state?: components["schemas"]["StateResponse"];
             assignees?: components["schemas"]["UserSummaryResponse"][];
+            project?: components["schemas"]["ProjectRefResponse"];
+            /** Format: date */
+            dueDate?: string;
+            /** Format: int32 */
+            blockedByCount?: number;
+            /** Format: int32 */
+            subIssueCount?: number;
+            /** Format: int32 */
+            completedSubIssueCount?: number;
+            /** Format: int32 */
+            checklistTotal?: number;
+            /** Format: int32 */
+            checklistDone?: number;
         };
         CommentRequest: {
             body: string;
@@ -1684,6 +1773,9 @@ export interface components {
             done?: boolean;
             /** Format: int32 */
             position?: number;
+            checkedBy?: components["schemas"]["UserSummaryResponse"];
+            /** Format: date-time */
+            checkedAt?: string;
         };
         CycleRequest: {
             name: string;
@@ -1706,6 +1798,7 @@ export interface components {
             status?: "DRAFT" | "UPCOMING" | "CURRENT" | "COMPLETED";
             /** Format: date-time */
             closedAt?: string;
+            closedBy?: components["schemas"]["UserSummaryResponse"];
             progress?: components["schemas"]["ProgressResponse"];
             /** Format: date-time */
             createdAt?: string;
@@ -1719,6 +1812,7 @@ export interface components {
             column?: "WENT_WELL" | "IMPROVE" | "ACTION";
             text?: string;
             author?: components["schemas"]["UserSummaryResponse"];
+            owner?: components["schemas"]["UserSummaryResponse"];
             /** Format: date-time */
             createdAt?: string;
             /** Format: int32 */
@@ -1752,6 +1846,8 @@ export interface components {
             /** @enum {string} */
             column: "WENT_WELL" | "IMPROVE" | "ACTION";
             text: string;
+            /** Format: uuid */
+            ownerId?: string;
         };
         RetroVoteResponse: {
             note?: components["schemas"]["RetroNoteResponse"];
@@ -1928,7 +2024,10 @@ export interface components {
             clearDates?: boolean;
         };
         UpdateRetroNoteRequest: {
-            text: string;
+            text?: string;
+            /** Format: uuid */
+            ownerId?: string;
+            clearOwner?: boolean;
         };
         UpdateMemberRoleRequest: {
             /** @enum {string} */
@@ -1949,6 +2048,20 @@ export interface components {
             currentPassword: string;
             newPassword: string;
         };
+        NotificationCommentResponse: {
+            /** Format: uuid */
+            id?: string;
+            excerpt?: string;
+        };
+        NotificationCycleResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            /** Format: uuid */
+            projectId?: string;
+            projectIdentifier?: string;
+            workspaceSlug?: string;
+        };
         NotificationIssueResponse: {
             /** Format: uuid */
             id?: string;
@@ -1962,11 +2075,13 @@ export interface components {
             /** Format: uuid */
             id?: string;
             /** @enum {string} */
-            type?: "ISSUE_ASSIGNED" | "ISSUE_COMMENTED" | "ISSUE_UNBLOCKED" | "ISSUE_MENTIONED";
+            type?: "ISSUE_ASSIGNED" | "ISSUE_COMMENTED" | "ISSUE_UNBLOCKED" | "ISSUE_MENTIONED" | "RETRO_STARTED";
             message?: string;
             read?: boolean;
             actor?: components["schemas"]["UserSummaryResponse"];
             issue?: components["schemas"]["NotificationIssueResponse"];
+            cycle?: components["schemas"]["NotificationCycleResponse"];
+            comment?: components["schemas"]["NotificationCommentResponse"];
             /** Format: date-time */
             createdAt?: string;
         };
@@ -2070,25 +2185,56 @@ export interface components {
         };
         DailyBlocker: {
             issue?: components["schemas"]["RelatedIssueResponse"];
-            blockedBy?: components["schemas"]["IssueSummaryResponse"][];
+            blockedBy?: components["schemas"]["RelatedIssueResponse"][];
         };
         DailyChange: {
             issue?: components["schemas"]["RelatedIssueResponse"];
             change?: string;
+            fromState?: string;
+            toState?: string;
+        };
+        DailyCycle: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            /** Format: date */
+            startDate?: string;
+            /** Format: date */
+            endDate?: string;
         };
         DailyPerson: {
             user?: components["schemas"]["UserSummaryResponse"];
             yesterday?: components["schemas"]["DailyChange"][];
             today?: components["schemas"]["RelatedIssueResponse"][];
             blockers?: components["schemas"]["DailyBlocker"][];
+            /** Format: int32 */
+            openCount?: number;
+            /** Format: int32 */
+            cycleAssignedCount?: number;
+            /** Format: int32 */
+            cycleCompletedCount?: number;
         };
         DailyResponse: {
             /** Format: date */
             date?: string;
             /** Format: date */
             previousDate?: string;
+            cycle?: components["schemas"]["DailyCycle"];
+            summary?: components["schemas"]["DailySummary"];
             people?: components["schemas"]["DailyPerson"][];
             note?: components["schemas"]["DailyNoteResponse"];
+        };
+        DailySummary: {
+            /** Format: int32 */
+            moved?: number;
+            /** Format: int32 */
+            started?: number;
+            /** Format: int32 */
+            completed?: number;
+            /** Format: int32 */
+            comments?: number;
+            /** Format: int32 */
+            blocked?: number;
         };
         CloseCyclePreviewResponse: {
             cycle?: components["schemas"]["CycleResponse"];
@@ -2114,6 +2260,20 @@ export interface components {
             completedThisWeek?: number;
             /** Format: int64 */
             inProgressCount?: number;
+            /** Format: int64 */
+            overdueCount?: number;
+            /** Format: int64 */
+            projectCount?: number;
+            byState?: components["schemas"]["StateCount"][];
+            nextDue?: components["schemas"]["RelatedIssueResponse"];
+        };
+        StateCount: {
+            name?: string;
+            color?: string;
+            /** @enum {string} */
+            group?: "BACKLOG" | "UNSTARTED" | "STARTED" | "COMPLETED" | "CANCELLED";
+            /** Format: int64 */
+            count?: number;
         };
         ActivityFeedItemResponse: {
             /** Format: uuid */
@@ -2140,12 +2300,6 @@ export interface components {
             totalPages?: number;
             first?: boolean;
             last?: boolean;
-        };
-        ProjectRefResponse: {
-            /** Format: uuid */
-            id?: string;
-            name?: string;
-            identifier?: string;
         };
         ActivitySummaryResponse: {
             /** Format: int64 */
@@ -2183,6 +2337,14 @@ export interface components {
             /** Format: int64 */
             count?: number;
         };
+        NotificationCountsResponse: {
+            /** Format: int64 */
+            unread?: number;
+            /** Format: int64 */
+            unreadMentions?: number;
+            /** Format: int64 */
+            mentions?: number;
+        };
         InvitationDetailsResponse: {
             workspaceName?: string;
             workspaceSlug?: string;
@@ -2202,6 +2364,33 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    reorder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReorderSavedViewsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SavedViewResponse"][];
+                };
+            };
+        };
+    };
     saveNote: {
         parameters: {
             query?: {
@@ -2678,6 +2867,8 @@ export interface operations {
                 cycle?: string;
                 /** @description Id del módulo */
                 module?: string;
+                /** @description true = solo las bloqueadas (con al menos un bloqueo abierto, de cualquier proyecto); false = solo las que no lo están */
+                blocked?: boolean;
                 /** @description Zero-based page index (0..N) */
                 page?: number;
                 /** @description The size of the page to be returned */
@@ -4338,6 +4529,8 @@ export interface operations {
             query?: {
                 /** @description Semanas del periodo: 4, 8 o 12 (otro valor responde 400) */
                 weeks?: number;
+                /** @description Id(s) de usuario asignado */
+                assignee?: string[];
             };
             header?: never;
             path: {
@@ -4590,6 +4783,8 @@ export interface operations {
         parameters: {
             query?: {
                 unread?: boolean;
+                /** @description Tipo(s): ISSUE_ASSIGNED, ISSUE_COMMENTED, ISSUE_UNBLOCKED, ISSUE_MENTIONED, RETRO_STARTED */
+                type?: ("ISSUE_ASSIGNED" | "ISSUE_COMMENTED" | "ISSUE_UNBLOCKED" | "ISSUE_MENTIONED" | "RETRO_STARTED")[];
                 /** @description Zero-based page index (0..N) */
                 page?: number;
                 /** @description The size of the page to be returned */
@@ -4630,6 +4825,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["CountResponse"];
+                };
+            };
+        };
+    };
+    counts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["NotificationCountsResponse"];
                 };
             };
         };

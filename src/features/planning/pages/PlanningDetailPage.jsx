@@ -26,6 +26,7 @@ import { PLANNING, useDeletePlanning, usePlanningItem, useRemovePlanningIssue } 
 import { CloseCycleDialog } from '../components/CloseCycleDialog'
 import {
   AddIssuesDialog,
+  ClosedByText,
   CYCLE_STATUS,
   CycleStatusBadge,
   cycleStatusKey,
@@ -88,6 +89,7 @@ export function PlanningDetailPage({ kind }) {
             <p className="mt-1 font-mono text-xs">
               <DateRange start={item.startDate} end={end} />
               {showRemaining && <span className="font-semibold text-ok"> · {remainingText(end)}</span>}
+              {closed && <ClosedByText cycle={item} />}
             </p>
           </>
         }

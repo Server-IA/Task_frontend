@@ -3,8 +3,8 @@ import { ChevronLeft, ChevronRight, Timer } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { cn } from '@/lib/utils'
-import { firstName, formatTimer, PRESENT_SECONDS, stepStatus } from '../daily'
-import { DailyBlock, personBlocks, personMeta } from './DailyBlocks'
+import { firstName, formatTimer, personMeta, PRESENT_SECONDS, stepStatus } from '../daily'
+import { DailyBlock, personBlocks } from './DailyBlocks'
 
 const STEP_LABEL = { done: 'lista', current: 'ahora', next: 'sigue', later: '' }
 
@@ -12,16 +12,23 @@ const STEP_LABEL = { done: 'lista', current: 'ahora', next: 'sigue', later: '' }
  * Modo «Presentar»: una persona a la vez, con quién ya habló y quién sigue, y un tiempo sugerido por
  * persona (solo visual). ← → cambian de persona y Esc sale (los atajos los pone la página).
  * @param {{ people: import('@/api/types').DailyPerson[], current: number, onSelect: (index: number) => void,
- *           onExit: () => void, index: Map<string, import('@/api/types').IssueRef>,
+ *           onExit: () => void, cycle: import('@/api/types').DailyCycle | null, date: string, projectId: string,
  *           blocking: Map<string, { code: string, blockedCode: string, ownerName: string }[]>,
- *           onOpenIssue: (issueId: string) => void, cycleName?: string }} props
+ *           onOpenIssue: (issueId: string) => void }} props
  */
-export function DailyPresenter({ people, current, onSelect, onExit, index, blocking, onOpenIssue }) {
+export function DailyPresenter({ people, current, onSelect, onExit, cycle, date, projectId, blocking, onOpenIssue }) {
   const person = people[current]
   if (!person) return null
   const previous = people[current - 1]
   const next = people[current + 1]
-  const blocks = personBlocks({ person, index, blocking: blocking.get(person.user?.id), onOpenIssue, size: 'focus' })
+  const blocks = personBlocks({
+    person,
+    date,
+    projectId,
+    blocking: blocking.get(person.user?.id),
+    onOpenIssue,
+    size: 'focus',
+  })
 
   return (
     <div className="tf-fade flex min-h-0 flex-1 flex-col gap-3.5">
@@ -64,7 +71,7 @@ export function DailyPresenter({ people, current, onSelect, onExit, index, block
               {person.user?.fullName}
             </span>
             <span className="block font-mono text-xs text-muted-foreground">
-              {current + 1} de {people.length} · {personMeta(person)}
+              {current + 1} de {people.length} · {personMeta(person, cycle, { long: true })}
             </span>
           </span>
         </header>

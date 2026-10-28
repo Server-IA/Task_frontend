@@ -1,4 +1,5 @@
 import { differenceInCalendarDays, parseISO } from 'date-fns'
+import { formatShortDate } from '@/lib/dates'
 
 /**
  * Reglas del cierre de un ciclo (funciones puras: el diálogo y las páginas de ciclos las usan).
@@ -120,6 +121,26 @@ export function endDateNotice(cycle, today = new Date()) {
   if (days === 0) return { kind: 'today' }
   return { kind: 'ended', days: -days }
 }
+
+/**
+ * Quién y cuándo cerró el ciclo: «cerrado hoy por Ana», «cerrado ayer por Ana» o «cerrado el 27 oct por Ana»
+ * (sin «por …» si el backend no sabe quién). Cadena vacía si el ciclo sigue abierto.
+ * @param {CycleResponse} cycle
+ * @param {Date} today
+ */
+export function closedText(cycle, today = new Date()) {
+  if (!isCycleClosed(cycle)) return ''
+  const days = differenceInCalendarDays(today, parseISO(cycle.closedAt))
+  const when = days === 0 ? 'hoy' : days === 1 ? 'ayer' : `el ${formatShortDate(cycle.closedAt)}`
+  const by = cycle.closedBy?.fullName ? ` por ${cycle.closedBy.fullName}` : ''
+  return `cerrado ${when}${by}`
+}
+
+/**
+ * Todas siguen bloqueadas (tienen al menos una tarea abierta que las bloquea): explica por qué van al backlog.
+ * @param {import('@/api/types').IssueRef[]} issues
+ */
+export const allBlocked = (issues) => issues.length > 0 && issues.every((issue) => (issue.blockedByCount ?? 0) > 0)
 
 /** «1 tarea» / «3 tareas». */
 export const tasksLabel = (count) => `${count} ${count === 1 ? 'tarea' : 'tareas'}`

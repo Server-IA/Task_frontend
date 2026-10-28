@@ -15,10 +15,11 @@ import { Segmented } from '@/components/common/Segmented'
 import { PropertyRow } from '@/features/issues/components/IssueDetail'
 import { checklistProgress } from '@/features/issues/issueFlags'
 import { useLocalEscape } from '@/hooks/useLocalEscape'
+import { formatDateTime, formatRelative } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { usePreferencesStore } from '@/stores/preferencesStore'
-import { dropIndex, formatCriterion, itemsOfKind, moveChecklistItem, parseCriterion } from '../checklistMath'
+import { checkedByName, dropIndex, formatCriterion, itemsOfKind, moveChecklistItem, parseCriterion } from '../checklistMath'
 import {
   CHECKLIST_LIMIT,
   useAddChecklistItem,
@@ -389,6 +390,7 @@ function ItemRow({ variant, item, sortable, actions, label, display, first = fal
           {display ?? item.text}
         </button>
       )}
+      {!editing && <CheckedBy item={item} className={card ? 'pt-1.5' : undefined} />}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -412,6 +414,22 @@ function ItemRow({ variant, item, sortable, actions, label, display, first = fal
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
+  )
+}
+
+/** «Luis» junto a lo marcado; el título dice el nombre completo y cuándo. */
+function CheckedBy({ item, className }) {
+  const name = checkedByName(item)
+  if (!name) return null
+  const when = item.checkedAt ? ` · ${formatRelative(item.checkedAt)} (${formatDateTime(item.checkedAt)})` : ''
+  return (
+    <span
+      title={`Marcado por ${item.checkedBy.fullName}${when}`}
+      className={cn('tf-fade max-w-24 shrink-0 truncate font-mono text-[11px] text-muted-foreground', className)}
+    >
+      <span className="sr-only">marcado por </span>
+      {name}
+    </span>
   )
 }
 

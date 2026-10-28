@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/api/queryKeys'
+import { useSessionStore } from '@/stores/sessionStore'
 import { checklistApi } from './api'
-import { moveChecklistItem, summarizeChecklist } from './checklistMath'
+import { markChecked, moveChecklistItem, summarizeChecklist } from './checklistMath'
 
 /** Máximo de criterios y pasos por tarea (el backend responde 409 al pasarse). */
 export const CHECKLIST_LIMIT = 100
@@ -70,11 +71,14 @@ export const useAddChecklistItem = (slug, projectId, issueId) =>
     merge: (items, created) => [...items.filter((item) => item.id !== created.id), created],
   })
 
-/** `mutate({ itemId, text?, done? })` */
+/** `mutate({ itemId, text?, done? })`: al marcar se ve enseguida quién lo marcó (yo, ahora). */
 export const useUpdateChecklistItem = (slug, projectId, issueId) =>
   useChecklistMutation(slug, projectId, issueId, {
     mutationFn: ({ itemId, ...body }) => checklistApi.update(slug, projectId, issueId, itemId, body),
-    optimistic: (items, { itemId, ...changes }) => items.map((item) => (item.id === itemId ? { ...item, ...changes } : item)),
+    optimistic: (items, { itemId, ...changes }) =>
+      items.map((item) =>
+        item.id === itemId ? markChecked({ ...item, ...changes }, changes.done, useSessionStore.getState().user) : item,
+      ),
   })
 
 /** `mutate({ itemId, position })`: mueve el elemento dentro de su tipo (los demás se renumeran). */

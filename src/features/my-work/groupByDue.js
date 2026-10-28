@@ -38,15 +38,3 @@ export function groupByDue(issues, today = new Date()) {
   for (const issue of issues) buckets[dueGroup(issue.dueDate, today)].push(issue)
   return DUE_GROUPS.filter((group) => buckets[group.key].length > 0).map((group) => ({ ...group, issues: buckets[group.key] }))
 }
-
-/**
- * Próxima fecha límite desde hoy (incluido): la primera tarea con fecha de hoy en adelante.
- * @template {{ dueDate?: string | null }} T
- * @param {T[]} issues
- * @returns {T | undefined}
- */
-export function nextDue(issues, today = new Date()) {
-  return issues
-    .filter((issue) => issue.dueDate && differenceInCalendarDays(parseISO(issue.dueDate), startOfDay(today)) >= 0)
-    .sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0]
-}

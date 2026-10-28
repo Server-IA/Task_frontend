@@ -13,8 +13,9 @@ import { useProjects } from '@/features/projects/hooks'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { describeDueDate } from '@/lib/dates'
 import { cn } from '@/lib/utils'
-import { groupByDue, nextDue } from '../groupByDue'
+import { groupByDue } from '../groupByDue'
 import { useMyWork } from '../hooks'
+import { startedCounts } from '../weekSummary'
 
 /** Las tres vistas: qué tareas muestra cada una, su contador y sus textos. */
 const VIEWS = {
@@ -47,15 +48,17 @@ export function MyWorkPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const view = VIEWS[searchParams.get('view')] ? searchParams.get('view') : 'assigned'
   const { data, isLoading, isPlaceholderData, error, refetch } = useMyWork(slug, view)
-  // «Tu semana» habla de lo asignado, sea cual sea la vista (la sidebar ya la tiene en caché)
-  const { data: assigned } = useMyWork(slug, 'assigned')
   const { data: projects = [] } = useProjects(slug)
   const projectsById = useMemo(() => new Map(projects.map((project) => [project.id, project])), [projects])
 
   const issues = useMemo(() => data?.issues ?? [], [data])
   const groups = useMemo(() => groupByDue(issues), [issues])
-  const overdue = groups.find((group) => group.key === 'overdue')?.issues.length ?? 0
-  const projectCount = new Set(issues.map((issue) => issue.projectId)).size
+  // De las asignadas, vencidas y proyectos los cuenta el backend; en las otras vistas, los de la lista
+  const assignedView = view === 'assigned'
+  const overdue = assignedView
+    ? (data?.overdueCount ?? 0)
+    : (groups.find((group) => group.key === 'overdue')?.issues.length ?? 0)
+  const projectCount = assignedView ? (data?.projectCount ?? 0) : new Set(issues.map((issue) => issue.projectId)).size
   const config = VIEWS[view]
 
   return (
@@ -103,7 +106,7 @@ export function MyWorkPage() {
         {error && !data && <ErrorState error={error} onRetry={refetch} homeLink={`/${slug}`} />}
         {data && (
           <>
-            <WeekStrip slug={slug} data={data} assigned={assigned} />
+            <WeekStrip slug={slug} data={data} />
             {issues.length === 0 && (
               <EmptyState icon={CircleCheck} title={config.emptyTitle} description={config.emptyDescription} />
             )}
@@ -138,12 +141,16 @@ export function MyWorkPage() {
   )
 }
 
-/** «// tu semana  4 cerradas  2 en curso · Próxima fecha: mañana · WEB-19». */
-function WeekStrip({ slug, data, assigned }) {
-  const next = assigned ? nextDue(assigned.issues ?? []) : undefined
+/**
+ * «// tu semana  4 cerradas  2 en curso  1 en revisión · Próxima fecha: mañana · WEB-19». Habla siempre de las
+ * tareas asignadas, sea cual sea la vista; cada estado «en curso» lleva su propio nombre.
+ */
+function WeekStrip({ slug, data }) {
+  const next = data.nextDue
+  const completed = data.completedThisWeek ?? 0
   const stats = [
-    [data.completedThisWeek ?? 0, data.completedThisWeek === 1 ? 'cerrada' : 'cerradas'],
-    [data.inProgressCount ?? 0, 'en curso'],
+    { key: 'completed', count: completed, label: completed === 1 ? 'cerrada' : 'cerradas' },
+    ...startedCounts(data.byState),
   ]
 
   return (
@@ -152,19 +159,19 @@ function WeekStrip({ slug, data, assigned }) {
       className="flex flex-wrap items-center gap-x-5.5 gap-y-2 rounded-2xl border border-dashed border-dash px-4.5 py-3"
     >
       <span className="font-mono text-[11px] text-muted-foreground">// tu semana</span>
-      {stats.map(([value, label]) => (
-        <span key={label} className="flex items-baseline gap-1.5">
-          <strong className="font-display text-[22px] leading-none font-extrabold">{value}</strong>
-          <span className="text-[13px] text-muted-foreground">{label}</span>
+      {stats.map((item) => (
+        <span key={item.key} className="tf-pop flex items-baseline gap-1.5">
+          <strong className="font-display text-[22px] leading-none font-extrabold">{item.count}</strong>
+          <span className="text-[13px] text-muted-foreground">{item.label}</span>
         </span>
       ))}
       <span className="text-[13px] text-muted-foreground sm:ml-auto">
         Próxima fecha:{' '}
-        {next ? (
+        {next?.dueDate ? (
           <>
             <strong className="font-semibold text-foreground">{describeDueDate(next.dueDate).text}</strong> ·{' '}
             <Link
-              to={`/${slug}/projects/${next.projectId}/issues?issue=${next.id}`}
+              to={`/${slug}/projects/${next.project?.id}/issues?issue=${next.id}`}
               className="font-mono hover:text-foreground hover:underline"
               title={next.title}
             >

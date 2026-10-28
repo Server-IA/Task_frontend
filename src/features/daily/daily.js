@@ -61,77 +61,119 @@ export function changeKind(change) {
 /** «movió a En revisión» → «Movió a En revisión». */
 export const changeLabel = (change) => (change ? change[0].toUpperCase() + change.slice(1) : 'Actualizó')
 
+/** Contadores del resumen «desde ayer» que vienen del backend, en el orden en que se muestran. */
+const SUMMARY_ITEMS = [
+  ['moved', 'tarea movida', 'tareas movidas'],
+  ['started', 'nueva en curso', 'nuevas en curso'],
+  ['completed', 'completada', 'completadas'],
+  ['comments', 'comentario', 'comentarios'],
+]
+
 /**
- * Resumen «desde ayer»: tareas por tipo de cambio y tareas bloqueadas (cada tarea cuenta una vez aunque
- * aparezca en varias personas).
- * @param {DailyPerson[]} people
+ * Resumen «desde ayer» del backend como frases cortas («2 tareas movidas», «1 nueva en curso»); solo los que no
+ * son cero. Los bloqueos van aparte, en rojo.
+ * @param {import('@/api/types').DailySummary | null | undefined} summary
+ * @returns {{ items: { key: string, value: number, label: string }[], blocked: number }}
  */
-export function dailySummary(people) {
-  const seen = { completed: new Set(), moved: new Set(), created: new Set(), commented: new Set(), updated: new Set() }
-  const blocked = new Set()
-  for (const person of people ?? []) {
-    for (const entry of person.yesterday ?? []) seen[changeKind(entry.change)].add(entry.issue?.id)
-    for (const blocker of person.blockers ?? []) blocked.add(blocker.issue?.id)
-  }
-  return {
-    completed: seen.completed.size,
-    moved: seen.moved.size,
-    created: seen.created.size,
-    commented: seen.commented.size,
-    updated: seen.updated.size,
-    blockers: blocked.size,
-  }
+export function summaryItems(summary) {
+  const items = SUMMARY_ITEMS.filter(([key]) => (summary?.[key] ?? 0) > 0).map(([key, singular, plural]) => ({
+    key,
+    value: summary[key],
+    label: summary[key] === 1 ? singular : plural,
+  }))
+  return { items, blocked: summary?.blocked ?? 0 }
 }
 
 /**
- * Ciclo que contiene la fecha y en qué día va («día 13 de 15»). Si varios la contienen, el abierto.
- * @param {import('@/api/types').CycleResponse[]} cycles
- * @returns {{ cycle: import('@/api/types').CycleResponse, day: number, total: number } | null}
+ * En qué día del ciclo va la fecha («día 13 de 15»); null si el ciclo no tiene fechas o la fecha queda fuera.
+ * @param {import('@/api/types').DailyCycle | null | undefined} cycle el ciclo en curso que devuelve la daily
+ * @param {string} iso
+ * @returns {{ day: number, total: number } | null}
  */
-export function cycleOnDate(cycles, iso) {
-  const date = parseISO(iso)
-  const matches = (cycles ?? [])
-    .filter((cycle) => cycle.startDate && cycle.endDate)
-    .map((cycle) => ({
-      cycle,
-      day: differenceInCalendarDays(date, parseISO(cycle.startDate)) + 1,
-      total: differenceInCalendarDays(parseISO(cycle.endDate), parseISO(cycle.startDate)) + 1,
-    }))
-    .filter(({ day, total }) => day >= 1 && day <= total)
-  return matches.find(({ cycle }) => !cycle.closedAt) ?? matches[0] ?? null
-}
-
-/**
- * Todas las tareas que aparecen en la daily, por id (para saber de quién es una tarea que bloquea).
- * @param {DailyPerson[]} people
- * @returns {Map<string, IssueRef>}
- */
-export function issueIndex(people) {
-  const index = new Map()
-  for (const person of people ?? []) {
-    for (const entry of person.yesterday ?? []) if (entry.issue) index.set(entry.issue.id, entry.issue)
-    for (const issue of person.today ?? []) index.set(issue.id, issue)
-    for (const blocker of person.blockers ?? []) if (blocker.issue) index.set(blocker.issue.id, blocker.issue)
-  }
-  return index
+export function cycleProgress(cycle, iso) {
+  if (!cycle?.startDate || !cycle?.endDate || !iso) return null
+  const day = differenceInCalendarDays(parseISO(iso), parseISO(cycle.startDate)) + 1
+  const total = differenceInCalendarDays(parseISO(cycle.endDate), parseISO(cycle.startDate)) + 1
+  return day >= 1 && day <= total ? { day, total } : null
 }
 
 /** «Luis Muñoz Pérez» → «Luis». */
 export const firstName = (user) => user?.fullName?.trim().split(/\s+/)[0] ?? ''
 
 /**
- * Quién bloquea a quién: por persona, sus tareas que bloquean tareas de otros. Solo se sabe cuando la tarea
- * que bloquea aparece en la daily con sus asignados.
+ * Fecha límite contada desde el día de la daily (no desde hoy): «venció hace 2 días», «vence hoy»,
+ * «vence mañana», «vence en 9 días» o «vence el 3 dic». Rojo si venció y ámbar si vence en menos de una semana.
+ * @param {string | null | undefined} dueDate
+ * @param {string} iso día de la daily
+ * @returns {{ text: string, tone: 'late' | 'soon' | 'normal' } | null}
+ */
+export function dueNote(dueDate, iso) {
+  if (!dueDate || !iso) return null
+  const days = differenceInCalendarDays(parseISO(dueDate), parseISO(iso))
+  if (days < 0) return { text: days === -1 ? 'venció ayer' : `venció hace ${-days} días`, tone: 'late' }
+  if (days === 0) return { text: 'vence hoy', tone: 'soon' }
+  if (days === 1) return { text: 'vence mañana', tone: 'soon' }
+  const tone = days < 7 ? 'soon' : 'normal'
+  if (days < 14) return { text: `vence en ${days} días`, tone }
+  return { text: `vence el ${format(parseISO(dueDate), 'd MMM', { locale: es }).replace('.', '')}`, tone }
+}
+
+/**
+ * Nota de una tarea de «Ayer»: el cambio de estado («Por hacer → En curso») cuando lo hubo; si no, qué hizo
+ * («Comentó»). Verde si la completó.
+ * @param {import('@/api/types').DailyChange} entry
+ * @returns {{ text: string, tone: 'ok' | 'normal' }}
+ */
+export function changeNote(entry) {
+  const tone = changeKind(entry?.change) === 'completed' ? 'ok' : 'normal'
+  if (entry?.fromState && entry?.toState) return { text: `${entry.fromState} → ${entry.toState}`, tone }
+  return { text: changeLabel(entry?.change), tone }
+}
+
+/**
+ * Notas de una tarea de «Hoy»: su fecha límite, el avance de sus subtareas y con quién la comparte. Sin nada de
+ * eso, el nombre de su estado.
+ * @param {IssueRef} issue
+ * @param {string | undefined} userId la persona de la tarjeta
+ * @param {string} iso día de la daily
+ * @returns {{ text: string, tone: 'late' | 'soon' | 'normal' }[]}
+ */
+export function todayNotes(issue, userId, iso) {
+  const notes = []
+  const due = dueNote(issue.dueDate, iso)
+  if (due) notes.push(due)
+  if ((issue.subIssueCount ?? 0) > 0) {
+    notes.push({ text: `subtareas ${issue.completedSubIssueCount ?? 0} de ${issue.subIssueCount}`, tone: 'normal' })
+  }
+  const others = (issue.assignees ?? []).filter((user) => user.id !== userId)
+  if (others.length > 0) notes.push({ text: `compartida con ${others.map(firstName).join(' y ')}`, tone: 'normal' })
+  if (notes.length === 0 && issue.state?.name) notes.push({ text: issue.state.name, tone: 'normal' })
+  return notes
+}
+
+/**
+ * Quién tiene la tarea que bloquea (sin contar a la persona bloqueada): «Luis», «Luis y Ana» o null.
+ * Las tareas de un proyecto sin acceso llegan sin asignados.
+ * @param {IssueRef} by tarea que bloquea
+ * @param {string | undefined} userId
+ */
+export function blockerOwner(by, userId) {
+  const owners = (by.assignees ?? []).filter((user) => user.id !== userId)
+  return owners.length > 0 ? owners.map(firstName).join(' y ') : null
+}
+
+/**
+ * Quién bloquea a quién: por persona, sus tareas que bloquean tareas de otros («Su WEB-2 bloquea a WEB-15 de
+ * Ana»). Los asignados de cada tarea que bloquea vienen en `blockedBy`.
  * @param {DailyPerson[]} people
  * @returns {Map<string, { code: string, blockedCode: string, ownerName: string }[]>} id de persona → avisos
  */
 export function blockingByPerson(people) {
-  const index = issueIndex(people)
   const result = new Map()
   for (const person of people ?? []) {
     for (const blocker of person.blockers ?? []) {
       for (const by of blocker.blockedBy ?? []) {
-        for (const assignee of index.get(by.id)?.assignees ?? []) {
+        for (const assignee of by.assignees ?? []) {
           if (assignee.id === person.user?.id) continue
           const list = result.get(assignee.id) ?? []
           if (!list.some((item) => item.code === by.code && item.blockedCode === blocker.issue?.code)) {
@@ -143,6 +185,25 @@ export function blockingByPerson(people) {
     }
   }
   return result
+}
+
+/**
+ * Línea de cada persona: con ciclo en curso, «3 tareas asignadas · 1 hecha» (las suyas del ciclo); sin ciclo,
+ * «4 tareas abiertas». En «Presentar» (`long`), «4 tareas asignadas en Sprint 1».
+ * @param {DailyPerson} person
+ * @param {import('@/api/types').DailyCycle | null | undefined} cycle
+ * @param {{ long?: boolean }} [options]
+ */
+export function personMeta(person, cycle, { long = false } = {}) {
+  const open = person.openCount ?? 0
+  const openText = `${open} ${open === 1 ? 'tarea abierta' : 'tareas abiertas'}`
+  if (!cycle) return openText
+  const assigned = person.cycleAssignedCount ?? 0
+  if (assigned === 0) return `sin tareas en ${cycle.name} · ${openText}`
+  const assignedText = `${assigned} ${assigned === 1 ? 'tarea asignada' : 'tareas asignadas'}`
+  if (long) return `${assignedText} en ${cycle.name}`
+  const done = person.cycleCompletedCount ?? 0
+  return `${assignedText} · ${done} ${done === 1 ? 'hecha' : 'hechas'}`
 }
 
 /** Índice válido dentro de `count` personas. */

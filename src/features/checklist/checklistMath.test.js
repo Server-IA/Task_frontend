@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  checkedByName,
   dropIndex,
   formatCriterion,
   itemsOfKind,
+  markChecked,
   moveChecklistItem,
   parseCriterion,
   summarizeChecklist,
@@ -62,5 +64,28 @@ describe('checklist', () => {
     expect(formatCriterion({ given: ' un correo registrado ', when: 'pido el enlace', then: 'lo recibo' })).toBe(
       'Dado un correo registrado, cuando pido el enlace, entonces lo recibo',
     )
+  })
+})
+
+describe('quién marcó cada elemento', () => {
+  const luis = { id: 'u1', fullName: 'Luis Muñoz', email: 'luis@test.com', avatarUrl: null }
+  const now = new Date('2026-10-28T10:00:00Z')
+
+  it('al marcar soy yo, ahora; al desmarcar, nadie', () => {
+    const item = { id: 'i1', done: true, text: 'A' }
+    expect(markChecked(item, true, luis, now)).toMatchObject({
+      checkedBy: { id: 'u1', fullName: 'Luis Muñoz' },
+      checkedAt: '2026-10-28T10:00:00.000Z',
+    })
+    expect(markChecked({ ...item, done: false, checkedBy: luis }, false, luis, now)).toMatchObject({ checkedBy: null, checkedAt: null })
+    // Editar el texto no cambia quién lo marcó
+    const marked = { ...item, checkedBy: luis, checkedAt: 'antes' }
+    expect(markChecked(marked, undefined, null, now)).toBe(marked)
+  })
+
+  it('nombre corto solo si está marcado y se sabe quién', () => {
+    expect(checkedByName({ done: true, checkedBy: luis })).toBe('Luis')
+    expect(checkedByName({ done: false, checkedBy: luis })).toBe('')
+    expect(checkedByName({ done: true, checkedBy: null })).toBe('')
   })
 })

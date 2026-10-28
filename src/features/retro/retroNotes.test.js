@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   actionsProgress,
   applyVote,
+  buildNewNote,
+  buildNoteUpdate,
   canEditNote,
   groupNotes,
   participantCount,
@@ -9,6 +11,7 @@ import {
   removeNote,
   retroPhase,
   sortByVotes,
+  takesOwner,
   upsertNote,
   voteState,
 } from './retroNotes'
@@ -112,5 +115,33 @@ describe('retro anterior', () => {
     expect(previousClosedCycle(cycles[2], cycles).id).toBe('s1')
     expect(previousClosedCycle(cycles[3], cycles).id).toBe('s2')
     expect(previousClosedCycle(cycles[0], cycles)).toBeNull()
+  })
+})
+
+describe('responsable de las acciones', () => {
+  it('solo las acciones llevan responsable al crearlas', () => {
+    expect(takesOwner('ACTION')).toBe(true)
+    expect(takesOwner('IMPROVE')).toBe(false)
+    expect(buildNewNote('ACTION', '  Dividir WEB-2  ', 'luis')).toEqual({ column: 'ACTION', text: 'Dividir WEB-2', ownerId: 'luis' })
+    expect(buildNewNote('ACTION', 'Sin dueño', null)).toEqual({ column: 'ACTION', text: 'Sin dueño' })
+    expect(buildNewNote('WENT_WELL', 'Bien', 'luis')).toEqual({ column: 'WENT_WELL', text: 'Bien' })
+  })
+
+  it('al editar solo viaja lo que cambió', () => {
+    const action = note('a', 'ACTION', 0, '', { text: 'Dividir WEB-2', owner: luis })
+    expect(buildNoteUpdate(action, { text: 'Dividir WEB-2 en tres', ownerId: 'luis' })).toEqual({ text: 'Dividir WEB-2 en tres' })
+    expect(buildNoteUpdate(action, { text: 'Dividir WEB-2', ownerId: 'ana' })).toEqual({ ownerId: 'ana' })
+    expect(buildNoteUpdate(action, { text: ' Dividir WEB-2 ', ownerId: 'luis' })).toBeNull()
+  })
+
+  it('quitar el responsable es clearOwner; las otras columnas no lo mandan', () => {
+    const action = note('a', 'ACTION', 0, '', { text: 'Dividir WEB-2', owner: luis })
+    expect(buildNoteUpdate(action, { ownerId: null })).toEqual({ clearOwner: true })
+    expect(buildNoteUpdate(note('b', 'ACTION', 0, '', { text: 'x', owner: null }), { ownerId: null })).toBeNull()
+    expect(buildNoteUpdate(note('c', 'IMPROVE', 0, '', { text: 'x' }), { ownerId: 'luis' })).toBeNull()
+  })
+
+  it('un texto vacío no se manda (el backend respondería 400)', () => {
+    expect(buildNoteUpdate(note('a', 'IMPROVE', 0, '', { text: 'algo' }), { text: '   ' })).toBeNull()
   })
 })

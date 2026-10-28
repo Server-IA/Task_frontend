@@ -21,6 +21,8 @@ function invalidateAfterIssueChange(queryClient, projectId, issueId) {
   queryClient.invalidateQueries({ queryKey: ['project'] })
   queryClient.invalidateQueries({ queryKey: ['projects'] })
   queryClient.invalidateQueries({ queryKey: ['issue'] })
+  // Cuántas tareas muestra cada vista guardada
+  queryClient.invalidateQueries({ queryKey: queryKeys.savedViews(projectId) })
   // Vistas que resumen tareas de varios lados: estadísticas, Mi trabajo y la actividad del workspace
   queryClient.invalidateQueries({ queryKey: ['stats', projectId] })
   queryClient.invalidateQueries({ queryKey: ['myWork'] })
@@ -62,13 +64,15 @@ export function useSubIssues(slug, projectId, issueId) {
   })
 }
 
+/** `mutate(cuerpo)`; con `templateId` la plantilla suma un uso. */
 export function useCreateIssue(slug, projectId) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (body) => issuesApi.create(slug, projectId, body),
-    onSuccess: (issue) => {
+    onSuccess: (issue, body) => {
       queryClient.setQueryData(queryKeys.issue(issue.id), issue)
       invalidateAfterIssueChange(queryClient, projectId)
+      if (body?.templateId) queryClient.invalidateQueries({ queryKey: queryKeys.templates(projectId) })
     },
   })
 }

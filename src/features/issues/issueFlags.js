@@ -7,7 +7,37 @@
 /** @typedef {import('@/api/types').StateResponse} StateResponse */
 
 /** Tareas abiertas que la bloquean (0 si ninguna). */
-export const blockedCount = (issue) => issue?.blockedByCount ?? 0
+export const blockedCount = (issue) => issue?.blockedByCodes?.length || issue?.blockedByCount || 0
+
+/** «WEB-2», «WEB-2 y WEB-7», «WEB-2, WEB-7 y AMC-3» (para títulos y avisos). */
+export function joinCodes(codes = []) {
+  if (codes.length <= 1) return codes[0] ?? ''
+  return `${codes.slice(0, -1).join(', ')} y ${codes.at(-1)}`
+}
+
+/**
+ * Lo que la bloquea, para la pastilla roja: el primer código y cuántos más («bloqueada por WEB-2 +1»).
+ * Sin códigos (respuestas viejas) queda solo el número.
+ * @param {IssueResponse} issue
+ * @returns {{ count: number, codes: string[], first: string | null, more: number } | null}
+ */
+export function blockedBySummary(issue) {
+  const count = blockedCount(issue)
+  if (count === 0) return null
+  const codes = issue?.blockedByCodes ?? []
+  return { count, codes, first: codes[0] ?? null, more: codes.length > 0 ? count - 1 : 0 }
+}
+
+/**
+ * Lo que espera por ella, para la pastilla neutra: «bloquea WEB-7» con una, «bloquea 2» con varias.
+ * @param {IssueResponse} issue
+ * @returns {{ count: number, codes: string[], label: string } | null}
+ */
+export function blockingSummary(issue) {
+  const codes = issue?.blockingCodes ?? []
+  if (codes.length === 0) return null
+  return { count: codes.length, codes, label: codes.length === 1 ? codes[0] : String(codes.length) }
+}
 
 /** Criterios de aceptación sin marcar. */
 export const pendingCriteria = (issue) => Math.max(0, (issue?.criteriaTotal ?? 0) - (issue?.criteriaDone ?? 0))

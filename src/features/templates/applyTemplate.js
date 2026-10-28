@@ -80,3 +80,9 @@ export function appliedParts(template) {
   if (parts.length <= 1) return parts[0] ?? 'nada'
   return `${parts.slice(0, -1).join(', ')} y ${parts.at(-1)}`
 }
+
+/** Cuántas tareas se crearon con la plantilla: «12 usos», «1 uso», «sin usos». */
+export function usesLabel(count = 0) {
+  if (!count) return 'sin usos'
+  return `${count} ${count === 1 ? 'uso' : 'usos'}`
+}

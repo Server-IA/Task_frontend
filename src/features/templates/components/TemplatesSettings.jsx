@@ -23,7 +23,7 @@ import { useIsManager } from '@/features/workspaces/hooks'
 import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
-import { checklistLabel, templateSummary } from '../applyTemplate'
+import { checklistLabel, templateSummary, usesLabel } from '../applyTemplate'
 import { useCreateTemplate, useDeleteTemplate, useTemplates, useUpdateTemplate } from '../hooks'
 
 /** @typedef {import('@/api/types').IssueTemplate} IssueTemplate */
@@ -107,6 +107,7 @@ export function TemplatesSettings({ slug, project }) {
               <ul className="flex flex-col gap-1.5">
                 {list.map((template, index) => {
                   const current = !editingNew && selected?.id === template.id
+                  const reorderable = canManage && list.length > 1
                   return (
                     <li key={template.id} className="group relative">
                       <button
@@ -118,7 +119,7 @@ export function TemplatesSettings({ slug, project }) {
                           current ? 'border-accent-text bg-accent-soft' : 'bg-card hover:border-dash',
                         )}
                       >
-                        <span className="flex items-center gap-2 pr-14">
+                        <span className="flex items-center gap-2">
                           <span
                             aria-hidden="true"
                             className={cn(
@@ -128,13 +129,23 @@ export function TemplatesSettings({ slug, project }) {
                           >
                             {template.name.trim()[0]?.toUpperCase()}
                           </span>
-                          <span className="min-w-0 truncate font-semibold">{template.name}</span>
+                          <span className="min-w-0 flex-1 truncate font-semibold">{template.name}</span>
+                          <span
+                            className={cn(
+                              'shrink-0 font-mono text-[11px] text-muted-foreground transition-opacity duration-150',
+                              // Al pasar el mouse, las flechas de subir y bajar ocupan su lugar
+                              reorderable && 'group-focus-within:opacity-0 group-hover:opacity-0',
+                            )}
+                            title="Tareas creadas con esta plantilla"
+                          >
+                            {usesLabel(template.usageCount)}
+                          </span>
                         </span>
                         <span className="truncate font-mono text-xs text-muted-foreground">
                           {templateSummary(template) || 'sin valores por defecto'}
                         </span>
                       </button>
-                      {canManage && list.length > 1 && (
+                      {reorderable && (
                         <span className="absolute top-2.5 right-2 flex opacity-0 transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100">
                           <Button
                             variant="ghost"

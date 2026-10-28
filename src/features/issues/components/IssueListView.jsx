@@ -1,19 +1,23 @@
 import { ChevronLeft, ChevronRight, CircleDot, CornerDownRight, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ColorDot } from '@/components/common/LabelChip'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { StateIcon } from '@/components/common/StateIcon'
+import { UserAvatar } from '@/components/common/UserAvatar'
 import { cn } from '@/lib/utils'
-import { LIST_PAGE_SIZE } from '../constants'
+import { GROUP_BY_DEFAULT, LIST_PAGE_SIZE } from '../constants'
+import { groupIssues } from '../groupIssues'
 import { useIssues } from '../hooks'
 import { useCriteriaGuard } from '../useCriteriaGuard'
 import { isClosed, useIssueUpdater } from '../useIssueHelpers'
-import { BlockedChip, ChecklistChip } from './IssueBadges'
+import { BlockedChip, BlockingChip, ChecklistChip } from './IssueBadges'
+import { PriorityIcon } from './PriorityIcon'
 import { AssigneesPicker, DatePicker, LabelsPicker, PriorityPicker, StatePicker } from './PropertyPickers'
 
 /**
- * Vista de lista: las tareas de la página agrupadas por estado (en el orden de las columnas),
- * con propiedades editables y paginación.
+ * Vista de lista: las tareas de la página agrupadas por estado (en el orden de las columnas), prioridad,
+ * asignado o etiqueta (`groupBy`), con propiedades editables y paginación.
  */
 export function IssueListView({
   slug,
@@ -28,6 +32,7 @@ export function IssueListView({
   onCreateInState,
   hasFilters,
   extraParams,
+  groupBy = GROUP_BY_DEFAULT,
 }) {
   const params = { ...filters, ...extraParams, sort, page, size: LIST_PAGE_SIZE }
   const { data, isLoading, error, refetch, isFetching } = useIssues(slug, project.id, params)
@@ -57,38 +62,17 @@ export function IssueListView({
     )
   }
 
-  // Grupos por el estado de cada tarea, ordenados como las columnas del tablero
-  const position = new Map(meta.states.map((state, index) => [state.id, index]))
-  const byState = new Map()
-  for (const issue of data.content) {
-    if (!byState.has(issue.state.id)) byState.set(issue.state.id, { state: issue.state, issues: [] })
-    byState.get(issue.state.id).issues.push(issue)
-  }
-  const groups = [...byState.values()].sort(
-    (a, b) => (position.get(a.state.id) ?? Infinity) - (position.get(b.state.id) ?? Infinity),
-  )
+  const groups = groupIssues(data.content, groupBy, meta)
   const from = data.page * data.size + 1
   const to = from + data.content.length - 1
 
   return (
     <div className={cn('tf-fade flex min-h-full flex-col gap-3 transition-opacity duration-200', isFetching && 'opacity-80')}>
-      {groups.map(({ state, issues }) => (
-        <section key={state.id} aria-label={state.name} className="overflow-hidden rounded-2xl border bg-card">
-          <header className="flex items-center gap-2 bg-column px-4 py-2.5 font-mono text-[11px] tracking-[0.08em] uppercase">
-            <StateIcon group={state.group} color={state.color} className="size-3.5" />
-            <h2 className="font-semibold">{state.name}</h2>
-            <span className="text-muted-foreground">{issues.length}</span>
-            <button
-              type="button"
-              className="ml-auto flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-card hover:text-foreground"
-              onClick={() => onCreateInState?.(state.id)}
-              aria-label={`Nueva tarea en ${state.name}`}
-            >
-              <Plus className="size-3.5" />
-            </button>
-          </header>
+      {groups.map((group) => (
+        <section key={`${group.kind}-${group.key}`} aria-label={group.label} className="overflow-hidden rounded-2xl border bg-card">
+          <GroupHeader group={group} onCreateInState={onCreateInState} />
           <ul>
-            {issues.map((issue) => (
+            {group.issues.map((issue) => (
               <IssueRow key={issue.id} issue={issue} slug={slug} project={project} meta={meta} openIssue={openIssue} guard={guard} />
             ))}
           </ul>
@@ -118,6 +102,56 @@ export function IssueListView({
       </footer>
       {criteriaDialog}
     </div>
+  )
+}
+
+/**
+ * Encabezado de un grupo: por estado o prioridad en monoespaciada y mayúsculas (como las columnas del tablero);
+ * por persona o etiqueta, con su avatar o color y «2 tareas».
+ */
+function GroupHeader({ group, onCreateInState }) {
+  const count = group.issues.length
+  if (group.kind === 'assignee' || group.kind === 'label') {
+    return (
+      <header className="flex items-center gap-2 bg-column px-4 py-2">
+        {group.kind === 'assignee' ? (
+          group.user ? (
+            <UserAvatar user={group.user} size="xs" className="size-5.5" />
+          ) : (
+            <span aria-hidden="true" className="size-5.5 rounded-full border border-dashed border-dash" />
+          )
+        ) : group.labelItem ? (
+          <ColorDot color={group.labelItem.color} />
+        ) : (
+          <span aria-hidden="true" className="size-2.5 rounded-full border border-dashed border-dash" />
+        )}
+        <h2 className="min-w-0 truncate text-[13px] font-semibold">{group.label}</h2>
+        <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
+          {count} {count === 1 ? 'tarea' : 'tareas'}
+        </span>
+      </header>
+    )
+  }
+  return (
+    <header className="flex items-center gap-2 bg-column px-4 py-2.5 font-mono text-[11px] tracking-[0.08em] uppercase">
+      {group.kind === 'state' ? (
+        <StateIcon group={group.state.group} color={group.state.color} className="size-3.5" />
+      ) : (
+        <PriorityIcon priority={group.priority} />
+      )}
+      <h2 className="font-semibold">{group.label}</h2>
+      <span className="text-muted-foreground">{count}</span>
+      {group.kind === 'state' && (
+        <button
+          type="button"
+          className="ml-auto flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-card hover:text-foreground"
+          onClick={() => onCreateInState?.(group.state.id)}
+          aria-label={`Nueva tarea en ${group.state.name}`}
+        >
+          <Plus className="size-3.5" />
+        </button>
+      )}
+    </header>
   )
 }
 
@@ -169,7 +203,8 @@ function IssueRow({ issue, slug, project, meta, openIssue, guard }) {
             </span>
           )}
           <span className="truncate text-sm font-medium">{issue.title}</span>
-          <BlockedChip issue={issue} />
+          <BlockedChip issue={issue} codes="inline" />
+          <BlockingChip issue={issue} />
           {issue.subIssueCount > 0 && (
             <span className="shrink-0 font-mono text-[11px] text-muted-foreground" title="Subtareas completadas">
               ↳ {issue.completedSubIssueCount}/{issue.subIssueCount}

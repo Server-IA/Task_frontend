@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyTemplate, appliedParts, checklistLabel, stripPrefix, templateSummary } from './applyTemplate'
+import { applyTemplate, appliedParts, checklistLabel, stripPrefix, templateSummary, usesLabel } from './applyTemplate'
 
 const bug = {
   name: 'Reporte de bug',
@@ -59,5 +59,14 @@ describe('aplicar plantillas', () => {
     expect(templateSummary(story)).toBe('')
     expect(appliedParts(bug)).toBe('prefijo, descripción, etiqueta, prioridad, 2 pasos y 1 criterio')
     expect(appliedParts(story)).toBe('descripción')
+  })
+})
+
+describe('usos de la plantilla', () => {
+  it('cuenta en singular y plural', () => {
+    expect(usesLabel(0)).toBe('sin usos')
+    expect(usesLabel(undefined)).toBe('sin usos')
+    expect(usesLabel(1)).toBe('1 uso')
+    expect(usesLabel(12)).toBe('12 usos')
   })
 })

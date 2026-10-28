@@ -174,6 +174,9 @@ export function IssueDetail({
               creada{issue.createdBy ? ` por ${issue.createdBy.fullName.split(' ')[0]}` : ''} · {formatRelative(issue.createdAt)}
             </p>
             <p title={formatDateTime(issue.updatedAt)}>actualizada {formatRelative(issue.updatedAt)}</p>
+            {issue.checklistUpdatedAt && (
+              <p title={formatDateTime(issue.checklistUpdatedAt)}>checklist actualizado {formatRelative(issue.checklistUpdatedAt)}</p>
+            )}
           </div>
         </aside>
       </div>

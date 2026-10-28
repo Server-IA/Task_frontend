@@ -4,6 +4,7 @@ import { LockNote } from '@/components/common/LockNote'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { useCreateRetroNote } from '../hooks'
+import { buildNewNote, takesOwner } from '../retroNotes'
 import { NoteEditor, RetroNoteCard } from './RetroNoteCard'
 
 /** Ícono y colores del encabezado de cada columna. */
@@ -55,10 +56,15 @@ export function RetroColumn({ column, notes, retro, open, composing, onCompose, 
             placeholder={column.placeholder}
             submitLabel="Agregar"
             keepOpen
+            withOwner={takesOwner(column.key)}
+            members={ctx.members}
             pending={create.isPending}
             onCancel={() => onCompose(false)}
-            onSubmit={(text, reset) =>
-              create.mutate({ column: column.key, text }, { onSuccess: reset, onError: (error) => notifyError(error) })
+            onSubmit={({ text, ownerId }, reset) =>
+              create.mutate(buildNewNote(column.key, text, ownerId), {
+                onSuccess: reset,
+                onError: (error) => notifyError(error),
+              })
             }
           />
         </div>
@@ -73,7 +79,7 @@ export function RetroColumn({ column, notes, retro, open, composing, onCompose, 
         </button>
       )}
       {pendingActions && !ctx.manager && (
-        <LockNote className="px-1 pt-0.5">Solo el project manager convierte acciones en tareas.</LockNote>
+        <LockNote className="px-1 pt-0.5">Solo el project manager crea tareas desde las acciones.</LockNote>
       )}
     </section>
   )

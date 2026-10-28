@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
+  allBlocked,
   buildCloseRequest,
   canCloseCycle,
+  closedText,
   defaultCloseMode,
   endDateNotice,
   openTargetCycles,
@@ -99,5 +101,27 @@ describe('endDateNotice', () => {
     expect(endDateNotice({ endDate: '2026-10-28' }, today)).toEqual({ kind: 'today' })
     expect(endDateNotice({ endDate: '2026-10-25' }, today)).toEqual({ kind: 'ended', days: 3 })
     expect(endDateNotice({ endDate: null }, today)).toEqual({ kind: 'noEnd' })
+  })
+})
+
+describe('closedText', () => {
+  it('dice cuándo y quién cerró el ciclo', () => {
+    const ana = { id: 'ana', fullName: 'Ana' }
+    expect(closedText({ closedAt: '2026-10-28T08:00:00', closedBy: ana }, today)).toBe('cerrado hoy por Ana')
+    expect(closedText({ closedAt: '2026-10-27T08:00:00', closedBy: ana }, today)).toBe('cerrado ayer por Ana')
+    expect(closedText({ closedAt: '2026-10-20T08:00:00', closedBy: ana }, today)).toBe('cerrado el 20 oct por Ana')
+  })
+
+  it('sin quién lo cerró, solo la fecha; abierto, nada', () => {
+    expect(closedText({ closedAt: '2026-10-20T08:00:00', closedBy: null }, today)).toBe('cerrado el 20 oct')
+    expect(closedText({ closedAt: null }, today)).toBe('')
+  })
+})
+
+describe('allBlocked', () => {
+  it('explica que van al backlog solo si todas siguen bloqueadas', () => {
+    expect(allBlocked([{ blockedByCount: 1 }, { blockedByCount: 2 }])).toBe(true)
+    expect(allBlocked([{ blockedByCount: 1 }, { blockedByCount: 0 }])).toBe(false)
+    expect(allBlocked([])).toBe(false)
   })
 })

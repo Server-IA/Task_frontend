@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { ChartColumn } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -6,26 +7,41 @@ import { Segmented } from '@/components/common/Segmented'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { IssuePeekSheet } from '@/features/issues/components/IssuePeekSheet'
 import { useIssueFilters } from '@/features/issues/useIssueFilters'
-import { useCurrentProject } from '@/features/projects/hooks'
+import { useCurrentProject, useProjectMembers } from '@/features/projects/hooks'
 import { useCurrentWorkspace } from '@/features/workspaces/hooks'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { projectPath } from '@/lib/paths'
 import { cn } from '@/lib/utils'
 import { useProjectStats } from '../hooks'
+import { assigneesFromParams, resolveAssignees, withAssignees } from '../personFilter'
+import { PersonFilter } from '../components/PersonFilter'
 import { BurndownCard, KpiTiles, StaleCard, StatesCard, ThroughputCard, WorkloadCard } from '../components/StatsSections'
 
 /** Periodos que acepta el backend (semanas) para el ritmo de cierre y el tiempo de ciclo. */
 const RANGES = [4, 8, 12]
 const DEFAULT_RANGE = 8
 
-/** Estadísticas del proyecto: indicadores, ritmo de cierre, burndown del ciclo, estados, carga y tareas quietas. */
+/**
+ * Estadísticas del proyecto: indicadores, ritmo de cierre, burndown del ciclo, estados, carga y tareas quietas.
+ * El periodo (`?weeks=`) y las personas de «+ persona» (`?assignee=`, repetible) viven en la URL.
+ */
 export function StatsPage() {
   const workspace = useCurrentWorkspace()
   const project = useCurrentProject()
   const [searchParams, setSearchParams] = useSearchParams()
   const requested = Number(searchParams.get('weeks'))
   const weeks = RANGES.includes(requested) ? requested : DEFAULT_RANGE
-  const { data: stats, isLoading, isPlaceholderData, error, refetch } = useProjectStats(workspace.slug, project.id, weeks)
+  const assignees = assigneesFromParams(searchParams)
+  const { data: stats, isLoading, isPlaceholderData, error, refetch } = useProjectStats(
+    workspace.slug,
+    project.id,
+    weeks,
+    assignees,
+  )
+  const { data: members } = useProjectMembers(workspace.slug, project.id)
+  const users = useMemo(() => (members ?? []).map((member) => member.user), [members])
+  // Quien ya no es miembro se reconoce por la carga, que con el filtro trae solo a esas personas
+  const selected = resolveAssignees(assignees, [...users, ...(stats?.workload ?? []).map((row) => row.user)])
   // Las tareas (vencidas, sin movimiento) se abren en el panel lateral, sin salir de la página
   const issueFilters = useIssueFilters()
   const base = `/${workspace.slug}/projects/${project.id}`
@@ -41,6 +57,8 @@ export function StatsPage() {
       { replace: true },
     )
 
+  const setAssignees = (ids) => setSearchParams((previous) => withAssignees(previous, ids), { replace: true })
+
   return (
     <>
       <PageHeader
@@ -49,12 +67,15 @@ export function StatsPage() {
         documentTitle={['Estadísticas', project.name]}
         description="Cómo avanza el proyecto: ritmo de cierre, ciclo actual y carga del equipo."
         actions={
-          <Segmented
-            label="Periodo"
-            value={String(weeks)}
-            onChange={setWeeks}
-            options={RANGES.map((range) => ({ value: String(range), label: `${range} semanas` }))}
-          />
+          <>
+            <Segmented
+              label="Periodo"
+              value={String(weeks)}
+              onChange={setWeeks}
+              options={RANGES.map((range) => ({ value: String(range), label: `${range} semanas` }))}
+            />
+            <PersonFilter users={users} selected={selected} onChange={setAssignees} />
+          </>
         }
       />
       <PageBody>

@@ -18,16 +18,17 @@ import { useIsManager } from '@/features/workspaces/hooks'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { useActiveSavedView, useCreateSavedView, useDeleteSavedView, useUpdateSavedView } from '../hooks'
-import { applyViewToParams, canEditView, clearViewParams, summarizeViewFilters } from '../savedViews'
+import { applyViewToParams, canEditView, clearViewParams, reorderableGroups, summarizeViewFilters } from '../savedViews'
+import { ReorderViewsDialog } from './ReorderViewsDialog'
 
 /** @typedef {import('@/api/types').SavedView} SavedView */
 
 const NAME_MAX = 40
 
 /**
- * Barra de vistas guardadas sobre los filtros de tareas: «Todas» y cada vista como pastilla (compartida o personal),
- * la activa resaltada y marcada «cambiado» si la URL ya no coincide con ella. Desde aquí se guarda la vista actual,
- * se actualiza, se cambia de nombre, se comparte y se elimina (según permisos).
+ * Barra de vistas guardadas sobre los filtros de tareas: «Todas» y cada vista como pastilla (compartida o personal)
+ * con cuántas tareas muestra, la activa resaltada y marcada «cambiado» si la URL ya no coincide con ella. Desde aquí
+ * se guarda la vista actual, se actualiza, se cambia de nombre, se comparte, se elimina y se ordenan (según permisos).
  * @param {{ slug: string, project: import('@/api/types').ProjectResponse, meta: object,
  *           issueFilters: ReturnType<typeof import('@/features/issues/useIssueFilters').useIssueFilters> }} props
  */
@@ -37,7 +38,10 @@ export function SavedViewsBar({ slug, project, meta, issueFilters }) {
   const isManager = useIsManager()
   const [renaming, setRenaming] = useState(null)
   const [deleting, setDeleting] = useState(null)
+  const [ordering, setOrdering] = useState(false)
   const canEditActive = active ? canEditView(active, isManager) : false
+  const { canShared, canPersonal } = reorderableGroups(views, isManager)
+  const modified = Boolean(active) && changed.length > 0
 
   const apply = (view) => issueFilters.replaceParams((previous) => applyViewToParams(previous, view))
   const saveChanges = (view) =>
@@ -67,6 +71,7 @@ export function SavedViewsBar({ slug, project, meta, issueFilters }) {
         className={pillClass(!active)}
       >
         Todas
+        <ViewCount value={project.issueCount} active={!active} />
       </button>
       {views.map((view) => (
         <ViewPill
@@ -85,7 +90,28 @@ export function SavedViewsBar({ slug, project, meta, issueFilters }) {
       ))}
 
       <span className="ml-auto flex flex-wrap items-center gap-1.5">
-        {active && changed.length > 0 && (
+        {views.length > 0 && !modified && (
+          <span className="mr-1.5 hidden items-center gap-3 text-xs text-muted-foreground xl:flex">
+            <span className="flex items-center gap-1.5">
+              <Users className="size-3.5" aria-hidden="true" />
+              compartida
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Lock className="size-3.5" aria-hidden="true" />
+              personal
+            </span>
+          </span>
+        )}
+        {(canShared || canPersonal) && (
+          <button
+            type="button"
+            onClick={() => setOrdering(true)}
+            className="mr-1.5 rounded-md px-1 text-xs font-medium text-accent-text outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            Ordenar vistas
+          </button>
+        )}
+        {modified && (
           <>
             <span className="tf-fade text-xs text-muted-foreground">Vista modificada</span>
             <Button variant="ghost" size="sm" className="h-8 rounded-full" onClick={() => apply(active)}>
@@ -113,6 +139,14 @@ export function SavedViewsBar({ slug, project, meta, issueFilters }) {
       </span>
 
       <RenameDialog slug={slug} projectId={project.id} view={renaming} onClose={() => setRenaming(null)} />
+      <ReorderViewsDialog
+        slug={slug}
+        projectId={project.id}
+        views={views}
+        isManager={isManager}
+        open={ordering}
+        onOpenChange={setOrdering}
+      />
       <DeleteViewDialog
         slug={slug}
         projectId={project.id}
@@ -130,7 +164,17 @@ const pillClass = (active) =>
     active ? 'border-accent-text bg-accent-soft font-semibold text-accent-text' : 'bg-card hover:border-dash',
   )
 
-/** Pastilla de una vista: icono compartida/personal, nombre, «cambiado» y el menú de acciones si se puede editar. */
+/** Cuántas tareas muestra la vista, en monoespaciada (del color de la pastilla si está activa). */
+function ViewCount({ value, active }) {
+  if (value == null) return null
+  return (
+    <span className={cn('font-mono text-[11px] font-normal', active ? 'text-accent-text' : 'text-muted-foreground')} title="Tareas que muestra">
+      {value}
+    </span>
+  )
+}
+
+/** Pastilla de una vista: icono compartida/personal, nombre, tareas, «cambiado» y el menú de acciones si se puede editar. */
 function ViewPill({ view, active, changed, canEdit, canShare, onApply, onSaveChanges, onRename, onDelete, onShare }) {
   const Icon = view.shared ? Users : Lock
   const hint = view.shared ? 'Vista compartida con el proyecto' : 'Vista personal, solo la ves tú'
@@ -147,6 +191,7 @@ function ViewPill({ view, active, changed, canEdit, canShare, onApply, onSaveCha
       >
         <Icon className="size-3.5 shrink-0" aria-label={view.shared ? 'compartida' : 'personal'} />
         <span className="max-w-48 truncate">{view.name}</span>
+        <ViewCount value={view.issueCount} active={active} />
         {changed && (
           <span className="tf-pop rounded-full bg-primary px-1.5 font-mono text-[10px] font-semibold text-primary-foreground">cambiado</span>
         )}

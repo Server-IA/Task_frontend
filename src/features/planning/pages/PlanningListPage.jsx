@@ -22,6 +22,7 @@ import { canCloseCycle, isCycleClosed } from '../closeCycle'
 import { useDeletePlanning, usePlanningList } from '../hooks'
 import { CloseCycleDialog } from '../components/CloseCycleDialog'
 import {
+  ClosedByText,
   CYCLE_STATUS,
   CycleStatusBadge,
   cycleStatusKey,
@@ -126,6 +127,7 @@ export function PlanningListPage({ kind }) {
                             {current && end && (
                               <span className="text-ok font-semibold"> · {remainingText(end)}</span>
                             )}
+                            {closed && <ClosedByText cycle={item} />}
                           </p>
                         </div>
                       </div>

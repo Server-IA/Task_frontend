@@ -53,6 +53,7 @@
 /** @typedef {Schemas['StaleIssue']} StaleIssue */
 
 /** @typedef {Schemas['MyWorkResponse']} MyWorkResponse */
+/** @typedef {Schemas['StateCount']} StateCount */
 
 /** @typedef {Schemas['ActivityFeedItemResponse']} ActivityFeedItem */
 /** @typedef {NonNullable<ActivityFeedItem['field']>} ActivityField */
@@ -72,6 +73,7 @@
 /** @typedef {Schemas['RetroSummary']} RetroSummary */
 /** @typedef {Schemas['RetroNoteResponse']} RetroNote */
 /** @typedef {Schemas['RetroNoteRequest']['column']} RetroColumn */
+/** @typedef {Schemas['UpdateRetroNoteRequest']} UpdateRetroNoteRequest */
 /** @typedef {Schemas['RetroVoteResponse']} RetroVoteResponse */
 
 /** @typedef {Schemas['DailyResponse']} DailyResponse */
@@ -79,6 +81,8 @@
 /** @typedef {Schemas['DailyChange']} DailyChange */
 /** @typedef {Schemas['DailyBlocker']} DailyBlocker */
 /** @typedef {Schemas['DailyNoteResponse']} DailyNote */
+/** @typedef {Schemas['DailySummary']} DailySummary */
+/** @typedef {Schemas['DailyCycle']} DailyCycle */
 
 /** @typedef {'OWNER' | 'MEMBER'} WorkspaceRole */
 

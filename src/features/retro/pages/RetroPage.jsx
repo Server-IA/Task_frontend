@@ -12,8 +12,9 @@ import { StateIcon } from '@/components/common/StateIcon'
 import { IssuePeekSheet } from '@/features/issues/components/IssuePeekSheet'
 import { useIssueFilters } from '@/features/issues/useIssueFilters'
 import { DateRange, SummaryTile } from '@/features/planning/components/PlanningShared'
+import { closedText } from '@/features/planning/closeCycle'
 import { usePlanningItem, usePlanningList } from '@/features/planning/hooks'
-import { useCurrentProject } from '@/features/projects/hooks'
+import { useCurrentProject, useProjectMembers } from '@/features/projects/hooks'
 import { formatDecimal } from '@/features/stats/chartMath'
 import { useCurrentWorkspace, useIsManager } from '@/features/workspaces/hooks'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
@@ -58,6 +59,9 @@ export function RetroPage() {
   const cycle = usePlanningItem('cycles', workspace.slug, project.id, cycleId)
   const { data: cycles } = usePlanningList('cycles', workspace.slug, project.id)
   const retroQuery = useRetro(workspace.slug, project.id, cycleId)
+  const { data: projectMembers } = useProjectMembers(workspace.slug, project.id)
+  // Responsables posibles de una acción: los miembros del proyecto
+  const members = useMemo(() => (projectMembers ?? []).map((member) => member.user), [projectMembers])
   const start = useStartRetro(workspace.slug, project.id, cycleId)
   const finish = useFinishRetro(workspace.slug, project.id, cycleId)
   const [composing, setComposing] = useState(null)
@@ -96,6 +100,7 @@ export function RetroPage() {
     cycleId,
     userId,
     manager,
+    members,
     canEdit: (note) => canEditNote(note, { userId, manager, phase }),
     openIssue: issueFilters.openIssue,
   }
@@ -125,7 +130,7 @@ export function RetroPage() {
         description={
           <p className="font-mono text-xs">
             <DateRange start={item.startDate} end={item.endDate} />
-            {item.closedAt ? ` · cerrado el ${formatShortDate(item.closedAt)}` : ' · ciclo sin cerrar'}
+            {item.closedAt ? ` · ${closedText(item)}` : ' · ciclo sin cerrar'}
             {phase === 'FINISHED' && ` · retro terminada el ${formatShortDate(retro.finishedAt)}`}
             {phase !== 'NOT_STARTED' && (
               <>
@@ -209,7 +214,7 @@ export function RetroPage() {
         {phase === 'FINISHED' && (
           <p className="text-center font-mono text-[11px] text-muted-foreground">
             La retro terminó: las notas y los votos son de solo lectura.
-            {manager && ' Las acciones se pueden seguir convirtiendo en tareas.'}
+            {manager && ' Desde las acciones se pueden seguir creando tareas.'}
           </p>
         )}
 
@@ -231,7 +236,7 @@ export function RetroPage() {
         open={confirmFinish}
         onOpenChange={setConfirmFinish}
         title="¿Terminar la retrospectiva?"
-        description="Las notas y los votos quedan de solo lectura. Las acciones se pueden seguir convirtiendo en tareas."
+        description="Las notas y los votos quedan de solo lectura. Desde las acciones se pueden seguir creando tareas."
         confirmLabel="Terminar retro"
         destructive={false}
         loading={finish.isPending}
@@ -277,7 +282,7 @@ function RetroSummary({ summary }) {
         label="Tiempo de ciclo"
         value={cycleTimeDays != null ? formatDecimal(cycleTimeDays) : '—'}
         unit={cycleTimeDays != null ? (cycleTimeDays === 1 ? 'día' : 'días') : undefined}
-        note={cycleTimeDays != null ? 'mediana, de creada a hecha' : 'sin tareas hechas'}
+        note={cycleTimeDays != null ? 'mediana, de En curso a Hecho' : 'ninguna pasó de En curso a Hecho'}
       />
     </section>
   )

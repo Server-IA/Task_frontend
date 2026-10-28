@@ -28,6 +28,30 @@ export function summarizeChecklist(items = []) {
 }
 
 /**
+ * Quién marcó y cuándo, para pintar el cambio antes de que responda el backend: al marcar, `user` ahora; al
+ * desmarcar, nadie. Si `done` no cambia (editar el texto), el elemento queda igual.
+ * @param {ChecklistItem} item
+ * @param {boolean | undefined} done
+ * @param {{ id: string, fullName: string, email?: string, avatarUrl?: string | null } | null | undefined} user
+ * @param {Date} [now]
+ * @returns {ChecklistItem}
+ */
+export function markChecked(item, done, user, now = new Date()) {
+  if (done === true) {
+    const checkedBy = user ? { id: user.id, fullName: user.fullName, email: user.email, avatarUrl: user.avatarUrl ?? null } : null
+    return { ...item, checkedBy, checkedAt: now.toISOString() }
+  }
+  if (done === false) return { ...item, checkedBy: null, checkedAt: null }
+  return item
+}
+
+/** Nombre corto de quien lo marcó («Luis»); vacío si no se sabe (marcados antes de guardarse este dato). */
+export function checkedByName(item) {
+  if (!item?.done || !item.checkedBy?.fullName) return ''
+  return item.checkedBy.fullName.trim().split(/\s+/)[0]
+}
+
+/**
  * Mueve un elemento a `toIndex` dentro de su tipo y renumera las posiciones de ese tipo.
  * @param {ChecklistItem[]} items todos los elementos de la tarea
  * @returns {{ items: ChecklistItem[], position: number } | null} null si no cambia nada

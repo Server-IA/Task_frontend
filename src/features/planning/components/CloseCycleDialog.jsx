@@ -11,7 +11,6 @@ import { Spinner } from '@/components/common/Loaders'
 import { ErrorState } from '@/components/common/States'
 import { StateIcon } from '@/components/common/StateIcon'
 import { BlockedChip } from '@/features/issues/components/IssueBadges'
-import { useIssues } from '@/features/issues/hooks'
 import { formatDecimal } from '@/features/stats/chartMath'
 import { formatShortDate } from '@/lib/dates'
 import { toApiError } from '@/lib/errors'
@@ -19,6 +18,7 @@ import { notifyError } from '@/lib/notify'
 import { IS_MAC } from '@/lib/shortcuts'
 import { cn } from '@/lib/utils'
 import {
+  allBlocked,
   buildCloseRequest,
   defaultCloseMode,
   endDateNotice,
@@ -64,8 +64,6 @@ function CloseCycleForm({ slug, projectId, cycle: initialCycle, onClose }) {
   const navigate = useNavigate()
   const preview = useClosePreview(slug, projectId, initialCycle.id)
   const { data: cycles = [] } = usePlanningList('cycles', slug, projectId)
-  // Las mismas tareas que lista el detalle del ciclo (misma caché): de ahí sale si están bloqueadas
-  const { data: cycleIssues } = useIssues(slug, projectId, { cycle: initialCycle.id, size: 200, sort: 'sortOrder,asc' })
   const close = useCloseCycle(slug, projectId)
   const cycle = preview.data?.cycle ?? initialCycle
 
@@ -82,7 +80,6 @@ function CloseCycleForm({ slug, projectId, cycle: initialCycle, onClose }) {
   const unfinished = useMemo(() => preview.data?.unfinished ?? [], [preview.data])
   const options = { mode, overrides, hasTarget: Boolean(targetCycle) }
   const split = splitUnfinished(unfinished, options)
-  const issuesById = useMemo(() => new Map((cycleIssues?.content ?? []).map((issue) => [issue.id, issue])), [cycleIssues])
   const missingOther = mode === 'OTHER' && !otherCycle
   const canSubmit = Boolean(preview.data) && !close.isPending && !missingOther
 
@@ -96,8 +93,10 @@ function CloseCycleForm({ slug, projectId, cycle: initialCycle, onClose }) {
           const parts = []
           if (result.movedToCycle > 0) parts.push(`${tasksLabel(result.movedToCycle)} a ${targetCycle?.name ?? 'otro ciclo'}`)
           if (result.movedToBacklog > 0) parts.push(`${tasksLabel(result.movedToBacklog)} al backlog`)
+          const moved = parts.length > 0 ? `Pasaron ${parts.join(' y ')}.` : 'No quedaban tareas sin terminar.'
           toast.success(`${cycle.name} cerrado`, {
-            description: parts.length > 0 ? `Pasaron ${parts.join(' y ')}.` : 'No quedaban tareas sin terminar.',
+            // Al abrir la retro el backend avisa a los miembros del proyecto (menos a quien cierra)
+            description: result.retroStarted ? `${moved} Se abrió la retro y se avisó al equipo.` : moved,
           })
           onClose()
           if (startRetro && result.retroStarted) navigate(`/${slug}/projects/${projectId}/cycles/${cycle.id}/retro`)
@@ -177,7 +176,7 @@ function CloseCycleForm({ slug, projectId, cycle: initialCycle, onClose }) {
               label="Tiempo de ciclo"
               value={preview.data.cycleTimeDays != null ? formatDecimal(preview.data.cycleTimeDays) : '—'}
               unit={preview.data.cycleTimeDays != null ? (preview.data.cycleTimeDays === 1 ? 'día' : 'días') : undefined}
-              note={preview.data.cycleTimeDays != null ? 'mediana, de creada a hecha' : 'sin tareas hechas'}
+              note={preview.data.cycleTimeDays != null ? 'mediana, de En curso a Hecho' : 'ninguna pasó de En curso a Hecho'}
             />
           </section>
 
@@ -251,7 +250,8 @@ function CloseCycleForm({ slug, projectId, cycle: initialCycle, onClose }) {
                       <span className="min-w-0 flex-1 truncate text-sm font-medium" title={issue.title}>
                         {issue.title}
                       </span>
-                      <BlockedChip issue={issuesById.get(issue.id)} className="hidden sm:inline-flex" />
+                      {/* Cada tarea de la vista previa trae cuántas tareas abiertas la bloquean */}
+                      <BlockedChip issue={issue} className="hidden sm:inline-flex" />
                       {issue.assignees?.length > 0 && <AvatarStack users={issue.assignees} max={2} className="hidden sm:flex" />}
                       <Select value={destination} onValueChange={(value) => setRow(issue.id, value)} disabled={!targetCycle}>
                         <SelectTrigger
@@ -284,7 +284,7 @@ function CloseCycleForm({ slug, projectId, cycle: initialCycle, onClose }) {
             <span>
               <span className="block text-sm font-semibold">Empezar la retrospectiva</span>
               <span className="block text-xs text-muted-foreground">
-                Abre la retro con el resumen del ciclo ya cargado y te lleva a ella.
+                Abre la retro con el resumen del ciclo ya cargado y avisa al equipo.
               </span>
             </span>
           </label>
@@ -393,7 +393,8 @@ function OutcomeText({ split, mode, targetCycle, missingOther }) {
       <span key="exceptions">
         {' '}
         {joinCodes(split.exceptions)}{' '}
-        {general === 'CYCLE' ? `${plural ? 'van' : 'va'} al backlog` : `${plural ? 'pasan' : 'pasa'} a ${targetCycle.name}`}.
+        {general === 'CYCLE' ? `${plural ? 'van' : 'va'} al backlog` : `${plural ? 'pasan' : 'pasa'} a ${targetCycle.name}`}
+        {general === 'CYCLE' && allBlocked(split.exceptions) && ` porque ${plural ? 'siguen bloqueadas' : 'sigue bloqueada'}`}.
       </span>,
     )
   }

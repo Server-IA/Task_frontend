@@ -5,7 +5,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { IssuePeekSheet } from '@/features/issues/components/IssuePeekSheet'
 import { useIssueFilters } from '@/features/issues/useIssueFilters'
-import { usePlanningList } from '@/features/planning/hooks'
 import { useCurrentProject } from '@/features/projects/hooks'
 import { useCurrentWorkspace } from '@/features/workspaces/hooks'
 import { useHotkey } from '@/hooks/useHotkey'
@@ -19,23 +18,13 @@ import { DailyPresenter } from '../components/DailyPresenter'
 import {
   blockingByPerson,
   clampIndex,
-  cycleOnDate,
-  dailySummary,
-  issueIndex,
+  cycleProgress,
   parseDateParam,
   previousDayLabel,
+  summaryItems,
   toIsoDay,
 } from '../daily'
 import { useDaily } from '../hooks'
-
-/** Contadores del resumen «desde ayer» (solo se muestran los que no son cero). */
-const SUMMARY_ITEMS = [
-  ['completed', 'completada', 'completadas'],
-  ['moved', 'movida', 'movidas'],
-  ['created', 'creada', 'creadas'],
-  ['commented', 'comentada', 'comentadas'],
-  ['updated', 'actualizada', 'actualizadas'],
-]
 
 /**
  * Daily del proyecto: por persona, lo que hizo el día hábil anterior, lo de hoy y sus bloqueos, más la nota
@@ -49,16 +38,15 @@ export function DailyPage() {
   const date = parseDateParam(searchParams.get('date')) ?? today
   const fixedDate = date > today ? today : date
   const { data: daily, isLoading, isPlaceholderData, error, refetch } = useDaily(workspace.slug, project.id, fixedDate)
-  const { data: cycles } = usePlanningList('cycles', workspace.slug, project.id)
   const issueFilters = useIssueFilters()
   const [presenting, setPresenting] = useState(false)
   const [current, setCurrent] = useState(0)
 
   const people = useMemo(() => daily?.people ?? [], [daily])
-  const index = useMemo(() => issueIndex(people), [people])
   const blocking = useMemo(() => blockingByPerson(people), [people])
-  const summary = useMemo(() => dailySummary(people), [people])
-  const cycleInfo = cycleOnDate(cycles, fixedDate)
+  // Ciclo en curso ese día, según el backend («Sprint 1 · día 13 de 15»)
+  const cycle = daily?.cycle ?? null
+  const cycleDay = cycleProgress(cycle, daily?.date)
   const position = clampIndex(current, people.length)
   const canPresent = people.length > 0
 
@@ -97,8 +85,8 @@ export function DailyPage() {
         title="Daily"
         documentTitle={['Daily', project.name]}
         description={
-          cycleInfo
-            ? `${cycleInfo.cycle.name} · día ${cycleInfo.day} de ${cycleInfo.total} · se arma sola con la actividad del proyecto`
+          cycle
+            ? `${cycle.name}${cycleDay ? ` · día ${cycleDay.day} de ${cycleDay.total}` : ''} · se arma sola con la actividad del proyecto`
             : 'Se arma sola con la actividad del proyecto.'
         }
         actions={
@@ -125,7 +113,9 @@ export function DailyPage() {
             current={position}
             onSelect={(value) => setCurrent(clampIndex(value, people.length))}
             onExit={exitPresenting}
-            index={index}
+            cycle={cycle}
+            date={daily.date}
+            projectId={project.id}
             blocking={blocking}
             onOpenIssue={issueFilters.openIssue}
           />
@@ -136,13 +126,15 @@ export function DailyPage() {
             aria-busy={isPlaceholderData}
             className={cn('flex flex-col gap-3.5 transition-opacity duration-200', isPlaceholderData && 'opacity-60')}
           >
-            <DailySummaryStrip summary={summary} daily={daily} />
+            <DailySummaryStrip daily={daily} />
             <div className="grid grid-cols-[repeat(auto-fit,minmax(270px,1fr))] items-start gap-3.5">
               {people.map((person) => (
                 <DailyPersonCard
                   key={person.user?.id}
                   person={person}
-                  index={index}
+                  cycle={cycle}
+                  date={daily.date}
+                  projectId={project.id}
                   blocking={blocking.get(person.user?.id)}
                   onOpenIssue={issueFilters.openIssue}
                 />
@@ -206,26 +198,29 @@ function PresentSwitch({ checked, disabled, onToggle }) {
   )
 }
 
-/** «// desde ayer, 27 oct  2 movidas  1 completada  ⊘ 1 bloqueo   Ayer = día hábil anterior». */
-function DailySummaryStrip({ summary, daily }) {
-  const counts = SUMMARY_ITEMS.filter(([key]) => summary[key] > 0)
+/**
+ * «// desde ayer, 27 oct  2 tareas movidas  1 nueva en curso  4 comentarios  ⊘ 1 bloqueo   Ayer = día hábil
+ * anterior». Los números los calcula el backend para todo el proyecto.
+ */
+function DailySummaryStrip({ daily }) {
+  const { items, blocked } = summaryItems(daily.summary)
   return (
     <section
       aria-label="Resumen desde el día anterior"
       className="flex flex-wrap items-center gap-x-5.5 gap-y-2 rounded-2xl border border-dashed border-dash px-4.5 py-2.5"
     >
       <span className="font-mono text-[11px] text-muted-foreground">// desde {previousDayLabel(daily.date, daily.previousDate)}</span>
-      {counts.length === 0 && <span className="text-[13px] text-muted-foreground">sin cambios en las tareas</span>}
-      {counts.map(([key, singular, plural]) => (
-        <span key={key} className="flex items-baseline gap-1.5">
-          <strong className="font-display text-[22px] leading-none font-extrabold">{summary[key]}</strong>
-          <span className="text-[13px] text-muted-foreground">{summary[key] === 1 ? singular : plural}</span>
+      {items.length === 0 && blocked === 0 && <span className="text-[13px] text-muted-foreground">sin cambios en las tareas</span>}
+      {items.map((item) => (
+        <span key={item.key} className="flex items-baseline gap-1.5">
+          <strong className="font-display text-[22px] leading-none font-extrabold">{item.value}</strong>
+          <span className="text-[13px] text-muted-foreground">{item.label}</span>
         </span>
       ))}
-      {summary.blockers > 0 && (
-        <span className="flex items-center gap-1.5 text-[13px] font-semibold text-late">
+      {blocked > 0 && (
+        <span className="flex items-center gap-1.5 text-[13px] font-semibold text-late" title="Tareas abiertas con una tarea abierta que las bloquea">
           <Ban className="size-3.5" strokeWidth={2.5} aria-hidden="true" />
-          {summary.blockers} {summary.blockers === 1 ? 'tarea bloqueada' : 'tareas bloqueadas'}
+          {blocked} {blocked === 1 ? 'bloqueo' : 'bloqueos'}
         </span>
       )}
       <span className="ml-auto text-xs text-muted-foreground">Ayer = día hábil anterior</span>

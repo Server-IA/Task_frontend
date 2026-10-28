@@ -8,13 +8,14 @@ const base = (slug, projectId) => `/workspaces/${slug}/projects/${projectId}/iss
 
 export const issuesApi = {
   /**
+   * `blocked: true` deja solo las bloqueadas (su totalElements es el «N bloqueadas» del encabezado).
    * @param {{ state?: string[], priority?: string[], assignee?: string[], label?: string[], search?: string,
-   *           cycle?: string, module?: string, page?: number, size?: number, sort?: string }} params
+   *           cycle?: string, module?: string, blocked?: boolean, page?: number, size?: number, sort?: string }} params
    * @returns {Promise<import('@/api/types').Page<IssueResponse>>}
    */
   list: (slug, projectId, params) => api.get(base(slug, projectId), { params }).then(data),
 
-  /** @returns {Promise<IssueResponse>} */
+  /** Con `templateId` (la plantilla con la que se rellenó) suma un uso a esa plantilla. @returns {Promise<IssueResponse>} */
   create: (slug, projectId, body) => api.post(base(slug, projectId), body).then(data),
 
   /** @returns {Promise<IssueResponse>} */
