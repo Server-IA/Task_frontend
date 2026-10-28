@@ -8,12 +8,14 @@ import { RegisterPage } from '@/features/auth/pages/RegisterPage'
 import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage'
 import { VerifyEmailPage } from '@/features/auth/pages/VerifyEmailPage'
 import { ActivityPage } from '@/features/activity/pages/ActivityPage'
+import { DailyPage } from '@/features/daily/pages/DailyPage'
 import { IssuePage } from '@/features/issues/pages/IssuePage'
 import { MyWorkPage } from '@/features/my-work/pages/MyWorkPage'
 import { NotificationsPage } from '@/features/notifications/NotificationsPage'
 import { PlanningDetailPage } from '@/features/planning/pages/PlanningDetailPage'
 import { PlanningListPage } from '@/features/planning/pages/PlanningListPage'
 import { RoadmapPage } from '@/features/planning/pages/RoadmapPage'
+import { RetroPage } from '@/features/retro/pages/RetroPage'
 import { IssuesPage } from '@/features/issues/pages/IssuesPage'
 import { ProfilePage } from '@/features/profile/ProfilePage'
 import { ProjectLayout } from '@/features/projects/pages/ProjectLayout'
@@ -78,6 +80,8 @@ export const router = createBrowserRouter([
                       { path: 'issues/:issueId', element: <IssuePage /> },
                       { path: 'cycles', element: <PlanningListPage kind="cycles" key="cycles" /> },
                       { path: 'cycles/:itemId', element: <PlanningDetailPage kind="cycles" key="cycle" /> },
+                      { path: 'cycles/:itemId/retro', element: <RetroPage /> },
+                      { path: 'daily', element: <DailyPage /> },
                       { path: 'modules', element: <PlanningListPage kind="modules" key="modules" /> },
                       { path: 'modules/:itemId', element: <PlanningDetailPage kind="modules" key="module" /> },
                       { path: 'roadmap', element: <RoadmapPage /> },

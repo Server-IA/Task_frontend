@@ -30,6 +30,8 @@ function CyclePicker({ slug, projectId, issue }) {
   const add = useAddPlanningIssues('cycles', slug, projectId)
   const remove = useRemovePlanningIssue('cycles', slug, projectId)
   const current = issue.cycle
+  // Un ciclo cerrado ya no recibe tareas: solo aparece si es el de la tarea (para quitarla)
+  const choices = cycles.filter((cycle) => !cycle.closedAt || cycle.id === current?.id)
 
   const choose = (cycleId) => {
     setOpen(false)
@@ -62,10 +64,11 @@ function CyclePicker({ slug, projectId, issue }) {
                   Quitar del ciclo
                 </CommandItem>
               )}
-              {cycles.map((cycle) => (
+              {choices.map((cycle) => (
                 <CommandItem key={cycle.id} value={`${cycle.name} ${cycle.id}`} onSelect={() => choose(cycle.id)}>
                   <RefreshCcw className="text-muted-foreground" />
                   <span className="min-w-0 flex-1 truncate">{cycle.name}</span>
+                  {cycle.closedAt && <span className="font-mono text-[11px] text-muted-foreground">cerrado</span>}
                   {cycle.id === current?.id && <Check className="size-4" />}
                 </CommandItem>
               ))}

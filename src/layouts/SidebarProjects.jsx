@@ -15,6 +15,7 @@ import { SidebarLink } from './Sidebar'
 export const PROJECT_SECTIONS = [
   { path: 'issues', label: 'Tareas', hint: 'I' },
   { path: 'cycles', label: 'Ciclos', hint: 'Y' },
+  { path: 'daily', label: 'Daily', hint: 'D' },
   { path: 'modules', label: 'Módulos', hint: 'M' },
   { path: 'roadmap', label: 'Hoja de ruta', hint: 'R' },
   { path: 'stats', label: 'Estadísticas', hint: 'S' },
@@ -78,17 +79,18 @@ export function SidebarProjects({ slug, currentProjectId, collapsed }) {
 
 /**
  * Proyecto abierto con sus secciones. A la derecha de cada una va un dato útil:
- * tareas abiertas, el ciclo en curso y los módulos sin terminar.
+ * tareas abiertas, el ciclo en curso, la daily de hoy y los módulos sin terminar.
  */
 function CurrentProject({ slug, project, base }) {
   const { data: cycles } = usePlanningList('cycles', slug, project.id)
   const { data: modules } = usePlanningList('modules', slug, project.id)
-  const currentCycle = cycles?.find((cycle) => cycle.status === 'CURRENT')
+  const currentCycle = cycles?.find((cycle) => cycle.status === 'CURRENT' && !cycle.closedAt)
   const activeModules = modules?.filter((module) => module.progress.percentage < 100).length ?? 0
 
   const meta = {
     issues: openLabel(project.openIssueCount),
     cycles: currentCycle?.name,
+    daily: 'hoy',
     modules: activeModules > 0 ? `${activeModules} ${activeModules === 1 ? 'activo' : 'activos'}` : undefined,
   }
 

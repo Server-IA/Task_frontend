@@ -85,3 +85,41 @@ export const useRemovePlanningIssue = (kind, slug, projectId) =>
     ({ id, issueId }) => PLANNING[kind].api.removeIssue(slug, projectId, id, issueId),
     { touchesIssues: true },
   )
+
+/** Vista previa del cierre de un ciclo (solo se pide con el diálogo abierto; siempre fresca). */
+export function useClosePreview(slug, projectId, cycleId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.closePreview(cycleId),
+    queryFn: () => cyclesApi.closePreview(slug, projectId, cycleId),
+    enabled: Boolean(slug && projectId && cycleId) && enabled,
+    staleTime: 0,
+    gcTime: 0,
+  })
+}
+
+/**
+ * Cerrar un ciclo mueve tareas a otro ciclo o al backlog: cambian los ciclos, las tareas y su historial,
+ * las estadísticas (burndown), Mi trabajo, la actividad, la daily y, si se abrió, la retrospectiva.
+ * `mutate({ id, ...CloseCycleRequest })`.
+ */
+export function useCloseCycle(slug, projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...body }) => cyclesApi.close(slug, projectId, id, body),
+    onSuccess: (result) => {
+      if (result?.cycle?.id) queryClient.setQueryData(queryKeys.cycle(result.cycle.id), result.cycle)
+      queryClient.invalidateQueries({ queryKey: queryKeys.cycles(projectId) })
+      queryClient.invalidateQueries({ queryKey: ['cycle'] })
+      queryClient.invalidateQueries({ queryKey: ['closePreview'] })
+      queryClient.invalidateQueries({ queryKey: ['retro'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.issuesOf(projectId) })
+      queryClient.invalidateQueries({ queryKey: ['subIssues'] })
+      queryClient.invalidateQueries({ queryKey: ['issue'] })
+      queryClient.invalidateQueries({ queryKey: ['activity'] })
+      queryClient.invalidateQueries({ queryKey: ['stats', projectId] })
+      queryClient.invalidateQueries({ queryKey: ['myWork'] })
+      queryClient.invalidateQueries({ queryKey: ['workspaceActivity'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.dailyOf(projectId) })
+    },
+  })
+}

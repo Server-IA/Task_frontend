@@ -33,6 +33,12 @@ export const queryKeys = {
   cycle: (cycleId) => ['cycle', cycleId],
   modules: (projectId) => ['modules', projectId],
   module: (moduleId) => ['module', moduleId],
+  closePreview: (cycleId) => ['closePreview', cycleId],
+  retro: (cycleId) => ['retro', cycleId],
+
+  /** Prefijo de la daily de un proyecto (cualquier fecha). */
+  dailyOf: (projectId) => ['daily', projectId],
+  daily: (projectId, date) => ['daily', projectId, date],
 
   stats: (projectId, weeks) => ['stats', projectId, weeks],
 

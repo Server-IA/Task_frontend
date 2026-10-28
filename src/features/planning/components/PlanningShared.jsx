@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Check } from 'lucide-react'
+import { Check, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { LockNote } from '@/components/common/LockNote'
 import { Spinner } from '@/components/common/Loaders'
 import { StateIcon } from '@/components/common/StateIcon'
 import { DatePicker } from '@/features/issues/components/PropertyPickers'
@@ -70,20 +71,66 @@ export const CYCLE_STATUS = {
     className: 'bg-accent-soft text-accent-text',
     bar: 'bg-[#B08A3A] dark:bg-[#EAD9B0]',
   },
+  // Cerrado a mano por el project manager (closedAt): ya no recibe tareas ni cambia de nombre o fechas
+  CLOSED: {
+    label: 'Cerrado',
+    className: 'bg-accent-soft text-accent-text',
+    bar: 'bg-[#B08A3A] dark:bg-[#EAD9B0]',
+  },
 }
 
-export function CycleStatusBadge({ status, className }) {
-  const config = CYCLE_STATUS[status] ?? CYCLE_STATUS.DRAFT
+/** Estado para pintar un ciclo: CLOSED si se cerró; si no, el que calcula el backend por fechas. */
+export function cycleStatusKey(cycle) {
+  return cycle?.closedAt ? 'CLOSED' : (cycle?.status ?? 'DRAFT')
+}
+
+/** Pastilla del estado del ciclo. Con `cycle` se usa su estado (y «Cerrado el 27 oct» si se cerró). */
+export function CycleStatusBadge({ status, cycle, className }) {
+  const key = cycle ? cycleStatusKey(cycle) : status
+  const config = CYCLE_STATUS[key] ?? CYCLE_STATUS.DRAFT
   return (
     <span
       className={cn(
-        'inline-flex h-5.5 items-center rounded-full px-2.5 font-mono text-[11px] font-semibold tracking-[0.04em] uppercase',
+        'inline-flex h-5.5 items-center gap-1 rounded-full px-2.5 font-mono text-[11px] font-semibold tracking-[0.04em] uppercase',
         config.className,
         className,
       )}
+      title={key === 'CLOSED' ? `Cerrado el ${formatShortDate(cycle.closedAt)}` : undefined}
     >
-      {config.label}
+      {key === 'CLOSED' && <Lock className="size-3" strokeWidth={2.5} aria-hidden="true" />}
+      {key === 'CLOSED' ? `Cerrado el ${formatShortDate(cycle.closedAt)}` : config.label}
     </span>
+  )
+}
+
+/**
+ * Indicador de resumen: etiqueta en monoespaciada, número grande en Bricolage con su unidad y una nota.
+ * `compact` es la versión del diálogo de cierre; la normal, la de páginas (retrospectiva).
+ * @param {{ label: string, value: React.ReactNode, unit?: string, note?: React.ReactNode,
+ *           variant?: 'compact' | 'page', className?: string }} props
+ */
+export function SummaryTile({ label, value, unit, note, variant = 'page', className }) {
+  const compact = variant === 'compact'
+  return (
+    <article
+      className={cn(
+        'flex min-w-0 flex-col gap-1 border',
+        compact ? 'rounded-[14px] bg-subtle px-3.5 py-3' : 'rounded-2xl bg-card px-4 py-3.5',
+        className,
+      )}
+    >
+      <h3 className="font-mono text-[11px] tracking-[0.06em] text-muted-foreground uppercase">{label}</h3>
+      <p
+        className={cn(
+          'font-display leading-[1.05] font-extrabold tracking-[-0.02em]',
+          compact ? 'text-[26px]' : 'text-[30px]',
+        )}
+      >
+        {value}
+        {unit && <span className="ml-1 font-sans text-[13px] font-medium tracking-normal text-muted-foreground">{unit}</span>}
+      </p>
+      {note && <p className="text-xs text-muted-foreground">{note}</p>}
+    </article>
   )
 }
 
@@ -178,6 +225,8 @@ export function PlanningFormDialog({ kind, slug, projectId, item, open, onOpenCh
 
 function PlanningForm({ kind, slug, projectId, item, onCancel, onSaved }) {
   const text = PLANNING_TEXT[kind]
+  // Un ciclo cerrado solo cambia su descripción (el backend rechaza nombre y fechas con 409)
+  const closed = kind === 'cycles' && Boolean(item?.closedAt)
   const create = useCreatePlanning(kind, slug, projectId)
   const update = useUpdatePlanning(kind, slug, projectId)
   const pending = create.isPending || update.isPending
@@ -203,7 +252,9 @@ function PlanningForm({ kind, slug, projectId, item, onCancel, onSaved }) {
         if (!applyFieldErrors(error, form.setError)) notifyError(error)
       },
     }
-    if (item) {
+    if (closed) {
+      update.mutate({ id: item.id, description: values.description }, options)
+    } else if (item) {
       // Al editar, quitar ambas fechas se pide con clearDates (los null no cambian nada)
       const cleared = !values.startDate && !values.endDate && (item.startDate || item[text.endField])
       update.mutate(cleared ? { id: item.id, name: values.name, description: values.description, clearDates: true } : { id: item.id, ...body }, options)
@@ -222,7 +273,7 @@ function PlanningForm({ kind, slug, projectId, item, onCancel, onSaved }) {
             <FormItem>
               <FormLabel>Nombre</FormLabel>
               <FormControl>
-                <Input placeholder={text.placeholder} autoFocus {...field} />
+                <Input placeholder={text.placeholder} autoFocus={!closed} disabled={closed} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -235,7 +286,7 @@ function PlanningForm({ kind, slug, projectId, item, onCancel, onSaved }) {
             <FormItem>
               <FormLabel>Descripción</FormLabel>
               <FormControl>
-                <Textarea rows={2} placeholder="Opcional" {...field} />
+                <Textarea rows={2} placeholder="Opcional" autoFocus={closed} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -249,6 +300,7 @@ function PlanningForm({ kind, slug, projectId, item, onCancel, onSaved }) {
               onChange={(value) => form.setValue('startDate', value, { shouldDirty: true })}
               placeholder="Sin fecha"
               maxDate={endDate}
+              disabled={closed}
               className="h-9 w-full justify-start border-input"
             />
           </div>
@@ -259,6 +311,7 @@ function PlanningForm({ kind, slug, projectId, item, onCancel, onSaved }) {
               onChange={(value) => form.setValue('endDate', value, { shouldDirty: true, shouldValidate: true })}
               placeholder="Sin fecha"
               minDate={startDate}
+              disabled={closed}
               className="h-9 w-full justify-start border-input"
             />
             {form.formState.errors.endDate && (
@@ -266,6 +319,7 @@ function PlanningForm({ kind, slug, projectId, item, onCancel, onSaved }) {
             )}
           </div>
         </div>
+        {closed && <LockNote>El ciclo está cerrado: solo se puede cambiar la descripción.</LockNote>}
         <DialogFooter>
           <Button type="button" variant="ghost" onClick={onCancel}>
             Cancelar

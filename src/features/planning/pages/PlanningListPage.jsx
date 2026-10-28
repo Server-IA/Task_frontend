@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { Layers, MoreHorizontal, Pencil, Plus, RefreshCcw, Trash2 } from 'lucide-react'
+import { Flag, Layers, MessagesSquare, MoreHorizontal, Pencil, Plus, RefreshCcw, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -18,10 +18,13 @@ import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { projectPath } from '@/lib/paths'
 import { cn } from '@/lib/utils'
 import { notifyError } from '@/lib/notify'
+import { canCloseCycle, isCycleClosed } from '../closeCycle'
 import { useDeletePlanning, usePlanningList } from '../hooks'
+import { CloseCycleDialog } from '../components/CloseCycleDialog'
 import {
   CYCLE_STATUS,
   CycleStatusBadge,
+  cycleStatusKey,
   DateRange,
   PLANNING_TEXT,
   PlanningFormDialog,
@@ -38,6 +41,7 @@ export function PlanningListPage({ kind }) {
   const remove = useDeletePlanning(kind, workspace.slug, project.id)
   const [formState, setFormState] = useState({ open: false, item: null })
   const [toDelete, setToDelete] = useState(null)
+  const [toClose, setToClose] = useState(null)
   // Crear, editar y eliminar ciclos/módulos es del project manager; los miembros sí mueven tareas dentro
   const canManage = useIsManager()
   const Icon = kind === 'cycles' ? RefreshCcw : Layers
@@ -88,7 +92,9 @@ export function PlanningListPage({ kind }) {
             <div className="space-y-3">
               {items.map((item) => {
                 const end = item.endDate ?? item.targetDate
-                const current = kind === 'cycles' && item.status === 'CURRENT'
+                const closed = kind === 'cycles' && isCycleClosed(item)
+                const current = kind === 'cycles' && !closed && item.status === 'CURRENT'
+                const closable = kind === 'cycles' && canManage && canCloseCycle(item)
                 return (
                   <div
                     key={item.id}
@@ -110,7 +116,7 @@ export function PlanningListPage({ kind }) {
                         <div className="min-w-0 space-y-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <h2 className="truncate text-base font-semibold">{item.name}</h2>
-                            {kind === 'cycles' && <CycleStatusBadge status={item.status} />}
+                            {kind === 'cycles' && <CycleStatusBadge cycle={item} />}
                           </div>
                           {kind === 'modules' && item.description && (
                             <p className="text-muted-foreground line-clamp-1 text-sm">{item.description}</p>
@@ -128,7 +134,7 @@ export function PlanningListPage({ kind }) {
                         className="w-full sm:w-60"
                         barClassName={
                           kind === 'cycles'
-                            ? (CYCLE_STATUS[item.status] ?? CYCLE_STATUS.DRAFT).bar
+                            ? (CYCLE_STATUS[cycleStatusKey(item)] ?? CYCLE_STATUS.DRAFT).bar
                             : undefined
                         }
                       />
@@ -139,22 +145,40 @@ export function PlanningListPage({ kind }) {
                         →
                       </span>
                     </Link>
-                    {canManage && (
+                    {(canManage || closed) && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="size-8 shrink-0" aria-label="Acciones">
+                          <Button variant="ghost" size="icon" className="size-8 shrink-0" aria-label={`Acciones de ${item.name}`}>
                             <MoreHorizontal />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onSelect={() => setFormState({ open: true, item })}>
-                            <Pencil />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem variant="destructive" onSelect={() => setToDelete(item)}>
-                            <Trash2 />
-                            Eliminar
-                          </DropdownMenuItem>
+                          {closed && (
+                            <DropdownMenuItem asChild>
+                              <Link to={`${base}/${item.id}/retro`}>
+                                <MessagesSquare />
+                                Ver retrospectiva
+                              </Link>
+                            </DropdownMenuItem>
+                          )}
+                          {closable && (
+                            <DropdownMenuItem onSelect={() => setToClose(item)}>
+                              <Flag />
+                              Cerrar ciclo
+                            </DropdownMenuItem>
+                          )}
+                          {canManage && (
+                            <>
+                              <DropdownMenuItem onSelect={() => setFormState({ open: true, item })}>
+                                <Pencil />
+                                Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem variant="destructive" onSelect={() => setToDelete(item)}>
+                                <Trash2 />
+                                Eliminar
+                              </DropdownMenuItem>
+                            </>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     )}
@@ -173,6 +197,15 @@ export function PlanningListPage({ kind }) {
         open={formState.open}
         onOpenChange={(open) => setFormState((current) => ({ ...current, open }))}
       />
+      {kind === 'cycles' && canManage && (
+        <CloseCycleDialog
+          slug={workspace.slug}
+          projectId={project.id}
+          cycle={toClose}
+          open={Boolean(toClose)}
+          onOpenChange={(open) => !open && setToClose(null)}
+        />
+      )}
       <ConfirmDialog
         open={Boolean(toDelete)}
         onOpenChange={(open) => !open && setToDelete(null)}

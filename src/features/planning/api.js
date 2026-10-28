@@ -30,5 +30,21 @@ function planningApi(kind) {
   }
 }
 
-export const cyclesApi = planningApi('cycles')
+export const cyclesApi = {
+  ...planningApi('cycles'),
+
+  /**
+   * Qué pasaría al cerrar el ciclo: hechas, sin terminar, tiempo de ciclo y el ciclo siguiente (project manager).
+   * @returns {Promise<import('@/api/types').CloseCyclePreview>}
+   */
+  closePreview: (slug, projectId, id) => api.get(`${base(slug, projectId, 'cycles')}/${id}/close-preview`).then(data),
+
+  /**
+   * Cierra el ciclo y mueve las tareas sin terminar (project manager).
+   * @param {import('@/api/types').CloseCycleRequest} body
+   * @returns {Promise<import('@/api/types').CloseCycleResponse>}
+   */
+  close: (slug, projectId, id, body) => api.post(`${base(slug, projectId, 'cycles')}/${id}/close`, body).then(data),
+}
+
 export const modulesApi = planningApi('modules')

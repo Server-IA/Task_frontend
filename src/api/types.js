@@ -59,6 +59,27 @@
 /** @typedef {Schemas['ActivitySummaryResponse']} ActivitySummary */
 /** @typedef {Schemas['ProjectActivity']} ProjectActivity */
 
+/** Tarea resumida con su estado y asignados («IssueRef» en el backend). */
+/** @typedef {Schemas['RelatedIssueResponse']} IssueRef */
+
+/** @typedef {Schemas['CloseCyclePreviewResponse']} CloseCyclePreview */
+/** @typedef {Schemas['CloseCycleRequest']} CloseCycleRequest */
+/** @typedef {Schemas['CloseCycleResponse']} CloseCycleResponse */
+/** @typedef {Schemas['IssueMove']} IssueMove */
+/** @typedef {Schemas['CloseCycleRequest']['moveTo']} CycleMoveTarget */
+
+/** @typedef {Schemas['RetroResponse']} RetroResponse */
+/** @typedef {Schemas['RetroSummary']} RetroSummary */
+/** @typedef {Schemas['RetroNoteResponse']} RetroNote */
+/** @typedef {Schemas['RetroNoteRequest']['column']} RetroColumn */
+/** @typedef {Schemas['RetroVoteResponse']} RetroVoteResponse */
+
+/** @typedef {Schemas['DailyResponse']} DailyResponse */
+/** @typedef {Schemas['DailyPerson']} DailyPerson */
+/** @typedef {Schemas['DailyChange']} DailyChange */
+/** @typedef {Schemas['DailyBlocker']} DailyBlocker */
+/** @typedef {Schemas['DailyNoteResponse']} DailyNote */
+
 /** @typedef {'OWNER' | 'MEMBER'} WorkspaceRole */
 
 /**

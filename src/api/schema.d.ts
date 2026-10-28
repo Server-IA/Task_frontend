@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+    "/api/v1/workspaces/{slug}/projects/{projectId}/daily/note": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Guardar la nota del día
+         * @description Cualquier miembro del proyecto. text de hasta 5000 caracteres; vacío (o null) borra la nota y responde 204 sin cuerpo.
+         */
+        put: operations["saveNote"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces": {
         parameters: {
             query?: never;
@@ -297,6 +317,110 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{slug}/projects/{projectId}/cycles/{cycleId}/retro/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Abrir retrospectiva (project manager)
+         * @description También se abre al cerrar el ciclo con startRetro. Si ya estaba abierta, no cambia nada.
+         */
+        post: operations["start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{slug}/projects/{projectId}/cycles/{cycleId}/retro/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Agregar nota
+         * @description column: WENT_WELL (qué salió bien), IMPROVE (qué mejorar) o ACTION (acciones); text de 1 a 500. Solo con la retrospectiva abierta y sin terminar (409).
+         */
+        post: operations["createNote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{slug}/projects/{projectId}/cycles/{cycleId}/retro/notes/{noteId}/vote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Votar nota
+         * @description Un voto por nota y 5 por retrospectiva: 409 si ya votaste por ella o no te quedan votos, o si la retrospectiva no está abierta.
+         */
+        post: operations["vote"];
+        /**
+         * Quitar mi voto
+         * @description Si no habías votado, no cambia nada. 409 si la retrospectiva no está abierta.
+         */
+        delete: operations["unvote"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{slug}/projects/{projectId}/cycles/{cycleId}/retro/notes/{noteId}/convert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Convertir acción en tarea (project manager)
+         * @description Solo notas ACTION (400). Crea la tarea en el primer estado «sin empezar» (UNSTARTED) del proyecto, o en el estado por defecto si no hay, con el texto como título y una descripción que apunta a la retrospectiva. 409 si ya se convirtió.
+         */
+        post: operations["convert"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{slug}/projects/{projectId}/cycles/{cycleId}/retro/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Terminar retrospectiva (project manager)
+         * @description Desde entonces las notas y los votos son de solo lectura. 409 si no ha empezado.
+         */
+        post: operations["finish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{slug}/projects/{projectId}/cycles/{cycleId}/issues": {
         parameters: {
             query?: never;
@@ -306,8 +430,31 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Agregar issues al ciclo (si estaban en otro ciclo, se mueven a este) */
+        /**
+         * Agregar issues al ciclo (si estaban en otro ciclo, se mueven a este)
+         * @description Un ciclo cerrado no recibe tareas (409).
+         */
         post: operations["addIssues_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{slug}/projects/{projectId}/cycles/{cycleId}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cerrar ciclo (project manager)
+         * @description Las tareas sin terminar van a moveTo (NEXT_CYCLE: al ciclo targetCycleId o, sin él, al siguiente; BACKLOG: salen del ciclo sin cambiar de estado), salvo las de overrides. Sin ciclo siguiente y con alguna tarea hacia NEXT_CYCLE responde 400. Si el ciclo terminaba después de hoy, su fin pasa a hoy. startRetro abre la retrospectiva. Un ciclo ya cerrado, o que aún no empezó, responde 409.
+         */
+        post: operations["close"];
         delete?: never;
         options?: never;
         head?: never;
@@ -769,8 +916,35 @@ export interface paths {
         delete: operations["delete_10"];
         options?: never;
         head?: never;
-        /** Editar ciclo (project manager) */
+        /**
+         * Editar ciclo (project manager)
+         * @description En un ciclo cerrado solo se puede cambiar la descripción: cambiar el nombre o las fechas responde 409.
+         */
         patch: operations["update_10"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{slug}/projects/{projectId}/cycles/{cycleId}/retro/notes/{noteId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Eliminar nota
+         * @description Solo su autor o el project manager (403), con la retrospectiva sin terminar (409).
+         */
+        delete: operations["deleteNote"];
+        options?: never;
+        head?: never;
+        /**
+         * Editar nota
+         * @description Solo su autor o el project manager (403), con la retrospectiva sin terminar (409).
+         */
+        patch: operations["updateNote"];
         trace?: never;
     };
     "/api/v1/workspaces/{slug}/members/{userId}": {
@@ -921,6 +1095,66 @@ export interface paths {
         };
         /** Historial de cambios del issue */
         get: operations["getActivity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{slug}/projects/{projectId}/daily": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Daily del proyecto
+         * @description previousDate = día hábil anterior (el día antes; si date es lunes, sábado o domingo, el viernes). Por persona (miembros del proyecto y asignados a sus tareas abiertas, por nombre): yesterday = lo que hizo desde previousDate hasta antes de date, una entrada por tarea con el cambio más importante (completó > movió a {estado} > creó > comentó > actualizó), máximo 8; today = sus tareas abiertas en curso (STARTED) o con fecha límite hasta date, por fecha límite, máximo 8; blockers = sus tareas abiertas con bloqueos abiertos. note = nota del día o null.
+         */
+        get: operations["getDaily"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{slug}/projects/{projectId}/cycles/{cycleId}/retro": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ver retrospectiva
+         * @description started = está abierta (si no, notes viene vacío). summary: completadas, total (incluidas las que el cierre movió), movidas a otro ciclo y al backlog, y cycle time. myVotesLeft = mis votos restantes (5 por retrospectiva). previousActions = acciones de la retrospectiva del ciclo cerrado anterior, con su tarea si se convirtieron.
+         */
+        get: operations["getRetro"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{slug}/projects/{projectId}/cycles/{cycleId}/close-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Vista previa del cierre (project manager)
+         * @description Tareas completadas (grupo COMPLETED) y sin terminar (ni completadas ni canceladas) del ciclo, por número; cycleTimeDays = mediana de días de creación a completado de las completadas (null si no hay); nextCycle = siguiente ciclo sin cerrar por fecha de inicio (destino por defecto), o null.
+         */
+        get: operations["closePreview"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1152,9 +1386,14 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        CreateWorkspaceRequest: {
-            name: string;
-            slug?: string;
+        DailyNoteRequest: {
+            text?: string;
+        };
+        DailyNoteResponse: {
+            text?: string;
+            updatedBy?: components["schemas"]["UserSummaryResponse"];
+            /** Format: date-time */
+            updatedAt?: string;
         };
         UserSummaryResponse: {
             /** Format: uuid */
@@ -1162,6 +1401,10 @@ export interface components {
             email?: string;
             fullName?: string;
             avatarUrl?: string;
+        };
+        CreateWorkspaceRequest: {
+            name: string;
+            slug?: string;
         };
         WorkspaceResponse: {
             /** Format: uuid */
@@ -1461,11 +1704,81 @@ export interface components {
             endDate?: string;
             /** @enum {string} */
             status?: "DRAFT" | "UPCOMING" | "CURRENT" | "COMPLETED";
+            /** Format: date-time */
+            closedAt?: string;
             progress?: components["schemas"]["ProgressResponse"];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        RetroNoteResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            column?: "WENT_WELL" | "IMPROVE" | "ACTION";
+            text?: string;
+            author?: components["schemas"]["UserSummaryResponse"];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int32 */
+            votes?: number;
+            votedByMe?: boolean;
+            issue?: components["schemas"]["RelatedIssueResponse"];
+        };
+        RetroResponse: {
+            started?: boolean;
+            /** Format: date-time */
+            finishedAt?: string;
+            summary?: components["schemas"]["RetroSummary"];
+            notes?: components["schemas"]["RetroNoteResponse"][];
+            /** Format: int32 */
+            myVotesLeft?: number;
+            previousActions?: components["schemas"]["RetroNoteResponse"][];
+        };
+        RetroSummary: {
+            /** Format: int32 */
+            completedCount?: number;
+            /** Format: int32 */
+            totalCount?: number;
+            /** Format: int32 */
+            carriedToCycle?: number;
+            /** Format: int32 */
+            carriedToBacklog?: number;
+            /** Format: double */
+            cycleTimeDays?: number;
+        };
+        RetroNoteRequest: {
+            /** @enum {string} */
+            column: "WENT_WELL" | "IMPROVE" | "ACTION";
+            text: string;
+        };
+        RetroVoteResponse: {
+            note?: components["schemas"]["RetroNoteResponse"];
+            /** Format: int32 */
+            myVotesLeft?: number;
+        };
+        CloseCycleRequest: {
+            /** @enum {string} */
+            moveTo: "NEXT_CYCLE" | "BACKLOG";
+            /** Format: uuid */
+            targetCycleId?: string;
+            overrides?: components["schemas"]["IssueMove"][];
+            startRetro?: boolean;
+        };
+        IssueMove: {
+            /** Format: uuid */
+            issueId: string;
+            /** @enum {string} */
+            moveTo: "NEXT_CYCLE" | "BACKLOG";
+        };
+        CloseCycleResponse: {
+            cycle?: components["schemas"]["CycleResponse"];
+            /** Format: int32 */
+            movedToCycle?: number;
+            /** Format: int32 */
+            movedToBacklog?: number;
+            retroStarted?: boolean;
         };
         InviteMemberRequest: {
             /** Format: email */
@@ -1614,6 +1927,9 @@ export interface components {
             endDate?: string;
             clearDates?: boolean;
         };
+        UpdateRetroNoteRequest: {
+            text: string;
+        };
         UpdateMemberRoleRequest: {
             /** @enum {string} */
             role: "OWNER" | "MEMBER";
@@ -1752,6 +2068,40 @@ export interface components {
             /** Format: date-time */
             createdAt?: string;
         };
+        DailyBlocker: {
+            issue?: components["schemas"]["RelatedIssueResponse"];
+            blockedBy?: components["schemas"]["IssueSummaryResponse"][];
+        };
+        DailyChange: {
+            issue?: components["schemas"]["RelatedIssueResponse"];
+            change?: string;
+        };
+        DailyPerson: {
+            user?: components["schemas"]["UserSummaryResponse"];
+            yesterday?: components["schemas"]["DailyChange"][];
+            today?: components["schemas"]["RelatedIssueResponse"][];
+            blockers?: components["schemas"]["DailyBlocker"][];
+        };
+        DailyResponse: {
+            /** Format: date */
+            date?: string;
+            /** Format: date */
+            previousDate?: string;
+            people?: components["schemas"]["DailyPerson"][];
+            note?: components["schemas"]["DailyNoteResponse"];
+        };
+        CloseCyclePreviewResponse: {
+            cycle?: components["schemas"]["CycleResponse"];
+            completed?: components["schemas"]["RelatedIssueResponse"][];
+            unfinished?: components["schemas"]["RelatedIssueResponse"][];
+            /** Format: int32 */
+            completedCount?: number;
+            /** Format: int32 */
+            unfinishedCount?: number;
+            /** Format: double */
+            cycleTimeDays?: number;
+            nextCycle?: components["schemas"]["CycleResponse"];
+        };
         MyWorkResponse: {
             issues?: components["schemas"]["IssueResponse"][];
             /** Format: int64 */
@@ -1852,6 +2202,45 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    saveNote: {
+        parameters: {
+            query?: {
+                /** @description Día de la reunión (YYYY-MM-DD); por defecto, hoy en America/Bogota */
+                date?: string;
+            };
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DailyNoteRequest"];
+            };
+        };
+        responses: {
+            /** @description Nota guardada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DailyNoteResponse"];
+                };
+            };
+            /** @description Nota borrada (texto vacío) */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DailyNoteResponse"];
+                };
+            };
+        };
+    };
     getMyWorkspaces: {
         parameters: {
             query?: never;
@@ -2549,6 +2938,157 @@ export interface operations {
             };
         };
     };
+    start: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+                cycleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RetroResponse"];
+                };
+            };
+        };
+    };
+    createNote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+                cycleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetroNoteRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RetroNoteResponse"];
+                };
+            };
+        };
+    };
+    vote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+                cycleId: string;
+                noteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RetroVoteResponse"];
+                };
+            };
+        };
+    };
+    unvote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+                cycleId: string;
+                noteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RetroVoteResponse"];
+                };
+            };
+        };
+    };
+    convert: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+                cycleId: string;
+                noteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IssueResponse"];
+                };
+            };
+        };
+    };
+    finish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+                cycleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RetroResponse"];
+                };
+            };
+        };
+    };
     addIssues_1: {
         parameters: {
             query?: never;
@@ -2573,6 +3113,34 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["CycleResponse"];
+                };
+            };
+        };
+    };
+    close: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+                cycleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloseCycleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CloseCycleResponse"];
                 };
             };
         };
@@ -3548,6 +4116,58 @@ export interface operations {
             };
         };
     };
+    deleteNote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+                cycleId: string;
+                noteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateNote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+                cycleId: string;
+                noteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateRetroNoteRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RetroNoteResponse"];
+                };
+            };
+        };
+    };
     removeMember: {
         parameters: {
             query?: never;
@@ -3783,6 +4403,80 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ActivityResponse"][];
+                };
+            };
+        };
+    };
+    getDaily: {
+        parameters: {
+            query?: {
+                /** @description Día de la reunión (YYYY-MM-DD); por defecto, hoy en America/Bogota */
+                date?: string;
+            };
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DailyResponse"];
+                };
+            };
+        };
+    };
+    getRetro: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+                cycleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RetroResponse"];
+                };
+            };
+        };
+    };
+    closePreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+                cycleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CloseCyclePreviewResponse"];
                 };
             };
         };

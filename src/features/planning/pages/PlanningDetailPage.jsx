@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router'
-import { CircleDot, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { Link, useNavigate, useParams } from 'react-router'
+import { CircleDot, Flag, MessagesSquare, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -21,11 +21,14 @@ import { notifyError } from '@/lib/notify'
 import { projectPath } from '@/lib/paths'
 import { slugify } from '@/lib/slug'
 import { cn } from '@/lib/utils'
+import { canCloseCycle, isCycleClosed } from '../closeCycle'
 import { PLANNING, useDeletePlanning, usePlanningItem, useRemovePlanningIssue } from '../hooks'
+import { CloseCycleDialog } from '../components/CloseCycleDialog'
 import {
   AddIssuesDialog,
   CYCLE_STATUS,
   CycleStatusBadge,
+  cycleStatusKey,
   DateRange,
   PLANNING_TEXT,
   PlanningFormDialog,
@@ -47,6 +50,7 @@ export function PlanningDetailPage({ kind }) {
   const [editOpen, setEditOpen] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [closeOpen, setCloseOpen] = useState(false)
   // Editar y eliminar el ciclo/módulo es del project manager; agregar o quitar tareas, de todos
   const canManage = useIsManager()
   const listUrl = `/${workspace.slug}/projects/${project.id}/${kind}`
@@ -65,14 +69,18 @@ export function PlanningDetailPage({ kind }) {
   }
 
   const end = item.endDate ?? item.targetDate
-  const showRemaining = kind === 'cycles' && item.status === 'CURRENT' && end
+  // Un ciclo cerrado ya no recibe tareas (409); quitar sí se puede
+  const closed = kind === 'cycles' && isCycleClosed(item)
+  const showRemaining = kind === 'cycles' && !closed && item.status === 'CURRENT' && end
+  // Cerrar el ciclo: el project manager, si ya empezó y sigue abierto
+  const showClose = kind === 'cycles' && canManage && canCloseCycle(item)
 
   return (
     <>
       <PageHeader
         path={[...listPath, { label: slugify(item.name) || item.name }]}
         title={item.name}
-        titleAddon={kind === 'cycles' && <CycleStatusBadge status={item.status} />}
+        titleAddon={kind === 'cycles' && <CycleStatusBadge cycle={item} />}
         documentTitle={[item.name, project.name]}
         description={
           <>
@@ -84,8 +92,8 @@ export function PlanningDetailPage({ kind }) {
           </>
         }
         actions={
-          <div className="flex w-full flex-col gap-3 sm:w-72">
-            <div className="flex items-center gap-2 sm:justify-end">
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:items-end">
+            <div className="flex flex-wrap items-center gap-2 sm:justify-end">
               {canManage && (
                 <>
                   <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
@@ -103,12 +111,30 @@ export function PlanningDetailPage({ kind }) {
                   </Button>
                 </>
               )}
-              <Button size="sm" onClick={() => setAddOpen(true)}>
-                <Plus strokeWidth={3} />
-                Agregar tareas
-              </Button>
+              {closed && (
+                <Button size="sm" asChild>
+                  <Link to={`${listUrl}/${item.id}/retro`}>
+                    <MessagesSquare />
+                    Ver retrospectiva
+                  </Link>
+                </Button>
+              )}
+              {showClose && (
+                <Button variant="outline" size="sm" onClick={() => setCloseOpen(true)}>
+                  <Flag />
+                  Cerrar ciclo
+                </Button>
+              )}
+              {!closed && (
+                <Button size="sm" onClick={() => setAddOpen(true)}>
+                  <Plus strokeWidth={3} />
+                  Agregar tareas
+                </Button>
+              )}
             </div>
-            <ProgressBlock kind={kind} item={item} issues={issues} />
+            <div className="w-full sm:w-72">
+              <ProgressBlock kind={kind} item={item} issues={issues} />
+            </div>
           </div>
         }
       />
@@ -121,7 +147,7 @@ export function PlanningDetailPage({ kind }) {
           issues={issues}
           isLoading={issuesLoading}
           onOpenIssue={issueFilters.openIssue}
-          onAdd={() => setAddOpen(true)}
+          onAdd={closed ? undefined : () => setAddOpen(true)}
         />
       </PageBody>
 
@@ -157,6 +183,9 @@ export function PlanningDetailPage({ kind }) {
           })
         }
       />
+      {kind === 'cycles' && canManage && (
+        <CloseCycleDialog slug={workspace.slug} projectId={project.id} cycle={item} open={closeOpen} onOpenChange={setCloseOpen} />
+      )}
       <AddIssuesDialog
         kind={kind}
         slug={workspace.slug}
@@ -180,7 +209,7 @@ function ProgressBlock({ kind, item, issues }) {
   const { completedIssues, totalIssues, percentage } = item.progress
   const started = issues.filter((issue) => issue.state?.group === 'STARTED').length
   const pending = issues.filter((issue) => !isClosed(issue) && issue.state?.group !== 'STARTED').length
-  const bar = kind === 'cycles' ? (CYCLE_STATUS[item.status] ?? CYCLE_STATUS.DRAFT).bar : 'bg-accent-text'
+  const bar = kind === 'cycles' ? (CYCLE_STATUS[cycleStatusKey(item)] ?? CYCLE_STATUS.DRAFT).bar : 'bg-accent-text'
 
   return (
     <div>
@@ -211,12 +240,14 @@ function PlanningIssues({ kind, slug, projectId, item, issues, isLoading, onOpen
       <EmptyState
         icon={CircleDot}
         title="Sin tareas"
-        description={`Agrega tareas del proyecto a este ${singular}.`}
+        description={onAdd ? `Agrega tareas del proyecto a este ${singular}.` : 'El ciclo está cerrado: ya no recibe tareas.'}
         action={
-          <Button onClick={onAdd}>
-            <Plus />
-            Agregar tareas
-          </Button>
+          onAdd && (
+            <Button onClick={onAdd}>
+              <Plus />
+              Agregar tareas
+            </Button>
+          )
         }
       />
     )
