@@ -23,6 +23,11 @@ export const queryKeys = {
   subIssues: (issueId) => ['subIssues', issueId],
   comments: (issueId) => ['comments', issueId],
   activity: (issueId) => ['activity', issueId],
+  relations: (issueId) => ['relations', issueId],
+  checklist: (issueId) => ['checklist', issueId],
+
+  templates: (projectId) => ['templates', projectId],
+  savedViews: (projectId) => ['savedViews', projectId],
 
   cycles: (projectId) => ['cycles', projectId],
   cycle: (cycleId) => ['cycle', cycleId],

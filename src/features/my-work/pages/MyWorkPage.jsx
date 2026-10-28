@@ -6,6 +6,7 @@ import { DueChip } from '@/components/common/DueChip'
 import { Segmented } from '@/components/common/Segmented'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { StateIcon } from '@/components/common/StateIcon'
+import { BlockedChip } from '@/features/issues/components/IssueBadges'
 import { PriorityChip } from '@/features/issues/components/PriorityIcon'
 import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
 import { useProjects } from '@/features/projects/hooks'
@@ -192,6 +193,7 @@ function MyWorkRow({ slug, issue, project }) {
         <span className="min-w-0 flex-[1_1_240px] truncate font-medium" title={issue.title}>
           {issue.title}
         </span>
+        <BlockedChip issue={issue} />
         {issue.priority !== 'NONE' && <PriorityChip priority={issue.priority} />}
         <span className="ml-auto flex justify-end sm:ml-0 sm:w-[132px]">
           <DueChip value={issue.dueDate} />

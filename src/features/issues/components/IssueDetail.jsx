@@ -21,6 +21,7 @@ import { canDeleteIssue } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { useSessionStore } from '@/stores/sessionStore'
 import { useDeleteIssue, useIssue, useSubIssues } from '../hooks'
+import { useCriteriaGuard } from '../useCriteriaGuard'
 import { isOverdue, useIssueUpdater, useProjectMeta } from '../useIssueHelpers'
 import { CreateIssueDialog } from './CreateIssueDialog'
 import { EditableText } from './EditableText'
@@ -29,13 +30,28 @@ import { AssigneesPicker, DatePicker, LabelsPicker, PriorityPicker, StatePicker 
 
 /**
  * Detalle completo de una tarea. Se usa en el panel lateral (`variant="panel"`) y en la página propia.
- * `renderActivity` y `renderPlanning` permiten agregar secciones de otras features (comentarios,
- * historial, ciclo y módulos) sin que este componente dependa de ellas.
+ * Las secciones de otras features entran por props, sin que este componente dependa de ellas:
+ * `renderBanner` (aviso sobre el título), `renderSections` (criterios y checklist, antes de las subtareas),
+ * `renderAfterSubIssues` (relaciones), `renderActivity` (comentarios e historial) y `renderProperties`
+ * (filas extra de propiedades: ciclo, módulos, progreso).
  */
-export function IssueDetail({ slug, project, issueId, variant = 'page', onClose, onOpenIssue, renderActivity, renderPlanning }) {
+export function IssueDetail({
+  slug,
+  project,
+  issueId,
+  variant = 'page',
+  onClose,
+  onOpenIssue,
+  renderBanner,
+  renderSections,
+  renderAfterSubIssues,
+  renderActivity,
+  renderProperties,
+}) {
   const { data: issue, isLoading, error, refetch } = useIssue(slug, project.id, issueId)
   const meta = useProjectMeta(slug, project.id)
   const { update } = useIssueUpdater(slug, project.id, issueId)
+  const { guard, dialog: criteriaDialog } = useCriteriaGuard()
   const [subIssueOpen, setSubIssueOpen] = useState(false)
 
   if (isLoading) return <CenteredSpinner className="flex-1" />
@@ -50,6 +66,7 @@ export function IssueDetail({ slug, project, issueId, variant = 'page', onClose,
 
       <div className="flex min-h-0 flex-1 flex-wrap overflow-y-auto">
         <div className="flex min-w-0 flex-[999_1_380px] flex-col gap-5.5 px-6 pt-5 pb-6">
+          {renderBanner?.(issue)}
           <div>
             {issue.parent && (
               <button
@@ -79,6 +96,8 @@ export function IssueDetail({ slug, project, issueId, variant = 'page', onClose,
             />
           </div>
 
+          {renderSections?.(issue)}
+
           <SubIssues
             slug={slug}
             projectId={project.id}
@@ -87,13 +106,25 @@ export function IssueDetail({ slug, project, issueId, variant = 'page', onClose,
             onAdd={() => setSubIssueOpen(true)}
           />
 
+          {renderAfterSubIssues?.(issue)}
+
           {renderActivity?.(issue)}
         </div>
 
         <aside className="flex flex-[1_1_240px] flex-col gap-1 border-l bg-column px-4.5 py-5">
           <p className="mb-2 font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase">Propiedades</p>
           <PropertyRow label="Estado">
-            <StatePicker states={meta.states} value={issue.state?.id} onChange={(stateId) => update({ stateId })} />
+            <StatePicker
+              states={meta.states}
+              value={issue.state?.id}
+              onChange={(stateId) =>
+                guard(
+                  issue,
+                  meta.states.find((state) => state.id === stateId),
+                  () => update({ stateId }),
+                )
+              }
+            />
           </PropertyRow>
           <PropertyRow label="Prioridad">
             <PriorityPicker value={issue.priority} onChange={(priority) => update({ priority })} />
@@ -137,7 +168,7 @@ export function IssueDetail({ slug, project, issueId, variant = 'page', onClose,
               onChange={(parentId) => update(parentId ? { parentId } : { clearParent: true })}
             />
           </PropertyRow>
-          {renderPlanning?.(issue)}
+          {renderProperties?.(issue)}
           <div className="mt-3.5 space-y-0.5 border-t pt-3.5 font-mono text-[11px] leading-relaxed text-muted-foreground">
             <p title={formatDateTime(issue.createdAt)}>
               creada{issue.createdBy ? ` por ${issue.createdBy.fullName.split(' ')[0]}` : ''} · {formatRelative(issue.createdAt)}
@@ -154,6 +185,7 @@ export function IssueDetail({ slug, project, issueId, variant = 'page', onClose,
         onOpenChange={setSubIssueOpen}
         defaults={{ parentId: issue.id, parentCode: issue.code, stateId: issue.state?.id }}
       />
+      {criteriaDialog}
     </div>
   )
 }

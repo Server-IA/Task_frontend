@@ -8,6 +8,7 @@ import { Segmented } from '@/components/common/Segmented'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { describeFeedEntry } from '@/features/comments/describeActivity'
+import { MentionText } from '@/features/mentions/MentionText'
 import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
 import { useProjects } from '@/features/projects/hooks'
 import { useCurrentWorkspace, useMembers } from '@/features/workspaces/hooks'
@@ -215,7 +216,7 @@ function FeedEntry({ slug, entry, stateGroup }) {
         )}
         {sentence.quote && (
           <blockquote className="mt-1.5 rounded-[10px] bg-muted px-2.5 py-2 leading-normal break-words whitespace-pre-wrap text-muted-foreground">
-            «{sentence.quote}»
+            «<MentionText body={sentence.quote} />»
           </blockquote>
         )}
         <p className="mt-1.5 flex items-center gap-2 font-mono text-[11px] text-muted-foreground">

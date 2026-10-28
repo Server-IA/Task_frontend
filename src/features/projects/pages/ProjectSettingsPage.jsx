@@ -1,5 +1,7 @@
 import { useSearchParams } from 'react-router'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { TemplatesSettings } from '@/features/templates/components/TemplatesSettings'
+import { useTemplates } from '@/features/templates/hooks'
 import { useCurrentWorkspace } from '@/features/workspaces/hooks'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { projectPath } from '@/lib/paths'
@@ -9,7 +11,7 @@ import { ProjectMembersSettings } from '../components/ProjectMembersSettings'
 import { StatesSettings } from '../components/StatesSettings'
 import { useCurrentProject, useLabels, useProjectMembers, useStates } from '../hooks'
 
-const TABS = ['general', 'states', 'labels', 'members']
+const TABS = ['general', 'states', 'labels', 'members', 'templates']
 
 export function ProjectSettingsPage() {
   const workspace = useCurrentWorkspace()
@@ -17,6 +19,7 @@ export function ProjectSettingsPage() {
   const { data: states } = useStates(workspace.slug, project.id)
   const { data: labels } = useLabels(workspace.slug, project.id)
   const { data: members } = useProjectMembers(workspace.slug, project.id)
+  const { data: templates } = useTemplates(workspace.slug, project.id)
   const [searchParams, setSearchParams] = useSearchParams()
   const tab = TABS.includes(searchParams.get('tab')) ? searchParams.get('tab') : 'general'
 
@@ -38,6 +41,7 @@ export function ProjectSettingsPage() {
           <TabsTrigger value="states">Estados {count(states)}</TabsTrigger>
           <TabsTrigger value="labels">Etiquetas {count(labels)}</TabsTrigger>
           <TabsTrigger value="members">Miembros {count(members)}</TabsTrigger>
+          <TabsTrigger value="templates">Plantillas {count(templates)}</TabsTrigger>
         </TabsList>
       </PageHeader>
       <PageBody>
@@ -53,6 +57,9 @@ export function ProjectSettingsPage() {
           </TabsContent>
           <TabsContent value="members">
             <ProjectMembersSettings slug={workspace.slug} project={project} />
+          </TabsContent>
+          <TabsContent value="templates">
+            <TemplatesSettings slug={workspace.slug} project={project} />
           </TabsContent>
         </div>
       </PageBody>

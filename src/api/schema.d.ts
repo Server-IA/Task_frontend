@@ -40,9 +40,57 @@ export interface paths {
         put?: never;
         /**
          * Crear proyecto (project manager)
-         * @description Crea los estados por defecto (Backlog, Todo, In Progress, Done, Cancelled).
+         * @description Crea los estados por defecto (Backlog, Todo, In Progress, Done, Cancelled) y las plantillas de tarea por defecto (Reporte de bug, Historia de usuario y Tarea técnica).
          */
         post: operations["create_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{slug}/projects/{projectId}/views": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar vistas
+         * @description Las compartidas del proyecto y luego mis vistas personales, cada grupo por position. mine = la creé yo.
+         */
+        get: operations["getViews"];
+        put?: never;
+        /**
+         * Guardar vista
+         * @description Personal por defecto; shared: true solo lo puede usar el project manager (403). filters: { state, priority, assignee, label, search, view: list|board, sort } (ej. sort "dueDate,asc").
+         */
+        post: operations["create_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{slug}/projects/{projectId}/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar plantillas (en su orden)
+         * @description Al crear una tarea desde una plantilla, el frontend antepone titlePrefix al título, usa description, priority y labels, y envía checklist en el campo checklist de la tarea.
+         */
+        get: operations["getTemplates"];
+        put?: never;
+        /**
+         * Crear plantilla (project manager)
+         * @description El nombre no se repite en el proyecto (409) y las etiquetas deben ser del proyecto (400). Queda al final de la lista.
+         */
+        post: operations["create_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -60,7 +108,7 @@ export interface paths {
         get: operations["getStates"];
         put?: never;
         /** Crear estado (project manager) */
-        post: operations["create_2"];
+        post: operations["create_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -78,7 +126,7 @@ export interface paths {
         get: operations["getModules"];
         put?: never;
         /** Crear módulo (project manager) */
-        post: operations["create_3"];
+        post: operations["create_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -134,7 +182,7 @@ export interface paths {
         get: operations["getLabels"];
         put?: never;
         /** Crear etiqueta (project manager) */
-        post: operations["create_4"];
+        post: operations["create_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -155,7 +203,31 @@ export interface paths {
         get: operations["getIssues"];
         put?: never;
         /** Crear issue */
-        post: operations["create_5"];
+        post: operations["create_7"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{slug}/projects/{projectId}/issues/{issueId}/relations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Dependencias de la tarea
+         * @description blocks = tareas que esta bloquea; blockedBy = tareas que la bloquean; related = relacionadas. Cada lista va ordenada por número de tarea.
+         */
+        get: operations["getRelations"];
+        put?: never;
+        /**
+         * Agregar dependencia
+         * @description type: BLOCKS (esta tarea bloquea a issueId), BLOCKED_BY (issueId bloquea a esta) o RELATES. La otra tarea debe ser del mismo proyecto (400). Responde 409 si es la misma tarea, si la relación ya existe o si las dos tareas quedarían bloqueándose mutuamente. Devuelve la relación vista desde esta tarea y la registra en el historial de ambas.
+         */
+        post: operations["create_8"];
         delete?: never;
         options?: never;
         head?: never;
@@ -174,9 +246,33 @@ export interface paths {
         put?: never;
         /**
          * Comentar
-         * @description Notifica a los asignados y al creador del issue.
+         * @description Notifica a los asignados y al creador de la tarea. Las menciones se escriben en el cuerpo como @[Nombre Visible](id-del-usuario): se avisa (ISSUE_MENTIONED) a los mencionados que son miembros del proyecto o project managers, y a ellos no les llega además el aviso del comentario.
          */
-        post: operations["create_6"];
+        post: operations["create_9"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{slug}/projects/{projectId}/issues/{issueId}/checklist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Criterios y checklist de la tarea
+         * @description Primero los criterios de aceptación (CRITERION) y luego los pasos (CHECK), cada grupo por position.
+         */
+        get: operations["getItems"];
+        put?: never;
+        /**
+         * Agregar criterio o paso
+         * @description Queda al final de los de su tipo. Una tarea admite como máximo 100 elementos (409).
+         */
+        post: operations["create_10"];
         delete?: never;
         options?: never;
         head?: never;
@@ -194,7 +290,7 @@ export interface paths {
         get: operations["getCycles"];
         put?: never;
         /** Crear ciclo (project manager) */
-        post: operations["create_7"];
+        post: operations["create_11"];
         delete?: never;
         options?: never;
         head?: never;
@@ -462,6 +558,51 @@ export interface paths {
         patch: operations["update_1"];
         trace?: never;
     };
+    "/api/v1/workspaces/{slug}/projects/{projectId}/views/{viewId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Eliminar vista
+         * @description Misma regla que al editar: su dueño o, si es compartida, el project manager.
+         */
+        delete: operations["delete_2"];
+        options?: never;
+        head?: never;
+        /**
+         * Editar, compartir o reordenar vista
+         * @description Edición parcial. Una vista personal solo la edita su dueño (las de otros dan 404); una compartida, el project manager (403). Compartir una vista también es solo del project manager. position = nuevo índice (desde 0) dentro de su grupo.
+         */
+        patch: operations["update_2"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{slug}/projects/{projectId}/templates/{templateId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Eliminar plantilla (project manager) */
+        delete: operations["delete_3"];
+        options?: never;
+        head?: never;
+        /**
+         * Editar o reordenar plantilla (project manager)
+         * @description Edición parcial. titlePrefix o description vacíos los quitan y priority NONE quita la prioridad; labelIds y checklist reemplazan la lista; position = nuevo índice (desde 0).
+         */
+        patch: operations["update_3"];
+        trace?: never;
+    };
     "/api/v1/workspaces/{slug}/projects/{projectId}/states/{stateId}": {
         parameters: {
             query?: never;
@@ -476,11 +617,11 @@ export interface paths {
          * Eliminar estado (project manager)
          * @description No se puede si tiene tareas o si es el único estado.
          */
-        delete: operations["delete_2"];
+        delete: operations["delete_4"];
         options?: never;
         head?: never;
         /** Editar o reordenar estado (project manager) */
-        patch: operations["update_2"];
+        patch: operations["update_4"];
         trace?: never;
     };
     "/api/v1/workspaces/{slug}/projects/{projectId}/modules/{moduleId}": {
@@ -498,11 +639,11 @@ export interface paths {
          * Eliminar módulo (project manager)
          * @description Las tareas no se borran, solo se desvinculan.
          */
-        delete: operations["delete_3"];
+        delete: operations["delete_5"];
         options?: never;
         head?: never;
         /** Editar módulo (project manager) */
-        patch: operations["update_3"];
+        patch: operations["update_5"];
         trace?: never;
     };
     "/api/v1/workspaces/{slug}/projects/{projectId}/labels/{labelId}": {
@@ -516,11 +657,11 @@ export interface paths {
         put?: never;
         post?: never;
         /** Eliminar etiqueta (project manager) */
-        delete: operations["delete_4"];
+        delete: operations["delete_6"];
         options?: never;
         head?: never;
         /** Editar etiqueta (project manager) */
-        patch: operations["update_4"];
+        patch: operations["update_6"];
         trace?: never;
     };
     "/api/v1/workspaces/{slug}/projects/{projectId}/issues/{issueId}": {
@@ -538,14 +679,14 @@ export interface paths {
          * Eliminar issue (project manager o quien la creó)
          * @description Sus sub-issues se conservan sin padre. Cualquier otro miembro recibe 403.
          */
-        delete: operations["delete_5"];
+        delete: operations["delete_7"];
         options?: never;
         head?: never;
         /**
          * Editar issue
          * @description Edición parcial: los campos nulos no se modifican.
          */
-        patch: operations["update_5"];
+        patch: operations["update_7"];
         trace?: never;
     };
     "/api/v1/workspaces/{slug}/projects/{projectId}/issues/{issueId}/move": {
@@ -579,11 +720,35 @@ export interface paths {
         put?: never;
         post?: never;
         /** Borrar comentario (autor o project manager) */
-        delete: operations["delete_6"];
+        delete: operations["delete_8"];
         options?: never;
         head?: never;
-        /** Editar comentario (solo el autor) */
-        patch: operations["update_6"];
+        /**
+         * Editar comentario (solo el autor)
+         * @description Solo se avisa a quienes se mencionan por primera vez en el comentario.
+         */
+        patch: operations["update_8"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{slug}/projects/{projectId}/issues/{issueId}/checklist/{itemId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Eliminar criterio o paso */
+        delete: operations["delete_9"];
+        options?: never;
+        head?: never;
+        /**
+         * Editar, marcar o reordenar
+         * @description Edición parcial. position = nuevo índice (desde 0) entre los elementos del mismo tipo; los demás se renumeran.
+         */
+        patch: operations["update_9"];
         trace?: never;
     };
     "/api/v1/workspaces/{slug}/projects/{projectId}/cycles/{cycleId}": {
@@ -601,11 +766,11 @@ export interface paths {
          * Eliminar ciclo (project manager)
          * @description Las tareas no se borran, solo se desvinculan.
          */
-        delete: operations["delete_7"];
+        delete: operations["delete_10"];
         options?: never;
         head?: never;
         /** Editar ciclo (project manager) */
-        patch: operations["update_7"];
+        patch: operations["update_10"];
         trace?: never;
     };
     "/api/v1/workspaces/{slug}/members/{userId}": {
@@ -929,6 +1094,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{slug}/projects/{projectId}/issues/{issueId}/relations/{relationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Quitar dependencia
+         * @description relationId debe ser una relación de esta tarea (si no, 404). Se registra en el historial de ambas tareas.
+         */
+        delete: operations["delete_11"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{slug}/projects/{projectId}/cycles/{cycleId}/issues/{issueId}": {
         parameters: {
             query?: never;
@@ -1013,6 +1198,69 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
+        CreateSavedViewRequest: {
+            name: string;
+            shared?: boolean;
+            filters?: components["schemas"]["SavedViewFilters"];
+        };
+        SavedViewFilters: {
+            state?: string[];
+            priority?: ("URGENT" | "HIGH" | "MEDIUM" | "LOW" | "NONE")[];
+            assignee?: string[];
+            label?: string[];
+            search?: string;
+            view?: string;
+            sort?: string;
+        };
+        SavedViewResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            shared?: boolean;
+            owner?: components["schemas"]["UserSummaryResponse"];
+            filters?: components["schemas"]["SavedViewFilters"];
+            /** Format: int32 */
+            position?: number;
+            mine?: boolean;
+        };
+        ChecklistItemRequest: {
+            /** @enum {string} */
+            kind: "CRITERION" | "CHECK";
+            text: string;
+        };
+        IssueTemplateRequest: {
+            name: string;
+            titlePrefix?: string;
+            description?: string;
+            /** @enum {string} */
+            priority?: "URGENT" | "HIGH" | "MEDIUM" | "LOW" | "NONE";
+            labelIds?: string[];
+            checklist?: components["schemas"]["ChecklistItemRequest"][];
+        };
+        IssueTemplateResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            titlePrefix?: string;
+            description?: string;
+            /** @enum {string} */
+            priority?: "URGENT" | "HIGH" | "MEDIUM" | "LOW" | "NONE";
+            labels?: components["schemas"]["LabelResponse"][];
+            checklist?: components["schemas"]["TemplateChecklistItemResponse"][];
+            /** Format: int32 */
+            position?: number;
+        };
+        LabelResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            color?: string;
+        };
+        TemplateChecklistItemResponse: {
+            /** @enum {string} */
+            kind?: "CRITERION" | "CHECK";
+            text?: string;
+        };
         CreateStateRequest: {
             name: string;
             color: string;
@@ -1078,12 +1326,6 @@ export interface components {
             name: string;
             color: string;
         };
-        LabelResponse: {
-            /** Format: uuid */
-            id?: string;
-            name?: string;
-            color?: string;
-        };
         CreateIssueRequest: {
             title: string;
             description?: string;
@@ -1099,6 +1341,7 @@ export interface components {
             dueDate?: string;
             assigneeIds?: string[];
             labelIds?: string[];
+            checklist?: components["schemas"]["ChecklistItemRequest"][];
         };
         IssueResponse: {
             /** Format: uuid */
@@ -1128,6 +1371,16 @@ export interface components {
             subIssueCount?: number;
             /** Format: int32 */
             completedSubIssueCount?: number;
+            /** Format: int32 */
+            blockedByCount?: number;
+            /** Format: int32 */
+            checklistTotal?: number;
+            /** Format: int32 */
+            checklistDone?: number;
+            /** Format: int32 */
+            criteriaTotal?: number;
+            /** Format: int32 */
+            criteriaDone?: number;
             createdBy?: components["schemas"]["UserSummaryResponse"];
             /** Format: date-time */
             createdAt?: string;
@@ -1147,6 +1400,25 @@ export interface components {
             id?: string;
             name?: string;
         };
+        CreateIssueRelationRequest: {
+            /** @enum {string} */
+            type: "BLOCKS" | "BLOCKED_BY" | "RELATES";
+            /** Format: uuid */
+            issueId: string;
+        };
+        IssueRelationResponse: {
+            /** Format: uuid */
+            relationId?: string;
+            issue?: components["schemas"]["RelatedIssueResponse"];
+        };
+        RelatedIssueResponse: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            title?: string;
+            state?: components["schemas"]["StateResponse"];
+            assignees?: components["schemas"]["UserSummaryResponse"][];
+        };
         CommentRequest: {
             body: string;
         };
@@ -1159,6 +1431,16 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        ChecklistItemResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            kind?: "CRITERION" | "CHECK";
+            text?: string;
+            done?: boolean;
+            /** Format: int32 */
+            position?: number;
         };
         CycleRequest: {
             name: string;
@@ -1255,6 +1537,24 @@ export interface components {
             identifier?: string;
             description?: string;
         };
+        UpdateSavedViewRequest: {
+            name?: string;
+            filters?: components["schemas"]["SavedViewFilters"];
+            shared?: boolean;
+            /** Format: int32 */
+            position?: number;
+        };
+        UpdateIssueTemplateRequest: {
+            name?: string;
+            titlePrefix?: string;
+            description?: string;
+            /** @enum {string} */
+            priority?: "URGENT" | "HIGH" | "MEDIUM" | "LOW" | "NONE";
+            labelIds?: string[];
+            checklist?: components["schemas"]["ChecklistItemRequest"][];
+            /** Format: int32 */
+            position?: number;
+        };
         UpdateStateRequest: {
             name?: string;
             color?: string;
@@ -1299,6 +1599,12 @@ export interface components {
             /** Format: uuid */
             beforeIssueId?: string;
         };
+        UpdateChecklistItemRequest: {
+            text?: string;
+            done?: boolean;
+            /** Format: int32 */
+            position?: number;
+        };
         UpdateCycleRequest: {
             name?: string;
             description?: string;
@@ -1340,7 +1646,7 @@ export interface components {
             /** Format: uuid */
             id?: string;
             /** @enum {string} */
-            type?: "ISSUE_ASSIGNED" | "ISSUE_COMMENTED";
+            type?: "ISSUE_ASSIGNED" | "ISSUE_COMMENTED" | "ISSUE_UNBLOCKED" | "ISSUE_MENTIONED";
             message?: string;
             read?: boolean;
             actor?: components["schemas"]["UserSummaryResponse"];
@@ -1430,12 +1736,17 @@ export interface components {
             first?: boolean;
             last?: boolean;
         };
+        IssueRelationsResponse: {
+            blocks?: components["schemas"]["IssueRelationResponse"][];
+            blockedBy?: components["schemas"]["IssueRelationResponse"][];
+            related?: components["schemas"]["IssueRelationResponse"][];
+        };
         ActivityResponse: {
             /** Format: uuid */
             id?: string;
             actor?: components["schemas"]["UserSummaryResponse"];
             /** @enum {string} */
-            field?: "CREATED" | "TITLE" | "DESCRIPTION" | "STATE" | "PRIORITY" | "PARENT" | "START_DATE" | "DUE_DATE" | "ASSIGNEES" | "LABELS" | "CYCLE" | "MODULE" | "COMMENT";
+            field?: "CREATED" | "TITLE" | "DESCRIPTION" | "STATE" | "PRIORITY" | "PARENT" | "START_DATE" | "DUE_DATE" | "ASSIGNEES" | "LABELS" | "CYCLE" | "MODULE" | "COMMENT" | "RELATION";
             oldValue?: string;
             newValue?: string;
             /** Format: date-time */
@@ -1459,7 +1770,7 @@ export interface components {
             id?: string;
             actor?: components["schemas"]["UserSummaryResponse"];
             /** @enum {string} */
-            field?: "CREATED" | "TITLE" | "DESCRIPTION" | "STATE" | "PRIORITY" | "PARENT" | "START_DATE" | "DUE_DATE" | "ASSIGNEES" | "LABELS" | "CYCLE" | "MODULE" | "COMMENT";
+            field?: "CREATED" | "TITLE" | "DESCRIPTION" | "STATE" | "PRIORITY" | "PARENT" | "START_DATE" | "DUE_DATE" | "ASSIGNEES" | "LABELS" | "CYCLE" | "MODULE" | "COMMENT" | "RELATION";
             oldValue?: string;
             newValue?: string;
             /** Format: date-time */
@@ -1633,6 +1944,106 @@ export interface operations {
             };
         };
     };
+    getViews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SavedViewResponse"][];
+                };
+            };
+        };
+    };
+    create_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSavedViewRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SavedViewResponse"];
+                };
+            };
+        };
+    };
+    getTemplates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IssueTemplateResponse"][];
+                };
+            };
+        };
+    };
+    create_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IssueTemplateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IssueTemplateResponse"];
+                };
+            };
+        };
+    };
     getStates: {
         parameters: {
             query?: never;
@@ -1656,7 +2067,7 @@ export interface operations {
             };
         };
     };
-    create_2: {
+    create_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -1706,7 +2117,7 @@ export interface operations {
             };
         };
     };
-    create_3: {
+    create_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -1834,7 +2245,7 @@ export interface operations {
             };
         };
     };
-    create_4: {
+    create_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -1905,7 +2316,7 @@ export interface operations {
             };
         };
     };
-    create_5: {
+    create_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -1928,6 +2339,58 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["IssueResponse"];
+                };
+            };
+        };
+    };
+    getRelations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+                issueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IssueRelationsResponse"];
+                };
+            };
+        };
+    };
+    create_8: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+                issueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateIssueRelationRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IssueRelationResponse"];
                 };
             };
         };
@@ -1956,7 +2419,7 @@ export interface operations {
             };
         };
     };
-    create_6: {
+    create_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -1984,6 +2447,58 @@ export interface operations {
             };
         };
     };
+    getItems: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+                issueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ChecklistItemResponse"][];
+                };
+            };
+        };
+    };
+    create_10: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+                issueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChecklistItemRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ChecklistItemResponse"];
+                };
+            };
+        };
+    };
     getCycles: {
         parameters: {
             query?: never;
@@ -2007,7 +2522,7 @@ export interface operations {
             };
         };
     };
-    create_7: {
+    create_11: {
         parameters: {
             query?: never;
             header?: never;
@@ -2486,7 +3001,7 @@ export interface operations {
             path: {
                 slug: string;
                 projectId: string;
-                stateId: string;
+                viewId: string;
             };
             cookie?: never;
         };
@@ -2502,6 +3017,106 @@ export interface operations {
         };
     };
     update_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+                viewId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateSavedViewRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SavedViewResponse"];
+                };
+            };
+        };
+    };
+    delete_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+                templateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+                templateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateIssueTemplateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IssueTemplateResponse"];
+                };
+            };
+        };
+    };
+    delete_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+                stateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -2553,7 +3168,7 @@ export interface operations {
             };
         };
     };
-    delete_3: {
+    delete_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -2575,7 +3190,7 @@ export interface operations {
             };
         };
     };
-    update_3: {
+    update_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -2603,7 +3218,7 @@ export interface operations {
             };
         };
     };
-    delete_4: {
+    delete_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -2625,7 +3240,7 @@ export interface operations {
             };
         };
     };
-    update_4: {
+    update_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -2677,7 +3292,7 @@ export interface operations {
             };
         };
     };
-    delete_5: {
+    delete_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -2699,7 +3314,7 @@ export interface operations {
             };
         };
     };
-    update_5: {
+    update_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -2755,7 +3370,7 @@ export interface operations {
             };
         };
     };
-    delete_6: {
+    delete_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -2778,7 +3393,7 @@ export interface operations {
             };
         };
     };
-    update_6: {
+    update_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -2807,6 +3422,58 @@ export interface operations {
             };
         };
     };
+    delete_9: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+                issueId: string;
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_9: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+                issueId: string;
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateChecklistItemRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ChecklistItemResponse"];
+                };
+            };
+        };
+    };
     get_4: {
         parameters: {
             query?: never;
@@ -2831,7 +3498,7 @@ export interface operations {
             };
         };
     };
-    delete_7: {
+    delete_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -2853,7 +3520,7 @@ export interface operations {
             };
         };
     };
-    update_7: {
+    update_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -3328,6 +3995,29 @@ export interface operations {
                 slug: string;
                 projectId: string;
                 userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_11: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+                issueId: string;
+                relationId: string;
             };
             cookie?: never;
         };

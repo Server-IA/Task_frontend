@@ -1,4 +1,3 @@
-import { Fragment } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { BellOff, CheckCheck } from 'lucide-react'
 import { toast } from 'sonner'
@@ -8,17 +7,21 @@ import { Spinner } from '@/components/common/Loaders'
 import { Segmented } from '@/components/common/Segmented'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { UserAvatar } from '@/components/common/UserAvatar'
+import { MentionText } from '@/features/mentions/MentionText'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { formatDateTime, formatRelative, groupByDay } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { useMarkAllAsRead, useMarkAsRead, useNotifications, useUnreadCount } from './hooks'
 
-/** Marca pequeña sobre el avatar según el tipo de aviso. */
+/** Marca pequeña sobre el avatar según el tipo de aviso: las menciones van con el acento y el desbloqueo en verde. */
 const TYPE_MARKS = {
-  ISSUE_ASSIGNED: '@',
-  ISSUE_COMMENTED: '“',
+  ISSUE_ASSIGNED: { mark: '+', className: 'bg-card text-muted-foreground' },
+  ISSUE_COMMENTED: { mark: '“', className: 'bg-card text-muted-foreground' },
+  ISSUE_MENTIONED: { mark: '@', className: 'border-transparent bg-primary text-primary-foreground' },
+  ISSUE_UNBLOCKED: { mark: '✓', className: 'border-transparent bg-ok-soft text-ok' },
 }
+const DEFAULT_MARK = { mark: '·', className: 'bg-card text-muted-foreground' }
 
 export function NotificationsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -36,7 +39,7 @@ export function NotificationsPage() {
       <PageHeader
         path={[{ label: '~' }, { label: 'bandeja' }]}
         title="Bandeja"
-        description="Te avisamos cuando te asignan una tarea o comentan en las tuyas."
+        description="Asignaciones, comentarios en tus tareas, menciones y tareas desbloqueadas."
         actions={
           <Button
             variant="outline"
@@ -84,7 +87,7 @@ export function NotificationsPage() {
           <EmptyState
             icon={BellOff}
             title={unread ? 'Estás al día' : 'Sin notificaciones'}
-            description="Te avisaremos cuando te asignen una tarea o comenten en una tuya."
+            description="Te avisaremos cuando te asignen una tarea, comenten en una tuya o te mencionen."
           />
         )}
         {days.map((day) => (
@@ -112,17 +115,15 @@ export function NotificationsPage() {
   )
 }
 
-/** El código de la tarea dentro del mensaje se resalta en monoespaciada. */
-function MessageText({ message, code }) {
-  if (!code || !message.includes(code)) return message
+/** El código de la tarea dentro del mensaje se resalta en monoespaciada (y las menciones, como «@Nombre»). */
+function MessageText({ message = '', code }) {
+  if (!code || !message.includes(code)) return <MentionText body={message} />
   const [before, ...rest] = message.split(code)
   return (
     <>
-      {before}
+      <MentionText body={before} />
       <span className="font-mono text-[13px] text-accent-text">{code}</span>
-      {rest.map((part, index) => (
-        <Fragment key={index}>{part}</Fragment>
-      ))}
+      <MentionText body={rest.join(code)} />
     </>
   )
 }
@@ -132,6 +133,7 @@ function NotificationItem({ notification, first }) {
   const navigate = useNavigate()
   const markAsRead = useMarkAsRead()
   const issue = notification.issue
+  const mark = TYPE_MARKS[notification.type] ?? DEFAULT_MARK
 
   const open = () => {
     if (!notification.read) markAsRead.mutate(notification.id)
@@ -150,8 +152,14 @@ function NotificationItem({ notification, first }) {
       >
         <span className="relative shrink-0">
           <UserAvatar user={notification.actor} size="md" className="size-9" />
-          <span className="absolute -right-1 -bottom-1 flex size-4.5 items-center justify-center rounded-full border bg-card font-mono text-[10px] text-muted-foreground">
-            {TYPE_MARKS[notification.type] ?? '·'}
+          <span
+            aria-hidden="true"
+            className={cn(
+              'absolute -right-1 -bottom-1 flex size-4.5 items-center justify-center rounded-full border font-mono text-[10px] font-semibold',
+              mark.className,
+            )}
+          >
+            {mark.mark}
           </span>
         </span>
         <span className="min-w-0 flex-1">

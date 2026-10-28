@@ -28,6 +28,22 @@
 /** @typedef {Schemas['IssueSummaryResponse']} IssueSummary */
 /** @typedef {Schemas['ProjectRefResponse']} ProjectRef */
 
+/** @typedef {Schemas['IssueRelationsResponse']} IssueRelations */
+/** @typedef {Schemas['IssueRelationResponse']} IssueRelation */
+/** @typedef {Schemas['RelatedIssueResponse']} RelatedIssue */
+/** @typedef {Schemas['CreateIssueRelationRequest']['type']} RelationType */
+
+/** @typedef {Schemas['ChecklistItemResponse']} ChecklistItem */
+/** @typedef {Schemas['ChecklistItemRequest']['kind']} ChecklistKind */
+/** @typedef {Schemas['ChecklistItemRequest']} ChecklistItemRequest */
+
+/** @typedef {Schemas['IssueTemplateResponse']} IssueTemplate */
+/** @typedef {Schemas['TemplateChecklistItemResponse']} TemplateChecklistItem */
+/** @typedef {Schemas['IssueTemplateRequest']} IssueTemplateRequest */
+
+/** @typedef {Schemas['SavedViewResponse']} SavedView */
+/** @typedef {Schemas['SavedViewFilters']} SavedViewFilters */
+
 /** @typedef {Schemas['ProjectStatsResponse']} ProjectStats */
 /** @typedef {Schemas['ThroughputWeek']} ThroughputWeek */
 /** @typedef {Schemas['Burndown']} Burndown */

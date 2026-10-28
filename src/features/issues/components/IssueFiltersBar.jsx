@@ -14,15 +14,17 @@ import { PriorityIcon } from './PriorityIcon'
 /**
  * Búsqueda tipo consola («> buscar o saltar a WEB-12») y filtros como pastillas:
  * punteadas cuando están vacías («+ prioridad») y oscuras cuando tienen valor («asignado: Luis ×»).
- * Los valores viven en la URL (useIssueFilters).
+ * Los valores viven en la URL (useIssueFilters). `changed` marca los filtros que ya no coinciden con la vista
+ * guardada activa.
  */
-export function IssueFiltersBar({ filters, activeCount, setFilter, clearFilters, meta, hideState = false, children }) {
+export function IssueFiltersBar({ filters, activeCount, setFilter, clearFilters, meta, hideState = false, changed = [], children }) {
   return (
     <div className="flex flex-wrap items-center gap-2 px-1">
       <SearchBox value={filters.search} onChange={(value) => setFilter('search', value)} />
       {!hideState && (
         <MultiFilter
           title="estado"
+          changed={changed.includes('state')}
           values={filters.state}
           onChange={(values) => setFilter('state', values)}
           options={meta.states.map((state) => ({
@@ -34,6 +36,7 @@ export function IssueFiltersBar({ filters, activeCount, setFilter, clearFilters,
       )}
       <MultiFilter
         title="prioridad"
+        changed={changed.includes('priority')}
         values={filters.priority}
         onChange={(values) => setFilter('priority', values)}
         options={PRIORITIES.map((priority) => ({
@@ -44,6 +47,7 @@ export function IssueFiltersBar({ filters, activeCount, setFilter, clearFilters,
       />
       <MultiFilter
         title="asignado"
+        changed={changed.includes('assignee')}
         values={filters.assignee}
         onChange={(values) => setFilter('assignee', values)}
         options={meta.users.map((user) => ({
@@ -56,6 +60,7 @@ export function IssueFiltersBar({ filters, activeCount, setFilter, clearFilters,
       />
       <MultiFilter
         title="etiqueta"
+        changed={changed.includes('label')}
         values={filters.label}
         onChange={(values) => setFilter('label', values)}
         options={meta.labels.map((label) => ({ value: label.id, label: label.name, icon: <ColorDot color={label.color} /> }))}
@@ -110,7 +115,14 @@ function SearchBox({ value, onChange }) {
   )
 }
 
-function MultiFilter({ title, options, values, onChange }) {
+/** Marca «cambiado» respecto de la vista guardada activa. */
+function ChangedMark() {
+  return (
+    <span className="tf-pop rounded-full bg-primary px-1.5 font-mono text-[10px] font-semibold text-primary-foreground">cambiado</span>
+  )
+}
+
+function MultiFilter({ title, options, values, onChange, changed = false }) {
   const selected = new Set(values)
   const toggle = (value) => {
     const next = new Set(selected)
@@ -128,6 +140,7 @@ function MultiFilter({ title, options, values, onChange }) {
           <PopoverTrigger className="flex items-center gap-1.5 rounded-l-full py-1.5 pr-1 pl-3 outline-none focus-visible:ring-2 focus-visible:ring-ring">
             {chosen.length === 1 && chosen[0].icon}
             {title}: {summary}
+            {changed && <ChangedMark />}
           </PopoverTrigger>
           <button
             type="button"
@@ -139,8 +152,14 @@ function MultiFilter({ title, options, values, onChange }) {
           </button>
         </span>
       ) : (
-        <PopoverTrigger className="rounded-full border border-dashed border-dash px-3 py-1.5 text-[13px] text-muted-foreground outline-none hover:border-foreground/40 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
+        <PopoverTrigger
+          className={cn(
+            'flex items-center gap-1.5 rounded-full border border-dashed border-dash px-3 py-1.5 text-[13px] text-muted-foreground outline-none hover:border-foreground/40 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring',
+            changed && 'border-accent-text',
+          )}
+        >
           + {title}
+          {changed && <ChangedMark />}
         </PopoverTrigger>
       )}
       <PopoverContent className="w-60 p-0" align="start">

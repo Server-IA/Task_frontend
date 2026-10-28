@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Segmented } from '@/components/common/Segmented'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useCurrentProject } from '@/features/projects/hooks'
+import { SavedViewsBar } from '@/features/saved-views/components/SavedViewsBar'
+import { useActiveSavedView } from '@/features/saved-views/hooks'
 import { useCurrentWorkspace } from '@/features/workspaces/hooks'
 import { useHotkey } from '@/hooks/useHotkey'
 import { projectPath } from '@/lib/paths'
@@ -27,6 +29,7 @@ export function IssuesPage() {
   const meta = useProjectMeta(workspace.slug, project.id)
   const issueFilters = useIssueFilters()
   const { filters, activeCount, view, sort, page, openIssueId } = issueFilters
+  const { changed: changedFromView } = useActiveSavedView(workspace.slug, project.id, issueFilters)
   const [createState, setCreateState] = useState({ open: false, stateId: undefined })
   // La paleta de comandos (Ctrl/⌘ K) pide crear una tarea con ?create=1 (y lo que se escribió en ?title=)
   const [searchParams, setSearchParams] = useSearchParams()
@@ -68,12 +71,14 @@ export function IssuesPage() {
           </>
         }
       />
+      <SavedViewsBar slug={workspace.slug} project={project} meta={meta} issueFilters={issueFilters} />
       <IssueFiltersBar
         filters={filters}
         activeCount={activeCount}
         setFilter={issueFilters.setFilter}
         clearFilters={issueFilters.clearFilters}
         meta={meta}
+        changed={changedFromView}
       >
         {view === 'list' ? (
           <Select value={sort} onValueChange={issueFilters.setSort}>

@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react'
 import { useSearchParams } from 'react-router'
 import { usePreferencesStore } from '@/stores/preferencesStore'
+import { SAVED_VIEW_PARAM } from './constants'
 
 const MULTI_KEYS = ['state', 'priority', 'assignee', 'label']
 
@@ -28,6 +29,7 @@ export function useIssueFilters() {
   const sort = searchParams.get('sort') ?? 'sortOrder,asc'
   const page = Math.max(0, Number(searchParams.get('page') ?? 0) || 0)
   const openIssueId = searchParams.get('issue')
+  const activeViewId = searchParams.get(SAVED_VIEW_PARAM)
 
   const update = useCallback(
     (mutate, { resetPage = true } = {}) => {
@@ -63,6 +65,9 @@ export function useIssueFilters() {
     [update],
   )
 
+  /** Reemplaza los parámetros por lo que devuelva `build(anteriores)` (lo usan las vistas guardadas). */
+  const replaceParams = useCallback((build) => setSearchParams((previous) => build(previous), { replace: true }), [setSearchParams])
+
   const activeCount = MULTI_KEYS.reduce((total, key) => total + filters[key].length, 0) + (filters.search ? 1 : 0)
 
   return {
@@ -72,6 +77,8 @@ export function useIssueFilters() {
     sort,
     page,
     openIssueId,
+    activeViewId,
+    replaceParams,
     setFilter,
     clearFilters,
     setView: (value) => {

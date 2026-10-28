@@ -21,3 +21,6 @@ export const SORT_OPTIONS = [
 /** Tamaño de página del listado y de la carga del Kanban (el backend permite hasta 200). */
 export const LIST_PAGE_SIZE = 50
 export const BOARD_PAGE_SIZE = 200
+
+/** Parámetro de la URL con la vista guardada que está aplicada en la lista de tareas. */
+export const SAVED_VIEW_PARAM = 'savedView'

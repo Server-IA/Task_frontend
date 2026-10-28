@@ -6,7 +6,9 @@ import { StateIcon } from '@/components/common/StateIcon'
 import { cn } from '@/lib/utils'
 import { LIST_PAGE_SIZE } from '../constants'
 import { useIssues } from '../hooks'
+import { useCriteriaGuard } from '../useCriteriaGuard'
 import { isClosed, useIssueUpdater } from '../useIssueHelpers'
+import { BlockedChip, ChecklistChip } from './IssueBadges'
 import { AssigneesPicker, DatePicker, LabelsPicker, PriorityPicker, StatePicker } from './PropertyPickers'
 
 /**
@@ -29,6 +31,7 @@ export function IssueListView({
 }) {
   const params = { ...filters, ...extraParams, sort, page, size: LIST_PAGE_SIZE }
   const { data, isLoading, error, refetch, isFetching } = useIssues(slug, project.id, params)
+  const { guard, dialog: criteriaDialog } = useCriteriaGuard()
 
   if (isLoading) {
     return (
@@ -86,7 +89,7 @@ export function IssueListView({
           </header>
           <ul>
             {issues.map((issue) => (
-              <IssueRow key={issue.id} issue={issue} slug={slug} project={project} meta={meta} openIssue={openIssue} />
+              <IssueRow key={issue.id} issue={issue} slug={slug} project={project} meta={meta} openIssue={openIssue} guard={guard} />
             ))}
           </ul>
         </section>
@@ -113,6 +116,7 @@ export function IssueListView({
           </div>
         )}
       </footer>
+      {criteriaDialog}
     </div>
   )
 }
@@ -120,7 +124,7 @@ export function IssueListView({
 const revealOnHover =
   'opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100'
 
-function IssueRow({ issue, slug, project, meta, openIssue }) {
+function IssueRow({ issue, slug, project, meta, openIssue, guard }) {
   const { update } = useIssueUpdater(slug, project.id, issue.id)
   const stop = (event) => event.stopPropagation()
 
@@ -134,7 +138,19 @@ function IssueRow({ issue, slug, project, meta, openIssue }) {
         className="group flex cursor-pointer flex-wrap items-center gap-x-2.5 gap-y-1.5 px-4 py-2 transition-colors duration-150 outline-none hover:bg-subtle focus-visible:bg-accent"
       >
         <span className="flex items-center gap-1" onClick={stop} onKeyDown={stop}>
-          <StatePicker states={meta.states} value={issue.state?.id} onChange={(stateId) => update({ stateId })} showLabel={false} className="px-1" />
+          <StatePicker
+            states={meta.states}
+            value={issue.state?.id}
+            onChange={(stateId) =>
+              guard(
+                issue,
+                meta.states.find((state) => state.id === stateId),
+                () => update({ stateId }),
+              )
+            }
+            showLabel={false}
+            className="px-1"
+          />
           <span className="w-24">
             <PriorityPicker
               chip
@@ -153,11 +169,13 @@ function IssueRow({ issue, slug, project, meta, openIssue }) {
             </span>
           )}
           <span className="truncate text-sm font-medium">{issue.title}</span>
+          <BlockedChip issue={issue} />
           {issue.subIssueCount > 0 && (
             <span className="shrink-0 font-mono text-[11px] text-muted-foreground" title="Subtareas completadas">
               ↳ {issue.completedSubIssueCount}/{issue.subIssueCount}
             </span>
           )}
+          <ChecklistChip issue={issue} />
         </span>
         <span className="flex items-center gap-1.5" onClick={stop} onKeyDown={stop}>
           {(meta.labels.length > 0 || issue.labels?.length > 0) && (

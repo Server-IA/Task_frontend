@@ -39,6 +39,8 @@ export function describeActivity({ field, oldValue, newValue }) {
       return newValue ? `agregó la tarea al módulo ${quote(newValue)}` : `quitó la tarea del módulo ${quote(oldValue)}`
     case 'COMMENT':
       return 'comentó'
+    case 'RELATION':
+      return newValue ? `agregó la relación ${quote(newValue)}` : `quitó la relación ${quote(oldValue ?? '')}`
     default:
       return 'actualizó la tarea'
   }
@@ -75,6 +77,10 @@ export function describeFeedEntry({ field, oldValue, newValue }, { stateGroup } 
     }
     case 'COMMENT':
       return { verb: 'comentó en', mark: '“', tone: 'neutral', quote: newValue ?? '' }
+    case 'RELATION': {
+      const phrase = relationPhrase(newValue ?? oldValue ?? '')
+      return neutral('marcó que', newValue ? phrase : `ya no ${phrase}`, '⊘')
+    }
     case 'ASSIGNEES':
       if (!newValue) return neutral('quitó los asignados de', undefined, '@')
       return neutral(oldValue ? 'cambió los asignados de' : 'asignó', `a ${newValue}`, '@')
@@ -102,4 +108,12 @@ export function describeFeedEntry({ field, oldValue, newValue }, { stateGroup } 
     default:
       return neutral('actualizó')
   }
+}
+
+/**
+ * Relación del historial vista desde la tarea, para la frase del feed: «bloquea WEB-12»,
+ * «está bloqueada por WEB-3» o «está relacionada con WEB-7».
+ */
+function relationPhrase(value) {
+  return value.startsWith('bloquea ') ? value : `está ${value}`
 }

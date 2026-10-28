@@ -8,16 +8,20 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Textarea } from '@/components/ui/textarea'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { CenteredSpinner, Spinner } from '@/components/common/Loaders'
 import { Segmented } from '@/components/common/Segmented'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { useActivity } from '@/features/issues/hooks'
+import { useMentionDraft, useMentionPeople } from '@/features/mentions/hooks'
+import { joinNames, mentionedIds } from '@/features/mentions/mentions'
+import { MentionText } from '@/features/mentions/MentionText'
+import { MentionTextarea } from '@/features/mentions/MentionTextarea'
 import { useCurrentWorkspace } from '@/features/workspaces/hooks'
 import { formatDateTime, formatRelative } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
 import { canDeleteComment } from '@/lib/permissions'
+import { cn } from '@/lib/utils'
 import { useSessionStore } from '@/stores/sessionStore'
 import { describeActivity } from './describeActivity'
 import { useComments, useCreateComment, useDeleteComment, useUpdateComment } from './hooks'
@@ -25,11 +29,13 @@ import { useComments, useCreateComment, useDeleteComment, useUpdateComment } fro
 /**
  * Comentarios e historial de la tarea en una sola línea de tiempo, con filtro.
  * Las entradas COMMENT del historial no se repiten: el comentario ya aparece como tarjeta.
+ * Los comentarios admiten menciones («@» abre la lista de personas del proyecto).
  */
-export function IssueActivity({ slug, projectId, issueId }) {
+export function IssueActivity({ slug, projectId, issueId, issueCode }) {
   const [filter, setFilter] = useState('all')
   const comments = useComments(slug, projectId, issueId)
   const activity = useActivity(slug, projectId, issueId)
+  const people = useMentionPeople(slug, projectId)
 
   const timeline = useMemo(() => {
     const commentItems = (comments.data ?? []).map((comment) => ({ type: 'comment', at: comment.createdAt, comment }))
@@ -57,7 +63,7 @@ export function IssueActivity({ slug, projectId, issueId }) {
           {timeline.map((item) =>
             item.type === 'comment' ? (
               <li key={`c-${item.comment.id}`}>
-                <CommentCard slug={slug} projectId={projectId} issueId={issueId} comment={item.comment} />
+                <CommentCard slug={slug} projectId={projectId} issueId={issueId} comment={item.comment} people={people} />
               </li>
             ) : (
               <li key={`a-${item.entry.id}`}>
@@ -73,7 +79,7 @@ export function IssueActivity({ slug, projectId, issueId }) {
         </ol>
       )}
 
-      <CommentComposer slug={slug} projectId={projectId} issueId={issueId} />
+      <CommentComposer slug={slug} projectId={projectId} issueId={issueId} issueCode={issueCode} people={people} />
     </section>
   )
 }
@@ -100,21 +106,23 @@ function ActivityLine({ entry }) {
   )
 }
 
-function CommentCard({ slug, projectId, issueId, comment }) {
+function CommentCard({ slug, projectId, issueId, comment, people }) {
   const workspace = useCurrentWorkspace()
   const currentUserId = useSessionStore((state) => state.user?.id)
   const update = useUpdateComment(slug, projectId, issueId)
   const remove = useDeleteComment(slug, projectId, issueId)
   const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState(comment.body)
+  const draft = useMentionDraft(comment.body)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const isAuthor = comment.author?.id === currentUserId
   const canDelete = canDeleteComment(workspace?.myRole, comment, currentUserId)
   const edited = comment.updatedAt !== comment.createdAt
+  // Un comentario de otra persona que me menciona se resalta
+  const mentionsMe = !isAuthor && Boolean(currentUserId) && mentionedIds(comment.body).includes(currentUserId)
 
   const save = () => {
-    const body = draft.trim()
+    const body = draft.toBody().trim()
     if (!body || body === comment.body) {
       setEditing(false)
       return
@@ -128,55 +136,69 @@ function CommentCard({ slug, projectId, issueId, comment }) {
   return (
     <div className="flex gap-2.5">
       <UserAvatar user={comment.author} size="md" />
-      <div className="min-w-0 flex-1 rounded-xl border bg-card">
-        <div className="flex items-center gap-2 border-b px-3 py-1.5 text-xs">
+      <div
+        className={cn(
+          'min-w-0 flex-1 rounded-xl border bg-card',
+          mentionsMe && 'border-accent-text shadow-[0_0_0_3px_var(--accent-soft)]',
+        )}
+      >
+        <div className={cn('flex items-center gap-2 rounded-t-[11px] border-b px-3 py-1.5 text-xs', mentionsMe && 'bg-accent-soft')}>
           <span className="font-semibold">{comment.author?.fullName}</span>
           <span className="font-mono text-muted-foreground" title={formatDateTime(comment.createdAt)}>
             · {formatRelative(comment.createdAt)}
             {edited && ' · editado'}
           </span>
-          {(isAuthor || canDelete) && !editing && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="ml-auto size-6" aria-label="Acciones del comentario">
-                  <MoreHorizontal className="size-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {isAuthor && (
-                  <DropdownMenuItem
-                    onSelect={() => {
-                      setDraft(comment.body)
-                      setEditing(true)
-                    }}
-                  >
-                    <Pencil />
-                    Editar
-                  </DropdownMenuItem>
-                )}
-                {canDelete && (
-                  <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(true)}>
-                    <Trash2 />
-                    Eliminar
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+          <span className="ml-auto flex items-center gap-1.5">
+            {mentionsMe && <span className="font-semibold text-accent-text">te mencionó</span>}
+            {(isAuthor || canDelete) && !editing && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="size-6" aria-label="Acciones del comentario">
+                    <MoreHorizontal className="size-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {isAuthor && (
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        draft.reset(comment.body)
+                        setEditing(true)
+                      }}
+                    >
+                      <Pencil />
+                      Editar
+                    </DropdownMenuItem>
+                  )}
+                  {canDelete && (
+                    <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(true)}>
+                      <Trash2 />
+                      Eliminar
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </span>
         </div>
         {editing ? (
           <div className="space-y-2 p-2">
-            <Textarea
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              autoFocus
-              rows={3}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) save()
-                if (event.key === 'Escape') setEditing(false)
-              }}
-            />
-            <div className="flex justify-end gap-2">
+            <div className="rounded-lg border bg-background focus-within:ring-2 focus-within:ring-ring/40 dark:bg-input/30">
+              <MentionTextarea
+                draft={draft}
+                people={people}
+                label="Editar comentario"
+                autoFocus
+                rows={3}
+                maxLength={10000}
+                fieldClassName="px-3 py-2 text-sm leading-relaxed"
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) save()
+                }}
+                onEscape={() => setEditing(false)}
+              />
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <span className="mr-auto font-mono text-[11px] text-muted-foreground">@ mencionar · esc cancelar</span>
               <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
                 Cancelar
               </Button>
@@ -187,7 +209,9 @@ function CommentCard({ slug, projectId, issueId, comment }) {
             </div>
           </div>
         ) : (
-          <p className="px-3 py-2.5 text-sm leading-relaxed break-words whitespace-pre-wrap">{comment.body}</p>
+          <p className="px-3 py-2.5 text-sm leading-relaxed break-words whitespace-pre-wrap">
+            <MentionText body={comment.body} />
+          </p>
         )}
       </div>
       <ConfirmDialog
@@ -210,43 +234,54 @@ function CommentCard({ slug, projectId, issueId, comment }) {
   )
 }
 
-function CommentComposer({ slug, projectId, issueId }) {
+function CommentComposer({ slug, projectId, issueId, issueCode, people }) {
   const user = useSessionStore((state) => state.user)
   const create = useCreateComment(slug, projectId, issueId)
-  const [body, setBody] = useState('')
+  const draft = useMentionDraft()
+  const body = draft.toBody()
+
+  // Quiénes recibirán el aviso de la mención (quien escribe no se avisa a sí mismo)
+  const mentioned = mentionedIds(body)
+  const notified = people.filter((person) => person.id !== user?.id && mentioned.includes(person.id))
 
   const submit = () => {
     const text = body.trim()
     if (!text) return
-    create.mutate(text, { onSuccess: () => setBody(''), onError: (error) => notifyError(error) })
+    create.mutate(text, { onSuccess: () => draft.reset(), onError: (error) => notifyError(error) })
   }
 
   return (
-    <div className="flex gap-2.5">
-      <UserAvatar user={user} size="md" />
-      <div className="min-w-0 flex-1 rounded-xl border bg-card focus-within:ring-2 focus-within:ring-ring/40">
-        <label className="block">
-          <span className="sr-only">Escribe un comentario</span>
-          <textarea
-            value={body}
-            onChange={(event) => setBody(event.target.value)}
+    <div className="flex flex-col gap-1.5">
+      <div className="flex gap-2.5">
+        <UserAvatar user={user} size="md" />
+        <div className="min-w-0 flex-1 rounded-xl border bg-card focus-within:ring-2 focus-within:ring-ring/40">
+          <MentionTextarea
+            draft={draft}
+            people={people}
+            label="Escribe un comentario"
             placeholder="Escribe un comentario…"
-            rows={2}
             maxLength={10000}
-            className="block w-full resize-none bg-transparent px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground"
+            fieldClassName="px-3 py-2.5 text-sm leading-relaxed"
             onKeyDown={(event) => {
               if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) submit()
             }}
           />
-        </label>
-        <div className="flex items-center justify-between pt-1.5 pr-2 pb-2 pl-3">
-          <span className="font-mono text-[11px] text-muted-foreground">ctrl + enter para enviar</span>
-          <Button size="sm" className="rounded-[9px]" onClick={submit} disabled={!body.trim() || create.isPending}>
-            {create.isPending && <Spinner />}
-            Comentar
-          </Button>
+          <div className="flex items-center justify-between gap-2 pt-1.5 pr-2 pb-2 pl-3">
+            <span className="font-mono text-[11px] text-muted-foreground">@ mencionar · ctrl + enter enviar</span>
+            <Button size="sm" className="rounded-[9px]" onClick={submit} disabled={!body.trim() || create.isPending}>
+              {create.isPending && <Spinner />}
+              Comentar
+            </Button>
+          </div>
         </div>
       </div>
+      {notified.length > 0 && (
+        <p className="tf-fade ml-10.5 text-xs text-muted-foreground">
+          {joinNames(notified.map((person) => person.fullName.split(' ')[0]))}{' '}
+          {notified.length === 1 ? 'recibirá' : 'recibirán'} «{user?.fullName} te mencionó en {issueCode ?? 'la tarea'}» en su
+          bandeja.
+        </p>
+      )}
     </div>
   )
 }

@@ -61,3 +61,25 @@ describe('describeFeedEntry', () => {
     expect(describeFeedEntry({ field: 'DUE_DATE', oldValue: null, newValue: '2026-12-03' }).suffix).toMatch(/^al 3 dic/)
   })
 })
+
+describe('relaciones en el historial', () => {
+  it('describe la relación agregada o quitada', () => {
+    expect(describeActivity({ field: 'RELATION', oldValue: null, newValue: 'bloquea WEB-12' })).toBe(
+      'agregó la relación «bloquea WEB-12»',
+    )
+    expect(describeActivity({ field: 'RELATION', oldValue: 'bloqueada por WEB-3', newValue: null })).toBe(
+      'quitó la relación «bloqueada por WEB-3»',
+    )
+  })
+
+  it('en el feed se lee alrededor de la tarea', () => {
+    expect(describeFeedEntry({ field: 'RELATION', newValue: 'bloquea WEB-12' })).toMatchObject({
+      verb: 'marcó que',
+      suffix: 'bloquea WEB-12',
+    })
+    expect(describeFeedEntry({ field: 'RELATION', newValue: 'bloqueada por WEB-3' }).suffix).toBe('está bloqueada por WEB-3')
+    expect(describeFeedEntry({ field: 'RELATION', oldValue: 'relacionada con WEB-7', newValue: null }).suffix).toBe(
+      'ya no está relacionada con WEB-7',
+    )
+  })
+})

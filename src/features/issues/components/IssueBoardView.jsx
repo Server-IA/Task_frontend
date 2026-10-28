@@ -25,7 +25,10 @@ import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { BOARD_PAGE_SIZE } from '../constants'
 import { useIssues, useMoveIssue } from '../hooks'
+import { needsCriteriaConfirm } from '../issueFlags'
+import { useCriteriaGuard } from '../useCriteriaGuard'
 import { isClosed, useIssueUpdater } from '../useIssueHelpers'
+import { BlockedChip, ChecklistChip } from './IssueBadges'
 import { AssigneesPicker, DatePicker, LabelsPicker, PriorityPicker } from './PropertyPickers'
 
 /** Kanban: una columna por estado; las tarjetas se arrastran entre columnas y dentro de ellas. */
@@ -44,7 +47,14 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
   // Al soltar, la copia local se conserva hasta que la caché refleje el cambio (actualización optimista);
   // si se borrara de inmediato, la tarjeta volvería un instante a su columna original
   const [settlingFrom, setSettlingFrom] = useState(null)
-  if (settlingFrom && settlingFrom !== serverColumns) {
+  // Soltada en un estado completado con criterios sin marcar: queda ahí mientras se confirma
+  const [awaitingConfirm, setAwaitingConfirm] = useState(false)
+  const { guard, dialog: criteriaDialog } = useCriteriaGuard()
+  const serverColumnsRef = useRef(serverColumns)
+  useEffect(() => {
+    serverColumnsRef.current = serverColumns
+  })
+  if (settlingFrom && settlingFrom !== serverColumns && !awaitingConfirm) {
     setSettlingFrom(null)
     setDragColumns(null)
   }
@@ -152,17 +162,27 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
       issuesById[beforeIssueId]?.sortOrder,
       others.length ? Math.max(...others) : null,
     )
-    move.mutate(
-      {
-        issueId: active.id,
-        stateId: targetState,
-        afterIssueId,
-        beforeIssueId,
-        state: meta.states.find((state) => state.id === targetState),
-        sortOrder,
-      },
-      { onError: (moveError) => notifyError(moveError, 'No se pudo mover la tarea') },
-    )
+    const state = meta.states.find((item) => item.id === targetState)
+    const commit = () => {
+      setAwaitingConfirm(false)
+      // Lo que haya en caché ahora (pudo recargarse mientras se confirmaba): el cambio optimista lo reemplaza
+      setSettlingFrom(serverColumnsRef.current)
+      move.mutate(
+        { issueId: active.id, stateId: targetState, afterIssueId, beforeIssueId, state, sortOrder },
+        { onError: (moveError) => notifyError(moveError, 'No se pudo mover la tarea') },
+      )
+    }
+    if (issue.state.id !== targetState && needsCriteriaConfirm(issue, state)) {
+      setAwaitingConfirm(true)
+      guard(issue, state, commit, () => {
+        // Cancelado: la tarjeta vuelve a su columna
+        setAwaitingConfirm(false)
+        setSettlingFrom(null)
+        setDragColumns(null)
+      })
+      return
+    }
+    commit()
   }
 
   if (isLoading) {
@@ -221,6 +241,7 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
           document.body,
         )}
       </DndContext>
+      {criteriaDialog}
     </div>
   )
 }
@@ -314,6 +335,7 @@ function IssueCard({ issue, slug, project, meta, overlay = false }) {
         </span>
       </div>
       <h4 className="line-clamp-3 text-[14.5px] leading-snug font-medium">{issue.title}</h4>
+      <BlockedChip issue={issue} className="self-start" />
       {hasLabels && (
         <div onPointerDown={stop} onKeyDown={stop} onClick={stop}>
           <LabelsPicker
@@ -339,6 +361,7 @@ function IssueCard({ issue, slug, project, meta, overlay = false }) {
             ↳ {issue.completedSubIssueCount}/{issue.subIssueCount}
           </span>
         )}
+        <ChecklistChip issue={issue} />
         {!hasLabels && meta.labels.length > 0 && (
           <LabelsPicker compact labels={meta.labels} value={[]} onChange={(labelIds) => update({ labelIds })} className={revealOnHover} />
         )}
