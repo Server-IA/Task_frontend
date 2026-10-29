@@ -1,7 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useProjectMembers } from '@/features/projects/hooks'
 import { useMembers } from '@/features/workspaces/hooks'
-import { toEditable, toStored } from './mentions'
 
 /**
  * Personas que se pueden mencionar en un proyecto (las que reciben el aviso): sus miembros y los project managers
@@ -23,22 +22,4 @@ export function useMentionPeople(slug, projectId) {
     }
     return [...people.values()].sort((a, b) => a.fullName.localeCompare(b.fullName, 'es'))
   }, [projectMembers, workspaceMembers])
-}
-
-/**
- * Borrador de un comentario con menciones: `text` es lo que se ve («@Ana Gómez») y `mentions` las personas elegidas
- * de la lista; `toBody()` arma el cuerpo con los tokens para guardar.
- * @param {string} [initialBody] cuerpo guardado (al editar un comentario)
- */
-export function useMentionDraft(initialBody = '') {
-  const [draft, setDraft] = useState(() => toEditable(initialBody))
-  return {
-    text: draft.text,
-    mentions: draft.mentions,
-    setText: (text) => setDraft((current) => ({ ...current, text })),
-    /** Texto nuevo tras elegir a alguien de la lista. */
-    addMention: (text, mention) => setDraft((current) => ({ text, mentions: [...current.mentions, mention] })),
-    reset: (body = '') => setDraft(toEditable(body)),
-    toBody: () => toStored(draft.text, draft.mentions),
-  }
 }

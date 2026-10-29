@@ -857,7 +857,7 @@ export interface paths {
         head?: never;
         /**
          * Editar issue
-         * @description Edición parcial: los campos nulos no se modifican.
+         * @description Edición parcial: los campos nulos no se modifican. Con description y baseDescriptionVersion (la descriptionVersion de la que partió quien edita): si la descripción cambió después, responde 409 con code DESCRIPTION_CONFLICT, la descripción actual, su versión, quién la cambió y cuándo (DescriptionConflictResponse), y no cambia nada. Sin baseDescriptionVersion gana el último que guarda.
          */
         patch: operations["update_7"];
         trace?: never;
@@ -1692,6 +1692,11 @@ export interface components {
             project?: components["schemas"]["ProjectRefResponse"];
             title?: string;
             description?: string;
+            /** Format: int32 */
+            descriptionVersion?: number;
+            /** Format: date-time */
+            descriptionUpdatedAt?: string;
+            descriptionUpdatedBy?: components["schemas"]["UserSummaryResponse"];
             state?: components["schemas"]["StateResponse"];
             /** @enum {string} */
             priority?: "URGENT" | "HIGH" | "MEDIUM" | "LOW" | "NONE";
@@ -2040,6 +2045,23 @@ export interface components {
             clearParent?: boolean;
             clearStartDate?: boolean;
             clearDueDate?: boolean;
+            /** Format: int32 */
+            baseDescriptionVersion?: number;
+        };
+        DescriptionConflictResponse: {
+            /** Format: int32 */
+            status?: number;
+            code?: string;
+            message?: string;
+            description?: string;
+            /** Format: int32 */
+            descriptionVersion?: number;
+            descriptionUpdatedBy?: components["schemas"]["UserSummaryResponse"];
+            /** Format: date-time */
+            descriptionUpdatedAt?: string;
+            issue?: components["schemas"]["IssueResponse"];
+            /** Format: date-time */
+            timestamp?: string;
         };
         MoveIssueRequest: {
             /** Format: uuid */
@@ -2222,7 +2244,7 @@ export interface components {
             id?: string;
             actor?: components["schemas"]["UserSummaryResponse"];
             /** @enum {string} */
-            field?: "CREATED" | "TITLE" | "DESCRIPTION" | "STATE" | "PRIORITY" | "PARENT" | "START_DATE" | "DUE_DATE" | "ASSIGNEES" | "LABELS" | "CYCLE" | "MODULE" | "COMMENT" | "RELATION";
+            field?: "CREATED" | "TITLE" | "DESCRIPTION" | "STATE" | "PRIORITY" | "PARENT" | "START_DATE" | "DUE_DATE" | "ASSIGNEES" | "LABELS" | "CYCLE" | "MODULE" | "COMMENT" | "RELATION" | "DESCRIPTION_CHECKED" | "DESCRIPTION_UNCHECKED";
             oldValue?: string;
             newValue?: string;
             /** Format: date-time */
@@ -2327,7 +2349,7 @@ export interface components {
             id?: string;
             actor?: components["schemas"]["UserSummaryResponse"];
             /** @enum {string} */
-            field?: "CREATED" | "TITLE" | "DESCRIPTION" | "STATE" | "PRIORITY" | "PARENT" | "START_DATE" | "DUE_DATE" | "ASSIGNEES" | "LABELS" | "CYCLE" | "MODULE" | "COMMENT" | "RELATION";
+            field?: "CREATED" | "TITLE" | "DESCRIPTION" | "STATE" | "PRIORITY" | "PARENT" | "START_DATE" | "DUE_DATE" | "ASSIGNEES" | "LABELS" | "CYCLE" | "MODULE" | "COMMENT" | "RELATION" | "DESCRIPTION_CHECKED" | "DESCRIPTION_UNCHECKED";
             oldValue?: string;
             newValue?: string;
             /** Format: date-time */
@@ -4146,6 +4168,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["IssueResponse"];
+                };
+            };
+            /** @description La descripción cambió después de baseDescriptionVersion */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DescriptionConflictResponse"];
                 };
             };
         };

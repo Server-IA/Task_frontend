@@ -1,5 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/api/queryKeys'
+import { toApiError } from '@/lib/errors'
 import { issuesApi } from './api'
 
 /** Reemplaza un issue en todas las listas en caché del proyecto (sin esperar a recargarlas). */
@@ -93,25 +94,59 @@ export function useUpdateIssue(slug, projectId) {
 }
 
 /**
- * Guardar la descripción: `mutate(markdown)`. El editor guarda mientras se escribe, así que no recarga todo lo que
- * recarga una edición cualquiera (listas, ciclos, estadísticas): solo la tarea, sus filas en las listas y el
- * historial. La tarea en caché cambia al instante (las casillas marcadas sin entrar a editar se ven enseguida).
+ * El 409 de una descripción que otra persona cambió después de la versión de la que se partió:
+ * `{ description, version, by, at, issue }` (la descripción actual, su versión, quién la guardó, cuándo y la tarea
+ * completa). `null` si el error es otro.
+ * @returns {{ description: string, version: number, by: import('@/api/types').UserSummary | null, at: string | null, issue: import('@/api/types').IssueResponse } | null}
+ */
+export function descriptionConflict(error) {
+  const { status, code, data } = toApiError(error)
+  if (status !== 409 || code !== 'DESCRIPTION_CONFLICT' || !data) return null
+  return {
+    description: (data.description ?? '').trim(),
+    version: data.descriptionVersion ?? 0,
+    by: data.descriptionUpdatedBy ?? null,
+    at: data.descriptionUpdatedAt ?? null,
+    issue: data.issue,
+  }
+}
+
+/** Guarda en la caché la tarea que llegó, salvo que la caché ya tenga una descripción más nueva. */
+function keepNewest(queryClient, projectId, issue) {
+  const cached = queryClient.getQueryData(queryKeys.issue(issue.id))
+  if ((cached?.descriptionVersion ?? -1) > (issue.descriptionVersion ?? 0)) return
+  queryClient.setQueryData(queryKeys.issue(issue.id), issue)
+  replaceInLists(queryClient, projectId, issue)
+}
+
+/**
+ * Guardar la descripción: `mutate({ description, base })`. `base` es la `descriptionVersion` de la que se partió:
+ * si otra persona la guardó después, el backend responde 409 sin cambiar nada (ver `descriptionConflict`) y la caché
+ * queda con su versión. El editor guarda mientras se escribe, así que no recarga todo lo que recarga una edición
+ * cualquiera (listas, ciclos, estadísticas): solo la tarea, sus filas en las listas y el historial. La tarea en caché
+ * cambia al instante (las casillas marcadas sin entrar a editar se ven enseguida).
  */
 export function useSaveDescription(slug, projectId, issueId) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationKey: ['saveDescription', issueId],
-    mutationFn: (description) => issuesApi.update(slug, projectId, issueId, { description }),
-    onMutate: (description) => {
+    mutationFn: ({ description, base }) =>
+      issuesApi.update(slug, projectId, issueId, { description, baseDescriptionVersion: base ?? undefined }),
+    onMutate: async ({ description }) => {
+      // Una recarga en curso traería la versión de antes de este guardado
+      await queryClient.cancelQueries({ queryKey: queryKeys.issue(issueId) })
       queryClient.setQueryData(queryKeys.issue(issueId), (issue) => (issue ? { ...issue, description: description || null } : issue))
     },
     onSuccess: (issue) => {
-      queryClient.setQueryData(queryKeys.issue(issue.id), issue)
-      replaceInLists(queryClient, projectId, issue)
+      keepNewest(queryClient, projectId, issue)
       queryClient.invalidateQueries({ queryKey: queryKeys.activity(issueId) })
       queryClient.invalidateQueries({ queryKey: ['workspaceActivity'] })
     },
-    onError: () => queryClient.invalidateQueries({ queryKey: queryKeys.issue(issueId) }),
+    onError: (error) => {
+      const conflict = descriptionConflict(error)
+      if (conflict?.issue) keepNewest(queryClient, projectId, conflict.issue)
+      else queryClient.invalidateQueries({ queryKey: queryKeys.issue(issueId) })
+    },
   })
 }
 

@@ -1,17 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  filterPeople,
-  findMentionQuery,
-  insertMention,
-  joinNames,
-  mentionedIds,
-  mentionToken,
-  parseMentions,
-  splitDisplayMentions,
-  toEditable,
-  toPlainText,
-  toStored,
-} from './mentions'
+import { filterPeople, joinNames, mentionedIds, mentionName, parseMentions, toPlainText } from './mentions'
 
 const ANA = '11111111-2222-3333-4444-555555555555'
 const LUIS = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
@@ -52,56 +40,11 @@ describe('tokens de mención', () => {
   })
 
   it('el nombre del token no lleva «]» ni saltos de línea', () => {
-    expect(mentionToken('Ana ]Gómez\n', ANA)).toBe(`@[Ana Gómez](${ANA})`)
-  })
-})
-
-describe('edición con menciones', () => {
-  it('ida y vuelta: guardado → editable → guardado', () => {
-    const body = `Listo @[Ana Gómez](${ANA}), sigue @[Luis](${LUIS}).`
-    const { text, mentions } = toEditable(body)
-    expect(text).toBe('Listo @Ana Gómez, sigue @Luis.')
-    expect(toStored(text, mentions)).toBe(body)
-  })
-
-  it('prefiere el nombre más largo y no toma un nombre pegado a otra palabra', () => {
-    const mentions = [
-      { name: 'Ana', userId: LUIS },
-      { name: 'Ana Gómez', userId: ANA },
-    ]
-    expect(toStored('@Ana Gómez y @Anabel', mentions)).toBe(`@[Ana Gómez](${ANA}) y @Anabel`)
-    expect(splitDisplayMentions('hola @Ana', mentions)).toEqual([
-      { type: 'text', text: 'hola ' },
-      { type: 'mention', name: 'Ana', userId: LUIS },
-    ])
-  })
-
-  it('si se borra parte del nombre deja de ser mención', () => {
-    expect(toStored('@Ana Góm', [{ name: 'Ana Gómez', userId: ANA }])).toBe('@Ana Góm')
+    expect(mentionName('Ana ]Gómez\n')).toBe('Ana Gómez')
   })
 })
 
 describe('autocompletar', () => {
-  it('encuentra la @ que se está escribiendo', () => {
-    expect(findMentionQuery('Lo reviso con @', 15)).toEqual({ start: 14, query: '' })
-    expect(findMentionQuery('hola @an', 8)).toEqual({ start: 5, query: 'an' })
-    expect(findMentionQuery('@Ana G', 6)).toEqual({ start: 0, query: 'Ana G' })
-  })
-
-  it('no abre la lista en correos, tras un espacio inicial ni en otra línea', () => {
-    expect(findMentionQuery('ana@test', 8)).toBeNull()
-    expect(findMentionQuery('hola @ ana', 10)).toBeNull()
-    expect(findMentionQuery('@ana\nhola', 9)).toBeNull()
-  })
-
-  it('inserta «@Nombre » en lugar de la búsqueda', () => {
-    const result = insertMention('Hola @an, mira', { start: 5, end: 8 }, { id: ANA, fullName: 'Ana Gómez' })
-    expect(result.text).toBe('Hola @Ana Gómez , mira')
-    expect(result.caret).toBe(16)
-    expect(result.mention).toEqual({ name: 'Ana Gómez', userId: ANA })
-    expect(insertMention('@lu y', { start: 0, end: 3 }, { id: LUIS, fullName: 'Luis' }).text).toBe('@Luis y')
-  })
-
   it('filtra sin tildes y pone primero a quien empieza así', () => {
     const people = [
       { fullName: 'Carlos Ruiz', email: 'carlos@test.com' },

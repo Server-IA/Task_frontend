@@ -1,7 +1,10 @@
 import { formatShortDate } from '@/lib/dates'
+import { markdownToPlainText } from '@/features/editor/markdown/plainText'
 import { PRIORITY_LABELS } from '@/features/issues/constants'
 
 const quote = (value) => `«${value}»`
+/** Texto de una casilla de la descripción (se guarda en Markdown): en texto plano y corto. */
+const taskText = (value) => quote(markdownToPlainText(value ?? '', { maxLength: 80 }) || 'una casilla')
 const date = (value) => (value ? formatShortDate(value) : null)
 
 /**
@@ -17,6 +20,10 @@ export function describeActivity({ field, oldValue, newValue }) {
       return `cambió el título a ${quote(newValue)}`
     case 'DESCRIPTION':
       return 'editó la descripción'
+    case 'DESCRIPTION_CHECKED':
+      return `marcó ${taskText(newValue)} en la descripción`
+    case 'DESCRIPTION_UNCHECKED':
+      return `desmarcó ${taskText(newValue)} en la descripción`
     case 'STATE':
       return `cambió el estado de ${quote(oldValue)} a ${quote(newValue)}`
     case 'PRIORITY':
@@ -88,6 +95,10 @@ export function describeFeedEntry({ field, oldValue, newValue }, { stateGroup } 
       return neutral('cambió el título de')
     case 'DESCRIPTION':
       return neutral('editó la descripción de')
+    case 'DESCRIPTION_CHECKED':
+      return neutral(`marcó ${taskText(newValue)} en la descripción de`, undefined, '✓')
+    case 'DESCRIPTION_UNCHECKED':
+      return neutral(`desmarcó ${taskText(newValue)} en la descripción de`)
     case 'PRIORITY':
       return neutral('cambió la prioridad de', `a ${(PRIORITY_LABELS[newValue] ?? newValue ?? '').toLowerCase()}`)
     case 'PARENT':

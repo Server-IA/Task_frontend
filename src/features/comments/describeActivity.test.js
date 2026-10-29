@@ -24,6 +24,38 @@ describe('describeActivity', () => {
   })
 })
 
+describe('casillas de la descripción', () => {
+  it('marcar y desmarcar nombran la casilla, sin «editó la descripción»', () => {
+    expect(describeActivity({ field: 'DESCRIPTION_CHECKED', newValue: 'Plantilla del correo con el enlace' })).toBe(
+      'marcó «Plantilla del correo con el enlace» en la descripción',
+    )
+    expect(describeActivity({ field: 'DESCRIPTION_UNCHECKED', newValue: 'Enviar' })).toBe('desmarcó «Enviar» en la descripción')
+  })
+
+  it('el texto de la casilla se muestra sin el Markdown', () => {
+    expect(
+      describeActivity({
+        field: 'DESCRIPTION_CHECKED',
+        newValue: '**Revisar** el `token` con @[Ana Gómez](11111111-2222-3333-4444-555555555555)',
+      }),
+    ).toBe('marcó «Revisar el token con @Ana Gómez» en la descripción')
+  })
+
+  it('un texto largo se corta', () => {
+    const text = describeActivity({ field: 'DESCRIPTION_CHECKED', newValue: 'a'.repeat(200) })
+    expect(text).toMatch(/^marcó «a+…» en la descripción$/)
+    expect(text.length).toBeLessThan(110)
+  })
+
+  it('en el feed va alrededor de la tarea', () => {
+    expect(describeFeedEntry({ field: 'DESCRIPTION_CHECKED', newValue: 'Enviar' })).toMatchObject({
+      verb: 'marcó «Enviar» en la descripción de',
+      mark: '✓',
+    })
+    expect(describeFeedEntry({ field: 'DESCRIPTION_UNCHECKED', newValue: 'Enviar' }).verb).toBe('desmarcó «Enviar» en la descripción de')
+  })
+})
+
 describe('describeFeedEntry', () => {
   it('un cambio de estado muestra «de → a» y distingue cuando se completa', () => {
     expect(describeFeedEntry({ field: 'STATE', oldValue: 'En curso', newValue: 'En revisión' })).toMatchObject({

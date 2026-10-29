@@ -23,8 +23,22 @@ describe('Markdown: ida y vuelta', () => {
     ['salto de línea simple', 'línea uno\nlínea dos'],
     ['mención', `Lo vemos con @[Ana Gómez](${UUID}) mañana`],
     ['código de tarea', 'Igual que WEB-12 y que `WEB-13`'],
+    ['tabla dentro de un punto', '- Primer punto\n\n  | Campo | Valor |\n  | --- | --- |\n  | Navegador | Chrome |\n- Segundo'],
+    ['tabla dentro de un punto numerado', '1. Numerado\n\n   | Campo | Valor |\n   | --- | --- |\n   | a | b |\n2. Otro'],
+    ['tabla dentro de una casilla', '- [ ] Casilla con tabla\n\n  | Paso | Hecho |\n  | --- | --- |\n  | Uno | sí |\n- [x] Otra'],
   ])('%s', (_name, markdown) => {
     expect(roundTrip(markdown)).toBe(markdown)
+  })
+
+  it('una lista de tareas con líneas en blanco no deja «[ ]» en el texto (ni lo suma al guardar)', () => {
+    const markdown = '- [ ] Uno\n\n- [x] Dos'
+    const doc = markdownToDoc(markdown)
+    expect(doc.content[0].type).toBe('taskList')
+    expect(doc.content[0].content.map((item) => [item.attrs.checked, item.content[0].content[0].text])).toEqual([
+      [false, 'Uno'],
+      [true, 'Dos'],
+    ])
+    expect(roundTrip(roundTrip(markdown))).toBe('- [ ] Uno\n- [x] Dos')
   })
 
   it('los títulos se leen como títulos (el esqueleto de una plantilla)', () => {

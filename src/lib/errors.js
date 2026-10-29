@@ -1,18 +1,21 @@
 /**
  * Errores de la API normalizados al formato del backend:
- * `{ status, message, errors?, retryAfter? }`.
+ * `{ status, message, errors?, retryAfter?, code? }`; `data` es el cuerpo tal cual (por ejemplo, el 409 de una
+ * descripción que cambió trae la versión actual).
  */
 
 const NETWORK_MESSAGE = 'No se pudo conectar con el servidor. Revisa tu conexión.'
 const UNEXPECTED_MESSAGE = 'Ocurrió un error inesperado. Intenta de nuevo.'
 
 export class ApiError extends Error {
-  constructor({ status, message, errors = null, retryAfter = null }) {
+  constructor({ status, message, errors = null, retryAfter = null, code = null, data = null }) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.errors = errors
     this.retryAfter = retryAfter
+    this.code = code
+    this.data = data
   }
 }
 
@@ -32,6 +35,8 @@ export function toApiError(error) {
     message: data.message ?? UNEXPECTED_MESSAGE,
     errors: data.errors ?? null,
     retryAfter: retryAfterHeader ? Number(retryAfterHeader) : null,
+    code: data.code ?? null,
+    data,
   })
 }
 

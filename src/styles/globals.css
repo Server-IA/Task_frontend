@@ -373,6 +373,14 @@
   .tf-md td p {
     margin: 0;
   }
+  /* Una tabla dentro de un punto de una lista (o de una casilla): igual que las demás, separada del texto */
+  .tf-md li table,
+  .tf-md li .tableWrapper {
+    margin: 6px 0 10px;
+  }
+  .tf-md li .tableWrapper table {
+    margin: 0;
+  }
   /* Bloque de código: lenguaje y «Copiar» arriba */
   .tf-md .tf-md-code {
     margin: 0 0 14px;

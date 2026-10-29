@@ -1,4 +1,5 @@
 import { Extension, InputRule, Node } from '@tiptap/core'
+import { Code } from '@tiptap/extension-code'
 import { CodeBlock } from '@tiptap/extension-code-block'
 import { TaskItem, TaskList } from '@tiptap/extension-list'
 import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table'
@@ -111,6 +112,46 @@ const TaskFromBullet = Extension.create({
   },
 })
 
+/**
+ * Código en línea: Enter al final no lo lleva a la línea siguiente, y → al final sale del código con `exitMark` (sin
+ * el espacio que agrega TipTap con `exitable`).
+ */
+const InlineCode = Code.extend({ exitable: false, keepOnSplit: false })
+
+/** Marcas de las que se sale con → al final de la línea; del código, en cualquier lugar (como en Notion o Plane). */
+const EXIT_AT_LINE_END = new Set(['bold', 'italic', 'strike'])
+
+/**
+ * → con el cursor al final de una marca: lo que se escriba después va sin ella (el cursor no se mueve; un segundo →
+ * sí lo mueve). Para el código, en cualquier lugar donde la letra siguiente no sea código; para negrita, cursiva y
+ * tachado, solo al final de la línea (en medio del texto, → sigue moviendo el cursor como siempre).
+ * @param {import('@tiptap/pm/state').EditorState} state
+ * @param {(tr: import('@tiptap/pm/state').Transaction) => void} [dispatch]
+ */
+export function exitMark(state, dispatch) {
+  const { selection } = state
+  if (!selection.empty) return false
+  const $pos = selection.$from
+  if (!$pos.parent.isTextblock || $pos.parent.type.spec.code) return false
+  const active = state.storedMarks ?? $pos.marks()
+  const atLineEnd = $pos.parentOffset === $pos.parent.content.size
+  const next = $pos.nodeAfter?.marks ?? []
+  const leaving = active.filter(
+    (mark) => (mark.type.name === 'code' || (atLineEnd && EXIT_AT_LINE_END.has(mark.type.name))) && !mark.isInSet(next),
+  )
+  if (!leaving.length) return false
+  dispatch?.(state.tr.setStoredMarks(active.filter((mark) => !leaving.includes(mark))))
+  return true
+}
+
+const MarkExit = Extension.create({
+  name: 'tfMarkExit',
+  priority: 1000,
+  addKeyboardShortcuts() {
+    return { ArrowRight: ({ editor }) => exitMark(editor.state, editor.view.dispatch) }
+  },
+})
+
 /** Atajos propios (antes que los de StarterKit). */
 function shortcuts(bridge) {
   return Extension.create({
@@ -140,7 +181,8 @@ function shortcuts(bridge) {
 /** Menú de sugerencias («/» o «@»): el estado y las teclas los maneja el componente. */
 function suggestion({ name, key, char, bridge, allow, allowSpaces = false }) {
   return Extension.create({
-    name,
+    // Otro nombre que el nodo (la mención también se llama «mention»)
+    name: `${name}Suggestion`,
     addProseMirrorPlugins() {
       return [
         Suggestion({
@@ -176,6 +218,7 @@ export function buildExtensions({ bridge, placeholder, meId }) {
     StarterKit.configure({
       heading: { levels: [1, 2, 3] },
       underline: false,
+      code: false,
       codeBlock: false,
       link: {
         openOnClick: false,
@@ -187,6 +230,8 @@ export function buildExtensions({ bridge, placeholder, meId }) {
       },
       dropcursor: { color: 'var(--ring)', width: 2 },
     }),
+    InlineCode,
+    MarkExit,
     CodeBlock.extend({
       addNodeView() {
         return ReactNodeViewRenderer(CodeBlockNodeView)

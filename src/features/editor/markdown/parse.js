@@ -108,6 +108,10 @@ function inline(tokens = [], marks = []) {
       case 'mention':
         nodes.push({ type: 'mention', attrs: { id: token.id, label: token.label } })
         break
+      case 'checkbox':
+        // La casilla de una lista de tareas «suelta» (con líneas en blanco, por ejemplo con una tabla dentro) llega
+        // dentro del primer párrafo: ya está en el elemento de la lista (`item.task`), no es texto
+        break
       case 'html':
         // El HTML no se interpreta
         nodes.push(text(token.raw ?? token.text, marks))
