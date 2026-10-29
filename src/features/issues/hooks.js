@@ -1,4 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { forgetQueries } from '@/api/forgetQueries'
 import { queryKeys } from '@/api/queryKeys'
 import { toApiError } from '@/lib/errors'
 import { issuesApi } from './api'
@@ -92,6 +93,38 @@ export function issueChangeFilters(projectId, issueId, fields = null) {
 /** Lo que cambia cuando cambia un issue (ver `issueChangeFilters`). */
 function invalidateAfterIssueChange(queryClient, projectId, issueId, fields = null) {
   for (const filter of issueChangeFilters(projectId, issueId, fields)) queryClient.invalidateQueries(filter)
+}
+
+/** Consultas propias de una tarea: la tarea y lo que se pide con su id. */
+const issueKeys = (issueId) => [
+  queryKeys.issue(issueId),
+  queryKeys.subIssues(issueId),
+  queryKeys.relations(issueId),
+  queryKeys.checklist(issueId),
+  queryKeys.activity(issueId),
+  queryKeys.comments(issueId),
+]
+
+/** Si la consulta es de la tarea `issueId` (una de `issueKeys`). */
+function isIssueQuery(query, issueId) {
+  const [scope, id] = query.queryKey
+  return id === issueId && issueKeys(issueId).some(([key]) => key === scope)
+}
+
+/**
+ * Tras borrar una tarea: olvida sus consultas (ver forgetQueries; la página completa o el panel que la mostraba
+ * navega o se cierra justo después) y recarga lo demás que cambia, sin volver a pedir nada de la tarea borrada:
+ * cada pedido sería un 404.
+ */
+export function forgetIssue(queryClient, projectId, issueId) {
+  forgetQueries(queryClient, issueKeys(issueId))
+  for (const filter of issueChangeFilters(projectId)) {
+    const { predicate } = filter
+    queryClient.invalidateQueries({
+      ...filter,
+      predicate: (query) => !isIssueQuery(query, issueId) && (!predicate || predicate(query)),
+    })
+  }
 }
 
 export function useIssues(slug, projectId, params, { enabled = true } = {}) {
@@ -285,10 +318,7 @@ export function useDeleteIssue(slug, projectId) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (issueId) => issuesApi.remove(slug, projectId, issueId),
-    onSuccess: (_data, issueId) => {
-      queryClient.removeQueries({ queryKey: queryKeys.issue(issueId) })
-      invalidateAfterIssueChange(queryClient, projectId)
-    },
+    onSuccess: (_data, issueId) => forgetIssue(queryClient, projectId, issueId),
   })
 }
 

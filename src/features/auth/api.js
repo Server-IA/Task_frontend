@@ -20,6 +20,9 @@ export const authApi = {
 
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }).then(data),
 
+  /** Comprueba el enlace sin usarlo: 204 si sirve, 400 si no es válido, ya se usó o venció. */
+  validateResetToken: (token) => api.get('/auth/reset-password/validate', { params: { token } }).then(() => true),
+
   resetPassword: (body) => api.post('/auth/reset-password', body).then(data),
 }
 

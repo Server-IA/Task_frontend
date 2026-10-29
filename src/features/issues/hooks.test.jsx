@@ -4,10 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { queryKeys } from '@/api/queryKeys'
 import { ApiError } from '@/lib/errors'
 import { issuesApi } from './api'
-import { issueChangeFilters, useMoveIssue, useSaveDescription, useUpdateIssue } from './hooks'
+import { issueChangeFilters, useDeleteIssue, useIssue, useMoveIssue, useSaveDescription, useSubIssues, useUpdateIssue } from './hooks'
 import { useIssueUpdater } from './useIssueHelpers'
 
-vi.mock('./api', () => ({ issuesApi: { update: vi.fn(), move: vi.fn() } }))
+vi.mock('./api', () => ({
+  issuesApi: { update: vi.fn(), move: vi.fn(), get: vi.fn(), subIssues: vi.fn(), remove: vi.fn() },
+}))
 
 const deferred = () => {
   let resolve
@@ -57,6 +59,75 @@ describe('issueChangeFilters', () => {
 
   it('la fecha límite recarga los conteos del proyecto (vencidas)', () => {
     expect(keysOf(issueChangeFilters('p1', 'i1', ['clearDueDate']))).toContain('["project"]')
+  })
+})
+
+describe('useDeleteIssue', () => {
+  beforeEach(() => vi.resetAllMocks())
+
+  /** La página (o el panel) de la tarea i1, hija de «padre», con el botón de borrar. */
+  function renderIssuePage(queryClient, wrapper) {
+    queryClient.setQueryData(queryKeys.issue('i1'), { id: 'i1', parentId: 'padre' })
+    queryClient.setQueryData(queryKeys.subIssues('i1'), [])
+    queryClient.setQueryData(queryKeys.relations('i1'), [])
+    queryClient.setQueryData(queryKeys.checklist('i1'), [])
+    queryClient.setQueryData(queryKeys.comments('i1'), [])
+    queryClient.setQueryData(queryKeys.activity('i1'), [])
+    queryClient.setQueryData(queryKeys.issue('padre'), { id: 'padre' })
+    queryClient.setQueryData(queryKeys.subIssues('padre'), [{ id: 'i1' }])
+    issuesApi.remove.mockResolvedValue({})
+    issuesApi.get.mockResolvedValue({ id: 'padre' })
+    issuesApi.subIssues.mockResolvedValue([])
+    return renderHook(
+      () => ({
+        issue: useIssue('acme', 'p1', 'i1'),
+        subIssues: useSubIssues('acme', 'p1', 'i1'),
+        parent: useIssue('acme', 'p1', 'padre'),
+        siblings: useSubIssues('acme', 'p1', 'padre'),
+        remove: useDeleteIssue('acme', 'p1'),
+      }),
+      { wrapper },
+    )
+  }
+
+  it('no vuelve a pedir la tarea borrada mientras la página se va (serían 404) y la olvida al irse', async () => {
+    const { queryClient, wrapper } = setup()
+    const { result, rerender, unmount } = renderIssuePage(queryClient, wrapper)
+
+    await act(() => result.current.remove.mutateAsync('i1'))
+    // La página vieja se vuelve a dibujar antes de navegar
+    rerender()
+    rerender()
+
+    // Lo demás sí se recarga: la tarea padre y sus subtareas
+    await waitFor(() => expect(issuesApi.subIssues).toHaveBeenCalledWith('acme', 'p1', 'padre'))
+    expect(issuesApi.get).toHaveBeenCalledWith('acme', 'p1', 'padre')
+    expect(issuesApi.get).not.toHaveBeenCalledWith('acme', 'p1', 'i1')
+    expect(issuesApi.subIssues).not.toHaveBeenCalledWith('acme', 'p1', 'i1')
+
+    unmount()
+    const cache = queryClient.getQueryCache()
+    for (const key of ['issue', 'subIssues', 'relations', 'checklist', 'comments', 'activity']) {
+      expect(cache.find({ queryKey: [key, 'i1'] })).toBeUndefined()
+    }
+    expect(issuesApi.get).not.toHaveBeenCalledWith('acme', 'p1', 'i1')
+    // Lo de las demás tareas sigue en el caché
+    expect(queryClient.getQueryData(queryKeys.issue('padre'))).toEqual({ id: 'padre' })
+  })
+
+  it('lo que nadie mira de la tarea borrada se borra enseguida', async () => {
+    const { queryClient, wrapper } = setup()
+    const { result } = renderIssuePage(queryClient, wrapper)
+
+    await act(() => result.current.remove.mutateAsync('i1'))
+
+    // Nadie mira sus relaciones, pasos, comentarios ni actividad en este render
+    const cache = queryClient.getQueryCache()
+    for (const key of ['relations', 'checklist', 'comments', 'activity']) {
+      expect(cache.find({ queryKey: [key, 'i1'] })).toBeUndefined()
+    }
+    // La tarea y sus subtareas siguen mientras la página las muestra
+    expect(queryClient.getQueryData(queryKeys.issue('i1'))).toEqual({ id: 'i1', parentId: 'padre' })
   })
 })
 

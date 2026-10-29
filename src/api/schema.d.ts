@@ -1469,6 +1469,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/reset-password/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Comprobar el enlace para restablecer la contraseña
+         * @description No usa el token: 204 si sirve; 400 (con el mismo mensaje que el restablecimiento) si falta, no es válido, ya se usó o venció.
+         */
+        get: operations["validateResetToken"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{slug}/projects/{projectId}/modules/{moduleId}/issues/{issueId}": {
         parameters: {
             query?: never;
@@ -5299,6 +5319,26 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["InvitationDetailsResponse"];
                 };
+            };
+        };
+    };
+    validateResetToken: {
+        parameters: {
+            query?: {
+                token?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

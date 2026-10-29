@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router'
+import { forgetQueries } from '@/api/forgetQueries'
 import { queryKeys } from '@/api/queryKeys'
 import { isManager } from '@/lib/permissions'
 import { usePreferencesStore } from '@/stores/preferencesStore'
@@ -43,23 +44,7 @@ const workspaceKeys = (slug) => [
  */
 export function forgetWorkspace(queryClient, slug) {
   queryClient.setQueryData(queryKeys.workspaces, (list) => list?.filter((workspace) => workspace.slug !== slug))
-  const cache = queryClient.getQueryCache()
-  const watched = new Set()
-  for (const key of workspaceKeys(slug)) {
-    queryClient.cancelQueries({ queryKey: key })
-    for (const query of cache.findAll({ queryKey: key })) {
-      if (query.getObserversCount() > 0) watched.add(query)
-      else cache.remove(query)
-    }
-  }
-  if (watched.size > 0) {
-    const unsubscribe = cache.subscribe((event) => {
-      if (event.type !== 'observerRemoved' || !watched.has(event.query) || event.query.getObserversCount() > 0) return
-      watched.delete(event.query)
-      cache.remove(event.query)
-      if (watched.size === 0) unsubscribe()
-    })
-  }
+  forgetQueries(queryClient, workspaceKeys(slug))
   if (usePreferencesStore.getState().lastWorkspaceSlug === slug) {
     usePreferencesStore.getState().setLastWorkspaceSlug(null)
   }

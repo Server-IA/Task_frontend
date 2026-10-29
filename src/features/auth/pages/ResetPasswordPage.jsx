@@ -9,13 +9,14 @@ import { PasswordRules } from '@/components/common/PasswordRules'
 import { Spinner } from '@/components/common/Loaders'
 import { useUrlToken } from '@/hooks/useUrlToken'
 import { AuthCard, AuthHeader, AuthIcon, CenteredShell } from '@/layouts/AuthLayout'
-import { applyFieldErrors } from '@/lib/errors'
+import { applyFieldErrors, toApiError } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
-import { useResetPassword } from '../hooks'
+import { useResetPassword, useValidateResetToken } from '../hooks'
 import { resetPasswordSchema } from '../schemas'
 
 export function ResetPasswordPage() {
   const token = useUrlToken()
+  const validation = useValidateResetToken(token)
   const reset = useResetPassword()
   const form = useForm({
     resolver: zodResolver(resetPasswordSchema),
@@ -23,6 +24,10 @@ export function ResetPasswordPage() {
   })
   const [newPassword, confirmPassword] = useWatch({ control: form.control, name: ['newPassword', 'confirmPassword'] })
   const matches = Boolean(confirmPassword) && confirmPassword === newPassword
+  // Solo un 400 dice que el enlace no sirve; si falla otra cosa (red, demasiados intentos) se muestra el formulario
+  // y, si el enlace no sirviera, lo dirá el restablecimiento
+  const invalid = !token || (validation.isError && toApiError(validation.error).status === 400)
+  const checking = Boolean(token) && validation.isPending
 
   const onSubmit = ({ newPassword: password }) => {
     reset.mutate(
@@ -38,18 +43,28 @@ export function ResetPasswordPage() {
   return (
     <CenteredShell meta="~/acceso/restablecer">
       <AuthCard>
-        {!token && (
+        {checking && (
+          <div className="flex flex-col items-center gap-3 py-8">
+            <Spinner className="size-6 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Comprobando el enlace…</p>
+          </div>
+        )}
+        {invalid && (
           <>
             <AuthIcon tone="late">
               <X className="size-7" strokeWidth={2.6} />
             </AuthIcon>
-            <AuthHeader size="md" title="Enlace inválido" description="Pide un nuevo enlace para restablecer tu contraseña." />
+            <AuthHeader
+              size="md"
+              title="Este enlace no es válido o ya venció"
+              description="Pide un nuevo enlace para restablecer tu contraseña."
+            />
             <Button asChild className="h-11 rounded-xl">
               <Link to="/forgot-password">Pedir un enlace nuevo</Link>
             </Button>
           </>
         )}
-        {token && reset.isSuccess && (
+        {!checking && !invalid && reset.isSuccess && (
           <>
             <AuthIcon tone="ok">
               <Check className="size-7" strokeWidth={2.6} />
@@ -64,7 +79,7 @@ export function ResetPasswordPage() {
             </Button>
           </>
         )}
-        {token && !reset.isSuccess && (
+        {!checking && !invalid && !reset.isSuccess && (
           <>
             <p className="flex items-center gap-2 self-start rounded-full bg-muted px-2.5 py-1 font-mono text-[11px] text-muted-foreground">
               <span aria-hidden="true" className="size-1.5 rounded-full bg-ok-dot" />

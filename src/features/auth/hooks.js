@@ -31,6 +31,23 @@ export function useForgotPassword() {
   return useMutation({ mutationFn: authApi.forgotPassword })
 }
 
+/**
+ * Comprueba al abrir la página que el enlace para restablecer la contraseña sirve (sin gastarlo). No se reintenta ni
+ * se vuelve a pedir: el resultado solo cambia al usarlo, y el token no se guarda en el caché más de lo necesario.
+ */
+export function useValidateResetToken(token) {
+  return useQuery({
+    queryKey: ['resetPasswordToken', token],
+    queryFn: () => authApi.validateResetToken(token),
+    enabled: Boolean(token),
+    retry: false,
+    staleTime: Infinity,
+    gcTime: 0,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  })
+}
+
 export function useResetPassword() {
   return useMutation({ mutationFn: authApi.resetPassword })
 }
