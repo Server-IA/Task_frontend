@@ -27,6 +27,8 @@ import { useIsManager } from '@/features/workspaces/hooks'
 import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
+import { TypeIcon } from '@/features/issues/components/IssueTypeBits'
+import { ISSUE_TYPES, templateType, TYPE_LABELS } from '@/features/issues/issueTypes'
 import { checklistLabel, templateSummary, usesLabel } from '../applyTemplate'
 import { useCreateTemplate, useDeleteTemplate, useTemplates, useUpdateTemplate } from '../hooks'
 
@@ -38,6 +40,7 @@ const templateSchema = z.object({
   titlePrefix: z.string().max(40, 'Máximo 40 caracteres'),
   description: z.string().max(50000, 'La descripción es demasiado larga'),
   priority: z.string(),
+  type: z.enum(['STORY', 'TASK', 'BUG']),
   stateId: z.string().nullable(),
   assigneeIds: z.array(z.string()).max(20, 'Máximo 20 asignados'),
   labelIds: z.array(z.string()).max(20, 'Máximo 20 etiquetas'),
@@ -52,6 +55,7 @@ const EMPTY_VALUES = {
   titlePrefix: '',
   description: '',
   priority: 'NONE',
+  type: 'TASK',
   stateId: null,
   assigneeIds: [],
   labelIds: [],
@@ -64,6 +68,7 @@ const toFormValues = (template) => ({
   titlePrefix: template.titlePrefix ?? '',
   description: template.description ?? '',
   priority: template.priority ?? 'NONE',
+  type: templateType(template),
   stateId: template.state?.id ?? null,
   assigneeIds: (template.assignees ?? []).map((user) => user.id),
   labelIds: (template.labels ?? []).map((label) => label.id),
@@ -150,6 +155,7 @@ export function TemplatesSettings({ slug, project }) {
                           >
                             {template.name.trim()[0]?.toUpperCase()}
                           </span>
+                          <TypeIcon type={templateType(template)} size={14} />
                           <span className="min-w-0 flex-1 truncate font-semibold">{template.name}</span>
                           <span
                             className={cn(
@@ -363,6 +369,37 @@ function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted
           Así queda: <span className="font-mono whitespace-pre-wrap text-foreground">{values.titlePrefix}Título de la tarea</span>
         </p>
       )}
+      <div className="flex flex-col gap-1.5">
+        <p className="text-xs font-medium text-muted-foreground">Crea una</p>
+        <div role="radiogroup" aria-label="Tipo de la tarea que crea" className="flex flex-wrap items-center gap-1.5">
+          {ISSUE_TYPES.map((option) => {
+            const checked = values.type === option.value
+            if (readOnly && !checked) return null
+            return (
+              <button
+                key={option.value}
+                type="button"
+                role="radio"
+                aria-checked={checked}
+                disabled={readOnly}
+                onClick={() => form.setValue('type', option.value, { shouldDirty: true })}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-full border px-3 py-1 text-[13px] font-medium disabled:cursor-default',
+                  checked ? 'border-accent-text bg-accent-soft font-semibold text-accent-text' : 'bg-card hover:border-dash',
+                )}
+              >
+                <TypeIcon type={option.value} size={14} />
+                {TYPE_LABELS[option.value]}
+              </button>
+            )
+          })}
+          {!readOnly && (
+            <span className="text-xs text-muted-foreground">
+              {values.type === 'STORY' ? 'solo el project manager crea historias' : 'al elegir la plantilla, la tarea toma este tipo'}
+            </span>
+          )}
+        </div>
+      </div>
       <SkeletonField
         value={values.description ?? ''}
         onChange={(description) => {

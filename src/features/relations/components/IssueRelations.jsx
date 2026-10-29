@@ -6,6 +6,7 @@ import { Command, CommandItem, CommandList } from '@/components/ui/command'
 import { CenteredSpinner, Spinner } from '@/components/common/Loaders'
 import { StateIcon } from '@/components/common/StateIcon'
 import { UserAvatar } from '@/components/common/UserAvatar'
+import { IssueTypeIcon } from '@/features/issues/components/IssueTypeBits'
 import { useIssues } from '@/features/issues/hooks'
 import { blockedCount, joinCodes } from '@/features/issues/issueFlags'
 import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
@@ -252,6 +253,7 @@ function RelationRow({ relation, first, slug, projectId, onOpenIssue, onRemove }
       ) : (
         <Lock className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
       )}
+      <IssueTypeIcon issue={other} size={14} />
       {external && <ProjectIcon project={other.project} />}
       <span className="shrink-0 font-mono text-xs text-muted-foreground">{other.code}</span>
       {accessible ? (
@@ -415,6 +417,7 @@ function RelationAdder({ slug, projectId, issue, relatedIds, onClose }) {
                 className="group gap-2.5 rounded-[10px] px-2.5 py-2 data-[disabled=true]:opacity-60 data-[selected=true]:bg-accent-soft"
               >
                 <ProjectIcon project={project} className="min-w-10" />
+                <IssueTypeIcon issue={candidate} size={14} />
                 <span className="w-14 shrink-0 font-mono text-xs text-muted-foreground">{candidate.code}</span>
                 <span className="min-w-0 flex-1 truncate font-medium" title={project.name ? `${candidate.title} · ${project.name}` : candidate.title}>
                   {candidate.title}

@@ -1,17 +1,21 @@
 import { useCallback, useMemo } from 'react'
 import { useSearchParams } from 'react-router'
 import { usePreferencesStore } from '@/stores/preferencesStore'
-import { GROUP_BY_DEFAULT, GROUP_BY_OPTIONS, SAVED_VIEW_PARAM } from './constants'
+import { BOARD_GROUP_OPTIONS, GROUP_BY_DEFAULT, GROUP_BY_OPTIONS, SAVED_VIEW_PARAM } from './constants'
+import { effectiveTypes, typeParam, typesToUrl } from './issueTypes'
 
-const MULTI_KEYS = ['state', 'priority', 'assignee', 'label']
+const MULTI_KEYS = ['state', 'priority', 'assignee', 'label', 'type']
 /** Filtros de un solo valor (id del ciclo o del módulo). */
 const SINGLE_KEYS = ['cycle', 'module']
-const GROUP_VALUES = new Set(GROUP_BY_OPTIONS.map((option) => option.value))
+const GROUP_VALUES = new Set([...GROUP_BY_OPTIONS, ...BOARD_GROUP_OPTIONS].map((option) => option.value))
 
 /**
  * Filtros, orden, agrupación, página, vista e issue abierto, guardados en la URL
  * (así un enlace comparte exactamente la misma vista).
  * Los filtros sin valor quedan `undefined` (no viajan a la API): `blocked=false` pediría «solo las no bloqueadas».
+ * El tipo (`?type=`) tiene un valor por defecto: sin él se ven las tareas y los bugs (no las historias); `type=all`
+ * muestra los tres. `filters.type` son los valores de la URL tal cual, `types` los tipos que se ven y `queryFilters`
+ * lo que se manda a la API (con `type` ya resuelto).
  */
 export function useIssueFilters() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -24,6 +28,7 @@ export function useIssueFilters() {
       priority: searchParams.getAll('priority'),
       assignee: searchParams.getAll('assignee'),
       label: searchParams.getAll('label'),
+      type: searchParams.getAll('type'),
       search: searchParams.get('search') ?? '',
       cycle: searchParams.get('cycle') || undefined,
       module: searchParams.get('module') || undefined,
@@ -31,6 +36,9 @@ export function useIssueFilters() {
     }),
     [searchParams],
   )
+
+  const types = useMemo(() => effectiveTypes(filters.type), [filters.type])
+  const queryFilters = useMemo(() => ({ ...filters, type: typeParam(types) }), [filters, types])
 
   const view = searchParams.get('view') ?? preferredView
   const sort = searchParams.get('sort') ?? 'sortOrder,asc'
@@ -64,7 +72,8 @@ export function useIssueFilters() {
           return
         }
         const list = Array.isArray(values) ? values : [values]
-        list.filter(Boolean).forEach((value) => params.append(key, value))
+        const stored = key === 'type' ? typesToUrl(list.filter(Boolean)) : list.filter(Boolean)
+        stored.forEach((value) => params.append(key, value))
       }),
     [update],
   )
@@ -80,14 +89,18 @@ export function useIssueFilters() {
   /** Reemplaza los parámetros por lo que devuelva `build(anteriores)` (lo usan las vistas guardadas). */
   const replaceParams = useCallback((build) => setSearchParams((previous) => build(previous), { replace: true }), [setSearchParams])
 
+  // El tipo por defecto (tareas y bugs) no cuenta como filtro puesto
   const activeCount =
-    MULTI_KEYS.reduce((total, key) => total + filters[key].length, 0) +
+    MULTI_KEYS.filter((key) => key !== 'type').reduce((total, key) => total + filters[key].length, 0) +
+    (typesToUrl(types).length > 0 ? 1 : 0) +
     SINGLE_KEYS.filter((key) => filters[key]).length +
     (filters.blocked ? 1 : 0) +
     (filters.search ? 1 : 0)
 
   return {
     filters,
+    types,
+    queryFilters,
     activeCount,
     view,
     sort,

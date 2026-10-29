@@ -15,9 +15,10 @@ export function ProjectLayout() {
   const { data: project, isLoading, error, refetch } = useProject(slug, projectId)
   const navigate = useNavigate()
 
-  // Atajos de la sidebar: I tareas, Y ciclos, D daily, M módulos, R hoja de ruta, S estadísticas, «,» ajustes
+  // Atajos de la sidebar: I tareas, H historias, Y ciclos, D daily, M módulos, R hoja de ruta, S estadísticas, «,» ajustes
   const base = `/${slug}/projects/${projectId}`
   useHotkey('i', useCallback(() => navigate(`${base}/issues`), [navigate, base]))
+  useHotkey('h', useCallback(() => navigate(`${base}/stories`), [navigate, base]))
   useHotkey('y', useCallback(() => navigate(`${base}/cycles`), [navigate, base]))
   useHotkey('d', useCallback(() => navigate(`${base}/daily`), [navigate, base]))
   useHotkey('m', useCallback(() => navigate(`${base}/modules`), [navigate, base]))

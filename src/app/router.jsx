@@ -21,6 +21,7 @@ import { ProfilePage } from '@/features/profile/ProfilePage'
 import { ProjectLayout } from '@/features/projects/pages/ProjectLayout'
 import { ProjectSettingsPage } from '@/features/projects/pages/ProjectSettingsPage'
 import { StatsPage } from '@/features/stats/pages/StatsPage'
+import { StoriesPage } from '@/features/stories/pages/StoriesPage'
 import { HomeRedirect } from '@/features/workspaces/pages/HomeRedirect'
 import { InvitationPage } from '@/features/workspaces/pages/InvitationPage'
 import { OnboardingPage } from '@/features/workspaces/pages/OnboardingPage'
@@ -78,6 +79,7 @@ export const router = createBrowserRouter([
                       { index: true, element: <Navigate to="issues" replace /> },
                       { path: 'issues', element: <IssuesPage /> },
                       { path: 'issues/:issueId', element: <IssuePage /> },
+                      { path: 'stories', element: <StoriesPage /> },
                       { path: 'cycles', element: <PlanningListPage kind="cycles" key="cycles" /> },
                       { path: 'cycles/:itemId', element: <PlanningDetailPage kind="cycles" key="cycle" /> },
                       { path: 'cycles/:itemId/retro', element: <RetroPage /> },

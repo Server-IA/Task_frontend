@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowLeft, Ban, Check, CircleDot, Flag, Layers, RefreshCw, Tag, UserRound, X } from 'lucide-react'
+import { Link } from 'react-router'
+import { ArrowLeft, Ban, Check, CircleDot, Flag, Layers, RefreshCw, Shapes, Tag, UserRound, X } from 'lucide-react'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ColorDot } from '@/components/common/LabelChip'
@@ -10,12 +11,14 @@ import { useHotkey } from '@/hooks/useHotkey'
 import { cn } from '@/lib/utils'
 import { PRIORITIES } from '../constants'
 import { FILTER_KINDS, splitFilters } from '../filterMenu'
+import { DEFAULT_TYPES, effectiveTypes, ISSUE_TYPES, isAllTypes } from '../issueTypes'
 import { PriorityIcon } from './PriorityIcon'
+import { TypeIcon } from './IssueTypeBits'
 
 const KINDS = Object.fromEntries(FILTER_KINDS.map((kind) => [kind.key, kind]))
 
 /** Ícono de cada filtro en el menú «+ filtro». */
-const KIND_ICONS = { state: CircleDot, priority: Flag, assignee: UserRound, label: Tag, cycle: RefreshCw, module: Layers, blocked: Ban }
+const KIND_ICONS = { state: CircleDot, priority: Flag, assignee: UserRound, label: Tag, type: Shapes, cycle: RefreshCw, module: Layers, blocked: Ban }
 
 /** Explicación de «bloqueadas» (en la pastilla y en el menú). */
 const BLOCKED_HINT = 'Solo las tareas que esperan a otra tarea abierta'
@@ -38,11 +41,14 @@ export function IssueFiltersBar({
   changed = [],
   onJumpToCode,
   codeExample = 'WEB-12',
+  storiesUrl,
+  hideType = false,
+  fixedChips,
   children,
 }) {
   const cycles = meta.cycles ?? []
   const modules = meta.modules ?? []
-  const { pills, menu } = splitFilters({
+  const split = splitFilters({
     filters,
     changed,
     compact,
@@ -50,6 +56,9 @@ export function IssueFiltersBar({
     hasCycles: cycles.length > 0,
     hasModules: modules.length > 0,
   })
+  // La vista «Bugs» fija el tipo
+  const pills = hideType ? split.pills.filter((key) => key !== 'type') : split.pills
+  const menu = hideType ? split.menu.filter((key) => key !== 'type') : split.menu
 
   /** Opciones de cada filtro de lista (los de un solo valor llevan `single`). */
   const optionsFor = (key) => {
@@ -102,8 +111,17 @@ export function IssueFiltersBar({
   return (
     <div className="flex flex-wrap items-center gap-2 px-1">
       <SearchBox value={filters.search} onChange={(value) => setFilter('search', value)} onJump={onJumpToCode} codeExample={codeExample} />
+      {fixedChips}
       {pills.map((key) =>
-        key === 'blocked' ? (
+        key === 'type' ? (
+          <TypeFilter
+            key={key}
+            types={effectiveTypes(filters.type)}
+            changed={changed.includes(key)}
+            onChange={(types) => setFilter('type', types)}
+            storiesUrl={storiesUrl}
+          />
+        ) : key === 'blocked' ? (
           <ToggleFilter
             key={key}
             title={KINDS[key].title}
@@ -131,6 +149,8 @@ export function IssueFiltersBar({
           valuesOf={valuesOf}
           onChange={setValues}
           onToggle={(key) => setFilter(key, true)}
+          types={effectiveTypes(filters.type)}
+          onTypes={(types) => setFilter('type', types)}
         />
       )}
       {activeCount > 1 && (
@@ -302,7 +322,7 @@ function MultiFilter({ title, options, values, onChange, changed = false, single
  * «+ filtro»: primero qué filtro agregar y después sus valores, en el mismo menú. «Bloqueadas» se pone de una vez.
  * Al elegir un valor, el filtro aparece como pastilla en la barra.
  */
-function AddFilterMenu({ kinds, optionsFor, valuesOf, onChange, onToggle }) {
+function AddFilterMenu({ kinds, optionsFor, valuesOf, onChange, onToggle, types, onTypes }) {
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState(null)
   const kind = step ? KINDS[step] : null
@@ -317,7 +337,19 @@ function AddFilterMenu({ kinds, optionsFor, valuesOf, onChange, onToggle }) {
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger className={DASHED_PILL}>+ filtro</PopoverTrigger>
       <PopoverContent className="w-60 p-0" align="start">
-        {kind ? (
+        {kind?.type === 'types' ? (
+          <div className="tf-fade">
+            <button
+              type="button"
+              onClick={() => setStep(null)}
+              className="flex w-full items-center gap-1.5 border-b px-3 py-2 text-left font-mono text-xs text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="size-3.5" aria-hidden="true" />
+              {kind.title}
+            </button>
+            <TypeOptions types={types} onChange={onTypes} />
+          </div>
+        ) : kind ? (
           <div className="tf-fade">
             <button
               type="button"
@@ -409,5 +441,122 @@ function ToggleFilter({ title, hint, active, onChange, changed = false }) {
       + {title}
       {changed && <ChangedMark />}
     </button>
+  )
+}
+
+/**
+ * Elegir tipos: Historia (no se mueve en el tablero), Tarea y Bug. Siempre queda al menos uno.
+ * @param {{ types: string[], onChange: (types: string[]) => void }} props
+ */
+function TypeOptions({ types, onChange }) {
+  const selected = new Set(types)
+  const toggle = (value) => {
+    const next = new Set(selected)
+    if (next.has(value)) next.delete(value)
+    else next.add(value)
+    if (next.size > 0) onChange(ISSUE_TYPES.map((type) => type.value).filter((type) => next.has(type)))
+  }
+  return (
+    <div role="group" aria-label="Tipos" className="flex flex-col p-1">
+      {ISSUE_TYPES.map((type) => {
+        const checked = selected.has(type.value)
+        return (
+          <button
+            key={type.value}
+            type="button"
+            role="checkbox"
+            aria-checked={checked}
+            onClick={() => toggle(type.value)}
+            className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm outline-none hover:bg-accent focus-visible:bg-accent"
+          >
+            <span
+              className={cn(
+                'flex size-4 shrink-0 items-center justify-center rounded-sm border',
+                checked && 'border-foreground bg-foreground text-background',
+              )}
+            >
+              {checked && <Check className="size-3" />}
+            </span>
+            <TypeIcon type={type.value} />
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span>{type.label}</span>
+              {type.value === 'STORY' && <span className="text-xs text-muted-foreground">no se mueven en el tablero</span>}
+            </span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+/**
+ * «tipo: ▣ Tarea, ▣ Bug ×»: los tipos que se ven. Por defecto tareas y bugs (las historias van en su sección); «×»
+ * quita el filtro y muestra los tres («+ tipo» punteado). Desde el menú se llega a «Historias».
+ */
+function TypeFilter({ types, changed, onChange, storiesUrl }) {
+  const [open, setOpen] = useState(false)
+  const all = isAllTypes(types)
+  const isDefault = !all && types.length === DEFAULT_TYPES.length && DEFAULT_TYPES.every((type) => types.includes(type))
+  const content = (
+    <PopoverContent className="w-64 p-0" align="start">
+      <p className="px-3 pt-2.5 font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase">Tipo</p>
+      <TypeOptions types={types} onChange={onChange} />
+      <div className="flex items-center justify-between gap-2 border-t px-3 py-2 text-xs">
+        {storiesUrl ? (
+          <Link to={storiesUrl} className="font-semibold text-accent-text underline underline-offset-2" onClick={() => setOpen(false)}>
+            Solo historias →
+          </Link>
+        ) : (
+          <span />
+        )}
+        <button type="button" className="text-muted-foreground hover:text-foreground" onClick={() => onChange(DEFAULT_TYPES)}>
+          Limpiar
+        </button>
+      </div>
+    </PopoverContent>
+  )
+
+  if (all) {
+    return (
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger className={cn(DASHED_PILL, changed && 'border-accent-text')}>
+          + tipo
+          {changed && <ChangedMark />}
+        </PopoverTrigger>
+        {content}
+      </Popover>
+    )
+  }
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <span
+        className={cn(
+          'tf-pop flex max-w-full items-center rounded-full text-[13px]',
+          isDefault ? 'border border-accent-text/50 bg-card text-foreground' : 'bg-foreground font-semibold text-background',
+        )}
+      >
+        <PopoverTrigger className="flex min-w-0 items-center gap-1.5 rounded-l-full py-1.5 pr-1 pl-3 outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <span className={cn('font-mono text-xs', isDefault ? 'text-muted-foreground' : 'opacity-80')}>tipo:</span>
+          {ISSUE_TYPES.filter((type) => types.includes(type.value)).map((type, index, list) => (
+            <span key={type.value} className="flex items-center gap-1">
+              <TypeIcon type={type.value} size={14} />
+              {type.label}
+              {index < list.length - 1 && ','}
+            </span>
+          ))}
+          {changed && <ChangedMark />}
+        </PopoverTrigger>
+        <button
+          type="button"
+          className="rounded-r-full py-1.5 pr-3 pl-1 opacity-70 hover:opacity-100"
+          onClick={() => onChange(ISSUE_TYPES.map((type) => type.value))}
+          aria-label="Quitar filtro de tipo (ver todos)"
+          title="Ver los tres tipos"
+        >
+          <X className="size-3.5" />
+        </button>
+      </span>
+      {content}
+    </Popover>
   )
 }

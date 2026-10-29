@@ -61,6 +61,19 @@
   --story-line: #eadbb8;
   --code-key: #7a5c1e;
   --code-str: #1d6b47;
+  /* Tipos de tarea: historia (violeta), tarea (azul) y bug (rojo); el glifo del icono va en blanco */
+  --ty-story: #7b5bd6;
+  --ty-story-soft: #efeafe;
+  --ty-story-text: #5b3fb8;
+  --ty-task: #2f78c4;
+  --ty-task-soft: #e1f0ff;
+  --ty-task-text: #1c4e86;
+  --ty-bug: #d93025;
+  --ty-bug-soft: #ffe4e0;
+  --ty-bug-text: #a3271c;
+  --ty-glyph: #ffffff;
+  /* Parte «en curso» de la barra de progreso de una historia */
+  --started: #d9700f;
 
   --sidebar: #ece9e3;
   --sidebar-foreground: #23201b;
@@ -123,6 +136,17 @@
   --story-line: #3a3224;
   --code-key: #e6d3a3;
   --code-str: #7ee2a8;
+  --ty-story: #a893ff;
+  --ty-story-soft: #2a2340;
+  --ty-story-text: #cdbeff;
+  --ty-task: #6ab0f0;
+  --ty-task-soft: #14283a;
+  --ty-task-text: #9ccbf5;
+  --ty-bug: #ff6b61;
+  --ty-bug-soft: #3d1a17;
+  --ty-bug-text: #ff8a80;
+  --ty-glyph: #12110f;
+  --started: #f6a35c;
 
   --sidebar: #0c0b0a;
   --sidebar-foreground: #f0ece4;
@@ -189,6 +213,17 @@
   --color-ok-box: var(--ok-box);
   --color-story: var(--story);
   --color-story-line: var(--story-line);
+  --color-ty-story: var(--ty-story);
+  --color-ty-story-soft: var(--ty-story-soft);
+  --color-ty-story-text: var(--ty-story-text);
+  --color-ty-task: var(--ty-task);
+  --color-ty-task-soft: var(--ty-task-soft);
+  --color-ty-task-text: var(--ty-task-text);
+  --color-ty-bug: var(--ty-bug);
+  --color-ty-bug-soft: var(--ty-bug-soft);
+  --color-ty-bug-text: var(--ty-bug-text);
+  --color-ty-glyph: var(--ty-glyph);
+  --color-started: var(--started);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-muted: var(--sidebar-muted);

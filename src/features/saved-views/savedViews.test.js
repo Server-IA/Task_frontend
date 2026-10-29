@@ -176,4 +176,24 @@ describe('vistas guardadas', () => {
     expect(canEditView({ shared: false, mine: true }, false)).toBe(true)
     expect(canEditView({ shared: false, mine: false }, true)).toBe(false)
   })
+
+  it('guarda, compara y aplica los tipos y los carriles por historia del tablero', () => {
+    const plain = toViewFilters({ filters: { ...empty, type: [] }, view: 'board', sort: 'sortOrder,asc' })
+    expect(plain.type).toBeNull()
+    const bugs = toViewFilters({ filters: { ...empty, type: ['BUG'] }, view: 'board', sort: 'sortOrder,asc', groupBy: 'story' })
+    expect(bugs).toMatchObject({ type: ['BUG'], groupBy: 'story' })
+    expect(toViewFilters({ filters: { ...empty, type: ['all'] }, view: 'list', sort: 'sortOrder,asc' }).type).toEqual(['STORY', 'TASK', 'BUG'])
+    expect(diffViewFilters({ type: null, view: 'board' }, plain)).toEqual([])
+    expect(diffViewFilters({ type: ['TASK', 'BUG'], view: 'board' }, plain)).toEqual([])
+    expect(diffViewFilters({ type: null, view: 'board' }, bugs)).toEqual(['type', 'groupBy'])
+    const params = applyViewToParams(new URLSearchParams('type=all'), { id: 'v', filters: { type: ['BUG'], groupBy: 'story', view: 'board' } })
+    expect(params.getAll('type')).toEqual(['BUG'])
+    expect(params.get('groupBy')).toBe('story')
+    expect(applyViewToParams(params, { id: 'w', filters: { type: null } }).getAll('type')).toEqual([])
+    expect(summarizeViewFilters({ type: ['BUG'], view: 'board', groupBy: 'story' }, { states: [], users: [], labels: [] })).toEqual([
+      { key: 'tipo', value: 'bug' },
+      { key: 'vista', value: 'tablero' },
+      { key: 'agrupar', value: 'carriles por historia' },
+    ])
+  })
 })

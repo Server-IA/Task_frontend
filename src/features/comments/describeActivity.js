@@ -1,11 +1,23 @@
 import { formatShortDate } from '@/lib/dates'
 import { markdownToPlainText } from '@/features/editor/markdown/plainText'
 import { PRIORITY_LABELS } from '@/features/issues/constants'
+import { TYPE_LABELS } from '@/features/issues/issueTypes'
 
 const quote = (value) => `«${value}»`
 /** Texto de una casilla de la descripción (se guarda en Markdown): en texto plano y corto. */
 const taskText = (value) => quote(markdownToPlainText(value ?? '', { maxLength: 80 }) || 'una casilla')
 const date = (value) => (value ? formatShortDate(value) : null)
+const typeName = (value) => TYPE_LABELS[value] ?? value
+
+/**
+ * Quién hizo el cambio: lo que TaskFlow hace solo (mover una historia cuando empieza su primera tarea) no tiene
+ * autor y se muestra como «TaskFlow».
+ * @param {{ field?: string, actor?: { fullName: string } | null }} entry
+ */
+export function activityActorName(entry) {
+  if (entry.field === 'STORY_AUTO_STATE') return 'TaskFlow'
+  return entry.actor?.fullName ?? 'Alguien'
+}
 
 /**
  * Frase legible para una entrada del historial (sin el nombre de quien la hizo).
@@ -48,6 +60,11 @@ export function describeActivity({ field, oldValue, newValue }) {
       return 'comentó'
     case 'RELATION':
       return newValue ? `agregó la relación ${quote(newValue)}` : `quitó la relación ${quote(oldValue ?? '')}`
+    case 'TYPE':
+      return `cambió el tipo de ${typeName(oldValue)} a ${typeName(newValue)}`
+    case 'STORY_AUTO_STATE':
+      // «TaskFlow movió la historia a In Progress · Luis empezó WEB-41»
+      return `movió la historia a ${newValue}${oldValue ? ` · ${oldValue}` : ''}`
     default:
       return 'actualizó la tarea'
   }
@@ -116,6 +133,10 @@ export function describeFeedEntry({ field, oldValue, newValue }, { stateGroup } 
       return newValue ? neutral('agregó', `al ciclo ${quote(newValue)}`) : neutral('quitó', `del ciclo ${quote(oldValue)}`)
     case 'MODULE':
       return newValue ? neutral('agregó', `al módulo ${quote(newValue)}`) : neutral('quitó', `del módulo ${quote(oldValue)}`)
+    case 'TYPE':
+      return neutral('cambió el tipo de', `a ${typeName(newValue).toLowerCase()}`)
+    case 'STORY_AUTO_STATE':
+      return neutral('movió la historia', `a ${newValue}${oldValue ? ` · ${oldValue}` : ''}`, '→')
     default:
       return neutral('actualizó')
   }

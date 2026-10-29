@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { describeActivity, describeFeedEntry } from './describeActivity'
+import { activityActorName, describeActivity, describeFeedEntry } from './describeActivity'
 
 describe('describeActivity', () => {
   it('describe cambios de estado y prioridad', () => {
@@ -113,5 +113,15 @@ describe('relaciones en el historial', () => {
     expect(describeFeedEntry({ field: 'RELATION', oldValue: 'relacionada con WEB-7', newValue: null }).suffix).toBe(
       'ya no está relacionada con WEB-7',
     )
+  })
+})
+
+describe('tipos e historias', () => {
+  it('el cambio de tipo y lo que TaskFlow hace solo con una historia', () => {
+    expect(describeActivity({ field: 'TYPE', oldValue: 'TASK', newValue: 'BUG' })).toBe('cambió el tipo de Tarea a Bug')
+    const auto = { field: 'STORY_AUTO_STATE', actor: null, oldValue: 'Luis empezó WEB-41', newValue: 'In Progress' }
+    expect(`${activityActorName(auto)} ${describeActivity(auto)}`).toBe('TaskFlow movió la historia a In Progress · Luis empezó WEB-41')
+    expect(activityActorName({ field: 'STATE', actor: null })).toBe('Alguien')
+    expect(describeFeedEntry(auto)).toMatchObject({ verb: 'movió la historia', suffix: 'a In Progress · Luis empezó WEB-41' })
   })
 })

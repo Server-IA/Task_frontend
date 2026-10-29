@@ -22,14 +22,25 @@ export const SORT_OPTIONS = [
   { value: 'title,asc', label: 'Título (A-Z)' },
 ]
 
-/** Cómo se agrupan las filas de la lista (el tablero siempre va por estado). Lo mismo acepta `groupBy` en las vistas guardadas. */
+/** Cómo se agrupan las filas de la lista. Lo mismo acepta `groupBy` en las vistas guardadas. */
 export const GROUP_BY_OPTIONS = [
   { value: 'state', label: 'Estado' },
   { value: 'priority', label: 'Prioridad' },
   { value: 'assignee', label: 'Asignado' },
   { value: 'label', label: 'Etiqueta' },
+  { value: 'type', label: 'Tipo' },
 ]
 export const GROUP_BY_DEFAULT = 'state'
+
+/**
+ * Agrupar del tablero: las columnas siempre son los estados; «historia» agrega un carril por historia (y «Sin
+ * historia»). Se guarda en el mismo `groupBy` (la lista ignora «story» y el tablero, los de la lista).
+ */
+export const BOARD_GROUP_OPTIONS = [
+  { value: 'state', label: 'Ninguno' },
+  { value: 'story', label: 'Historia' },
+]
+export const BOARD_GROUP_STORY = 'story'
 
 /** Tamaño de página del listado y de la carga del Kanban (el backend permite hasta 200). */
 export const LIST_PAGE_SIZE = 50

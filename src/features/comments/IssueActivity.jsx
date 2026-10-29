@@ -23,7 +23,7 @@ import { notifyError } from '@/lib/notify'
 import { canDeleteComment } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { useSessionStore } from '@/stores/sessionStore'
-import { describeActivity } from './describeActivity'
+import { activityActorName, describeActivity } from './describeActivity'
 import { useComments, useCreateComment, useDeleteComment, useUpdateComment } from './hooks'
 
 /**
@@ -119,9 +119,15 @@ const FILTERS = [
 function ActivityLine({ entry }) {
   return (
     <div className="flex items-start gap-2 pl-1.5 text-xs text-muted-foreground">
-      <UserAvatar user={entry.actor} size="xs" className="mt-px" />
+      {entry.field === 'STORY_AUTO_STATE' ? (
+        <span aria-hidden="true" className="mt-px flex size-5 shrink-0 items-center justify-center rounded-full bg-primary font-mono text-[8px] font-bold text-primary-foreground">
+          TF
+        </span>
+      ) : (
+        <UserAvatar user={entry.actor} size="xs" className="mt-px" />
+      )}
       <p className="min-w-0 flex-1">
-        <span className="font-semibold text-foreground">{entry.actor?.fullName ?? 'Alguien'}</span>{' '}
+        <span className="font-semibold text-foreground">{activityActorName(entry)}</span>{' '}
         {describeActivity(entry)}
         <span className="font-mono" title={formatDateTime(entry.createdAt)}>
           {' '}

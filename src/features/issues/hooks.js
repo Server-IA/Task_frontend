@@ -16,6 +16,9 @@ function replaceInLists(queryClient, projectId, issue) {
 function invalidateAfterIssueChange(queryClient, projectId, issueId) {
   queryClient.invalidateQueries({ queryKey: queryKeys.issuesOf(projectId) })
   queryClient.invalidateQueries({ queryKey: ['subIssues'] })
+  // Progreso, «lista para revisar» y bugs de las historias (cambian con sus tareas)
+  queryClient.invalidateQueries({ queryKey: ['stories'] })
+  queryClient.invalidateQueries({ queryKey: ['relations'] })
   queryClient.invalidateQueries({ queryKey: queryKeys.cycles(projectId) })
   queryClient.invalidateQueries({ queryKey: queryKeys.modules(projectId) })
   // Los conteos de tareas (abiertas, vencidas, subtareas) vienen en el proyecto y en las tareas padre
@@ -190,6 +193,12 @@ export function useDeleteIssue(slug, projectId) {
       invalidateAfterIssueChange(queryClient, projectId)
     },
   })
+}
+
+/** Lo mismo que al cambiar una tarea (para las mutaciones de las historias). */
+export function useInvalidateAfterIssueChange(projectId) {
+  const queryClient = useQueryClient()
+  return (issueId) => invalidateAfterIssueChange(queryClient, projectId, issueId)
 }
 
 export function useActivity(slug, projectId, issueId) {

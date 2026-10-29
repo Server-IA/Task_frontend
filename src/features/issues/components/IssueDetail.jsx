@@ -17,15 +17,18 @@ import { ErrorState } from '@/components/common/States'
 import { StateIcon } from '@/components/common/StateIcon'
 import { MarkdownView } from '@/features/editor/components/MarkdownView'
 import { useWorkspace } from '@/features/workspaces/hooks'
-import { formatDateTime, formatRelative } from '@/lib/dates'
+import { formatDateTime, formatRelative, formatShortDate } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
-import { canDeleteIssue } from '@/lib/permissions'
+import { canDeleteIssue, isManager as isManagerRole } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { useSessionStore } from '@/stores/sessionStore'
 import { useDeleteIssue, useIssue, useSubIssues } from '../hooks'
 import { useCriteriaGuard } from '../useCriteriaGuard'
+import { isStory, storyFlags, storyProgress, typeOf } from '../issueTypes'
 import { isOverdue, useIssueUpdater, useProjectMeta } from '../useIssueHelpers'
 import { CreateIssueDialog } from './CreateIssueDialog'
+import { ReadyBadge, TypePill, UnsplitBadge } from './IssueTypeBits'
+import { TypePicker } from './TypePicker'
 import { EditableText } from './EditableText'
 import { ParentPicker } from './ParentPicker'
 import { AssigneesPicker, DatePicker, LabelsPicker, PriorityPicker, StatePicker } from './PropertyPickers'
@@ -36,7 +39,9 @@ import { AssigneesPicker, DatePicker, LabelsPicker, PriorityPicker, StatePicker 
  * `renderDescription` (la descripción con su editor; recibe la tarea y `{ showMarkdown, onHideMarkdown }`),
  * `renderBanner` (aviso sobre el título), `renderSections` (criterios y checklist, antes de las subtareas),
  * `renderAfterSubIssues` (relaciones), `renderActivity` (comentarios e historial) y `renderProperties`
- * (filas extra de propiedades: ciclo, módulos, progreso).
+ * (filas extra de propiedades: ciclo, módulos, progreso). Para los tipos: `renderUnderTitle` (la historia de una
+ * tarea o un bug) y `renderChildren` (las tareas y bugs de una historia, en lugar de «Subtareas»; si devuelve null,
+ * van las subtareas de siempre).
  */
 export function IssueDetail({
   slug,
@@ -51,8 +56,12 @@ export function IssueDetail({
   renderAfterSubIssues,
   renderActivity,
   renderProperties,
+  renderUnderTitle,
+  renderChildren,
 }) {
   const { data: issue, isLoading, error, refetch } = useIssue(slug, project.id, issueId)
+  const { data: workspace } = useWorkspace(slug)
+  const manager = isManagerRole(workspace?.myRole)
   const meta = useProjectMeta(slug, project.id)
   const { update } = useIssueUpdater(slug, project.id, issueId)
   const { guard, dialog: criteriaDialog } = useCriteriaGuard()
@@ -65,6 +74,12 @@ export function IssueDetail({
   if (!issue) return null
 
   const pageUrl = `/${slug}/projects/${project.id}/issues/${issue.id}`
+  const story = isStory(issue)
+  const flags = story ? storyFlags(issue) : null
+  // Cerrar o reabrir una historia es del project manager: un miembro solo la mueve entre estados abiertos
+  const stateOptions =
+    story && !manager && !flags.closed ? meta.states.filter((state) => state.group !== 'COMPLETED' && state.group !== 'CANCELLED') : meta.states
+  const childrenSection = renderChildren?.(issue)
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -77,13 +92,15 @@ export function IssueDetail({
         onClose={onClose}
         showMarkdown={showMarkdown}
         onToggleMarkdown={() => setShowMarkdown((current) => !current)}
+        manager={manager}
+        onChangeType={(type) => update({ type })}
       />
 
       <div className="flex min-h-0 flex-1 flex-wrap overflow-y-auto">
         <div className="flex min-w-0 flex-[999_1_380px] flex-col gap-5.5 px-6 pt-5 pb-6">
           {renderBanner?.(issue)}
           <div>
-            {issue.parent && (
+            {issue.parent && issue.parent.type !== 'STORY' && (
               <button
                 type="button"
                 onClick={() => onOpenIssue(issue.parent.id)}
@@ -103,6 +120,7 @@ export function IssueDetail({
               placeholder="Título de la tarea"
             />
           </div>
+          {renderUnderTitle?.(issue)}
           {renderDescription ? (
             renderDescription(issue, { showMarkdown, onHideMarkdown: () => setShowMarkdown(false) })
           ) : (
@@ -111,13 +129,15 @@ export function IssueDetail({
 
           {renderSections?.(issue)}
 
-          <SubIssues
-            slug={slug}
-            projectId={project.id}
-            issueId={issue.id}
-            onOpenIssue={onOpenIssue}
-            onAdd={() => setSubIssueOpen(true)}
-          />
+          {childrenSection ?? (
+            <SubIssues
+              slug={slug}
+              projectId={project.id}
+              issueId={issue.id}
+              onOpenIssue={onOpenIssue}
+              onAdd={() => setSubIssueOpen(true)}
+            />
+          )}
 
           {renderAfterSubIssues?.(issue)}
 
@@ -126,9 +146,14 @@ export function IssueDetail({
 
         <aside className="flex flex-[1_1_240px] flex-col gap-1 border-l bg-column px-4.5 py-5">
           <p className="mb-2 font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase">Propiedades</p>
+          <PropertyRow label="Tipo">
+            <TypePill type={typeOf(issue)} className="ml-2" />
+          </PropertyRow>
           <PropertyRow label="Estado">
+            <span className="flex min-w-0 flex-col items-start">
             <StatePicker
-              states={meta.states}
+              states={stateOptions}
+              disabled={story && !manager && flags.closed}
               value={issue.state?.id}
               onChange={(stateId) =>
                 guard(
@@ -138,7 +163,34 @@ export function IssueDetail({
                 )
               }
             />
+            {story && (
+              <span className="-mt-1 pl-2 font-mono text-[10.5px] text-muted-foreground" title="El estado de la historia sigue a sus tareas">
+                {flags.closed ? 'cerrada' : 'automático'}
+              </span>
+            )}
+            </span>
           </PropertyRow>
+          {story && (
+            <PropertyRow label="Progreso">
+              <span className="flex flex-wrap items-center gap-1.5 px-2 text-xs">
+                {storyProgress(issue).total > 0 && <span>{storyProgress(issue).label}</span>}
+                {flags.unsplit && <UnsplitBadge />}
+                {flags.ready && <ReadyBadge className="whitespace-normal" />}
+                {flags.bugsAfterClose > 0 && (
+                  <span className="font-mono text-[11px] text-late">
+                    +{flags.bugsAfterClose} {flags.bugsAfterClose === 1 ? 'bug' : 'bugs'}
+                  </span>
+                )}
+              </span>
+            </PropertyRow>
+          )}
+          {story && issue.closedAt && (
+            <PropertyRow label="Cerrada por">
+              <span className="truncate px-2 text-xs">
+                {issue.closedBy?.fullName.split(' ')[0] ?? '—'} · {formatShortDate(issue.closedAt)}
+              </span>
+            </PropertyRow>
+          )}
           <PropertyRow label="Prioridad">
             <PriorityPicker value={issue.priority} onChange={(priority) => update({ priority })} />
           </PropertyRow>
@@ -173,7 +225,7 @@ export function IssueDetail({
               onChange={(dueDate) => update(dueDate ? { dueDate } : { clearDueDate: true })}
             />
           </PropertyRow>
-          <PropertyRow label="Padre">
+          <PropertyRow label={issue.parent?.type === 'STORY' ? 'Historia' : 'Padre'}>
             <ParentPicker
               slug={slug}
               projectId={project.id}
@@ -184,8 +236,14 @@ export function IssueDetail({
           {renderProperties?.(issue)}
           <div className="mt-3.5 space-y-0.5 border-t pt-3.5 font-mono text-[11px] leading-relaxed text-muted-foreground">
             <p title={formatDateTime(issue.createdAt)}>
-              creada{issue.createdBy ? ` por ${issue.createdBy.fullName.split(' ')[0]}` : ''} · {formatRelative(issue.createdAt)}
+              {story ? 'escrita' : 'creada'}
+              {issue.createdBy ? ` por ${issue.createdBy.fullName.split(' ')[0]}` : ''} · {formatRelative(issue.createdAt)}
             </p>
+            {story && issue.closedAt && (
+              <p title={formatDateTime(issue.closedAt)}>
+                cerrada{issue.closedBy ? ` por ${issue.closedBy.fullName.split(' ')[0]}` : ''} · {formatShortDate(issue.closedAt)}
+              </p>
+            )}
             <p title={formatDateTime(issue.updatedAt)}>actualizada {formatRelative(issue.updatedAt)}</p>
             {issue.checklistUpdatedAt && (
               <p title={formatDateTime(issue.checklistUpdatedAt)}>checklist actualizado {formatRelative(issue.checklistUpdatedAt)}</p>
@@ -215,7 +273,7 @@ export function PropertyRow({ label, children }) {
   )
 }
 
-function IssueTopBar({ slug, project, issue, variant, pageUrl, onClose, showMarkdown, onToggleMarkdown }) {
+function IssueTopBar({ slug, project, issue, variant, pageUrl, onClose, showMarkdown, onToggleMarkdown, manager, onChangeType }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const remove = useDeleteIssue(slug, project.id)
   const navigate = useNavigate()
@@ -250,9 +308,16 @@ function IssueTopBar({ slug, project, issue, variant, pageUrl, onClose, showMark
 
   return (
     <div className="flex shrink-0 items-center gap-2.5 border-b px-4 py-3">
-      <StateIcon group={issue.state?.group} color={issue.state?.color} />
+      <TypePicker issue={issue} isManager={manager} onChange={onChangeType} />
       <span className="font-mono text-[13px] text-muted-foreground">{issue.code}</span>
       <span className="hidden truncate font-mono text-xs text-muted-foreground sm:inline">· {project.name.toLowerCase()}</span>
+      <span className="flex shrink-0 items-center gap-1.5 text-[13px]">
+        <StateIcon group={issue.state?.group} color={issue.state?.color} />
+        {issue.state?.name}
+        {isStory(issue) && issue.state?.group !== 'COMPLETED' && issue.state?.group !== 'CANCELLED' && (
+          <span className="font-mono text-[11px] text-muted-foreground">automático</span>
+        )}
+      </span>
       {issue.assignees?.length > 0 && <AvatarStack users={issue.assignees} size="xs" className="ml-1" />}
       <div className="ml-auto flex items-center gap-1">
         <Button variant="ghost" size="icon" className={iconButton} onClick={copyLink} aria-label="Copiar enlace" title="Copiar enlace">

@@ -6,6 +6,7 @@ import { Spinner } from '@/components/common/Loaders'
 import { StateIcon } from '@/components/common/StateIcon'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { useIssues } from '../hooks'
+import { IssueTypeIcon } from './IssueTypeBits'
 import { PropertyButton } from './PropertyPickers'
 
 /** Elegir el issue padre buscando en el proyecto (por título o código). */
@@ -19,11 +20,15 @@ export function ParentPicker({ slug, projectId, issue, onChange, disabled }) {
     { search: debounced || undefined, size: 20, sort: 'sequenceId,desc' },
     { enabled: open },
   )
-  const candidates = (data?.content ?? []).filter((candidate) => candidate.id !== issue.id)
+  // Las historias primero (lo normal es que una tarea o un bug sea de una historia)
+  const candidates = (data?.content ?? [])
+    .filter((candidate) => candidate.id !== issue.id)
+    .sort((a, b) => (b.type === 'STORY') - (a.type === 'STORY'))
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild disabled={disabled}>
+      {/* Una historia no tiene padre */}
+      <PopoverTrigger asChild disabled={disabled || issue.type === 'STORY'}>
         <PropertyButton aria-label="Tarea padre">
           <CornerUpLeft className="size-3.5 text-muted-foreground" />
           {issue.parent ? (
@@ -68,6 +73,7 @@ export function ParentPicker({ slug, projectId, issue, onChange, disabled }) {
                   }}
                 >
                   <StateIcon group={candidate.state?.group} color={candidate.state?.color} />
+                  <IssueTypeIcon issue={candidate} size={14} />
                   <span className="w-14 shrink-0 font-mono text-xs text-muted-foreground">{candidate.code}</span>
                   <span className="min-w-0 flex-1 truncate">{candidate.title}</span>
                   {candidate.id === issue.parent?.id && <Check className="size-4" />}

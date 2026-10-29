@@ -26,6 +26,10 @@
 /** @typedef {Schemas['CycleResponse']} CycleResponse */
 /** @typedef {Schemas['ModuleResponse']} ModuleResponse */
 /** @typedef {Schemas['IssueSummaryResponse']} IssueSummary */
+/** @typedef {NonNullable<Schemas['IssueResponse']['type']>} IssueType */
+/** @typedef {Schemas['StoryResponse']} StoryRow */
+/** @typedef {Schemas['StoryChildResponse']} StoryChild */
+/** @typedef {Schemas['SplitItemRequest']} SplitItem */
 /** @typedef {Schemas['ProjectRefResponse']} ProjectRef */
 
 /** @typedef {Schemas['IssueRelationsResponse']} IssueRelations */

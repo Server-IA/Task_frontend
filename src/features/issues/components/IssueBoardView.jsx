@@ -16,28 +16,163 @@ import {
 } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Plus, TriangleAlert } from 'lucide-react'
+import { ChevronDown, ChevronRight, Plus, TriangleAlert } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AvatarStack } from '@/components/common/AvatarStack'
 import { ErrorState } from '@/components/common/States'
 import { StateIcon } from '@/components/common/StateIcon'
+import { useStories } from '@/features/stories/hooks'
 import { findColumn, getNeighbors, groupByState, sortOrderBetween } from '@/lib/kanban'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
-import { BOARD_PAGE_SIZE } from '../constants'
+import { BOARD_GROUP_STORY, BOARD_PAGE_SIZE } from '../constants'
 import { useIssues, useMoveIssue } from '../hooks'
 import { needsCriteriaConfirm } from '../issueFlags'
+import { storyFlags, storyLanes, storyProgress } from '../issueTypes'
 import { useCriteriaGuard } from '../useCriteriaGuard'
 import { isClosed, useIssueUpdater } from '../useIssueHelpers'
 import { BlockedChip, BlockingChip, ChecklistChip } from './IssueBadges'
+import { BugCountBadge, IssueTypeIcon, ParentStoryChip, ReadyBadge, StoryProgress, TypeIcon } from './IssueTypeBits'
 import { AssigneesPicker, DatePicker, LabelsPicker, PriorityPicker } from './PropertyPickers'
 
-/** Kanban: una columna por estado; las tarjetas se arrastran entre columnas y dentro de ellas. */
-export function IssueBoardView({ slug, project, meta, filters, openIssue, onCreateInState, extraParams }) {
+/**
+ * Kanban: una columna por estado; las tarjetas se arrastran entre columnas y dentro de ellas. Con
+ * `groupBy="story"` hay un carril por historia (con su progreso, personas y bugs abiertos) y «Sin historia» al
+ * final; las historias listas para revisar empiezan plegadas. Se arrastra dentro de cada carril.
+ */
+export function IssueBoardView({ slug, project, meta, filters, openIssue, onCreateInState, extraParams, groupBy }) {
   const params = { ...filters, ...extraParams, sort: 'sortOrder,asc', page: 0, size: BOARD_PAGE_SIZE }
   const { data, isLoading, error, refetch } = useIssues(slug, project.id, params)
-  const move = useMoveIssue(slug, project.id)
-
+  const laned = groupBy === BOARD_GROUP_STORY
+  const { data: stories } = useStories(slug, project.id, { enabled: laned })
   const issues = useMemo(() => data?.content ?? [], [data])
+
+  if (isLoading) {
+    return (
+      <div className="flex gap-3">
+        {Array.from({ length: 4 }, (_, index) => (
+          <Skeleton key={index} className="h-96 w-[284px] shrink-0 rounded-2xl" />
+        ))}
+      </div>
+    )
+  }
+  if (error) return <ErrorState error={error} onRetry={refetch} />
+
+  const tooMany = data.totalElements > BOARD_PAGE_SIZE && (
+    <div className="mb-3 flex items-center gap-2 rounded-xl bg-soon-soft px-4 py-2 text-sm text-soon">
+      <TriangleAlert className="size-4" />
+      Se muestran {BOARD_PAGE_SIZE} de {data.totalElements} tareas. Usa los filtros o la vista de lista para ver el resto.
+    </div>
+  )
+  const common = { slug, project, meta, openIssue }
+
+  if (!laned) {
+    return (
+      <div className="tf-fade flex h-full min-h-0 flex-col">
+        {tooMany}
+        <BoardColumns issues={issues} {...common} onCreateInState={onCreateInState} />
+      </div>
+    )
+  }
+
+  const lanes = storyLanes(issues, stories ?? [])
+  const countOf = (stateId) => issues.filter((issue) => issue.state?.id === stateId).length
+  return (
+    <div className="tf-fade flex h-full min-h-0 flex-col">
+      {tooMany}
+      <div className="min-h-0 flex-1 overflow-auto pb-2">
+        <div className="flex w-max min-w-full flex-col gap-3">
+          <div className="sticky top-0 z-10 flex gap-3 bg-background px-2 pb-1">
+            {meta.states.map((state) => (
+              <div key={state.id} className="flex w-[284px] shrink-0 items-center gap-2 px-1.5 font-mono text-[11px] tracking-[0.08em] uppercase">
+                <StateIcon group={state.group} color={state.color} className="size-3.5" />
+                <span className="min-w-0 truncate font-semibold">{state.name}</span>
+                <span className="text-muted-foreground">{String(countOf(state.id)).padStart(2, '0')}</span>
+                <button
+                  type="button"
+                  className="ml-auto flex size-6.5 items-center justify-center rounded-lg border bg-card text-muted-foreground transition-colors hover:border-dash hover:text-foreground"
+                  onClick={() => onCreateInState(state.id)}
+                  aria-label={`Nueva tarea en ${state.name}`}
+                >
+                  <Plus className="size-3" strokeWidth={3} />
+                </button>
+              </div>
+            ))}
+          </div>
+          {lanes.map((lane) => (lane.story || lane.issues.length > 0 ? <StoryLane key={lane.key} lane={lane} {...common} /> : null))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Un carril del tablero agrupado por historia: su encabezado (plegable) y sus columnas. */
+function StoryLane({ lane, slug, project, meta, openIssue }) {
+  const { story } = lane
+  const flags = story ? storyFlags(story) : null
+  // Las historias listas para revisar (y las cerradas) empiezan plegadas en una línea
+  const [open, setOpen] = useState(!flags || (!flags.ready && !flags.closed))
+  const where = story ? [story.cycle?.name, ...(story.modules ?? []).map((module) => module.name)].filter(Boolean).join(' · ') : ''
+
+  return (
+    <section className="rounded-2xl bg-column p-2" aria-label={story ? `${story.code} ${story.title}` : 'Sin historia'}>
+      <header className="flex min-w-0 items-center gap-2.5 px-1.5 py-1">
+        <button
+          type="button"
+          onClick={() => setOpen((current) => !current)}
+          aria-expanded={open}
+          aria-label={open ? 'Plegar carril' : 'Desplegar carril'}
+          className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-card hover:text-foreground"
+        >
+          {open ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+        </button>
+        {story ? (
+          <>
+            <TypeIcon type="STORY" />
+            <span className="font-mono text-xs text-muted-foreground">{story.code}</span>
+            <button
+              type="button"
+              onClick={() => openIssue(story.id)}
+              className="min-w-0 truncate text-left text-sm font-semibold outline-none hover:underline focus-visible:underline"
+            >
+              {story.title}
+            </button>
+            {flags.ready ? <ReadyBadge /> : <BugCountBadge count={flags.openBugs} />}
+            {story.storyTaskCount != null && (
+              <span className="flex shrink-0 items-center gap-2.5">
+                <StoryProgress story={story} compact className="w-28" />
+                <span className="font-mono text-xs whitespace-nowrap text-muted-foreground">{storyProgress(story).label}</span>
+              </span>
+            )}
+            {lane.people.length > 0 && <AvatarStack users={lane.people} size="xs" />}
+            {where && <span className="ml-auto shrink-0 truncate pr-1 font-mono text-[11px] text-muted-foreground">{where}</span>}
+          </>
+        ) : (
+          <>
+            <span aria-hidden="true" className="size-4 shrink-0 rounded-[4px] border-[1.5px] border-dashed border-dash" />
+            <span className="text-sm font-semibold">Sin historia</span>
+            <span className="font-mono text-xs text-muted-foreground">
+              {lane.issues.length} {lane.issues.length === 1 ? 'tarea suelta' : 'tareas sueltas'}
+            </span>
+            <span className="ml-auto shrink-0 pr-1 font-mono text-[11px] text-muted-foreground">tareas técnicas y bugs sin historia</span>
+          </>
+        )}
+      </header>
+      {open && (
+        <div className="mt-1.5">
+          <BoardColumns issues={lane.issues} slug={slug} project={project} meta={meta} openIssue={openIssue} inLane />
+        </div>
+      )}
+    </section>
+  )
+}
+
+/**
+ * Las columnas (una por estado) con sus tarjetas y el arrastre. En un carril (`inLane`) no llevan encabezado (va
+ * arriba, una sola vez) y una columna vacía se ve como un hueco punteado.
+ */
+function BoardColumns({ issues, slug, project, meta, openIssue, onCreateInState, inLane = false }) {
+  const move = useMoveIssue(slug, project.id)
   const issuesById = useMemo(() => Object.fromEntries(issues.map((issue) => [issue.id, issue])), [issues])
   const serverColumns = useMemo(() => groupByState(issues, meta.states), [issues, meta.states])
 
@@ -185,27 +320,10 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
     commit()
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex gap-3">
-        {Array.from({ length: 4 }, (_, index) => (
-          <Skeleton key={index} className="h-96 w-[284px] shrink-0 rounded-2xl" />
-        ))}
-      </div>
-    )
-  }
-  if (error) return <ErrorState error={error} onRetry={refetch} />
-
   const activeIssue = activeId ? issuesById[activeId] : null
 
   return (
-    <div className="tf-fade flex h-full min-h-0 flex-col">
-      {data.totalElements > BOARD_PAGE_SIZE && (
-        <div className="mb-3 flex items-center gap-2 rounded-xl bg-soon-soft px-4 py-2 text-sm text-soon">
-          <TriangleAlert className="size-4" />
-          Se muestran {BOARD_PAGE_SIZE} de {data.totalElements} tareas. Usa los filtros o la vista de lista para ver el resto.
-        </div>
-      )}
+    <div className={cn('flex min-h-0 flex-col', !inLane && 'h-full')}>
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}
@@ -218,7 +336,7 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
           setDragColumns(null)
         }}
       >
-        <div className="flex min-h-0 flex-1 items-start gap-3 overflow-x-auto pb-2">
+        <div className={cn('flex min-h-0 flex-1 gap-3', inLane ? 'items-stretch' : 'items-start overflow-x-auto pb-2')}>
           {meta.states.map((state) => (
             <BoardColumn
               key={state.id}
@@ -229,14 +347,15 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
               project={project}
               meta={meta}
               openIssue={openIssue}
-              onCreate={() => onCreateInState(state.id)}
+              onCreate={() => onCreateInState?.(state.id)}
+              inLane={inLane}
             />
           ))}
         </div>
         {/* En un portal: así la tarjeta sigue al cursor aunque algún contenedor tenga transform */}
         {createPortal(
           <DragOverlay>
-            {activeIssue && <IssueCard issue={activeIssue} slug={slug} project={project} meta={meta} overlay />}
+            {activeIssue && <IssueCard issue={activeIssue} slug={slug} project={project} meta={meta} overlay inLane={inLane} />}
           </DragOverlay>,
           document.body,
         )}
@@ -246,8 +365,30 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
   )
 }
 
-function BoardColumn({ state, ids, issuesById, slug, project, meta, openIssue, onCreate }) {
+function BoardColumn({ state, ids, issuesById, slug, project, meta, openIssue, onCreate, inLane }) {
   const { setNodeRef, isOver } = useDroppable({ id: `column:${state.id}` })
+
+  if (inLane) {
+    return (
+      <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+        <div
+          ref={setNodeRef}
+          aria-label={state.name}
+          className={cn(
+            'flex min-h-24 w-[284px] shrink-0 flex-col gap-2 rounded-xl p-0.5 transition-colors duration-200',
+            ids.length === 0 && 'border border-dashed border-dash/70',
+            isOver && 'bg-accent-soft/60',
+          )}
+        >
+          {ids.map((id) =>
+            issuesById[id] ? (
+              <SortableIssueCard key={id} issue={issuesById[id]} slug={slug} project={project} meta={meta} openIssue={openIssue} inLane />
+            ) : null,
+          )}
+        </div>
+      </SortableContext>
+    )
+  }
 
   return (
     <section className="flex max-h-full w-[284px] shrink-0 flex-col gap-2 rounded-2xl bg-column p-2" aria-label={state.name}>
@@ -312,9 +453,11 @@ const stop = (event) => event.stopPropagation()
 const revealOnHover =
   'opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100'
 
-function IssueCard({ issue, slug, project, meta, overlay = false }) {
+function IssueCard({ issue, slug, project, meta, overlay = false, inLane = false }) {
   const { update } = useIssueUpdater(slug, project.id, issue.id)
   const hasLabels = issue.labels?.length > 0
+  // En un carril la historia ya está en el encabezado
+  const storyChip = !inLane && issue.parent?.type === 'STORY'
 
   return (
     <article
@@ -324,6 +467,7 @@ function IssueCard({ issue, slug, project, meta, overlay = false }) {
       )}
     >
       <div className="flex items-center gap-2 font-mono text-[11px]">
+        <IssueTypeIcon issue={issue} size={14} />
         <span className="text-muted-foreground">{issue.code}</span>
         <span className="ml-auto" onPointerDown={stop} onKeyDown={stop} onClick={stop}>
           <PriorityPicker
@@ -335,6 +479,7 @@ function IssueCard({ issue, slug, project, meta, overlay = false }) {
         </span>
       </div>
       <h4 className="line-clamp-3 text-[14.5px] leading-snug font-medium">{issue.title}</h4>
+      {storyChip && <ParentStoryChip parent={issue.parent} className="self-start" />}
       <BlockedChip issue={issue} codes="by" className="self-start" />
       <BlockingChip issue={issue} className="self-start" />
       {hasLabels && (

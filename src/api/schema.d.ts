@@ -253,6 +253,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{slug}/projects/{projectId}/issues/{issueId}/split": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Partir una historia en tareas (project manager)
+         * @description Crea todas las líneas en una sola transacción como hijas de la historia: type TASK (por defecto) o BUG, asignados y prioridad (sin ella, la de la historia). Heredan el ciclo abierto, los módulos y las etiquetas de la historia y nacen en el primer estado sin empezar. Con tareas en una historia cerrada: reopen=true la reabre; si no, 409 con code STORY_CLOSED.
+         */
+        post: operations["split"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{slug}/projects/{projectId}/issues/{issueId}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reabrir una historia (project manager)
+         * @description La vuelve al primer estado en curso del proyecto; queda en su historial. 409 si no está cerrada.
+         */
+        post: operations["reopen"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{slug}/projects/{projectId}/issues/{issueId}/relations": {
         parameters: {
             query?: never;
@@ -292,6 +332,26 @@ export interface paths {
          * @description Notifica a los asignados y al creador de la tarea. Las menciones se escriben en el cuerpo como @[Nombre Visible](id-del-usuario): se avisa (ISSUE_MENTIONED) a los mencionados que son miembros del proyecto o project managers, y a ellos no les llega además el aviso del comentario.
          */
         post: operations["create_9"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{slug}/projects/{projectId}/issues/{issueId}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cerrar una historia (project manager)
+         * @description La pasa al primer estado completado del proyecto y guarda quién y cuándo (closedBy, closedAt). 400 si no es una historia; 409 si ya está cerrada. Los criterios sin marcar los confirma el cliente antes.
+         */
+        post: operations["close"];
         delete?: never;
         options?: never;
         head?: never;
@@ -477,7 +537,7 @@ export interface paths {
          * Cerrar ciclo (project manager)
          * @description Las tareas sin terminar van a moveTo (NEXT_CYCLE: al ciclo targetCycleId o, sin él, al siguiente; BACKLOG: salen del ciclo sin cambiar de estado), salvo las de overrides. Sin ciclo siguiente y con alguna tarea hacia NEXT_CYCLE responde 400. Si el ciclo terminaba después de hoy, su fin pasa a hoy. startRetro abre la retrospectiva y avisa a los miembros del proyecto (notificación RETRO_STARTED, menos a mí). Un ciclo ya cerrado, o que aún no empezó, responde 409.
          */
-        post: operations["close"];
+        post: operations["close_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1095,6 +1155,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{slug}/projects/{projectId}/stories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Historias del proyecto
+         * @description Abiertas y cerradas, de la más nueva a la más vieja, cada una con su progreso (en la historia: storyTaskCount, storyTaskDoneCount, storyTaskStartedCount, openBugCount, bugsAfterCloseCount, readyForReview, closedAt, closedBy), las personas de sus tareas, sus tareas y bugs (afterClose = bug creado después de cerrarla) y sus relacionadas del proyecto. La ve cualquier miembro del proyecto.
+         */
+        get: operations["getStories"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{slug}/projects/{projectId}/stats": {
         parameters: {
             query?: never;
@@ -1473,6 +1553,7 @@ export interface components {
             module?: string;
             blocked?: boolean;
             groupBy?: string;
+            type?: ("STORY" | "TASK" | "BUG")[];
         };
         SavedViewResponse: {
             /** Format: uuid */
@@ -1541,6 +1622,10 @@ export interface components {
             openIssueCount?: number;
             /** Format: int32 */
             overdueIssueCount?: number;
+            /** Format: int32 */
+            openStoryCount?: number;
+            /** Format: int32 */
+            unsplitStoryCount?: number;
             nextIssueCode?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -1568,11 +1653,15 @@ export interface components {
             /** Format: uuid */
             stateId?: string;
             assigneeIds?: string[];
+            /** @enum {string} */
+            type?: "STORY" | "TASK" | "BUG";
         };
         IssueTemplateResponse: {
             /** Format: uuid */
             id?: string;
             name?: string;
+            /** @enum {string} */
+            type?: "STORY" | "TASK" | "BUG";
             titlePrefix?: string;
             description?: string;
             /** @enum {string} */
@@ -1680,6 +1769,11 @@ export interface components {
             checklist?: components["schemas"]["ChecklistItemRequest"][];
             /** Format: uuid */
             templateId?: string;
+            /** @enum {string} */
+            type?: "STORY" | "TASK" | "BUG";
+            reopenParent?: boolean;
+            /** Format: uuid */
+            relatesToId?: string;
         };
         IssueResponse: {
             /** Format: uuid */
@@ -1690,6 +1784,8 @@ export interface components {
             /** Format: uuid */
             projectId?: string;
             project?: components["schemas"]["ProjectRefResponse"];
+            /** @enum {string} */
+            type?: "STORY" | "TASK" | "BUG";
             title?: string;
             description?: string;
             /** Format: int32 */
@@ -1738,12 +1834,28 @@ export interface components {
             startedAt?: string;
             /** Format: date-time */
             completedAt?: string;
+            /** Format: int32 */
+            storyTaskCount?: number;
+            /** Format: int32 */
+            storyTaskDoneCount?: number;
+            /** Format: int32 */
+            storyTaskStartedCount?: number;
+            /** Format: int32 */
+            openBugCount?: number;
+            /** Format: int32 */
+            bugsAfterCloseCount?: number;
+            readyForReview?: boolean;
+            /** Format: date-time */
+            closedAt?: string;
+            closedBy?: components["schemas"]["UserSummaryResponse"];
         };
         IssueSummaryResponse: {
             /** Format: uuid */
             id?: string;
             code?: string;
             title?: string;
+            /** @enum {string} */
+            type?: "STORY" | "TASK" | "BUG";
         };
         PlanningRefResponse: {
             /** Format: uuid */
@@ -1757,6 +1869,18 @@ export interface components {
             identifier?: string;
             /** @enum {string} */
             color?: "TEAL" | "AMBER" | "BLUE" | "PINK" | "VIOLET" | "ORANGE" | "GREEN";
+        };
+        SplitItemRequest: {
+            title: string;
+            /** @enum {string} */
+            type?: "STORY" | "TASK" | "BUG";
+            /** @enum {string} */
+            priority?: "URGENT" | "HIGH" | "MEDIUM" | "LOW" | "NONE";
+            assigneeIds?: string[];
+        };
+        SplitStoryRequest: {
+            items: components["schemas"]["SplitItemRequest"][];
+            reopen?: boolean;
         };
         CreateIssueRelationRequest: {
             /** @enum {string} */
@@ -1790,6 +1914,8 @@ export interface components {
             checklistTotal?: number;
             /** Format: int32 */
             checklistDone?: number;
+            /** @enum {string} */
+            type?: "STORY" | "TASK" | "BUG";
         };
         CommentRequest: {
             body: string;
@@ -2009,6 +2135,8 @@ export interface components {
             stateId?: string;
             clearState?: boolean;
             assigneeIds?: string[];
+            /** @enum {string} */
+            type?: "STORY" | "TASK" | "BUG";
         };
         UpdateStateRequest: {
             name?: string;
@@ -2047,6 +2175,9 @@ export interface components {
             clearDueDate?: boolean;
             /** Format: int32 */
             baseDescriptionVersion?: number;
+            /** @enum {string} */
+            type?: "STORY" | "TASK" | "BUG";
+            reopenParent?: boolean;
         };
         DescriptionConflictResponse: {
             /** Format: int32 */
@@ -2132,6 +2263,8 @@ export interface components {
             id?: string;
             code?: string;
             title?: string;
+            /** @enum {string} */
+            type?: "STORY" | "TASK" | "BUG";
             /** Format: uuid */
             projectId?: string;
             /** @enum {string} */
@@ -2142,7 +2275,7 @@ export interface components {
             /** Format: uuid */
             id?: string;
             /** @enum {string} */
-            type?: "ISSUE_ASSIGNED" | "ISSUE_COMMENTED" | "ISSUE_UNBLOCKED" | "ISSUE_MENTIONED" | "RETRO_STARTED";
+            type?: "ISSUE_ASSIGNED" | "ISSUE_COMMENTED" | "ISSUE_UNBLOCKED" | "ISSUE_MENTIONED" | "RETRO_STARTED" | "STORY_READY";
             message?: string;
             read?: boolean;
             actor?: components["schemas"]["UserSummaryResponse"];
@@ -2151,6 +2284,27 @@ export interface components {
             comment?: components["schemas"]["NotificationCommentResponse"];
             /** Format: date-time */
             createdAt?: string;
+        };
+        StoryChildResponse: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            title?: string;
+            /** @enum {string} */
+            type?: "STORY" | "TASK" | "BUG";
+            state?: components["schemas"]["StateResponse"];
+            /** @enum {string} */
+            priority?: "URGENT" | "HIGH" | "MEDIUM" | "LOW" | "NONE";
+            assignees?: components["schemas"]["UserSummaryResponse"][];
+            /** Format: date-time */
+            createdAt?: string;
+            afterClose?: boolean;
+        };
+        StoryResponse: {
+            story?: components["schemas"]["IssueResponse"];
+            people?: components["schemas"]["UserSummaryResponse"][];
+            children?: components["schemas"]["StoryChildResponse"][];
+            related?: components["schemas"]["IssueSummaryResponse"][];
         };
         Burndown: {
             /** Format: uuid */
@@ -2244,7 +2398,7 @@ export interface components {
             id?: string;
             actor?: components["schemas"]["UserSummaryResponse"];
             /** @enum {string} */
-            field?: "CREATED" | "TITLE" | "DESCRIPTION" | "STATE" | "PRIORITY" | "PARENT" | "START_DATE" | "DUE_DATE" | "ASSIGNEES" | "LABELS" | "CYCLE" | "MODULE" | "COMMENT" | "RELATION" | "DESCRIPTION_CHECKED" | "DESCRIPTION_UNCHECKED";
+            field?: "CREATED" | "TITLE" | "DESCRIPTION" | "STATE" | "PRIORITY" | "PARENT" | "START_DATE" | "DUE_DATE" | "ASSIGNEES" | "LABELS" | "CYCLE" | "MODULE" | "COMMENT" | "RELATION" | "DESCRIPTION_CHECKED" | "DESCRIPTION_UNCHECKED" | "TYPE" | "STORY_AUTO_STATE";
             oldValue?: string;
             newValue?: string;
             /** Format: date-time */
@@ -2349,7 +2503,7 @@ export interface components {
             id?: string;
             actor?: components["schemas"]["UserSummaryResponse"];
             /** @enum {string} */
-            field?: "CREATED" | "TITLE" | "DESCRIPTION" | "STATE" | "PRIORITY" | "PARENT" | "START_DATE" | "DUE_DATE" | "ASSIGNEES" | "LABELS" | "CYCLE" | "MODULE" | "COMMENT" | "RELATION" | "DESCRIPTION_CHECKED" | "DESCRIPTION_UNCHECKED";
+            field?: "CREATED" | "TITLE" | "DESCRIPTION" | "STATE" | "PRIORITY" | "PARENT" | "START_DATE" | "DUE_DATE" | "ASSIGNEES" | "LABELS" | "CYCLE" | "MODULE" | "COMMENT" | "RELATION" | "DESCRIPTION_CHECKED" | "DESCRIPTION_UNCHECKED" | "TYPE" | "STORY_AUTO_STATE";
             oldValue?: string;
             newValue?: string;
             /** Format: date-time */
@@ -2940,6 +3094,8 @@ export interface operations {
                 module?: string;
                 /** @description true = solo las bloqueadas (con al menos un bloqueo abierto, de cualquier proyecto); false = solo las que no lo están */
                 blocked?: boolean;
+                /** @description Tipo(s): STORY, TASK o BUG (sin él, todos). El tablero y la lista piden TASK y BUG */
+                type?: ("STORY" | "TASK" | "BUG")[];
                 /** @description Zero-based page index (0..N) */
                 page?: number;
                 /** @description The size of the page to be returned */
@@ -2985,6 +3141,58 @@ export interface operations {
         responses: {
             /** @description Created */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IssueResponse"];
+                };
+            };
+        };
+    };
+    split: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+                issueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SplitStoryRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IssueResponse"][];
+                };
+            };
+        };
+    };
+    reopen: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+                issueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3094,6 +3302,30 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["CommentResponse"];
+                };
+            };
+        };
+    };
+    close: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+                issueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IssueResponse"];
                 };
             };
         };
@@ -3379,7 +3611,7 @@ export interface operations {
             };
         };
     };
-    close: {
+    close_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -4629,6 +4861,29 @@ export interface operations {
             };
         };
     };
+    getStories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StoryResponse"][];
+                };
+            };
+        };
+    };
     getStats: {
         parameters: {
             query?: {
@@ -4889,7 +5144,7 @@ export interface operations {
             query?: {
                 unread?: boolean;
                 /** @description Tipo(s): ISSUE_ASSIGNED, ISSUE_COMMENTED, ISSUE_UNBLOCKED, ISSUE_MENTIONED, RETRO_STARTED */
-                type?: ("ISSUE_ASSIGNED" | "ISSUE_COMMENTED" | "ISSUE_UNBLOCKED" | "ISSUE_MENTIONED" | "RETRO_STARTED")[];
+                type?: ("ISSUE_ASSIGNED" | "ISSUE_COMMENTED" | "ISSUE_UNBLOCKED" | "ISSUE_MENTIONED" | "RETRO_STARTED" | "STORY_READY")[];
                 /** @description Zero-based page index (0..N) */
                 page?: number;
                 /** @description The size of the page to be returned */

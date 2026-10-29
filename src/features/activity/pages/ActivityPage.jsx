@@ -7,7 +7,7 @@ import { Spinner } from '@/components/common/Loaders'
 import { Segmented } from '@/components/common/Segmented'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { UserAvatar } from '@/components/common/UserAvatar'
-import { describeFeedEntry } from '@/features/comments/describeActivity'
+import { activityActorName, describeFeedEntry } from '@/features/comments/describeActivity'
 import { markdownToPlainText } from '@/features/editor/markdown/plainText'
 import { MentionText } from '@/features/mentions/MentionText'
 import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
@@ -176,7 +176,14 @@ function FeedEntry({ slug, entry, stateGroup }) {
   return (
     <li className="flex items-start gap-3 px-4 py-2.5">
       <span className="relative shrink-0">
-        <UserAvatar user={entry.actor} size="md" />
+        {entry.field === 'STORY_AUTO_STATE' ? (
+          // Lo hizo TaskFlow (sin autor)
+          <span aria-hidden="true" className="flex size-8 items-center justify-center rounded-full bg-primary font-mono text-[11px] font-bold text-primary-foreground">
+            TF
+          </span>
+        ) : (
+          <UserAvatar user={entry.actor} size="md" />
+        )}
         <span
           aria-hidden="true"
           className={cn(
@@ -189,7 +196,7 @@ function FeedEntry({ slug, entry, stateGroup }) {
       </span>
       <div className="min-w-0 flex-1">
         <p className="leading-normal break-words">
-          <span className="font-semibold">{entry.actor?.fullName ?? 'Alguien'}</span> {sentence.verb}{' '}
+          <span className="font-semibold">{activityActorName(entry)}</span> {sentence.verb}{' '}
           {issueUrl ? (
             <Link to={issueUrl} className="group/issue hover:underline">
               <span className="font-mono text-[13px] text-accent-text">{issue.code}</span> {issue.title}

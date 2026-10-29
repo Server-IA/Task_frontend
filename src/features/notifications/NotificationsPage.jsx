@@ -8,6 +8,7 @@ import { CenteredSpinner, Spinner } from '@/components/common/Loaders'
 import { Segmented } from '@/components/common/Segmented'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { UserAvatar } from '@/components/common/UserAvatar'
+import { TypeIcon } from '@/features/issues/components/IssueTypeBits'
 import { IssueDetailWithExtras } from '@/features/issues/components/IssueDetailWithExtras'
 import { markdownToPlainText } from '@/features/editor/markdown/plainText'
 import { IssuePeekSheet } from '@/features/issues/components/IssuePeekSheet'
@@ -39,6 +40,7 @@ const TYPE_MARKS = {
   ISSUE_MENTIONED: { mark: '@', className: 'border-transparent bg-primary text-primary-foreground' },
   ISSUE_UNBLOCKED: { mark: '✓', className: 'border-transparent bg-ok-soft text-ok' },
   RETRO_STARTED: { mark: '↻', className: 'bg-card text-accent-text' },
+  STORY_READY: { mark: '✓', className: 'border-transparent bg-ok-soft text-ok' },
 }
 const DEFAULT_MARK = { mark: '·', className: 'bg-card text-muted-foreground' }
 
@@ -274,12 +276,13 @@ function OpenedIssueSheet({ opened, onClose, onOpenIssue }) {
 }
 
 /** El código de la tarea dentro del mensaje se resalta en monoespaciada (y las menciones, como «@Nombre»). */
-function MessageText({ message = '', code }) {
+function MessageText({ message = '', code, type }) {
   if (!code || !message.includes(code)) return <MentionText body={message} />
   const [before, ...rest] = message.split(code)
   return (
     <>
       <MentionText body={before} />
+      {type && <TypeIcon type={type} size={13} className="mr-1 inline-block align-[-1px]" />}
       <span className="font-mono text-[13px] text-accent-text">{code}</span>
       <MentionText body={rest.join(code)} />
     </>
@@ -331,7 +334,14 @@ function NotificationItem({ notification, first, current, onOpen }) {
         )}
       >
         <span className="relative shrink-0">
-          <UserAvatar user={notification.actor} size="md" className="size-9" />
+          {notification.type === 'STORY_READY' ? (
+            // Lo manda TaskFlow (sin autor)
+            <span aria-hidden="true" className="flex size-9 items-center justify-center rounded-full bg-primary font-mono text-xs font-bold text-primary-foreground">
+              TF
+            </span>
+          ) : (
+            <UserAvatar user={notification.actor} size="md" className="size-9" />
+          )}
           <span
             aria-hidden="true"
             className={cn(
@@ -343,9 +353,23 @@ function NotificationItem({ notification, first, current, onOpen }) {
           </span>
         </span>
         <span className="min-w-0 flex-1">
-          <span className={cn('block leading-snug', !notification.read && 'font-semibold')}>
-            <MessageText message={notification.message} code={issue?.code} />
-          </span>
+          {notification.type === 'STORY_READY' && issue ? (
+            <>
+              <span className="block leading-snug">
+                <span className={cn(!notification.read && 'font-semibold')}>TaskFlow</span>{' '}
+                <span className="text-muted-foreground">avisa: lista para revisar</span>
+              </span>
+              <span className={cn('mt-0.5 flex min-w-0 items-center gap-1.5 leading-snug', !notification.read && 'font-semibold')}>
+                <TypeIcon type="STORY" size={14} />
+                <span className="font-mono text-[13px] text-accent-text">{issue.code}</span>
+                <span className="truncate">{issue.title}</span>
+              </span>
+            </>
+          ) : (
+            <span className={cn('block leading-snug', !notification.read && 'font-semibold')}>
+              <MessageText message={notification.message} code={issue?.code} type={issue?.type} />
+            </span>
+          )}
           {notification.comment?.excerpt && <CommentExcerpt excerpt={notification.comment.excerpt} />}
           <span
             className="mt-1.5 block font-mono text-[11px] text-muted-foreground"

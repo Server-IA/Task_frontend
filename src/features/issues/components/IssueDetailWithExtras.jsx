@@ -2,54 +2,83 @@ import { ChecklistProgressRow, IssueChecklist } from '@/features/checklist/compo
 import { IssueActivity } from '@/features/comments/IssueActivity'
 import { IssuePlanningProperties } from '@/features/planning/components/IssuePlanningProperties'
 import { BlockedBanner, IssueRelations } from '@/features/relations/components/IssueRelations'
+import { StoryBanner, StoryParentCard, StorySections, useAddToStory } from '@/features/stories/components/StoryPanel'
+import { useIssue } from '../hooks'
+import { isStory } from '../issueTypes'
 import { IssueDescription } from './IssueDescription'
 import { IssueDetail } from './IssueDetail'
 
 /**
  * IssueDetail con las secciones de otras features: la descripción con su editor (menciones, checklist), aviso de bloqueo, criterios y checklist, relaciones,
  * comentarios e historial; y en las propiedades, ciclo, módulos y progreso. `focusCommentId` lleva la vista hasta ese
- * comentario (al abrir la tarea desde un aviso de la Bandeja).
+ * comentario (al abrir la tarea desde un aviso de la Bandeja). En una historia, además: «Lista para revisar» o
+ * «Cerrada por…», sus tareas y bugs y «Partir en tareas»; en una tarea o un bug de una historia, la historia.
  * Se mantiene aparte para que IssueDetail no dependa de esas features.
  */
 export function IssueDetailWithExtras({ focusCommentId, ...props }) {
-  const { slug, project, onOpenIssue, variant } = props
+  const { slug, project, onOpenIssue, variant, issueId } = props
+  const { data: issue } = useIssue(slug, project.id, issueId)
+  const story = issue && isStory(issue) ? issue : null
+  const { addTask, reportBug, dialogs } = useAddToStory({ slug, project, story })
   return (
-    <IssueDetail
-      {...props}
-      renderDescription={(issue, markdownView) => (
-        <IssueDescription
-          key={issue.id}
-          slug={slug}
-          project={project}
-          issue={issue}
-          variant={variant}
-          onOpenIssue={onOpenIssue}
-          showMarkdown={markdownView.showMarkdown}
-          onHideMarkdown={markdownView.onHideMarkdown}
-        />
-      )}
-      renderBanner={(issue) => <BlockedBanner slug={slug} projectId={project.id} issue={issue} onOpenIssue={onOpenIssue} />}
-      renderSections={(issue) => <IssueChecklist slug={slug} projectId={project.id} issue={issue} />}
-      renderAfterSubIssues={(issue) => (
-        <IssueRelations slug={slug} projectId={project.id} issue={issue} onOpenIssue={onOpenIssue} />
-      )}
-      renderActivity={(issue) => (
-        <IssueActivity
-          slug={slug}
-          projectId={project.id}
-          issueId={issue.id}
-          issueCode={issue.code}
-          projectIdentifier={project.identifier}
-          focusCommentId={focusCommentId}
-          onOpenIssue={onOpenIssue}
-        />
-      )}
-      renderProperties={(issue) => (
-        <>
-          <IssuePlanningProperties slug={slug} projectId={project.id} issue={issue} />
-          <ChecklistProgressRow issue={issue} />
-        </>
-      )}
-    />
+    <>
+      <IssueDetail
+        {...props}
+        renderDescription={(current, markdownView) => (
+          <IssueDescription
+            key={current.id}
+            slug={slug}
+            project={project}
+            issue={current}
+            variant={variant}
+            onOpenIssue={onOpenIssue}
+            showMarkdown={markdownView.showMarkdown}
+            onHideMarkdown={markdownView.onHideMarkdown}
+          />
+        )}
+        renderBanner={(current) => (
+          <>
+            <StoryBanner slug={slug} project={project} issue={current} onOpenIssue={onOpenIssue} onAddTask={addTask} />
+            <BlockedBanner slug={slug} projectId={project.id} issue={current} onOpenIssue={onOpenIssue} />
+          </>
+        )}
+        renderUnderTitle={(current) => <StoryParentCard slug={slug} project={project} issue={current} onOpenIssue={onOpenIssue} />}
+        renderSections={(current) => <IssueChecklist slug={slug} projectId={project.id} issue={current} />}
+        renderChildren={(current) =>
+          isStory(current) ? (
+            <StorySections
+              slug={slug}
+              project={project}
+              issue={current}
+              onOpenIssue={onOpenIssue}
+              onAdd={addTask}
+              onReportBug={reportBug}
+            />
+          ) : null
+        }
+        renderAfterSubIssues={(current) => (
+          <IssueRelations slug={slug} projectId={project.id} issue={current} onOpenIssue={onOpenIssue} />
+        )}
+        renderActivity={(current) => (
+          <IssueActivity
+            slug={slug}
+            projectId={project.id}
+            issueId={current.id}
+            issueCode={current.code}
+            projectIdentifier={project.identifier}
+            focusCommentId={focusCommentId}
+            onOpenIssue={onOpenIssue}
+          />
+        )}
+        renderProperties={(current) => (
+          <>
+            <IssuePlanningProperties slug={slug} projectId={project.id} issue={current} />
+            {/* En una historia el progreso es el de sus tareas (va arriba); sus criterios se ven en su sección */}
+            {!isStory(current) && <ChecklistProgressRow issue={current} />}
+          </>
+        )}
+      />
+      {dialogs}
+    </>
   )
 }

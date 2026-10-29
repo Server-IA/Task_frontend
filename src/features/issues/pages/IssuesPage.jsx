@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useIsFetching } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
@@ -18,13 +18,16 @@ import { projectPath } from '@/lib/paths'
 import { slugify } from '@/lib/slug'
 import { cn } from '@/lib/utils'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
-import { GROUP_BY_OPTIONS, SORT_OPTIONS } from '../constants'
+import { BOARD_GROUP_OPTIONS, GROUP_BY_OPTIONS, SORT_OPTIONS } from '../constants'
+import { BUGS_VIEW_ID, BugsView, openStateIds } from '../components/BugsView'
 import { CreateIssueDialog } from '../components/CreateIssueDialog'
+import { TypeIcon } from '../components/IssueTypeBits'
 import { IssueBoardView } from '../components/IssueBoardView'
 import { IssueFiltersBar } from '../components/IssueFiltersBar'
 import { IssueListView } from '../components/IssueListView'
 import { IssuePeekSheet } from '../components/IssuePeekSheet'
 import { useIssues } from '../hooks'
+import { bugGroups } from '../issueTypes'
 import { useIssueFilters } from '../useIssueFilters'
 import { useProjectMeta } from '../useIssueHelpers'
 
@@ -38,8 +41,11 @@ export function IssuesPage() {
   // Ciclos y módulos para sus filtros y para el resumen de las vistas guardadas
   const meta = useMemo(() => ({ ...projectMeta, cycles: cycles ?? [], modules: modules ?? [] }), [projectMeta, cycles, modules])
   const issueFilters = useIssueFilters()
-  const { filters, activeCount, view, sort, groupBy, page, openIssueId } = issueFilters
+  const { filters, queryFilters, types, activeCount, view, sort, groupBy, page, openIssueId } = issueFilters
   const { active: activeView, changed: changedFromView } = useActiveSavedView(workspace.slug, project.id, issueFilters)
+  // Vista «Bugs»: viene con cada proyecto (no está en la base de datos)
+  const bugsView = issueFilters.activeViewId === BUGS_VIEW_ID
+  const storiesUrl = `/${workspace.slug}/projects/${project.id}/stories`
   const [createState, setCreateState] = useState({ open: false, stateId: undefined })
   // La paleta de comandos (Ctrl/⌘ K) pide crear una tarea con ?create=1 (y lo que se escribió en ?title=)
   const [searchParams, setSearchParams] = useSearchParams()
@@ -77,7 +83,8 @@ export function IssuesPage() {
   }
 
   const openCreate = useCallback((stateId) => setCreateState({ open: true, stateId }), [])
-  useHotkey('c', openCreate)
+  const reportBug = useCallback(() => setCreateState({ open: true, templateType: 'BUG' }), [])
+  useHotkey('c', bugsView ? reportBug : openCreate)
 
   const onCreateOpenChange = (open) => {
     setCreateState((current) => ({ ...current, open }))
@@ -101,27 +108,42 @@ export function IssuesPage() {
           ...projectPath(workspace, project),
           { label: 'tareas' },
           ...(activeView ? [{ label: 'vistas' }, { label: slugify(activeView.name) || 'vista' }] : []),
+          ...(bugsView ? [{ label: 'vistas' }, { label: 'bugs' }] : []),
         ]}
         title="Tareas"
         documentTitle={['Tareas', project.name]}
         description={
-          <IssueCounts
-            slug={workspace.slug}
-            project={project}
-            filters={filters}
-            activeView={activeView}
-            onShowBlocked={() => issueFilters.setFilter('blocked', true)}
-          />
+          bugsView ? (
+            <BugsCounts slug={workspace.slug} project={project} states={meta.states} />
+          ) : (
+            <IssueCounts
+              slug={workspace.slug}
+              project={project}
+              filters={queryFilters}
+              activeView={activeView}
+              onShowBlocked={() => issueFilters.setFilter('blocked', true)}
+              storiesHidden={!types.includes('STORY')}
+              storiesUrl={storiesUrl}
+            />
+          )
         }
         actions={
-          <>
-            <ViewSwitch value={view} onChange={issueFilters.setView} />
-            <Button className="h-10 rounded-xl px-3.5" onClick={() => openCreate()}>
+          bugsView ? (
+            <Button className="h-10 rounded-xl px-3.5" onClick={reportBug}>
               <Plus strokeWidth={3} />
-              Nueva tarea
+              Reportar bug
               <kbd className="rounded-[5px] bg-foreground/10 px-1.5 text-[11px] font-normal">C</kbd>
             </Button>
-          </>
+          ) : (
+            <>
+              <ViewSwitch value={view} onChange={issueFilters.setView} />
+              <Button className="h-10 rounded-xl px-3.5" onClick={() => openCreate()}>
+                <Plus strokeWidth={3} />
+                Nueva tarea
+                <kbd className="rounded-[5px] bg-foreground/10 px-1.5 text-[11px] font-normal">C</kbd>
+              </Button>
+            </>
+          )
         }
       />
       <SavedViewsBar slug={workspace.slug} project={project} meta={meta} issueFilters={issueFilters} />
@@ -135,9 +157,51 @@ export function IssuesPage() {
         changed={changedFromView}
         onJumpToCode={jumpToCode}
         codeExample={`${project.identifier}-12`}
+        storiesUrl={storiesUrl}
+        hideType={bugsView}
+        hideState={bugsView}
+        fixedChips={
+          bugsView && (
+            <>
+              <span className="flex items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-[13px]">
+                <span className="font-mono text-xs text-muted-foreground">tipo:</span>
+                <TypeIcon type="BUG" size={14} />
+                Bug
+              </span>
+              <span className="flex items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-[13px]">
+                <span className="font-mono text-xs text-muted-foreground">estado:</span>
+                abiertas
+              </span>
+            </>
+          )
+        }
       >
-        {view === 'list' && (
-          <Select value={groupBy} onValueChange={issueFilters.setGroupBy}>
+        {bugsView && <span className="rounded-full border bg-card px-3 py-1.5 font-mono text-xs text-muted-foreground">agrupar: prioridad</span>}
+        {view === 'board' && !bugsView && (
+          <Select value={groupBy === 'story' ? 'story' : 'state'} onValueChange={issueFilters.setGroupBy}>
+            <SelectTrigger
+              size="sm"
+              className={cn(
+                'h-8 rounded-full bg-card font-mono text-xs',
+                groupBy === 'story' && 'border-accent-text bg-accent-soft text-accent-text',
+                changedFromView.includes('groupBy') && 'border-accent-text',
+              )}
+              aria-label="Agrupar el tablero"
+            >
+              <span className={groupBy === 'story' ? '' : 'text-muted-foreground'}>agrupar:</span>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="end">
+              {BOARD_GROUP_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label.toLowerCase()}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        {view === 'list' && !bugsView && (
+          <Select value={groupBy === 'story' ? 'state' : groupBy} onValueChange={issueFilters.setGroupBy}>
             <SelectTrigger
               size="sm"
               className={cn('h-8 rounded-full bg-card font-mono text-xs', changedFromView.includes('groupBy') && 'border-accent-text')}
@@ -158,7 +222,7 @@ export function IssuesPage() {
             </SelectContent>
           </Select>
         )}
-        {view === 'list' ? (
+        {bugsView ? null : view === 'list' ? (
           <Select value={sort} onValueChange={issueFilters.setSort}>
             <SelectTrigger size="sm" className="h-8 rounded-full bg-card font-mono text-xs" aria-label="Ordenar">
               <span className="text-muted-foreground">orden:</span>
@@ -177,22 +241,32 @@ export function IssuesPage() {
         )}
       </IssueFiltersBar>
 
-      <PageBody key={view} className={cn('tf-fade', view === 'board' && 'flex flex-col overflow-hidden')}>
-        {view === 'board' ? (
+      <PageBody key={bugsView ? 'bugs' : view} className={cn('tf-fade', view === 'board' && !bugsView && 'flex flex-col overflow-hidden')}>
+        {bugsView ? (
+          <BugsView
+            slug={workspace.slug}
+            project={project}
+            meta={meta}
+            filters={queryFilters}
+            openIssue={issueFilters.openIssue}
+            openIssueId={openIssueId}
+          />
+        ) : view === 'board' ? (
           <IssueBoardView
             slug={workspace.slug}
             project={project}
             meta={meta}
-            filters={filters}
+            filters={queryFilters}
             openIssue={issueFilters.openIssue}
             onCreateInState={openCreate}
+            groupBy={groupBy}
           />
         ) : (
           <IssueListView
             slug={workspace.slug}
             project={project}
             meta={meta}
-            filters={filters}
+            filters={queryFilters}
             sort={sort}
             page={page}
             setPage={issueFilters.setPage}
@@ -204,7 +278,7 @@ export function IssuesPage() {
           />
         )}
       </PageBody>
-      {view === 'board' && <ShortcutsBar />}
+      {view === 'board' && !bugsView && <ShortcutsBar />}
 
       <IssuePeekSheet
         slug={workspace.slug}
@@ -218,7 +292,11 @@ export function IssuesPage() {
         project={project}
         open={createState.open || createFromUrl}
         onOpenChange={onCreateOpenChange}
-        defaults={{ stateId: createState.stateId, title: createFromUrl ? (searchParams.get('title') ?? '') : undefined }}
+        defaults={{
+          stateId: createState.stateId,
+          templateType: createState.templateType,
+          title: createFromUrl ? (searchParams.get('title') ?? '') : undefined,
+        }}
       />
     </>
   )
@@ -229,7 +307,7 @@ export function IssuesPage() {
  * 4 tareas · 1 bloqueada». Abiertas y vencidas vienen en el proyecto; las bloqueadas (y las tareas de la vista)
  * se cuentan con los filtros que hay en pantalla. «N bloqueadas» aplica el filtro.
  */
-function IssueCounts({ slug, project, filters, activeView, onShowBlocked }) {
+function IssueCounts({ slug, project, filters, activeView, onShowBlocked, storiesHidden, storiesUrl }) {
   const countParams = { ...filters, page: 0, size: 1 }
   const { data: blockedPage } = useIssues(slug, project.id, { ...countParams, blocked: true })
   const { data: viewPage } = useIssues(slug, project.id, countParams, { enabled: Boolean(activeView) })
@@ -277,6 +355,37 @@ function IssueCounts({ slug, project, filters, activeView, onShowBlocked }) {
           )}
         </>
       )}
+      {storiesHidden && project.openStoryCount > 0 && (
+        <>
+          {' · las historias se ven en '}
+          <Link to={storiesUrl} className="font-medium underline underline-offset-2 hover:text-foreground">
+            Historias
+          </Link>
+        </>
+      )}
+    </>
+  )
+}
+
+/** «Vista «Bugs» · 5 abiertos · 1 por triar» (los bugs abiertos del proyecto, sin los demás filtros). */
+function BugsCounts({ slug, project, states }) {
+  const { data } = useIssues(
+    slug,
+    project.id,
+    { type: ['BUG'], state: openStateIds(states), page: 0, size: 200 },
+    { enabled: states.length > 0 },
+  )
+  const bugs = data?.content ?? []
+  const triage = bugGroups(bugs).find((group) => group.triage)?.issues.length ?? 0
+  return (
+    <>
+      Vista «Bugs» · {bugs.length} {bugs.length === 1 ? 'abierto' : 'abiertos'}
+      {triage > 0 && (
+        <>
+          {' · '}
+          <span className="font-semibold text-soon">{triage} por triar</span>
+        </>
+      )}
     </>
   )
 }
@@ -311,7 +420,7 @@ function ShortcutsBar() {
         <kbd className="text-foreground">Enter</kbd> abrir
       </span>
       <span>
-        <kbd className="text-foreground">I Y M R S</kbd> secciones
+        <kbd className="text-foreground">I H Y D M R S</kbd> secciones
       </span>
       <span className="ml-auto flex items-center gap-1.5">
         <span aria-hidden="true" className={cn('size-1.5 rounded-full bg-ok-dot', fetching && 'animate-pulse bg-soon')} />

@@ -1,4 +1,12 @@
-import { GROUP_BY_DEFAULT, GROUP_BY_OPTIONS, PRIORITY_LABELS, SAVED_VIEW_PARAM, SORT_OPTIONS } from '@/features/issues/constants'
+import {
+  BOARD_GROUP_STORY,
+  GROUP_BY_DEFAULT,
+  GROUP_BY_OPTIONS,
+  PRIORITY_LABELS,
+  SAVED_VIEW_PARAM,
+  SORT_OPTIONS,
+} from '@/features/issues/constants'
+import { effectiveTypes, isDefaultTypes, typesLabel, typesToUrl } from '@/features/issues/issueTypes'
 
 /**
  * Vistas guardadas: los filtros de la lista de tareas (los mismos parámetros de la URL), la vista
@@ -14,8 +22,8 @@ export const FILTER_KEYS = ['state', 'priority', 'assignee', 'label']
 const SINGLE_KEYS = ['cycle', 'module']
 
 /**
- * Lo que hay en pantalla, con la forma que guarda el backend. Ciclo, módulo, «bloqueadas» y la agrupación
- * solo se guardan si están puestos (si no, null).
+ * Lo que hay en pantalla, con la forma que guarda el backend. Ciclo, módulo, «bloqueadas», la agrupación y los tipos
+ * solo se guardan si están puestos (si no, null; sin tipos, la vista muestra los de siempre: tareas y bugs).
  * @param {{ filters: { state: string[], priority: string[], assignee: string[], label: string[], search: string,
  *           cycle?: string, module?: string, blocked?: boolean }, view: string, sort: string, groupBy?: string }} current
  * @returns {SavedViewFilters}
@@ -33,7 +41,14 @@ export function toViewFilters({ filters, view, sort, groupBy }) {
     module: filters.module || null,
     blocked: filters.blocked ? true : null,
     groupBy: groupBy && groupBy !== GROUP_BY_DEFAULT ? groupBy : null,
+    type: savedTypes(filters.type),
   }
+}
+
+/** Tipos para guardar en la vista: null si son los de siempre; si no, la lista (los tres = todos). */
+function savedTypes(urlValues) {
+  const types = effectiveTypes(urlValues)
+  return isDefaultTypes(types) ? null : types
 }
 
 /**
@@ -53,17 +68,21 @@ export function diffViewFilters(saved = {}, current = {}) {
   if ((saved.search?.trim() || '') !== (current.search?.trim() || '')) changed.push('search')
   for (const key of SINGLE_KEYS) if ((saved[key] || null) !== (current[key] || null)) changed.push(key)
   if (Boolean(saved.blocked) !== Boolean(current.blocked)) changed.push('blocked')
+  if (!sameSet(effectiveTypes(saved.type ?? []), effectiveTypes(current.type ?? []))) changed.push('type')
   if (saved.view && current.view && saved.view !== current.view) changed.push('view')
   const view = current.view ?? saved.view
   if (view !== 'board') {
     if ((saved.sort || DEFAULT_SORT) !== (current.sort || DEFAULT_SORT)) changed.push('sort')
     if ((saved.groupBy || GROUP_BY_DEFAULT) !== (current.groupBy || GROUP_BY_DEFAULT)) changed.push('groupBy')
+  } else if ((saved.groupBy === BOARD_GROUP_STORY) !== (current.groupBy === BOARD_GROUP_STORY)) {
+    // En el tablero solo cuenta si va por carriles de historia
+    changed.push('groupBy')
   }
   return changed
 }
 
 /** Parámetros de la URL que una vista reemplaza al aplicarse (y que «Todas» quita). */
-const VIEW_PARAMS = [...FILTER_KEYS, ...SINGLE_KEYS, 'blocked', 'search', 'sort', 'groupBy', 'page']
+const VIEW_PARAMS = [...FILTER_KEYS, ...SINGLE_KEYS, 'type', 'blocked', 'search', 'sort', 'groupBy', 'page']
 
 /**
  * Parámetros de la URL con la vista aplicada: reemplaza filtros, búsqueda, vista, orden y agrupación; conserva lo
@@ -79,6 +98,7 @@ export function applyViewToParams(previous, savedView) {
   if (filters.search?.trim()) next.set('search', filters.search.trim())
   for (const key of SINGLE_KEYS) if (filters[key]) next.set(key, filters[key])
   if (filters.blocked) next.set('blocked', 'true')
+  for (const value of typesToUrl(effectiveTypes(filters.type ?? []))) next.append('type', value)
   if (filters.view === 'list' || filters.view === 'board') next.set('view', filters.view)
   if (filters.sort && filters.sort !== DEFAULT_SORT) next.set('sort', filters.sort)
   if (filters.groupBy && filters.groupBy !== GROUP_BY_DEFAULT) next.set('groupBy', filters.groupBy)
@@ -118,12 +138,14 @@ export function summarizeViewFilters(filters, meta) {
     ['asignado', names(filters.assignee, meta.users, (user) => user.fullName)],
     ['etiqueta', names(filters.label, meta.labels, (label) => label.name)],
     ['bloqueo', filters.blocked ? 'solo bloqueadas' : ''],
+    ['tipo', filters.type?.length && !isDefaultTypes(effectiveTypes(filters.type)) ? typesLabel(effectiveTypes(filters.type)).toLowerCase() : ''],
     ['búsqueda', filters.search ? `«${filters.search}»` : ''],
   ]
     .filter(([, value]) => value)
     .map(([key, value]) => ({ key, value }))
   if (rows.length === 0) rows.push({ key: 'filtros', value: 'ninguno (todas las tareas)' })
   rows.push({ key: 'vista', value: filters.view === 'board' ? 'tablero' : 'lista' })
+  if (filters.view === 'board' && filters.groupBy === BOARD_GROUP_STORY) rows.push({ key: 'agrupar', value: 'carriles por historia' })
   if (filters.view !== 'board') {
     const group = GROUP_BY_OPTIONS.find((option) => option.value === (filters.groupBy || GROUP_BY_DEFAULT))
     rows.push({ key: 'agrupar', value: `por ${(group?.label ?? filters.groupBy).toLowerCase()}` })

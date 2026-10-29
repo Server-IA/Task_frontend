@@ -6,12 +6,13 @@ import { EmptyState, ErrorState } from '@/components/common/States'
 import { StateIcon } from '@/components/common/StateIcon'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { cn } from '@/lib/utils'
-import { GROUP_BY_DEFAULT, LIST_PAGE_SIZE } from '../constants'
+import { BOARD_GROUP_STORY, GROUP_BY_DEFAULT, LIST_PAGE_SIZE } from '../constants'
 import { groupIssues } from '../groupIssues'
 import { useIssues } from '../hooks'
 import { useCriteriaGuard } from '../useCriteriaGuard'
 import { isClosed, useIssueUpdater } from '../useIssueHelpers'
 import { BlockedChip, BlockingChip, ChecklistChip } from './IssueBadges'
+import { IssueTypeIcon, ParentStoryChip, TypeIcon } from './IssueTypeBits'
 import { PriorityIcon } from './PriorityIcon'
 import { AssigneesPicker, DatePicker, LabelsPicker, PriorityPicker, StatePicker } from './PropertyPickers'
 
@@ -62,7 +63,8 @@ export function IssueListView({
     )
   }
 
-  const groups = groupIssues(data.content, groupBy, meta)
+  // «story» es el agrupar del tablero: la lista va por estado
+  const groups = groupIssues(data.content, groupBy === BOARD_GROUP_STORY ? 'state' : groupBy, meta)
   const from = data.page * data.size + 1
   const to = from + data.content.length - 1
 
@@ -136,6 +138,8 @@ function GroupHeader({ group, onCreateInState }) {
     <header className="flex items-center gap-2 bg-column px-4 py-2.5 font-mono text-[11px] tracking-[0.08em] uppercase">
       {group.kind === 'state' ? (
         <StateIcon group={group.state.group} color={group.state.color} className="size-3.5" />
+      ) : group.kind === 'type' ? (
+        <TypeIcon type={group.type} size={14} />
       ) : (
         <PriorityIcon priority={group.priority} />
       )}
@@ -185,6 +189,7 @@ function IssueRow({ issue, slug, project, meta, openIssue, guard }) {
             showLabel={false}
             className="px-1"
           />
+          <IssueTypeIcon issue={issue} size={14} className="mx-0.5" />
           <span className="w-24">
             <PriorityPicker
               chip
@@ -197,13 +202,16 @@ function IssueRow({ issue, slug, project, meta, openIssue, guard }) {
         </span>
         <span className="w-16 shrink-0 font-mono text-xs text-muted-foreground">{issue.code}</span>
         <span className="flex min-w-0 flex-[1_1_260px] items-center gap-2">
-          {issue.parent && (
+          {issue.parent && issue.parent.type !== 'STORY' && (
             <span className="hidden shrink-0 items-center gap-1 font-mono text-[11px] text-muted-foreground lg:flex" title={`Subtarea de ${issue.parent.code}`}>
               <CornerDownRight className="size-3" />
               {issue.parent.code}
             </span>
           )}
-          <span className="truncate text-sm font-medium">{issue.title}</span>
+          <span className={cn('truncate text-sm font-medium', issue.state?.group === 'CANCELLED' && 'text-muted-foreground line-through')}>
+            {issue.title}
+          </span>
+          {issue.parent?.type === 'STORY' && <ParentStoryChip parent={issue.parent} onOpen={openIssue} />}
           <BlockedChip issue={issue} codes="inline" />
           <BlockingChip issue={issue} />
           {issue.subIssueCount > 0 && (

@@ -1,14 +1,15 @@
 import { PRIORITIES } from './constants'
+import { ISSUE_TYPES, TYPE_LABELS, typeOf } from './issueTypes'
 
 /**
- * Grupos de la vista de lista según «agrupar»: por estado (en el orden de las columnas), prioridad, asignado o
- * etiqueta. Una tarea con dos asignados (o dos etiquetas) aparece en el grupo de cada uno; las que no tienen
+ * Grupos de la vista de lista según «agrupar»: por estado (en el orden de las columnas), prioridad, asignado,
+ * etiqueta o tipo (historia, tarea, bug). Una tarea con dos asignados (o dos etiquetas) aparece en el grupo de cada uno; las que no tienen
  * ninguno van al final («Sin asignar», «Sin etiqueta»).
  */
 
 /** @typedef {import('@/api/types').IssueResponse} IssueResponse */
 /**
- * @typedef {{ key: string, kind: 'state' | 'priority' | 'assignee' | 'label', label: string,
+ * @typedef {{ key: string, kind: 'state' | 'priority' | 'assignee' | 'label' | 'type', label: string,
  *             state?: object, priority?: string, user?: object | null, labelItem?: object | null,
  *             issues: IssueResponse[] }} IssueGroup
  */
@@ -17,7 +18,7 @@ const NONE = 'none'
 
 /**
  * @param {IssueResponse[]} issues tareas de la página, en el orden en que llegan
- * @param {'state' | 'priority' | 'assignee' | 'label'} groupBy
+ * @param {'state' | 'priority' | 'assignee' | 'label' | 'type'} groupBy
  * @param {{ states: { id: string }[], users: { id: string, fullName: string }[], labels: { id: string }[] }} meta
  * @returns {IssueGroup[]}
  */
@@ -36,6 +37,9 @@ export function groupIssues(issues, groupBy, meta) {
       const people = issue.assignees ?? []
       if (people.length === 0) add(NONE, () => ({ kind: 'assignee', user: null, label: 'Sin asignar' }), issue)
       for (const user of people) add(user.id, () => ({ kind: 'assignee', user, label: user.fullName }), issue)
+    } else if (groupBy === 'type') {
+      const type = typeOf(issue)
+      add(type, () => ({ kind: 'type', type, label: TYPE_LABELS[type] }), issue)
     } else if (groupBy === 'label') {
       const labels = issue.labels ?? []
       if (labels.length === 0) add(NONE, () => ({ kind: 'label', labelItem: null, label: 'Sin etiqueta' }), issue)
@@ -59,6 +63,8 @@ function groupOrder(groupBy, meta) {
         ? [...meta.users].sort((a, b) => a.fullName.localeCompare(b.fullName, 'es')).map((user) => user.id)
         : groupBy === 'label'
           ? meta.labels.map((label) => label.id)
-          : meta.states.map((state) => state.id)
+          : groupBy === 'type'
+            ? ISSUE_TYPES.map((type) => type.value)
+            : meta.states.map((state) => state.id)
   return new Map(ids.map((id, index) => [id, index]))
 }

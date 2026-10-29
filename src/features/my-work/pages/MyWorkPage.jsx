@@ -6,6 +6,7 @@ import { DueChip } from '@/components/common/DueChip'
 import { Segmented } from '@/components/common/Segmented'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { StateIcon } from '@/components/common/StateIcon'
+import { IssueTypeIcon } from '@/features/issues/components/IssueTypeBits'
 import { BlockedChip } from '@/features/issues/components/IssueBadges'
 import { PriorityChip } from '@/features/issues/components/PriorityIcon'
 import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
@@ -211,6 +212,7 @@ function MyWorkRow({ slug, issue, project }) {
         className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 px-4 py-2.5 transition-colors duration-150 hover:bg-subtle focus-visible:bg-subtle focus-visible:outline-none"
       >
         <StateIcon group={issue.state?.group} color={issue.state?.color} />
+        <IssueTypeIcon issue={issue} size={14} />
         {project && <ProjectIcon project={project} />}
         <span className="min-w-14 shrink-0 font-mono text-xs text-muted-foreground">{issue.code}</span>
         <span className="min-w-0 flex-[1_1_240px] truncate font-medium" title={issue.title}>

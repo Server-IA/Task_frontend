@@ -14,6 +14,7 @@ import { SidebarLink } from './Sidebar'
 /** Secciones de un proyecto con su atajo de teclado (ver ProjectLayout). */
 export const PROJECT_SECTIONS = [
   { path: 'issues', label: 'Tareas', hint: 'I' },
+  { path: 'stories', label: 'Historias', hint: 'H' },
   { path: 'cycles', label: 'Ciclos', hint: 'Y' },
   { path: 'daily', label: 'Daily', hint: 'D' },
   { path: 'modules', label: 'Módulos', hint: 'M' },
@@ -89,6 +90,13 @@ function CurrentProject({ slug, project, base }) {
 
   const meta = {
     issues: openLabel(project.openIssueCount),
+    // «2 sin partir» (o, si están todas partidas, cuántas hay abiertas)
+    stories:
+      project.unsplitStoryCount > 0
+        ? `${project.unsplitStoryCount} sin partir`
+        : project.openStoryCount > 0
+          ? openLabel(project.openStoryCount)
+          : undefined,
     cycles: currentCycle?.name,
     daily: 'hoy',
     modules: activeModules > 0 ? `${activeModules} ${activeModules === 1 ? 'activo' : 'activos'}` : undefined,

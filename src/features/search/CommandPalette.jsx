@@ -5,6 +5,8 @@ import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Spinner } from '@/components/common/Loaders'
 import { StateIcon } from '@/components/common/StateIcon'
+import { IssueTypeIcon } from '@/features/issues/components/IssueTypeBits'
+import { isStory, storyProgress } from '@/features/issues/issueTypes'
 import { usePlanningList } from '@/features/planning/hooks'
 import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
 import { useProjects } from '@/features/projects/hooks'
@@ -218,15 +220,24 @@ function PaletteContent({ onClose }) {
                   value={`issue-${issue.id}`}
                   onSelect={() => run(() => navigate(`/${slug}/projects/${issue.projectId}/issues?issue=${issue.id}`))}
                   icon={<ProjectIcon project={issueProject ?? { identifier: issue.code.split('-')[0] }} className="h-6.5 rounded-lg px-1.5" />}
-                  label={issue.title}
+                  label={
+                    <span className="flex min-w-0 items-center gap-2">
+                      <IssueTypeIcon issue={issue} />
+                      <span className="truncate">{issue.title}</span>
+                    </span>
+                  }
                   hint={
                     <span className="flex min-w-0 items-center gap-1.5">
                       <span>{issue.code}</span>·
                       <StateIcon group={issue.state?.group} color={issue.state?.color} className="size-3" />
                       <span className="truncate">{issue.state?.name}</span>·
                       <span className="truncate">
-                        {assignee ? assignee.fullName.split(' ')[0] : 'sin asignar'}
-                        {issue.assignees?.length > 1 && ` +${issue.assignees.length - 1}`}
+                        {isStory(issue)
+                          ? storyProgress(issue).label
+                          : assignee
+                            ? assignee.fullName.split(' ')[0]
+                            : 'sin asignar'}
+                        {!isStory(issue) && issue.assignees?.length > 1 && ` +${issue.assignees.length - 1}`}
                       </span>
                     </span>
                   }

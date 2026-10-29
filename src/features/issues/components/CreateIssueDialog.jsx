@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form'
 import { Label } from '@/components/ui/label'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Switch } from '@/components/ui/switch'
 import { Spinner } from '@/components/common/Loaders'
 import { LazyRichEditor, usePreloadRichEditor } from '@/features/editor/components/LazyRichEditor'
@@ -21,7 +22,9 @@ import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { useCreateIssue } from '../hooks'
+import { firstTemplateOfType, ISSUE_TYPES, templateType, TYPE_LABELS } from '../issueTypes'
 import { useProjectMeta } from '../useIssueHelpers'
+import { TypeIcon } from './IssueTypeBits'
 import { AssigneesPicker, DatePicker, LabelsPicker, PriorityPicker, StatePicker } from './PropertyPickers'
 
 const issueSchema = z
@@ -43,15 +46,44 @@ const issueSchema = z
 /** Máximo de criterios y pasos que acepta el backend al crear una tarea. */
 const CHECKLIST_ON_CREATE = 50
 
+/** Título del diálogo según el tipo y, si tiene, la historia (o tarea) padre. */
+function dialogTitle(type, defaults) {
+  if (defaults.parentId) {
+    const what = type === 'BUG' ? 'Nuevo bug' : 'Nueva tarea'
+    return defaults.parentType === 'STORY' ? `${what} de la historia ${defaults.parentCode}` : `Nueva subtarea de ${defaults.parentCode}`
+  }
+  if (defaults.relatesToCode) return `${type === 'STORY' ? 'Nueva historia' : 'Nueva tarea'} relacionada con ${defaults.relatesToCode}`
+  return type === 'STORY' ? 'Nueva historia' : type === 'BUG' ? 'Reportar bug' : 'Nueva tarea'
+}
+
 /**
- * Crear tarea. `defaults` permite preseleccionar estado (columna del tablero), padre (subtarea) o un título
- * (lo escrito en la paleta de comandos). Una plantilla del proyecto puede rellenar prefijo del título,
- * descripción, prioridad, estado, asignados y etiquetas, y agrega su checklist a la tarea; «Deshacer» vuelve a
- * los valores de antes.
+ * Crear tarea. `defaults` permite preseleccionar estado (columna del tablero), padre (subtarea o tarea de una
+ * historia), un título (lo escrito en la paleta de comandos), el tipo (`type`) o la plantilla de un tipo
+ * (`templateType`: «Nueva historia» abre con «Historia de usuario» y «Reportar bug» con «Reporte de bug»).
+ * `reopenParent` reabre la historia cerrada del padre al crear; `relatesToId` deja la tarea nueva relacionada con
+ * esa. Una plantilla del proyecto puede rellenar el tipo, el prefijo del título, la descripción, la prioridad, el
+ * estado, los asignados y las etiquetas, y agrega su checklist a la tarea; «Deshacer» vuelve a los valores de antes.
  * @param {{ slug: string, project: import('@/api/types').ProjectResponse, open: boolean, onOpenChange: Function,
- *           defaults?: { stateId?: string, parentId?: string, parentCode?: string, title?: string }, onCreated?: Function }} props
+ *           defaults?: { stateId?: string, parentId?: string, parentCode?: string, parentType?: string, title?: string,
+ *                        type?: string, templateType?: string, reopenParent?: boolean, relatesToId?: string,
+ *                        relatesToCode?: string }, onCreated?: Function }} props
  */
 export function CreateIssueDialog({ slug, project, open, onOpenChange, defaults = {}, onCreated }) {
+  const [type, setType] = useState(defaults.type ?? defaults.templateType ?? 'TASK')
+  // Al abrir de nuevo con otros valores por defecto, vuelve al tipo pedido
+  // y el formulario empieza de nuevo (sesión nueva) para aplicar la plantilla pedida
+  const [lastOpen, setLastOpen] = useState(open)
+  const [session, setSession] = useState(0)
+  if (open !== lastOpen) {
+    setLastOpen(open)
+    if (open) {
+      setType(defaults.type ?? defaults.templateType ?? 'TASK')
+      setSession((count) => count + 1)
+    }
+  }
+  // Con una plantilla pedida («Nueva historia», «Reportar bug») el formulario espera a las plantillas para nacer con ella
+  const { isLoading: templatesLoading } = useTemplates(slug, project.id)
+  const waitTemplates = Boolean(defaults.templateType) && templatesLoading
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/* Arriba y con scroll propio: con una plantilla (descripción y checklist) puede ser más alto que la pantalla */}
@@ -59,7 +91,8 @@ export function CreateIssueDialog({ slug, project, open, onOpenChange, defaults 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-sm font-semibold">
             <ProjectIcon project={project} className="rounded-md px-2 text-[11px]" />
-            {defaults.parentId ? `Nueva subtarea de ${defaults.parentCode}` : 'Nueva tarea'}
+            <TypeIcon type={type} size={14} />
+            {dialogTitle(type, defaults)}
             {project.nextIssueCode && (
               <span className="font-mono text-xs font-normal text-muted-foreground" title="Código que tendrá si nadie crea otra antes">
                 → será {project.nextIssueCode}
@@ -69,32 +102,39 @@ export function CreateIssueDialog({ slug, project, open, onOpenChange, defaults 
           <DialogDescription className="sr-only">Escribe el título y elige sus propiedades.</DialogDescription>
         </DialogHeader>
         {/* El formulario vive mientras exista el diálogo: así no desaparece durante la animación de cierre */}
+        {waitTemplates ? (
+          <Spinner className="mx-auto my-8 text-muted-foreground" />
+        ) : (
         <CreateIssueForm
+          key={session}
           slug={slug}
           project={project}
           defaults={defaults}
+          type={type}
+          onTypeChange={setType}
           onCancel={() => onOpenChange(false)}
           onCreated={(issue, keepOpen) => {
             onCreated?.(issue)
             if (!keepOpen) onOpenChange(false)
           }}
         />
+        )}
       </DialogContent>
     </Dialog>
   )
 }
 
-function CreateIssueForm({ slug, project, defaults, onCancel, onCreated }) {
+function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel, onCreated }) {
   const meta = useProjectMeta(slug, project.id)
   const create = useCreateIssue(slug, project.id)
-  const { data: templates = [] } = useTemplates(slug, project.id)
+  const { data: allTemplates = [] } = useTemplates(slug, project.id)
   const isManager = useIsManager()
+  // Solo el project manager crea historias, y la tarea de una historia (o una subtarea) no puede ser historia
+  const canStory = isManager && !defaults.parentId
+  const templates = canStory ? allTemplates : allTemplates.filter((item) => templateType(item) !== 'STORY')
   const people = useMentionPeople(slug, project.id)
   usePreloadRichEditor()
   const [createMore, setCreateMore] = useState(false)
-  // Plantilla aplicada y los valores de antes de aplicar la primera (para cambiarla o deshacerla)
-  const [template, setTemplate] = useState(null)
-  const [base, setBase] = useState(null)
   const emptyValues = {
     title: defaults.title ?? '',
     description: '',
@@ -105,7 +145,18 @@ function CreateIssueForm({ slug, project, defaults, onCancel, onCreated }) {
     startDate: null,
     dueDate: null,
   }
-  const form = useForm({ resolver: zodResolver(issueSchema), defaultValues: emptyValues })
+  // «Nueva historia» y «Reportar bug» abren con la primera plantilla de ese tipo ya aplicada
+  const [initial] = useState(() => {
+    const first = defaults.templateType ? firstTemplateOfType(templates, defaults.templateType) : null
+    if (!first) return { template: null, base: null, values: emptyValues }
+    const { title, description, priority, stateId: initialState, assigneeIds, labelIds } = emptyValues
+    const current = { title, description, priority, stateId: initialState, assigneeIds, labelIds }
+    return { template: first, base: current, values: { ...emptyValues, ...applyTemplate(current, first, { base: current }) } }
+  })
+  // Plantilla aplicada y los valores de antes de aplicar la primera (para cambiarla o deshacerla)
+  const [template, setTemplate] = useState(initial.template)
+  const [base, setBase] = useState(initial.base)
+  const form = useForm({ resolver: zodResolver(issueSchema), defaultValues: initial.values })
   const values = useWatch({ control: form.control })
   const stateId = values.stateId ?? meta.states[0]?.id
 
@@ -113,7 +164,8 @@ function CreateIssueForm({ slug, project, defaults, onCancel, onCreated }) {
   // después del prefijo. Se hace cuando React ya escribió el título nuevo en el campo: `setFocus` de react-hook-form
   // enfoca en un setTimeout y el navegador dejaba el cursor al principio.
   const titleRef = useRef(null)
-  const [caretRequest, setCaretRequest] = useState(0)
+  // Con una plantilla ya aplicada al abrir («Reportar bug»), el cursor empieza después del prefijo
+  const [caretRequest, setCaretRequest] = useState(initial.template ? 1 : 0)
   useEffect(() => {
     const input = titleRef.current
     if (!caretRequest || !input) return
@@ -130,6 +182,8 @@ function CreateIssueForm({ slug, project, defaults, onCancel, onCreated }) {
     Object.entries(applied).forEach(([name, value]) => form.setValue(name, value, { shouldDirty: true }))
     setTemplate(next)
     setBase(next ? baseValues : null)
+    // La plantilla fija el tipo (Historia de usuario → historia, Reporte de bug → bug); sin plantilla, el pedido
+    onTypeChange(next ? templateType(next) : (defaults.type ?? 'TASK'))
     caretToEnd()
   }
   const fromTemplate = fromTemplateFlags(template, values)
@@ -142,6 +196,9 @@ function CreateIssueForm({ slug, project, defaults, onCancel, onCreated }) {
       startDate: data.startDate ?? undefined,
       dueDate: data.dueDate ?? undefined,
       parentId: defaults.parentId,
+      type,
+      reopenParent: defaults.reopenParent || undefined,
+      relatesToId: defaults.relatesToId,
       // La plantilla suma un uso (se ve en los ajustes de plantillas)
       templateId: template?.id,
       checklist: template?.checklist?.length
@@ -227,6 +284,9 @@ function CreateIssueForm({ slug, project, defaults, onCancel, onCreated }) {
           )}
         />
         <div className="flex flex-wrap items-center gap-1.5">
+          <FromTemplate active={Boolean(template)}>
+            <TypeSelect value={type} onChange={onTypeChange} canStory={canStory} className={chip(false)} />
+          </FromTemplate>
           <FromTemplate active={fromTemplate.state}>
             <StatePicker states={meta.states} value={stateId} onChange={setField('stateId')} className={chip(false)} />
           </FromTemplate>
@@ -282,7 +342,7 @@ function CreateIssueForm({ slug, project, defaults, onCancel, onCreated }) {
           </Button>
           <Button type="submit" disabled={create.isPending}>
             {create.isPending && <Spinner />}
-            Crear tarea
+            {type === 'STORY' ? 'Crear historia' : type === 'BUG' ? 'Reportar bug' : 'Crear tarea'}
             <kbd className="rounded-[5px] bg-foreground/10 px-1.5 text-[11px] font-normal">ctrl ↵</kbd>
           </Button>
         </div>
@@ -378,6 +438,47 @@ function TemplateBar({ templates, active, onChoose, settingsUrl, onLeave }) {
         </p>
       )}
     </div>
+  )
+}
+
+/**
+ * Tipo de la tarea nueva (Tarea, Bug y, para el project manager sin padre, Historia).
+ * @param {{ value: string, onChange: (type: string) => void, canStory: boolean, className?: string }} props
+ */
+function TypeSelect({ value, onChange, canStory, className }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button type="button" aria-label="Tipo" className={cn('inline-flex items-center gap-1.5', className)}>
+          <TypeIcon type={value} size={14} />
+          {TYPE_LABELS[value]}
+          <ChevronDown className="size-3 text-muted-foreground" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 p-1" align="start">
+        {ISSUE_TYPES.map((option) => {
+          const disabled = option.value === 'STORY' && !canStory
+          return (
+            <button
+              key={option.value}
+              type="button"
+              disabled={disabled}
+              title={disabled ? 'Solo el project manager crea historias, y no dentro de otra tarea' : undefined}
+              onClick={() => {
+                setOpen(false)
+                onChange(option.value)
+              }}
+              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              <TypeIcon type={option.value} />
+              <span className="flex-1">{option.label}</span>
+              {option.value === value && <Check className="size-4" />}
+            </button>
+          )
+        })}
+      </PopoverContent>
+    </Popover>
   )
 }
 

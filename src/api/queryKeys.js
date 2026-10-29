@@ -26,6 +26,9 @@ export const queryKeys = {
   relations: (issueId) => ['relations', issueId],
   checklist: (issueId) => ['checklist', issueId],
 
+  /** Historias del proyecto (GET /stories) con su progreso, sus tareas y bugs. */
+  stories: (projectId) => ['stories', projectId],
+
   templates: (projectId) => ['templates', projectId],
   savedViews: (projectId) => ['savedViews', projectId],
 
