@@ -8,7 +8,6 @@ import { LockNote } from '@/components/common/LockNote'
 import { isManager } from '@/lib/permissions'
 import { notifyError } from '@/lib/notify'
 import { useSessionStore } from '@/stores/sessionStore'
-import { usePreferencesStore } from '@/stores/preferencesStore'
 import { useDeleteWorkspace, useRemoveMember, useUpdateWorkspace } from '../hooks'
 import { WorkspaceForm } from './WorkspaceForm'
 
@@ -61,19 +60,16 @@ export function GeneralSettings({ workspace }) {
 
 function DeleteWorkspaceCard({ workspace }) {
   const [open, setOpen] = useState(false)
-  const remove = useDeleteWorkspace(workspace.slug)
   const navigate = useNavigate()
-  const setLastWorkspaceSlug = usePreferencesStore((state) => state.setLastWorkspaceSlug)
+  const remove = useDeleteWorkspace(workspace.slug, {
+    onGone: () => {
+      toast.success(`Workspace «${workspace.name}» eliminado`)
+      navigate('/', { replace: true })
+    },
+  })
 
   const handleDelete = () => {
-    remove.mutate(undefined, {
-      onSuccess: () => {
-        toast.success(`Workspace «${workspace.name}» eliminado`)
-        setLastWorkspaceSlug(null)
-        navigate('/', { replace: true })
-      },
-      onError: (error) => notifyError(error),
-    })
+    remove.mutate(undefined, { onError: (error) => notifyError(error) })
   }
 
   return (
@@ -105,19 +101,16 @@ function DeleteWorkspaceCard({ workspace }) {
 function LeaveWorkspaceCard({ workspace, isManager }) {
   const [open, setOpen] = useState(false)
   const user = useSessionStore((state) => state.user)
-  const leave = useRemoveMember(workspace.slug)
   const navigate = useNavigate()
-  const setLastWorkspaceSlug = usePreferencesStore((state) => state.setLastWorkspaceSlug)
+  const leave = useRemoveMember(workspace.slug, {
+    onGone: () => {
+      toast.success(`Saliste de «${workspace.name}»`)
+      navigate('/', { replace: true })
+    },
+  })
 
   const handleLeave = () => {
-    leave.mutate(user.id, {
-      onSuccess: () => {
-        toast.success(`Saliste de «${workspace.name}»`)
-        setLastWorkspaceSlug(null)
-        navigate('/', { replace: true })
-      },
-      onError: (error) => notifyError(error),
-    })
+    leave.mutate(user.id, { onError: (error) => notifyError(error) })
   }
 
   return (

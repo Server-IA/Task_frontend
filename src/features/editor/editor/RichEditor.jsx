@@ -9,7 +9,7 @@ import { useSessionStore } from '@/stores/sessionStore'
 import { normalizeHref } from '../markdown/links'
 import { markdownToDoc } from '../markdown/parse'
 import { docToMarkdown } from '../markdown/serialize'
-import { movedIndexes, takeTaskItems } from '../markdown/taskItems'
+import { removeMovedTaskItems, takeTaskItems } from '../markdown/taskItems'
 import { isTaskCode } from '../markdown/taskRefs'
 import { BubbleBar } from './BubbleBar'
 import { buildExtensions, MENTION_KEY, SLASH_KEY } from './extensions'
@@ -322,24 +322,21 @@ export default function RichEditor({
     const indexes = taskIndexesIn(editor.state.doc, from, to)
     if (!indexes.length) return
     const before = editor.getJSON()
-    const { doc, items, groups } = takeTaskItems(before, indexes)
+    const { doc, items } = takeTaskItems(before, indexes)
     editor.commands.setContent(doc, { emitUpdate: true })
     editor.commands.focus()
     const after = editor.state.doc
-    // Las casillas cuyos pasos no se crearon vuelven: a su lugar si no se escribió nada más; si no, al final (para
-    // que no queden ni en la descripción ni en el checklist)
-    const restore = (moved) => {
-      const failed = indexes.filter((index) => !moved.includes(index))
-      if (!failed.length || editor.isDestroyed) return
+    // Las casillas cuyos pasos no se crearon (los últimos: se crean en orden) vuelven: a su lugar si no se escribió
+    // nada más; si no, al final. Así ningún paso queda ni en ambos lados ni en ninguno
+    const restore = (created) => {
+      if (created >= items.length || editor.isDestroyed) return
       if (editor.state.doc.eq(after)) {
-        editor.commands.setContent(takeTaskItems(before, moved).doc, { emitUpdate: true })
+        editor.commands.setContent(removeMovedTaskItems(before, indexes, created), { emitUpdate: true })
         return
       }
-      const back = takeTaskItems(before, failed).items
-      if (!back.length) return
       editor.commands.insertContentAt(editor.state.doc.content.size, {
         type: 'taskList',
-        content: back.map((item) => ({
+        content: items.slice(created).map((item) => ({
           type: 'taskItem',
           attrs: { checked: item.checked },
           content: [{ type: 'paragraph', content: [{ type: 'text', text: item.text }] }],
@@ -347,8 +344,8 @@ export default function RichEditor({
       })
     }
     Promise.resolve(onMoveTasks(items)).then(
-      (created) => restore(typeof created === 'number' ? movedIndexes(indexes, groups, created) : indexes),
-      () => restore([]),
+      (created) => restore(typeof created === 'number' ? created : 0),
+      () => restore(0),
     )
   }
 

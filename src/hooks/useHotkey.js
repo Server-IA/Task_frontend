@@ -4,8 +4,12 @@ const isTyping = (target) =>
   target instanceof HTMLElement &&
   (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
 
-/** Menús y selects de Radix usan las letras para saltar a una opción (typeahead). */
-const POPUP_ROLES = '[role="menu"],[role="menuitem"],[role="menuitemcheckbox"],[role="menuitemradio"],[role="listbox"],[role="option"],[role="combobox"]'
+/**
+ * Menús y selects de Radix usan las letras para saltar a una opción (typeahead). El botón de un select cerrado
+ * (`role="combobox"`) no cuenta: se queda con el foco después de elegir y apagaría los atajos; con el select abierto
+ * ya basta OPEN_POPUP.
+ */
+const POPUP_ROLES = '[role="menu"],[role="menuitem"],[role="menuitemcheckbox"],[role="menuitemradio"],[role="listbox"],[role="option"]'
 const OPEN_POPUP = '[role="menu"][data-state="open"],[role="listbox"][data-state="open"]'
 
 const isInPopup = (target) =>

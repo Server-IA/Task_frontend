@@ -5,6 +5,7 @@ import { queryKeys } from '@/api/queryKeys'
 import { ApiError } from '@/lib/errors'
 import { issuesApi } from './api'
 import { issueChangeFilters, useMoveIssue, useSaveDescription, useUpdateIssue } from './hooks'
+import { useIssueUpdater } from './useIssueHelpers'
 
 vi.mock('./api', () => ({ issuesApi: { update: vi.fn(), move: vi.fn() } }))
 
@@ -81,6 +82,29 @@ describe('useUpdateIssue', () => {
   })
 })
 
+describe('useIssueUpdater', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('dos cambios seguidos de la misma tarea: si el primero falla, su onError se llama igual', async () => {
+    const { wrapper } = setup()
+    const first = deferred()
+    issuesApi.update.mockReturnValueOnce(first.promise).mockResolvedValueOnce({ id: 'i1' })
+    const firstError = vi.fn()
+    const { result } = renderHook(() => useIssueUpdater('acme', 'p1', 'i1'), { wrapper })
+
+    act(() => {
+      result.current.update({ stateId: 's-todo' }, { onError: firstError })
+      result.current.update({ priority: 'HIGH' })
+    })
+    const closed = new ApiError({ status: 409, message: 'WEB-1 está cerrada', code: 'STORY_CLOSED' })
+    first.reject(closed)
+    await waitFor(() => expect(firstError).toHaveBeenCalledWith(closed))
+    await waitFor(() => expect(issuesApi.update).toHaveBeenCalledTimes(2))
+    expect(issuesApi.update).toHaveBeenNthCalledWith(1, 'acme', 'p1', 'i1', { stateId: 's-todo' })
+    expect(issuesApi.update).toHaveBeenNthCalledWith(2, 'acme', 'p1', 'i1', { priority: 'HIGH' })
+  })
+})
+
 describe('useMoveIssue', () => {
   beforeEach(() => vi.clearAllMocks())
 
@@ -102,6 +126,33 @@ describe('useMoveIssue', () => {
     request.reject(new ApiError({ status: 409, message: 'WEB-1 está cerrada', code: 'STORY_CLOSED' }))
     await waitFor(() => expect(result.current.isError).toBe(true))
     expect(queryClient.getQueryData(listKey).content[0].state).toEqual(done)
+  })
+
+  it('dos arrastres seguidos: el rechazo del primero llama a su onError y no deshace el segundo', async () => {
+    const { queryClient, wrapper } = setup()
+    const two = { content: [{ id: 'i1', state: done, sortOrder: 1 }, { id: 'i2', state: done, sortOrder: 2 }] }
+    queryClient.setQueryData(listKey, two)
+    const first = deferred()
+    const second = deferred()
+    issuesApi.move.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
+    const firstError = vi.fn()
+    const secondError = vi.fn()
+    const { result } = renderHook(() => useMoveIssue('acme', 'p1'), { wrapper })
+
+    act(() => result.current.mutate({ issueId: 'i1', stateId: todo.id, state: todo, sortOrder: 5, onError: firstError }))
+    await waitFor(() => expect(issuesApi.move).toHaveBeenCalledTimes(1))
+    act(() => result.current.mutate({ issueId: 'i2', stateId: todo.id, state: todo, sortOrder: 6, onError: secondError }))
+    await waitFor(() => expect(queryClient.getQueryData(listKey).content[1].state).toEqual(todo))
+
+    const closed = new ApiError({ status: 409, message: 'WEB-1 está cerrada', code: 'STORY_CLOSED' })
+    first.reject(closed)
+    await waitFor(() => expect(firstError).toHaveBeenCalledWith(closed))
+    const [i1, i2] = queryClient.getQueryData(listKey).content
+    expect(i1).toMatchObject({ state: done, sortOrder: 1 })
+    expect(i2).toMatchObject({ state: todo, sortOrder: 6 })
+    expect(secondError).not.toHaveBeenCalled()
+    // El onError no se manda al backend
+    expect(issuesApi.move.mock.calls[0][3]).not.toHaveProperty('onError')
   })
 
   it('reintentar con reopenParent lo manda al backend', async () => {

@@ -7,12 +7,13 @@ import { isManager as isManagerRole } from '@/lib/permissions'
 import { StoryClosedDialog } from './components/StoryClosedDialog'
 
 /**
- * Código de la historia cerrada: la historia de la tarea o, si no se sabe (al cambiar de padre), el del mensaje del
- * backend («WEB-15 está cerrada…»).
+ * Código de la historia cerrada: el del mensaje del backend («WEB-15 está cerrada…»), que nombra la que de verdad
+ * está cerrada (al pasar la tarea a otra historia es la nueva, no la actual) o, si no viene, la historia de la tarea.
  */
 export function closedStoryCode(error, issue) {
-  if (issue?.parent?.type === 'STORY') return issue.parent.code
-  return toApiError(error).message?.match(/^(\S+-\d+) está cerrada/)?.[1] ?? null
+  const fromMessage = toApiError(error).message?.match(/^(\S+-\d+) está cerrada/)?.[1]
+  if (fromMessage) return fromMessage
+  return issue?.parent?.type === 'STORY' ? issue.parent.code : null
 }
 
 /** Qué se intentó, para el diálogo: «Mover WEB-17 a «Todo»», «Convertir WEB-17 en tarea»… */

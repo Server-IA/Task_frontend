@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/api/queryKeys'
+import { ApiError } from '@/lib/errors'
 import { useSessionStore } from '@/stores/sessionStore'
 import { checklistApi } from './api'
 import { markChecked, moveChecklistItem, summarizeChecklist } from './checklistMath'
@@ -96,8 +97,8 @@ export function checklistFullMessage(room) {
 
 /**
  * «Pasar al checklist» desde la descripción: `mutateAsync(casillas)` crea un paso por casilla, en orden (las
- * marcadas quedan hechas) y devuelve `{ created, error }`: cuántos se crearon y, si uno falló, el error (los
- * siguientes no se intentan). Antes comprueba que quepan todos: si no, falla sin crear ninguno. Así quien llama
+ * marcadas quedan hechas) y devuelve `{ created, error }`: cuántos se crearon (completos, con su marca) y, si uno
+ * falló, el error (los siguientes no se intentan). Antes comprueba que quepan todos: si no, falla sin crear ninguno. Así quien llama
  * quita de la descripción solo las casillas que de verdad quedaron en el checklist.
  */
 export function useMoveToChecklist(slug, projectId, issueId) {
@@ -110,13 +111,23 @@ export function useMoveToChecklist(slug, projectId, issueId) {
         staleTime: 0,
       })
       const room = CHECKLIST_LIMIT - (current?.length ?? 0)
-      if (items.length > room) throw new Error(checklistFullMessage(room))
+      // Un ApiError, para que el aviso muestre este mensaje (un Error suelto se leería como un fallo de conexión)
+      if (items.length > room) throw new ApiError({ status: 409, message: checklistFullMessage(room) })
       let created = 0
       try {
         for (const item of items) {
           const step = await checklistApi.create(slug, projectId, issueId, { kind: 'CHECK', text: item.text.slice(0, 500) })
+          // El backend no recibe `done` al crear: si después no se puede marcar, el paso no cuenta como pasado (la
+          // casilla se queda en la descripción) y se quita del checklist para que no quede dos veces ni sin marcar
+          if (item.checked) {
+            try {
+              await checklistApi.update(slug, projectId, issueId, step.id, { done: true })
+            } catch (error) {
+              await checklistApi.remove(slug, projectId, issueId, step.id).catch(() => {})
+              throw error
+            }
+          }
           created += 1
-          if (item.checked) await checklistApi.update(slug, projectId, issueId, step.id, { done: true })
         }
       } catch (error) {
         return { created, error }

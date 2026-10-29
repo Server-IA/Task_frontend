@@ -45,9 +45,7 @@ export function useVerifyEmail() {
  * página: el siguiente usuario no debe aterrizar en la del anterior.
  */
 export function useLogout() {
-  const clearSession = useSessionStore((state) => state.clearSession)
-  const setLastWorkspaceSlug = usePreferencesStore((state) => state.setLastWorkspaceSlug)
-  const queryClient = useQueryClient()
+  const forgetSession = useForgetSession()
   return useMutation({
     // Bajo el mismo lock que el refresh: se revoca el token vigente, no uno que se esté rotando
     mutationFn: () =>
@@ -57,13 +55,25 @@ export function useLogout() {
           await authApi.logout(refreshToken).catch(() => {})
         }
       }),
-    onSettled: () => {
-      clearSession({ loggedOut: true })
-      setLastWorkspaceSlug(null)
-      pendingInvitation.clear()
-      queryClient.clear()
-    },
+    onSettled: forgetSession,
   })
+}
+
+/**
+ * Limpia la sesión y lo que es del usuario en este navegador (último workspace, invitación pendiente, caché), sin
+ * hablar con el backend. Lo usa el logout después de revocar el token y la pantalla «Sin conexión con el servidor»
+ * para volver al login cuando el backend no responde (ahí no se puede revocar).
+ */
+export function useForgetSession() {
+  const clearSession = useSessionStore((state) => state.clearSession)
+  const setLastWorkspaceSlug = usePreferencesStore((state) => state.setLastWorkspaceSlug)
+  const queryClient = useQueryClient()
+  return () => {
+    clearSession({ loggedOut: true })
+    setLastWorkspaceSlug(null)
+    pendingInvitation.clear()
+    queryClient.clear()
+  }
 }
 
 export function useMe() {

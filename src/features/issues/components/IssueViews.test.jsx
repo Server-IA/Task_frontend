@@ -56,6 +56,19 @@ describe('Tablero', () => {
     expect(openIssue).toHaveBeenCalledWith('web-1')
   })
 
+  it('soltar con Enter una tarjeta levantada con el teclado no la abre', async () => {
+    issues = [issue('web-1')]
+    const openIssue = vi.fn()
+    render(<IssueBoardView {...common} openIssue={openIssue} />)
+    const card = screen.getByText('Tarea web-1').closest('[aria-roledescription="sortable"]')
+    card.focus()
+    fireEvent.keyDown(card, { key: ' ', code: 'Space' })
+    await screen.findByText(/Picked up draggable item web-1/)
+    fireEvent.keyDown(card, { key: 'Enter', code: 'Enter' })
+    await screen.findByText(/was dropped/)
+    expect(openIssue).not.toHaveBeenCalled()
+  })
+
   it('las historias no se arrastran; las tareas sí', () => {
     issues = [issue('web-1'), issue('web-2', { type: 'STORY', title: 'Historia web-2' })]
     render(<IssueBoardView {...common} openIssue={() => {}} />)

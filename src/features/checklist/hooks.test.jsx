@@ -2,9 +2,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { checklistApi } from './api'
+import { toApiError } from '@/lib/errors'
 import { CHECKLIST_LIMIT, useMoveToChecklist } from './hooks'
 
-vi.mock('./api', () => ({ checklistApi: { list: vi.fn(), create: vi.fn(), update: vi.fn() } }))
+vi.mock('./api', () => ({ checklistApi: { list: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() } }))
 
 function setup() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -25,6 +26,37 @@ describe('useMoveToChecklist', () => {
       await expect(result.current.mutateAsync(steps(5))).rejects.toThrow('Solo caben 2 pasos más en el checklist')
     })
     expect(checklistApi.create).not.toHaveBeenCalled()
+  })
+
+  it('el aviso de que no caben dice cuántos caben (no «No se pudo conectar con el servidor»)', async () => {
+    checklistApi.list.mockResolvedValue(existing(CHECKLIST_LIMIT - 2))
+    const result = setup()
+    let error
+    await act(async () => {
+      error = await result.current.mutateAsync(steps(5)).catch((caught) => caught)
+    })
+    expect(toApiError(error)).toMatchObject({ status: 409, message: 'Solo caben 2 pasos más en el checklist (máximo 100)' })
+  })
+
+  it('si un paso marcado no se puede marcar, no cuenta como pasado y se quita del checklist', async () => {
+    checklistApi.list.mockResolvedValue([])
+    const failure = new Error('500')
+    checklistApi.create.mockResolvedValueOnce({ id: 'n1' }).mockResolvedValueOnce({ id: 'n2' })
+    checklistApi.update.mockRejectedValueOnce(failure)
+    checklistApi.remove.mockResolvedValue({})
+    const result = setup()
+    let outcome
+    await act(async () => {
+      outcome = await result.current.mutateAsync([
+        { text: 'Pendiente', checked: false },
+        { text: 'Hecho', checked: true },
+        { text: 'Otro', checked: false },
+      ])
+    })
+    // Solo el primero quedó completo: «Hecho» se queda en la descripción con su marca, y no queda repetido
+    expect(outcome).toEqual({ created: 1, error: failure })
+    expect(checklistApi.remove).toHaveBeenCalledWith('acme', 'p1', 'i1', 'n2')
+    expect(checklistApi.create).toHaveBeenCalledTimes(2)
   })
 
   it('si uno falla a mitad de camino, dice cuántos se crearon y no intenta los siguientes', async () => {

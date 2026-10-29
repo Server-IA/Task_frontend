@@ -19,6 +19,7 @@ import { avatarColor, initials } from '@/components/common/UserAvatar'
 import { useChangePassword, useLogout, useMe, useUpdateProfile } from '@/features/auth/hooks'
 import { changePasswordSchema, profileSchema } from '@/features/auth/schemas'
 import { useWorkspaces } from '@/features/workspaces/hooks'
+import { useCooldown } from '@/hooks/useCooldown'
 import { useTheme } from '@/hooks/useTheme'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { applyFieldErrors } from '@/lib/errors'
@@ -178,6 +179,8 @@ function ProfileCard({ user }) {
 
 function ChangePasswordCard() {
   const changePassword = useChangePassword()
+  // Tras un 429 (demasiados intentos) el botón espera lo que indica Retry-After
+  const cooldown = useCooldown()
   const form = useForm({
     resolver: zodResolver(changePasswordSchema),
     defaultValues: { currentPassword: '', newPassword: '', confirmPassword: '' },
@@ -195,7 +198,7 @@ function ChangePasswordCard() {
           })
         },
         onError: (error) => {
-          if (!applyFieldErrors(error, form.setError)) notifyError(error)
+          if (!applyFieldErrors(error, form.setError)) cooldown.start(notifyError(error))
         },
       },
     )
@@ -253,11 +256,11 @@ function ChangePasswordCard() {
             <div className="flex justify-end">
               <Button
                 type="submit"
-                disabled={changePassword.isPending}
+                disabled={changePassword.isPending || cooldown.active}
                 className="bg-foreground text-background hover:bg-foreground/85"
               >
                 {changePassword.isPending && <Spinner />}
-                Cambiar contraseña
+                {cooldown.active ? `Espera ${cooldown.secondsLeft} s` : 'Cambiar contraseña'}
               </Button>
             </div>
           </form>

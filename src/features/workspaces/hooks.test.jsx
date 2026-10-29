@@ -97,6 +97,21 @@ describe('eliminar o salir de un workspace', () => {
   })
 })
 
+describe('useRemoveMember', () => {
+  it('quitar a otro miembro recarga los miembros de los proyectos (las tarjetas del inicio)', async () => {
+    const queryClient = client()
+    queryClient.setQueryData(queryKeys.projectMembers('p1'), [{ user: { id: 'otro' } }])
+    queryClient.setQueryData(queryKeys.projectMembers('p2'), [])
+    workspacesApi.removeMember.mockResolvedValue({})
+    workspacesApi.list.mockReturnValue(new Promise(() => {}))
+    const { result } = renderHook(() => useRemoveMember('acme'), { wrapper: wrapperFor(queryClient) })
+
+    await act(() => result.current.mutateAsync('otro'))
+    expect(queryClient.getQueryState(queryKeys.projectMembers('p1')).isInvalidated).toBe(true)
+    expect(queryClient.getQueryState(queryKeys.projectMembers('p2')).isInvalidated).toBe(true)
+  })
+})
+
 describe('useLastWorkspaceSlug', () => {
   it('solo devuelve el último workspace si el usuario sigue siendo miembro', async () => {
     const queryClient = client()

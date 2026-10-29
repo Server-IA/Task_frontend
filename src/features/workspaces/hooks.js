@@ -22,8 +22,13 @@ export function useLastWorkspaceSlug() {
 }
 
 /**
- * Quita del caché un workspace que el usuario ya no puede abrir (lo eliminó o salió de él) antes de
- * navegar: si no, «/» elegiría el listado viejo y lo mandaría de vuelta al mismo workspace.
+ * Quita del caché un workspace que el usuario ya no puede abrir (lo eliminó o salió de él): si no, «/»
+ * elegiría el listado viejo y lo mandaría de vuelta al mismo workspace.
+ *
+ * Se llama justo después de pedir la navegación fuera del workspace, nunca antes: al borrar su consulta,
+ * WorkspaceLayout vuelve a cargar y desmonta la página que la pidió (y con ella sus callbacks), así que la
+ * navegación tiene que estar ya en marcha. La navegación se confirma en otra tarea, cuando el caché ya está
+ * limpio, así que «/» decide con el listado nuevo.
  */
 export function forgetWorkspace(queryClient, slug) {
   queryClient.setQueryData(queryKeys.workspaces, (list) => list?.filter((workspace) => workspace.slug !== slug))
@@ -89,11 +94,19 @@ export function useUpdateWorkspace(slug) {
   })
 }
 
-export function useDeleteWorkspace(slug) {
+/**
+ * @param {string} slug
+ * @param {{ onGone?: () => void }} [options] `onGone` navega fuera del workspace; corre antes de olvidarlo
+ *   (ver forgetWorkspace), por eso va aquí y no como callback de `mutate`, que ya no correría.
+ */
+export function useDeleteWorkspace(slug, { onGone } = {}) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: () => workspacesApi.remove(slug),
-    onSuccess: () => forgetWorkspace(queryClient, slug),
+    onSuccess: () => {
+      onGone?.()
+      forgetWorkspace(queryClient, slug)
+    },
   })
 }
 
@@ -113,18 +126,26 @@ export function useUpdateMemberRole(slug) {
   })
 }
 
-export function useRemoveMember(slug) {
+/**
+ * @param {string} slug
+ * @param {{ onGone?: () => void }} [options] `onGone` corre solo al quitarse a uno mismo (salir), antes de
+ *   olvidar el workspace (igual que en useDeleteWorkspace).
+ */
+export function useRemoveMember(slug, { onGone } = {}) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (userId) => workspacesApi.removeMember(slug, userId),
     onSuccess: (_, userId) => {
       // Salir del workspace es quitarse a uno mismo
       if (userId === useSessionStore.getState().user?.id) {
+        onGone?.()
         forgetWorkspace(queryClient, slug)
         return
       }
       queryClient.invalidateQueries({ queryKey: queryKeys.members(slug) })
       queryClient.invalidateQueries({ queryKey: queryKeys.workspaces })
+      // Las tarjetas del inicio muestran los miembros de cada proyecto
+      queryClient.invalidateQueries({ queryKey: ['projectMembers'] })
     },
   })
 }

@@ -142,20 +142,25 @@ export function useCreateIssue(slug, projectId) {
 }
 
 /**
- * Edición parcial: `mutate({ issueId, ...cambios })`. Con `issueId` las ediciones de esa tarea van en fila (en
- * cualquier tarjeta, fila o panel): así llegan al backend y vuelven en el orden en que se hicieron (marcar dos
+ * Edición parcial: `mutate({ issueId, ...cambios, onError? })`. Con `issueId` las ediciones de esa tarea van en fila
+ * (en cualquier tarjeta, fila o panel): así llegan al backend y vuelven en el orden en que se hicieron (marcar dos
  * etiquetas seguidas no deja la primera respuesta pisando a la segunda).
+ *
+ * `onError` va en las variables (no se manda al backend) y lo llama la propia mutación: el `onError` de
+ * `mutate(…, { onError })` se pierde si empieza otra edición antes de que esta termine, y con él el diálogo de la
+ * historia cerrada (409 STORY_CLOSED) o el aviso del error.
  */
 export function useUpdateIssue(slug, projectId, issueId) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ issueId: id, ...body }) => issuesApi.update(slug, projectId, id, body),
+    mutationFn: ({ issueId: id, onError: _onError, ...body }) => issuesApi.update(slug, projectId, id, body),
     ...(issueId && { scope: { id: `issue:${issueId}` } }),
-    onSuccess: (issue, { issueId: _id, ...body }) => {
+    onSuccess: (issue, { issueId: _id, onError: _onError, ...body }) => {
       queryClient.setQueryData(queryKeys.issue(issue.id), issue)
       replaceInLists(queryClient, projectId, issue)
       invalidateAfterIssueChange(queryClient, projectId, issue.id, Object.keys(body))
     },
+    onError: (error, { onError }) => onError?.(error),
   })
 }
 
@@ -229,31 +234,47 @@ export function useSaveDescription(slug, projectId, issueId) {
 }
 
 /**
- * Mover en el Kanban con actualización optimista (si falla, cada lista vuelve a como estaba).
- * `mutate({ issueId, stateId, afterIssueId, beforeIssueId, state, sortOrder, reopenParent? })`: `state` y `sortOrder`
- * solo se usan para pintar el cambio al instante (lo que el backend calculará). `reopenParent` reabre la historia
- * cerrada de la tarea (solo el project manager; sin él, 409 STORY_CLOSED).
+ * Mover en el Kanban con actualización optimista (si falla, la tarjeta vuelve a su estado y su posición).
+ * `mutate({ issueId, stateId, afterIssueId, beforeIssueId, state, sortOrder, reopenParent?, onError? })`: `state` y
+ * `sortOrder` solo se usan para pintar el cambio al instante (lo que el backend calculará). `reopenParent` reabre la
+ * historia cerrada de la tarea (solo el project manager; sin él, 409 STORY_CLOSED). `onError` lo llama la propia
+ * mutación (ver useUpdateIssue): soltar dos tarjetas seguidas no pierde el aviso ni el diálogo de la primera.
  */
 export function useMoveIssue(slug, projectId) {
   const queryClient = useQueryClient()
+  const listsKey = queryKeys.issuesOf(projectId)
+  /**
+   * Cambia solo esa tarea en las listas en caché (los demás cambios, como otro arrastre en curso, se quedan); con
+   * `only`, solo donde la tarea cumple la condición.
+   */
+  const setInLists = (issueId, changes, only = () => true) =>
+    queryClient.setQueriesData({ queryKey: listsKey }, (page) =>
+      page?.content
+        ? {
+            ...page,
+            content: page.content.map((issue) => (issue.id === issueId && only(issue) ? { ...issue, ...changes } : issue)),
+          }
+        : page,
+    )
   return useMutation({
     mutationFn: ({ issueId, stateId, afterIssueId, beforeIssueId, reopenParent }) =>
       issuesApi.move(slug, projectId, issueId, { stateId, afterIssueId, beforeIssueId, reopenParent: reopenParent || undefined }),
     onMutate: async ({ issueId, state, sortOrder }) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.issuesOf(projectId) })
-      const snapshots = queryClient.getQueriesData({ queryKey: queryKeys.issuesOf(projectId) })
-      queryClient.setQueriesData({ queryKey: queryKeys.issuesOf(projectId) }, (page) =>
-        page?.content
-          ? {
-              ...page,
-              content: page.content.map((issue) => (issue.id === issueId ? { ...issue, state, sortOrder } : issue)),
-            }
-          : page,
-      )
-      return { snapshots }
+      await queryClient.cancelQueries({ queryKey: listsKey })
+      const previous = queryClient
+        .getQueriesData({ queryKey: listsKey })
+        .flatMap(([, page]) => page?.content ?? [])
+        .find((issue) => issue.id === issueId)
+      setInLists(issueId, { state, sortOrder })
+      return { previous: previous && { state: previous.state, sortOrder: previous.sortOrder } }
     },
-    onError: (_error, _variables, context) => {
-      context?.snapshots.forEach(([key, value]) => queryClient.setQueryData(key, value))
+    onError: (error, { issueId, state, sortOrder, onError }, context) => {
+      // Solo esta tarjeta vuelve, y solo si sigue donde la dejó este arrastre: devolver las listas enteras desharía
+      // otro arrastre hecho mientras tanto
+      if (context?.previous) {
+        setInLists(issueId, context.previous, (issue) => issue.state?.id === state?.id && issue.sortOrder === sortOrder)
+      }
+      onError?.(error)
     },
     onSuccess: (issue) => queryClient.setQueryData(queryKeys.issue(issue.id), issue),
     onSettled: (_data, _error, { issueId }) => invalidateAfterIssueChange(queryClient, projectId, issueId),

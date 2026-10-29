@@ -12,7 +12,7 @@ import { CopyButton, MarkdownView } from '@/features/editor/components/MarkdownV
 import { diffLines } from '@/features/editor/markdown/diffLines'
 import { markdownToDoc } from '@/features/editor/markdown/parse'
 import { docToMarkdown, escapeText } from '@/features/editor/markdown/serialize'
-import { movedIndexes, setTaskChecked, takeTaskItems } from '@/features/editor/markdown/taskItems'
+import { removeMovedTaskItems, setTaskChecked, takeTaskItems } from '@/features/editor/markdown/taskItems'
 import { useMentionPeople } from '@/features/mentions/hooks'
 import { formatRelative } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
@@ -140,7 +140,7 @@ export function IssueDescription({ slug, project, issue, variant = 'page', onOpe
       warnChanged({ by: fresh.descriptionUpdatedBy, at: fresh.descriptionUpdatedAt }, 'No se pasó nada al checklist.')
       return
     }
-    const { items, groups } = takeTaskItems(markdownToDoc(norm(fresh.description)), indexes)
+    const { items } = takeTaskItems(markdownToDoc(norm(fresh.description)), indexes)
     if (!items.length) return
     let created
     try {
@@ -148,12 +148,10 @@ export function IssueDescription({ slug, project, issue, variant = 'page', onOpe
     } catch {
       return
     }
-    // Si alguno falló, solo se quitan las casillas que quedaron completas en el checklist
-    const moved = movedIndexes(indexes, groups, created)
-    if (!moved.length) return
+    // Si alguno falló, se quitan solo las casillas cuyo paso se creó (aunque el que falló sea una anidada suya)
     await changeDescription(
       fresh.descriptionVersion ?? 0,
-      (current) => docToMarkdown(takeTaskItems(markdownToDoc(current), moved).doc),
+      (current) => docToMarkdown(removeMovedTaskItems(markdownToDoc(current), indexes, created)),
       'Los pasos quedaron en el checklist y también siguen en la descripción.',
     )
   }

@@ -33,10 +33,18 @@ describe('useHotkey', () => {
     const onPress = vi.fn()
     const { getByText } = render(<Shortcut onPress={onPress} />)
     fireEvent.keyDown(getByText('Módulos'), { key: 'm' })
+    // Con un menú abierto, aunque el foco esté en otro lado (también en el botón del select)
     fireEvent.keyDown(getByText('select'), { key: 'm' })
-    // Con un menú abierto, aunque el foco esté en otro lado
     fireEvent.keyDown(getByText('fuera'), { key: 'm' })
     expect(onPress).not.toHaveBeenCalled()
+  })
+
+  it('con el foco en el botón de un select cerrado (después de elegir una opción), el atajo funciona', () => {
+    const onPress = vi.fn()
+    const { getByText } = render(<Shortcut onPress={onPress} />)
+    getByText('Módulos').parentElement.removeAttribute('data-state')
+    fireEvent.keyDown(getByText('select'), { key: 'm' })
+    expect(onPress).toHaveBeenCalledTimes(1)
   })
 
   it('si otro ya atendió la tecla (preventDefault), no se repite', () => {

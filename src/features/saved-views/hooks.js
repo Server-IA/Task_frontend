@@ -69,7 +69,13 @@ export function useReorderSavedViews(slug, projectId) {
       if (context?.previous) queryClient.setQueryData(key, context.previous)
     },
     onSuccess: (list) => {
-      if (!othersPending()) queryClient.setQueryData(key, list)
+      if (othersPending()) return
+      // La respuesta trae `issueCount: null` (contar es caro): se conservan los conteos que ya había
+      const counts = new Map((queryClient.getQueryData(key) ?? []).map((view) => [view.id, view.issueCount]))
+      queryClient.setQueryData(
+        key,
+        list.map((view) => (view.issueCount == null && counts.get(view.id) != null ? { ...view, issueCount: counts.get(view.id) } : view)),
+      )
     },
     onSettled: () => {
       if (!othersPending()) queryClient.invalidateQueries({ queryKey: key })

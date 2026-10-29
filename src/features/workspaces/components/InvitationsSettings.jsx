@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { CenteredSpinner, Spinner } from '@/components/common/Loaders'
 import { EmptyState, ErrorState } from '@/components/common/States'
+import { useCooldown } from '@/hooks/useCooldown'
 import { formatRelative, formatShortDate } from '@/lib/dates'
 import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
@@ -27,6 +28,8 @@ export function InvitationsSettings({ workspace }) {
 
 function InviteCard({ workspace }) {
   const invite = useInvite(workspace.slug)
+  // Tras un 429 (demasiadas invitaciones seguidas) el botón espera lo que indica Retry-After
+  const cooldown = useCooldown()
   const form = useForm({ resolver: zodResolver(inviteSchema), defaultValues: { email: '' } })
 
   const onSubmit = (values) => {
@@ -36,7 +39,7 @@ function InviteCard({ workspace }) {
         form.reset({ email: '' })
       },
       onError: (error) => {
-        if (!applyFieldErrors(error, form.setError)) notifyError(error)
+        if (!applyFieldErrors(error, form.setError)) cooldown.start(notifyError(error))
       },
     })
   }
@@ -65,9 +68,9 @@ function InviteCard({ workspace }) {
                 </FormItem>
               )}
             />
-            <Button type="submit" disabled={invite.isPending}>
+            <Button type="submit" disabled={invite.isPending || cooldown.active}>
               {invite.isPending ? <Spinner /> : <MailPlus />}
-              Invitar
+              {cooldown.active ? `Espera ${cooldown.secondsLeft} s` : 'Invitar'}
             </Button>
           </form>
         </Form>

@@ -318,18 +318,17 @@ function BoardColumns({ issues, slug, project, meta, openIssue, onStoryClosed, o
       // Lo que haya en caché ahora (pudo recargarse mientras se confirmaba): el cambio optimista lo reemplaza
       setSettlingFrom(serverColumnsRef.current)
       // Si falla, useMoveIssue devuelve la tarjeta a su columna; si fue por una historia cerrada, se pregunta si
-      // se reabre y se reintenta
-      move.mutate(
-        { issueId: active.id, stateId: targetState, afterIssueId, beforeIssueId, state, sortOrder, ...extra },
-        {
-          onError: onStoryClosed(
-            issue,
-            closedStoryActions.move(issue, state),
-            () => commit({ reopenParent: true }),
-            'No se pudo mover la tarea',
-          ),
-        },
-      )
+      // se reabre y se reintenta (el `onError` va en las variables: sobrevive a otro arrastre hecho enseguida)
+      move.mutate({
+        issueId: active.id,
+        stateId: targetState,
+        afterIssueId,
+        beforeIssueId,
+        state,
+        sortOrder,
+        ...extra,
+        onError: onStoryClosed(issue, closedStoryActions.move(issue, state), () => commit({ reopenParent: true }), 'No se pudo mover la tarea'),
+      })
     }
     if (issue.state.id !== targetState && needsCriteriaConfirm(issue, state)) {
       setAwaitingConfirm(true)
@@ -389,7 +388,7 @@ function BoardColumns({ issues, slug, project, meta, openIssue, onStoryClosed, o
   )
 }
 
-/** Las teclas del arrastre con teclado: sin Enter para empezar (abre la tarea). */
+/** Las teclas del arrastre con teclado: sin Enter para empezar (abre la tarea); Enter o Espacio la sueltan. */
 const KEYBOARD_CODES = { start: ['Space'], cancel: ['Escape'], end: ['Space', 'Enter'] }
 
 /**
@@ -484,7 +483,9 @@ const SortableIssueCard = memo(function SortableIssueCard({ issue, openIssue, ..
       onClick={() => openIssue(issue.id)}
       onKeyDown={(event) => {
         listeners?.onKeyDown?.(event)
-        if (event.key === 'Enter' && !event.defaultPrevented) openIssue(issue.id)
+        // Mientras se arrastra con el teclado, Enter suelta la tarjeta (lo maneja dnd-kit en el documento, después
+        // de este manejador): no la abre
+        if (event.key === 'Enter' && !event.defaultPrevented && !isDragging) openIssue(issue.id)
       }}
     >
       <IssueCard issue={issue} {...props} />

@@ -23,12 +23,16 @@ export function useProjectMeta(slug, projectId) {
   )
 }
 
-/** Devuelve `update(cambios, opciones?)` para una tarea; muestra un toast si el backend lo rechaza. */
+/**
+ * Devuelve `update(cambios, { onError?, ...opciones })` para una tarea; si el backend lo rechaza, llama a `onError`
+ * o muestra un toast. `onError` viaja con la mutación (ver useUpdateIssue): se llama aunque se haga otro cambio antes
+ * de que este termine.
+ */
 export function useIssueUpdater(slug, projectId, issueId) {
   const mutation = useUpdateIssue(slug, projectId, issueId)
   const { mutate } = mutation
   const update = useCallback(
-    (changes, options) => mutate({ issueId, ...changes }, { onError: (error) => notifyError(error), ...options }),
+    (changes, { onError = (error) => notifyError(error), ...options } = {}) => mutate({ issueId, ...changes, onError }, options),
     [mutate, issueId],
   )
   return { update, isPending: mutation.isPending }

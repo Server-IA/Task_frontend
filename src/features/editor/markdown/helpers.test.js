@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { markdownToDoc } from './parse'
 import { markdownToPlainText } from './plainText'
 import { docToMarkdown } from './serialize'
-import { listTaskItems, movedIndexes, numberTaskItems, setTaskChecked, takeTaskItems } from './taskItems'
+import { listTaskItems, numberTaskItems, removeMovedTaskItems, setTaskChecked, takeTaskItems } from './taskItems'
 import { parseUserStory } from './userStory'
 
 const UUID = '0b6f6d2e-1c1a-4d4e-9a55-3f1f6a1b2c3d'
@@ -142,19 +142,49 @@ describe('Casillas: numeración y pasos que no se crearon', () => {
     expect(groups).toEqual([0, 0, 3])
   })
 
-  it('movedIndexes: solo las casillas con todos sus pasos creados', () => {
-    const indexes = [0, 2, 3]
-    const groups = [0, 0, 2, 3]
-    expect(movedIndexes(indexes, groups, 4)).toEqual([0, 2, 3])
-    expect(movedIndexes(indexes, groups, 3)).toEqual([0, 2])
-    // A creada pero A1 no: A se queda en la descripción (con A1)
-    expect(movedIndexes(indexes, groups, 1)).toEqual([])
-    expect(movedIndexes(indexes, groups, 0)).toEqual([])
+  const paragraph = (text) => ({ type: 'paragraph', content: text ? [{ type: 'text', text }] : [] })
+  const list = (...items) => ({ type: 'taskList', content: items })
+  const task = (text, ...nested) => ({ type: 'taskItem', attrs: { checked: false }, content: [paragraph(text), ...nested] })
+  const left = (md, indexes, created) => docToMarkdown(removeMovedTaskItems(markdownToDoc(md), indexes, created))
+
+  it('removeMovedTaskItems: con todos creados es lo mismo que takeTaskItems (también quita las vacías)', () => {
+    expect(left(markdown, [0, 2, 3], 4)).toBe(docToMarkdown(takeTaskItems(markdownToDoc(markdown), [0, 2, 3]).doc))
+    const withEmpty = { type: 'doc', content: [list(task('A'), task(''), task('B')), paragraph('Fin')] }
+    expect(docToMarkdown(removeMovedTaskItems(withEmpty, [0, 1, 2], 2))).toBe('Fin')
   })
 
-  it('si se crearon todos, también se quitan las casillas vacías', () => {
-    const { groups } = takeTaskItems(markdownToDoc('- [ ] A\n- [ ] \n- [ ] B'), [0, 1, 2])
-    expect(movedIndexes([0, 1, 2], groups, groups.length)).toEqual([0, 1, 2])
+  it('removeMovedTaskItems: quita las casillas cuyo paso se creó y deja las demás', () => {
+    // Pasos: A, A1, B, C; se crearon A, A1 y B
+    expect(left(markdown, [0, 2, 3], 3)).toBe('- [ ] C')
+    expect(left(markdown, [0, 2, 3], 0)).toBe(markdown)
+  })
+
+  it('removeMovedTaskItems: si falla una anidada, su madre (ya creada) sí se quita y la anidada sube a su lugar', () => {
+    // A creada, A1 no: antes A se quedaba (y su paso quedaba dos veces)
+    expect(left(markdown, [0, 2, 3], 1)).toBe('- [ ] A1\n- [ ] B\n- [ ] C')
+    expect(left('- [x] A\n  - [ ] A1\n  - [ ] A2\n- [ ] B', [0], 2)).toBe('- [ ] A2\n- [ ] B')
+  })
+
+  it('removeMovedTaskItems: una casilla elegida junto con su madre cuenta en el grupo de la madre', () => {
+    // La selección del editor tomó A y A1 (índices 0 y 1): A1 va con A, no se repite
+    const { items, groups } = takeTaskItems(markdownToDoc(markdown), [0, 1])
+    expect(items.map((item) => item.text)).toEqual(['A', 'A1'])
+    expect(groups).toEqual([0, 0])
+    expect(left(markdown, [0, 1], 1)).toBe('- [ ] A1\n- [ ] B\n- [ ] C')
+    expect(left(markdown, [0, 1], 2)).toBe('- [ ] B\n- [ ] C')
+  })
+
+  it('removeMovedTaskItems: las vacías de un grupo sin pasos creados se quedan', () => {
+    const untouched = { type: 'doc', content: [list(task('A', list(task(''))), task('B'))] }
+    expect(removeMovedTaskItems(untouched, [0, 2], 0)).toEqual(untouched)
+    // En un grupo con pasos creados, la vacía se va con ellos (y la que no se creó sube)
+    const touched = { type: 'doc', content: [list(task('A', list(task(''), task('A2'))), task('B'))] }
+    expect(docToMarkdown(removeMovedTaskItems(touched, [0, 3], 1))).toBe('- [ ] A2\n- [ ] B')
+  })
+
+  it('takeTaskItems también se lleva las casillas anidadas dentro de otra lista', () => {
+    const { items } = takeTaskItems(markdownToDoc('- [ ] A\n  - Nota\n    - [ ] Profunda\n- [ ] B'), [0])
+    expect(items.map((item) => item.text)).toEqual(['A', 'Profunda'])
   })
 })
 

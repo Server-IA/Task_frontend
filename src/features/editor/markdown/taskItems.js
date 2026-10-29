@@ -78,8 +78,8 @@ export function listTaskItems(doc) {
 /**
  * «Pasar al checklist»: quita del documento las casillas `indexes` (con las que tengan anidadas) y devuelve sus
  * textos, en orden, para crearlas como pasos del checklist. Las vacías no se pasan. `groups[i]` es la casilla de
- * `indexes` de la que salió `items[i]` (ella misma o una que la contiene): si no todos se pueden crear, se sabe qué
- * casillas quitar (`movedIndexes`).
+ * `indexes` de la que salió `items[i]` (ella misma o una que la contiene). Si no todos se pueden crear, lo que queda
+ * del documento lo da `removeMovedTaskItems`.
  * @param {DocNode} doc
  * @param {number[]} indexes
  * @returns {{ doc: DocNode, items: { text: string, checked: boolean }[], groups: number[] }}
@@ -94,7 +94,9 @@ export function takeTaskItems(doc, indexes) {
       taken.push({ text, checked: Boolean(item.attrs?.checked) })
       groups.push(group)
     }
-    item.content?.slice(1).forEach((block) => block.content?.forEach((child) => child.type === 'taskItem' && collect(child, group)))
+    // Las anidadas, a cualquier profundidad (también dentro de otra lista): ninguna con texto se pierde
+    const nested = (node) => (node.type === 'taskItem' ? collect(node, group) : node.content?.forEach(nested))
+    item.content?.slice(1).forEach(nested)
   }
   let index = 0
   const visit = (node) => {
@@ -126,16 +128,47 @@ export function takeTaskItems(doc, indexes) {
 }
 
 /**
- * Casillas de `indexes` que se pasaron completas al checklist cuando solo se crearon los primeros `created` pasos
- * (se crean en orden). Si se crearon todos, son todas. Si no, solo las que tenían pasos y se crearon todos: las demás
- * (y las vacías o anidadas en otra, que van con su casilla) se quedan en la descripción.
+ * Lo que queda del documento cuando de los pasos de `takeTaskItems(doc, indexes)` solo se crearon los primeros
+ * `created` (se crean en orden). Se quita cada casilla cuyo paso se creó, aunque el que falló sea una anidada suya
+ * (si no, ese paso quedaría dos veces: en el checklist y en la descripción); sus anidadas que no se crearon suben a su
+ * lugar. Las vacías se quitan si en su grupo se creó algún paso. Las de un grupo donde no se creó ninguno no cambian.
+ * Con todos creados es `takeTaskItems(doc, indexes).doc`.
+ * @param {DocNode} doc
  * @param {number[]} indexes
- * @param {number[]} groups los de `takeTaskItems`
  * @param {number} created
+ * @returns {DocNode}
  */
-export function movedIndexes(indexes, groups, created) {
-  if (created >= groups.length) return indexes
-  const failed = new Set(groups.slice(created))
-  const done = new Set(groups.slice(0, created))
-  return indexes.filter((index) => done.has(index) && !failed.has(index))
+export function removeMovedTaskItems(doc, indexes, created) {
+  const taken = takeTaskItems(doc, indexes)
+  // Todos creados: se quitan también las casillas vacías que se eligieron solas
+  if (created >= taken.items.length) return taken.doc
+  const wanted = new Set(indexes)
+  const touched = new Set(taken.groups.slice(0, created))
+  // Número de cada casilla cuyo paso se creó (en takeTaskItems los pasos salen en el orden de las casillas con texto)
+  const createdBoxes = new Set()
+  let step = 0
+  let index = 0
+  const lift = (nodes) => nodes.flatMap((node) => (node.type === 'taskItem' ? [node] : lift(node.content ?? [])))
+  /** @returns {DocNode[]} los nodos que reemplazan a `node` */
+  const visit = (node, group) => {
+    if (node.type === 'taskItem') {
+      const current = index
+      index += 1
+      const own = group ?? (wanted.has(current) ? current : null)
+      const hasText = own != null && Boolean(taskItemText(node))
+      if (hasText) {
+        if (step < created) createdBoxes.add(current)
+        step += 1
+      }
+      const content = (node.content ?? []).flatMap((child) => visit(child, own))
+      if (own != null && touched.has(own) && (createdBoxes.has(current) || !hasText)) return lift(content.slice(1))
+      return [{ ...node, content }]
+    }
+    if (!node.content) return [node]
+    const content = node.content.flatMap((child) => visit(child, group))
+    if (node.type === 'taskList' && content.length === 0) return []
+    return [{ ...node, content }]
+  }
+  const [result] = visit(doc, null)
+  return result.content?.length ? result : { ...result, content: [{ type: 'paragraph' }] }
 }

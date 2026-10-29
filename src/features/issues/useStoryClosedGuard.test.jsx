@@ -71,8 +71,14 @@ describe('useStoryClosedGuard', () => {
 })
 
 describe('closedStoryCode', () => {
-  it('la historia de la tarea o, si no, la del mensaje del backend', () => {
+  it('la del mensaje del backend o, si no viene, la historia de la tarea', () => {
     expect(closedStoryCode(closedError, task)).toBe('WEB-15')
     expect(closedStoryCode(new ApiError({ status: 409, message: 'APP-3 está cerrada. Reábrela…' }), { code: 'APP-9' })).toBe('APP-3')
+    expect(closedStoryCode(new ApiError({ status: 409, message: 'Conflicto', code: 'STORY_CLOSED' }), task)).toBe('WEB-15')
+  })
+
+  it('al pasar la tarea de una historia abierta a otra cerrada, nombra la nueva (la del backend)', () => {
+    const otherClosed = new ApiError({ status: 409, message: 'WEB-30 está cerrada. Reábrela…', code: 'STORY_CLOSED' })
+    expect(closedStoryCode(otherClosed, task)).toBe('WEB-30')
   })
 })
