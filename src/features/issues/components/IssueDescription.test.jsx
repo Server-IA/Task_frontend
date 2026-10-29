@@ -101,3 +101,29 @@ describe('Editor de la descripción con StrictMode (desarrollo)', () => {
     expect(await screen.findByRole('button', { name: 'Editar descripción' })).toBeInTheDocument()
   })
 })
+
+describe('Guardado automático con un comando a medias', () => {
+  it('no guarda mientras el menú «/» o «@» está abierto; guarda al cerrarse', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+      renderDescription('Hola')
+      await user.click(screen.getByRole('button', { name: 'Editar descripción' }))
+      await waitFor(() => expect(editor.props).not.toBeNull())
+
+      act(() => editor.props.onChange('Hola /'))
+      act(() => editor.props.onCommandChange(true))
+      act(() => editor.props.onChange('Hola /lista de'))
+      await act(async () => vi.advanceTimersByTime(5000))
+      expect(issuesApi.update).not.toHaveBeenCalled()
+
+      // Se eligió la opción: el texto ya no tiene el comando y el menú se cierra
+      act(() => editor.props.onChange('Hola\n\n- [ ] '))
+      act(() => editor.props.onCommandChange(false))
+      await waitFor(() => expect(issuesApi.update).toHaveBeenCalledTimes(1))
+      expect(issuesApi.update).toHaveBeenCalledWith('acme', 'p1', 'i1', { description: 'Hola\n\n- [ ]', baseDescriptionVersion: 3 })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})

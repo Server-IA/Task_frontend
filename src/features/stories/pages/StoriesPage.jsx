@@ -9,7 +9,6 @@ import { AvatarStack } from '@/components/common/AvatarStack'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { StateIcon } from '@/components/common/StateIcon'
 import { UserAvatar } from '@/components/common/UserAvatar'
-import { markdownToPlainText } from '@/features/editor/markdown/plainText'
 import { CreateIssueDialog } from '@/features/issues/components/CreateIssueDialog'
 import { IssuePeekSheet } from '@/features/issues/components/IssuePeekSheet'
 import { BugCountBadge, ReadyBadge, StoryProgress, TypeIcon, UnsplitBadge } from '@/features/issues/components/IssueTypeBits'
@@ -27,6 +26,7 @@ import { cn } from '@/lib/utils'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { useStories } from '../hooks'
 import { filterStories, hasStoryFilters } from '../storyFilters'
+import { storySummary } from '../storySummary'
 
 /** @typedef {import('@/api/types').StoryRow} StoryRow */
 
@@ -336,7 +336,7 @@ function StoryRowItem({ row, manager, expanded, onToggle, onOpen, active, button
   const flags = storyFlags(story)
   const tasks = children.filter((child) => typeOf(child) !== 'BUG')
   const bugs = children.filter((child) => typeOf(child) === 'BUG')
-  const summary = markdownToPlainText(story.description ?? '', { maxLength: 140 })
+  const summary = storySummary(story.description)
   const modules = (story.modules ?? []).map((module) => module.name).join(', ')
 
   return (

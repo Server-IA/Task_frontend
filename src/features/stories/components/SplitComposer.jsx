@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { GitBranch, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -7,16 +7,23 @@ import { UserAvatar } from '@/components/common/UserAvatar'
 import { PRIORITIES, PRIORITY_LABELS } from '@/features/issues/constants'
 import { PriorityChip } from '@/features/issues/components/PriorityIcon'
 import { TypeIcon } from '@/features/issues/components/IssueTypeBits'
+import { opensAbove } from '@/features/editor/editor/popups'
 import { useLocalEscape } from '@/hooks/useLocalEscape'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { useSplitStory } from '../hooks'
 import { emptyLine, linesToItems, pickerQuery, removeToken } from '../splitLines'
 
+/** Alto máximo del selector de «@» o «!» (seis personas). */
+const PICKER_HEIGHT = 230
+/** Al abrirse, durante cuánto se lo sigue mostrando entero mientras carga lo de arriba. */
+const REVEAL_MS = 1500
+
 /**
  * «Partir en tareas» (project manager): una línea por tarea. Enter agrega una línea, «@» asigna, «!» pone la
  * prioridad, Tab cambia el tipo (Tarea / Bug), Esc cancela y «Crear N tareas» (ctrl ↵) las crea todas juntas. Heredan
  * de la historia su ciclo, sus módulos, sus etiquetas y, si la línea no la trae, su prioridad.
+ * Al abrirse (con «Partir en tareas» o solo, en una historia sin partir) el panel se desplaza hasta mostrarlo entero.
  * @param {{ slug: string, project: object, story: import('@/api/types').IssueResponse, members: object[],
  *           onDone: () => void, onCancel: () => void }} props
  */
@@ -35,6 +42,32 @@ export function SplitComposer({ slug, project, story, members, onDone, onCancel 
     if (picker) setPicker(null)
     else onCancel()
   })
+
+  // Abierto al final del panel quedaba fuera de la vista (el foco solo mostraba la primera línea, y los selectores
+  // de «@» y «!» se abrían debajo, fuera de la pantalla). Al abrirse se muestra entero; lo de arriba (criterios,
+  // checklist) puede crecer al cargar y empujarlo hacia abajo, así que durante un momento se sigue mostrando. Al
+  // escribir, también
+  const reveal = () => rootRef.current?.scrollIntoView?.({ block: 'nearest' })
+  useEffect(() => {
+    const element = rootRef.current
+    if (!element) return undefined
+    if (typeof IntersectionObserver === 'undefined') {
+      const frame = requestAnimationFrame(() => element.scrollIntoView?.({ block: 'nearest' }))
+      return () => cancelAnimationFrame(frame)
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry && entry.intersectionRatio < 1) element.scrollIntoView?.({ block: 'nearest' })
+      },
+      { threshold: [1] },
+    )
+    observer.observe(element)
+    const stop = setTimeout(() => observer.disconnect(), REVEAL_MS)
+    return () => {
+      clearTimeout(stop)
+      observer.disconnect()
+    }
+  }, [])
 
   const focusLine = (id) => requestAnimationFrame(() => inputs.current.get(id)?.focus())
   const updateLine = (id, change) => setLines((current) => current.map((line) => (line.id === id ? { ...line, ...change } : line)))
@@ -65,8 +98,10 @@ export function SplitComposer({ slug, project, story, members, onDone, onCancel 
   const onInput = (line, event) => {
     const value = event.target.value
     updateLine(line.id, { title: value })
+    reveal()
     const found = pickerQuery(value, event.target.selectionStart ?? value.length)
-    setPicker(found ? { ...found, lineId: line.id, active: 0 } : null)
+    // Cerca del borde de abajo de lo visible, el selector se abre hacia arriba
+    setPicker(found ? { ...found, lineId: line.id, active: 0, above: opensAbove(event.target, PICKER_HEIGHT) } : null)
   }
 
   const submit = () => {
@@ -180,7 +215,10 @@ export function SplitComposer({ slug, project, story, members, onDone, onCancel 
               <div
                 role="listbox"
                 aria-label={picker.kind === 'person' ? 'Asignar a' : 'Prioridad'}
-                className="absolute top-full left-24 z-20 w-60 rounded-xl border bg-popover p-1 shadow-xl"
+                className={cn(
+                  'absolute left-24 z-20 w-60 rounded-xl border bg-popover p-1 shadow-xl',
+                  picker.above ? 'bottom-full mb-0.5' : 'top-full mt-0.5',
+                )}
               >
                 {options.map((option, optionIndex) => (
                   <button

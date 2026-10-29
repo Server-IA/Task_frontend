@@ -24,11 +24,11 @@ import { cn } from '@/lib/utils'
 import { useSessionStore } from '@/stores/sessionStore'
 import { useDeleteIssue, useIssue, useSubIssues } from '../hooks'
 import { useCriteriaGuard } from '../useCriteriaGuard'
-import { isStory, stateOptionsFor, storyFlags, storyProgress, storyStateLocked, typeOf } from '../issueTypes'
+import { isStory, stateOptionsFor, storyFlags, storyStateLocked, typeOf } from '../issueTypes'
 import { isOverdue, useIssueUpdater, useProjectMeta } from '../useIssueHelpers'
 import { closedStoryActions, useStoryClosedGuard } from '../useStoryClosedGuard'
 import { CreateIssueDialog } from './CreateIssueDialog'
-import { ReadyBadge, TypePill, UnsplitBadge } from './IssueTypeBits'
+import { StoryProgressSummary, TypePill } from './IssueTypeBits'
 import { TypePicker } from './TypePicker'
 import { EditableText } from './EditableText'
 import { ParentPicker } from './ParentPicker'
@@ -172,16 +172,7 @@ export function IssueDetail({
           </PropertyRow>
           {story && (
             <PropertyRow label="Progreso">
-              <span className="flex flex-wrap items-center gap-1.5 px-2 text-xs">
-                {storyProgress(issue).total > 0 && <span>{storyProgress(issue).label}</span>}
-                {flags.unsplit && <UnsplitBadge />}
-                {flags.ready && <ReadyBadge wrap />}
-                {flags.bugsAfterClose > 0 && (
-                  <span className="font-mono text-[11px] text-late">
-                    +{flags.bugsAfterClose} {flags.bugsAfterClose === 1 ? 'bug' : 'bugs'}
-                  </span>
-                )}
-              </span>
+              <StoryProgressSummary story={issue} />
             </PropertyRow>
           )}
           {story && issue.closedAt && (

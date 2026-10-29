@@ -257,7 +257,6 @@ function ChangePasswordCard() {
               <Button
                 type="submit"
                 disabled={changePassword.isPending || cooldown.active}
-                className="bg-foreground text-background hover:bg-foreground/85"
               >
                 {changePassword.isPending && <Spinner />}
                 {cooldown.active ? `Espera ${cooldown.secondsLeft} s` : 'Cambiar contraseña'}

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -8,7 +8,7 @@ import { LockNote } from '@/components/common/LockNote'
 import { isManager } from '@/lib/permissions'
 import { notifyError } from '@/lib/notify'
 import { useSessionStore } from '@/stores/sessionStore'
-import { useDeleteWorkspace, useRemoveMember, useUpdateWorkspace } from '../hooks'
+import { useDeleteWorkspace, useMembers, useRemoveMember, useUpdateWorkspace } from '../hooks'
 import { WorkspaceForm } from './WorkspaceForm'
 
 /** @param {{ workspace: import('@/api/types').WorkspaceResponse }} props */
@@ -98,10 +98,16 @@ function DeleteWorkspaceCard({ workspace }) {
   )
 }
 
-function LeaveWorkspaceCard({ workspace, isManager }) {
+/**
+ * Salir del workspace. Si soy el único project manager el backend no me deja (409): se avisa antes y el botón queda
+ * desactivado hasta que nombre a otro (si los miembros no cargaron, se deja intentar y avisa el backend).
+ */
+function LeaveWorkspaceCard({ workspace, isManager: manager }) {
   const [open, setOpen] = useState(false)
   const user = useSessionStore((state) => state.user)
   const navigate = useNavigate()
+  const { data: members } = useMembers(manager ? workspace.slug : null)
+  const onlyManager = manager && Array.isArray(members) && members.filter((member) => isManager(member.role)).length <= 1
   const leave = useRemoveMember(workspace.slug, {
     onGone: () => {
       toast.success(`Saliste de «${workspace.name}»`)
@@ -119,11 +125,32 @@ function LeaveWorkspaceCard({ workspace, isManager }) {
         <CardTitle>Salir del workspace</CardTitle>
         <CardDescription>
           Dejarás de ver sus proyectos. Necesitarás otra invitación para volver.
-          {isManager && ' Si eres el único project manager, antes nombra a otro.'}
+          {manager && !onlyManager && ' Si eres el único project manager, antes nombra a otro.'}
         </CardDescription>
+        {onlyManager && (
+          <p role="note" className="rounded-lg bg-soon-soft px-3 py-2 text-[13px] text-soon">
+            Eres el único project manager de «{workspace.name}».{' '}
+            {members.length > 1 ? (
+              <>
+                Para salir, primero nombra project manager a otra persona en{' '}
+                <Link to="?tab=members" className="font-semibold underline underline-offset-2">
+                  Miembros
+                </Link>
+                .
+              </>
+            ) : (
+              'No hay nadie más: para salir, invita a alguien y nómbralo project manager, o elimina el workspace.'
+            )}
+          </p>
+        )}
       </CardHeader>
       <CardContent>
-        <Button variant="outline" onClick={() => setOpen(true)}>
+        <Button
+          variant="outline"
+          onClick={() => setOpen(true)}
+          disabled={onlyManager}
+          title={onlyManager ? 'Eres el único project manager: nombra a otro antes de salir' : undefined}
+        >
           Salir del workspace
         </Button>
         <ConfirmDialog

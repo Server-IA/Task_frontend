@@ -7,7 +7,7 @@ import { ApiError } from '@/lib/errors'
 import { usePreferencesStore } from '@/stores/preferencesStore'
 import { useSessionStore } from '@/stores/sessionStore'
 import { workspacesApi } from './api'
-import { forgetWorkspace, useDeleteWorkspace, useLastWorkspaceSlug, useRemoveMember } from './hooks'
+import { forgetWorkspace, useDeleteWorkspace, useLastWorkspaceSlug, useRemoveMember, useWorkspace } from './hooks'
 import { HomeRedirect } from './pages/HomeRedirect'
 import { WorkspaceLayout } from './pages/WorkspaceLayout'
 
@@ -51,6 +51,41 @@ describe('forgetWorkspace', () => {
     expect(queryClient.getQueryData(queryKeys.myWork('acme', 'all'))).toBeUndefined()
     expect(queryClient.getQueryData(queryKeys.projects('beta'))).toEqual([])
     expect(usePreferencesStore.getState().lastWorkspaceSlug).toBeNull()
+  })
+})
+
+describe('forgetWorkspace con la página vieja todavía a la vista', () => {
+  it('no vuelve a pedir lo que la página muestra (sería un 403): lo borra cuando la página se va', async () => {
+    const queryClient = client()
+    queryClient.setQueryData(queryKeys.workspaces, [acme, beta])
+    queryClient.setQueryData(queryKeys.workspace('acme'), acme)
+    workspacesApi.list.mockReturnValue(new Promise(() => {}))
+    const { rerender, unmount } = renderHook(() => useWorkspace('acme'), { wrapper: wrapperFor(queryClient) })
+
+    act(() => forgetWorkspace(queryClient, 'acme'))
+    // La página vieja se vuelve a dibujar antes de irse
+    rerender()
+    rerender()
+    expect(workspacesApi.get).not.toHaveBeenCalled()
+    expect(queryClient.getQueryData(queryKeys.workspaces)).toEqual([beta])
+
+    unmount()
+    expect(queryClient.getQueryCache().find({ queryKey: queryKeys.workspace('acme') })).toBeUndefined()
+    expect(workspacesApi.get).not.toHaveBeenCalled()
+  })
+
+  it('al eliminar, olvida el workspace antes de navegar', async () => {
+    const queryClient = client()
+    queryClient.setQueryData(queryKeys.workspaces, [acme, beta])
+    workspacesApi.remove.mockResolvedValue({})
+    workspacesApi.list.mockReturnValue(new Promise(() => {}))
+    let listWhenLeaving = null
+    const onGone = () => {
+      listWhenLeaving = queryClient.getQueryData(queryKeys.workspaces)
+    }
+    const { result } = renderHook(() => useDeleteWorkspace('acme', { onGone }), { wrapper: wrapperFor(queryClient) })
+    await act(() => result.current.mutateAsync())
+    expect(listWhenLeaving).toEqual([beta])
   })
 })
 

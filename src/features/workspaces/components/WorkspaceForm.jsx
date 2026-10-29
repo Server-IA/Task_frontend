@@ -8,6 +8,7 @@ import { Spinner } from '@/components/common/Loaders'
 import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { slugify } from '@/lib/slug'
+import { cn } from '@/lib/utils'
 import { workspaceSchema } from '../schemas'
 
 /**
@@ -59,12 +60,18 @@ export function WorkspaceForm({ defaultValues, onSubmit, pending, submitLabel, d
             <FormItem>
               <FormLabel>URL</FormLabel>
               <FormControl>
-                <div className="flex items-center rounded-md border border-input shadow-xs focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50">
+                <div
+                  // Desactivado se atenúa entero (el borde y el dominio también), como el campo del nombre
+                  className={cn(
+                    'flex items-center rounded-md border border-input shadow-xs focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50 dark:bg-input/30',
+                    disabled && 'cursor-not-allowed opacity-50',
+                  )}
+                >
                   <span className="pl-3 text-sm text-muted-foreground select-none">
                     {window.location.host}/
                   </span>
                   <input
-                    className="h-9 min-w-0 flex-1 bg-transparent pr-3 text-sm outline-none disabled:opacity-50"
+                    className="h-9 min-w-0 flex-1 bg-transparent pr-3 text-sm outline-none disabled:cursor-not-allowed"
                     disabled={disabled}
                     {...field}
                     onChange={(event) => {

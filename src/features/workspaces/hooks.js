@@ -21,28 +21,44 @@ export function useLastWorkspaceSlug() {
   return workspaces.some((workspace) => workspace.slug === lastWorkspaceSlug) ? lastWorkspaceSlug : null
 }
 
+/** Consultas propias de un workspace (las del listado de workspaces no). */
+const workspaceKeys = (slug) => [
+  queryKeys.workspace(slug),
+  queryKeys.members(slug),
+  queryKeys.invitations(slug),
+  queryKeys.projects(slug),
+  ['project', slug],
+  ['myWork', slug],
+  queryKeys.workspaceActivityOf(slug),
+  ['search', slug],
+]
+
 /**
  * Quita del caché un workspace que el usuario ya no puede abrir (lo eliminó o salió de él): si no, «/»
  * elegiría el listado viejo y lo mandaría de vuelta al mismo workspace.
  *
- * Se llama justo después de pedir la navegación fuera del workspace, nunca antes: al borrar su consulta,
- * WorkspaceLayout vuelve a cargar y desmonta la página que la pidió (y con ella sus callbacks), así que la
- * navegación tiene que estar ya en marcha. La navegación se confirma en otra tarea, cuando el caché ya está
- * limpio, así que «/» decide con el listado nuevo.
+ * Se llama antes de navegar fuera del workspace. Lo que no se ve se borra enseguida; lo que la página vieja todavía
+ * muestra (el workspace, sus proyectos, Mi trabajo) se cancela y se borra recién cuando nadie lo mira: borrarlo antes
+ * hacía que la página vieja, al volver a dibujarse antes de irse, lo pidiera de nuevo (y recibiera 403).
  */
 export function forgetWorkspace(queryClient, slug) {
   queryClient.setQueryData(queryKeys.workspaces, (list) => list?.filter((workspace) => workspace.slug !== slug))
-  for (const key of [
-    queryKeys.workspace(slug),
-    queryKeys.members(slug),
-    queryKeys.invitations(slug),
-    queryKeys.projects(slug),
-    ['project', slug],
-    ['myWork', slug],
-    queryKeys.workspaceActivityOf(slug),
-    ['search', slug],
-  ]) {
-    queryClient.removeQueries({ queryKey: key })
+  const cache = queryClient.getQueryCache()
+  const watched = new Set()
+  for (const key of workspaceKeys(slug)) {
+    queryClient.cancelQueries({ queryKey: key })
+    for (const query of cache.findAll({ queryKey: key })) {
+      if (query.getObserversCount() > 0) watched.add(query)
+      else cache.remove(query)
+    }
+  }
+  if (watched.size > 0) {
+    const unsubscribe = cache.subscribe((event) => {
+      if (event.type !== 'observerRemoved' || !watched.has(event.query) || event.query.getObserversCount() > 0) return
+      watched.delete(event.query)
+      cache.remove(event.query)
+      if (watched.size === 0) unsubscribe()
+    })
   }
   if (usePreferencesStore.getState().lastWorkspaceSlug === slug) {
     usePreferencesStore.getState().setLastWorkspaceSlug(null)
@@ -96,16 +112,16 @@ export function useUpdateWorkspace(slug) {
 
 /**
  * @param {string} slug
- * @param {{ onGone?: () => void }} [options] `onGone` navega fuera del workspace; corre antes de olvidarlo
- *   (ver forgetWorkspace), por eso va aquí y no como callback de `mutate`, que ya no correría.
+ * @param {{ onGone?: () => void }} [options] `onGone` navega fuera del workspace, justo después de olvidarlo (ver
+ *   forgetWorkspace); va aquí y no como callback de `mutate` para que corra aunque la página que lo pidió se desmonte.
  */
 export function useDeleteWorkspace(slug, { onGone } = {}) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: () => workspacesApi.remove(slug),
     onSuccess: () => {
-      onGone?.()
       forgetWorkspace(queryClient, slug)
+      onGone?.()
     },
   })
 }
@@ -128,7 +144,7 @@ export function useUpdateMemberRole(slug) {
 
 /**
  * @param {string} slug
- * @param {{ onGone?: () => void }} [options] `onGone` corre solo al quitarse a uno mismo (salir), antes de
+ * @param {{ onGone?: () => void }} [options] `onGone` corre solo al quitarse a uno mismo (salir), después de
  *   olvidar el workspace (igual que en useDeleteWorkspace).
  */
 export function useRemoveMember(slug, { onGone } = {}) {
@@ -138,8 +154,8 @@ export function useRemoveMember(slug, { onGone } = {}) {
     onSuccess: (_, userId) => {
       // Salir del workspace es quitarse a uno mismo
       if (userId === useSessionStore.getState().user?.id) {
-        onGone?.()
         forgetWorkspace(queryClient, slug)
+        onGone?.()
         return
       }
       queryClient.invalidateQueries({ queryKey: queryKeys.members(slug) })

@@ -124,7 +124,8 @@ export function InvitationPage() {
             <dd className="truncate">{invitation.email}</dd>
             <dt className="text-muted-foreground">rol</dt>
             <dd>
-              {invitation.role} · {ROLE_HINTS[invitation.role] ?? ROLE_LABELS[invitation.role]}
+              {/* «Miembro» o «Project manager», nunca el valor de la API («MEMBER») */}
+              {[ROLE_LABELS[invitation.role], ROLE_HINTS[invitation.role]].filter(Boolean).join(' · ')}
             </dd>
             <dt className="text-muted-foreground">expira</dt>
             <dd>{formatRelative(invitation.expiresAt)}</dd>

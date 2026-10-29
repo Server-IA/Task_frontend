@@ -1,6 +1,6 @@
 import { CircleCheck, CornerLeftUp, TriangleAlert } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { bugsAfterCloseLabel, openBugsLabel, storyProgress, TYPE_LABELS, typeOf } from '../issueTypes'
+import { bugsAfterCloseLabel, openBugsLabel, storyFlags, storyProgress, TYPE_LABELS, typeOf } from '../issueTypes'
 
 /**
  * Piezas visuales de los tipos de tarea: el icono de cada tipo (cuadro redondeado de su color con su glifo), la
@@ -161,6 +161,30 @@ export function BugCountBadge({ count, afterClose = false, className, title }) {
     >
       <TypeIcon type="BUG" size={14} />
       {afterClose ? bugsAfterCloseLabel(count) : openBugsLabel(count)}
+    </span>
+  )
+}
+
+/**
+ * Fila «Progreso» de una historia en el panel de propiedades: «3 de 5 tareas», «sin partir», «lista para revisar», los
+ * bugs abiertos (como en «Historias») y los reportados después de cerrarla. Todo se puede partir en dos líneas: la
+ * columna es angosta.
+ * @param {{ story: import('@/api/types').IssueResponse }} props
+ */
+export function StoryProgressSummary({ story }) {
+  const progress = storyProgress(story)
+  const flags = storyFlags(story)
+  return (
+    <span className="flex flex-wrap items-center gap-1.5 px-2 text-xs">
+      {progress.total > 0 && <span>{progress.label}</span>}
+      {flags.unsplit && <UnsplitBadge />}
+      {flags.ready && <ReadyBadge wrap />}
+      <BugCountBadge count={flags.openBugs} className="min-w-0 shrink whitespace-normal" />
+      {flags.bugsAfterClose > 0 && (
+        <span className="font-mono text-[11px] text-late">
+          +{flags.bugsAfterClose} {flags.bugsAfterClose === 1 ? 'bug' : 'bugs'}
+        </span>
+      )}
     </span>
   )
 }

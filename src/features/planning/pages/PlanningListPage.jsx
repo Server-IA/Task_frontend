@@ -19,6 +19,7 @@ import { projectPath } from '@/lib/paths'
 import { cn } from '@/lib/utils'
 import { notifyError } from '@/lib/notify'
 import { canCloseCycle, isCycleClosed } from '../closeCycle'
+import { sortCycles } from '../cycleOrder'
 import { useDeletePlanning, usePlanningList } from '../hooks'
 import { CloseCycleDialog } from '../components/CloseCycleDialog'
 import {
@@ -91,7 +92,7 @@ export function PlanningListPage({ kind }) {
           )}
           {items?.length > 0 && (
             <div className="space-y-3">
-              {items.map((item) => {
+              {(kind === 'cycles' ? sortCycles(items) : items).map((item) => {
                 const end = item.endDate ?? item.targetDate
                 const closed = kind === 'cycles' && isCycleClosed(item)
                 const current = kind === 'cycles' && !closed && item.status === 'CURRENT'

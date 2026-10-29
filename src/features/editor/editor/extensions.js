@@ -178,6 +178,17 @@ function shortcuts(bridge) {
   })
 }
 
+/**
+ * Si el menú «/» sigue abierto con lo escrito después de la barra: hasta 40 letras, sin empezar con espacio ni dos
+ * espacios seguidos, y solo si alguna opción coincide (`matches`, del componente; sin él, cualquier cosa).
+ * @param {string} query
+ * @param {((query: string) => boolean) | undefined} matches
+ */
+export function slashQueryAllowed(query, matches) {
+  if (query.length > 40 || /^\s|\s{2}/.test(query)) return false
+  return matches ? matches(query) : true
+}
+
 /** Menú de sugerencias («/» o «@»): el estado y las teclas los maneja el componente. */
 function suggestion({ name, key, char, bridge, allow, allowSpaces = false }) {
   return Extension.create({
@@ -249,7 +260,16 @@ export function buildExtensions({ bridge, placeholder, meId }) {
     TaskFromBullet,
     Placeholder.configure({ placeholder: placeholder ?? '', showOnlyCurrent: true, includeChildren: false }),
     shortcuts(bridge),
-    suggestion({ name: 'slash', key: SLASH_KEY, char: '/', bridge }),
+    suggestion({
+      name: 'slash',
+      key: SLASH_KEY,
+      char: '/',
+      bridge,
+      // Con espacios («/lista de» llega a «Lista de tareas»), pero solo mientras lo escrito coincida con alguna
+      // opción: si no, el menú se cierra y lo escrito queda como texto (una ruta, «y/o»…)
+      allowSpaces: true,
+      allow: ({ state, range }) => slashQueryAllowed(state.doc.textBetween(range.from, range.to).slice(1), bridge.current.slash?.matches),
+    }),
     suggestion({
       name: 'mention',
       key: MENTION_KEY,

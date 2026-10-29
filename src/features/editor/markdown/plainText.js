@@ -64,9 +64,18 @@ const cleanLeftovers = (value) =>
  * @param {string | null | undefined} markdown
  * @param {{ singleLine?: boolean, mentionTokens?: boolean, maxLength?: number }} [options]
  */
-export function markdownToPlainText(markdown, { singleLine = true, mentionTokens = false, maxLength } = {}) {
+export function markdownToPlainText(markdown, options = {}) {
   if (!markdown) return ''
-  const lines = blockTexts(markdownToDoc(markdown), { mentionTokens }).map(cleanLeftovers)
+  return docToPlainText(markdownToDoc(markdown), options)
+}
+
+/**
+ * Lo mismo que markdownToPlainText, desde el documento ya leído.
+ * @param {import('./parse').DocNode} doc
+ * @param {{ singleLine?: boolean, mentionTokens?: boolean, maxLength?: number }} [options]
+ */
+export function docToPlainText(doc, { singleLine = true, mentionTokens = false, maxLength } = {}) {
+  const lines = blockTexts(doc, { mentionTokens }).map(cleanLeftovers)
   let text = singleLine ? lines.join(' ').replace(/\s+/g, ' ').trim() : lines.join('\n')
   if (maxLength && text.length > maxLength) text = `${text.slice(0, maxLength).trimEnd()}…`
   return text

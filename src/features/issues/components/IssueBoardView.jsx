@@ -92,7 +92,8 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
               <div key={state.id} className="flex w-[284px] shrink-0 items-center gap-2 px-1.5 font-mono text-[11px] tracking-[0.08em] uppercase">
                 <StateIcon group={state.group} color={state.color} className="size-3.5" />
                 <span className="min-w-0 truncate font-semibold">{state.name}</span>
-                <span className="text-muted-foreground">{String(countOf(state.id)).padStart(2, '0')}</span>
+                {/* Sin ceros a la izquierda, como en el tablero normal */}
+                <span className="text-muted-foreground">{countOf(state.id)}</span>
                 <button
                   type="button"
                   className="ml-auto flex size-6.5 items-center justify-center rounded-lg border bg-card text-muted-foreground transition-colors hover:border-dash hover:text-foreground"

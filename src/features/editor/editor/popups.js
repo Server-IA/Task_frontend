@@ -20,6 +20,22 @@ export function popupPosition(anchor, container, { width = 320, height = 320, ga
   return above ? { left, bottom: box.bottom - anchor.top + gap } : { left, top: anchor.bottom - box.top + gap }
 }
 
+/**
+ * Si un menú de `height` px que cuelga de `element` tiene que abrirse hacia arriba: abajo no cabe en lo visible (la
+ * ventana o el contenedor con scroll, como el panel) y arriba hay más lugar.
+ * @param {HTMLElement | null | undefined} element
+ * @param {number} height
+ */
+export function opensAbove(element, height, gap = 6) {
+  if (!element) return false
+  const rect = element.getBoundingClientRect()
+  const visible = scrollParent(element)?.getBoundingClientRect()
+  const bottom = Math.min(window.innerHeight, visible?.bottom ?? Infinity)
+  const top = Math.max(0, visible?.top ?? 0)
+  const spaceBelow = bottom - rect.bottom
+  return spaceBelow < height + gap && rect.top - top > spaceBelow
+}
+
 function scrollParent(element) {
   for (let node = element.parentElement; node; node = node.parentElement) {
     const { overflowY } = getComputedStyle(node)

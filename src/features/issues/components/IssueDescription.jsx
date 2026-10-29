@@ -301,6 +301,8 @@ function DescriptionEditor({ slug, project, issue, variant, caret, onMoveTasks, 
   const inFlightRef = useRef(null)
   const queuedRef = useRef(false)
   const unmountedRef = useRef(false)
+  // Un menú de comando abierto en el editor («/», «@», buscar tarea): lo escrito está a medias y no se guarda solo
+  const commandRef = useRef(false)
   const [status, setStatus] = useState('saved')
   // Otra versión en el servidor, pendiente de decidir: { description, version, by, at }
   const [conflict, setConflict] = useState(null)
@@ -378,7 +380,18 @@ function DescriptionEditor({ slug, project, issue, variant, caret, onMoveTasks, 
       return
     }
     setStatus('pending')
-    timerRef.current = setTimeout(flush, AUTOSAVE_MS)
+    // Con un comando a medias («/lista de», «@Lu») se espera a que se cierre su menú
+    if (!commandRef.current) timerRef.current = setTimeout(flush, AUTOSAVE_MS)
+  }
+
+  /** Se abre o se cierra un menú de comando: al cerrarse, se guarda lo que haya quedado pendiente. */
+  const onCommandChange = (open) => {
+    commandRef.current = open
+    if (open) {
+      clearTimeout(timerRef.current)
+      return
+    }
+    if (!conflictRef.current && norm(draftRef.current) !== savedRef.current) flush()
   }
 
   /** Terminar: guarda lo que falte y cierra solo si se guardó (con un conflicto o un error, el editor sigue abierto). */
@@ -551,6 +564,7 @@ function DescriptionEditor({ slug, project, issue, variant, caret, onMoveTasks, 
           onCreateSubtask={createSubtask}
           onMoveTasks={onMoveTasks}
           apiRef={apiRef}
+          onCommandChange={onCommandChange}
           contentClassName={contentClass}
           fallback={
             <>

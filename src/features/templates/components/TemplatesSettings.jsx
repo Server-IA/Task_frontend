@@ -360,7 +360,7 @@ function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted
         </label>
         <label className={fieldLabel}>
           Prefijo del título
-          <Input {...form.register('titlePrefix')} readOnly={readOnly} placeholder="[Bug] " className="bg-card font-mono text-sm font-normal text-foreground" />
+          <Input {...form.register('titlePrefix')} readOnly={readOnly} placeholder="[Etiqueta] " className="bg-card font-mono text-sm font-normal text-foreground" />
           {errors.titlePrefix && <span className="font-normal text-destructive">{errors.titlePrefix.message}</span>}
         </label>
       </div>

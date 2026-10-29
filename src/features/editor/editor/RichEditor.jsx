@@ -88,6 +88,8 @@ function posFromTextIndex(doc, index) {
  * - `initialCaret`: dónde dejar el cursor al abrir: `{ index }` (letras desde el principio, ver caret.js) o
  *   `{ x, y }` relativos al texto (el clic que abrió el editor); `{}` = al final.
  * - `apiRef.current`: `{ focus, getMarkdown, setMarkdown, replaceText }`.
+ * - `onCommandChange(abierto)`: avisa cuando se abre o se cierra un menú de comando (el «/», las personas de «@» o
+ *   la búsqueda de tareas). Mientras hay uno abierto, lo escrito está a medias (por ejemplo, para no guardarlo solo).
  */
 export default function RichEditor({
   value = '',
@@ -106,6 +108,7 @@ export default function RichEditor({
   onCreateSubtask,
   onMoveTasks,
   apiRef,
+  onCommandChange,
   ariaLabel = 'Descripción',
   className,
   contentClassName,
@@ -268,6 +271,18 @@ export default function RichEditor({
   const slashCurrent = slashItems.some((item) => item.id === slashActive) ? slashActive : slashItems[0]?.id
   const candidates = mention ? filterPeople(people.filter((person) => person.id !== meId), mention.query) : []
   const mentionIndex = Math.min(mentionActive, Math.max(candidates.length - 1, 0))
+  // Un menú de comando a la vista: lo escrito es un comando a medias («/lista de», «@Lu»)
+  const commandOpen = Boolean((slash && groups.length > 0) || (mention && candidates.length > 0) || taskSearch)
+  const onCommandChangeRef = useRef(onCommandChange)
+  useLayoutEffect(() => {
+    onCommandChangeRef.current = onCommandChange
+  })
+  const commandWasOpen = useRef(false)
+  useEffect(() => {
+    if (commandOpen === commandWasOpen.current) return
+    commandWasOpen.current = commandOpen
+    onCommandChangeRef.current?.(commandOpen)
+  }, [commandOpen])
 
   const openLink = (pos) => {
     if (!editor) return
@@ -401,6 +416,7 @@ export default function RichEditor({
         return false
       },
       slash: {
+        matches: (query) => slashGroups(query, features).length > 0,
         open: (props) => setSlash(props),
         close: () => {
           setSlash(null)

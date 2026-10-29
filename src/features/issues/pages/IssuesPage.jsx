@@ -121,6 +121,7 @@ export function IssuesPage() {
               project={project}
               filters={queryFilters}
               activeView={activeView}
+              filtered={activeCount > 0}
               onShowBlocked={() => issueFilters.setFilter('blocked', true)}
               storiesHidden={!types.includes('STORY')}
               storiesUrl={storiesUrl}
@@ -303,29 +304,39 @@ export function IssuesPage() {
 }
 
 /**
- * «10 tareas abiertas · 1 vencida · 2 bloqueadas», o con una vista guardada aplicada «Vista «Para la daily» ·
- * 4 tareas · 1 bloqueada». Abiertas y vencidas vienen en el proyecto; las bloqueadas (y las tareas de la vista)
- * se cuentan con los filtros que hay en pantalla. «N bloqueadas» aplica el filtro.
+ * Conteos del encabezado. Los dos números van siempre sobre lo mismo:
+ * - Sin filtros ni búsqueda, todo el proyecto: «10 tareas abiertas · 1 vencida · 2 bloqueadas».
+ * - Con filtros o búsqueda, lo que hay en pantalla: «4 tareas con estos filtros · 1 bloqueada».
+ * - Con una vista guardada aplicada: «Vista «Para la daily» · 4 tareas · 1 bloqueada».
+ * Abiertas y vencidas vienen en el proyecto; las demás se cuentan con los filtros. «N bloqueadas» aplica el filtro.
  */
-function IssueCounts({ slug, project, filters, activeView, onShowBlocked, storiesHidden, storiesUrl }) {
+export function IssueCounts({ slug, project, filters, activeView, filtered = false, onShowBlocked, storiesHidden, storiesUrl }) {
   const countParams = { ...filters, page: 0, size: 1 }
+  const narrowed = Boolean(activeView) || filtered
   const { data: blockedPage } = useIssues(slug, project.id, { ...countParams, blocked: true })
-  const { data: viewPage } = useIssues(slug, project.id, countParams, { enabled: Boolean(activeView) })
+  const { data: shownPage } = useIssues(slug, project.id, countParams, { enabled: narrowed })
   const blocked = blockedPage?.totalElements ?? 0
   const open = project.openIssueCount ?? 0
   const overdue = project.overdueIssueCount ?? 0
-  const shown = viewPage?.totalElements
+  const shown = shownPage?.totalElements
+  const tasks = (count) => `${count} ${count === 1 ? 'tarea' : 'tareas'}`
 
   return (
     <>
       {activeView ? (
         <>
           Vista «{activeView.name}»
-          {shown != null && ` · ${shown} ${shown === 1 ? 'tarea' : 'tareas'}`}
+          {shown != null && ` · ${tasks(shown)}`}
         </>
+      ) : filtered ? (
+        <span title="Cuentan solo las tareas que pasan los filtros y la búsqueda">
+          {shown != null ? `${tasks(shown)} con estos filtros` : 'Con estos filtros'}
+        </span>
       ) : (
         <>
-          {open} {open === 1 ? 'tarea abierta' : 'tareas abiertas'}
+          <span title="En todo el proyecto">
+            {open} {open === 1 ? 'tarea abierta' : 'tareas abiertas'}
+          </span>
           {overdue > 0 && (
             <>
               {' · '}

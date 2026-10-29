@@ -13,9 +13,10 @@ import { useCurrentWorkspace } from '../hooks'
 import { HomeRedirect } from '../pages/HomeRedirect'
 import { WorkspaceLayout } from '../pages/WorkspaceLayout'
 import { GeneralSettings } from './GeneralSettings'
+import { WorkspaceForm } from './WorkspaceForm'
 
 vi.mock('../api', () => ({
-  workspacesApi: { list: vi.fn(), get: vi.fn(), remove: vi.fn(), removeMember: vi.fn() },
+  workspacesApi: { list: vi.fn(), get: vi.fn(), remove: vi.fn(), removeMember: vi.fn(), members: vi.fn() },
   invitationsApi: {},
 }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
@@ -125,5 +126,41 @@ describe('GeneralSettings dentro de WorkspaceLayout', () => {
     expect(router.state.location.pathname).toBe('/acme/settings')
     expect(queryClient.getQueryData(queryKeys.workspaces)).toEqual([acme, beta])
     expect(usePreferencesStore.getState().lastWorkspaceSlug).toBe('acme')
+  })
+})
+
+describe('Salir siendo el único project manager', () => {
+  const member = (id, role) => ({ user: { id, fullName: id }, role })
+
+  it('avisa antes de intentarlo y no deja salir (el backend respondería 409)', async () => {
+    workspacesApi.members.mockResolvedValue([member('u1', 'OWNER'), member('u2', 'MEMBER')])
+    renderApp([acme, beta])
+
+    expect(await screen.findByText(/Eres el único project manager de «Acme»/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Salir del workspace' })).toBeDisabled()
+    expect(screen.getByRole('link', { name: 'Miembros' })).toHaveAttribute('href', expect.stringContaining('tab=members'))
+  })
+
+  it('con otro project manager, sí deja salir', async () => {
+    workspacesApi.members.mockResolvedValue([member('u1', 'OWNER'), member('u2', 'OWNER')])
+    renderApp([acme, beta])
+
+    await waitFor(() => expect(workspacesApi.members).toHaveBeenCalled())
+    expect(screen.queryByText(/Eres el único project manager/)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Salir del workspace' })).toBeEnabled()
+  })
+})
+
+describe('Ajustes para un miembro', () => {
+  it('el campo de la URL se ve desactivado (atenuado), como el del nombre', () => {
+    const queryClient = new QueryClient()
+    render(
+      <QueryClientProvider client={queryClient}>
+        <WorkspaceForm defaultValues={{ name: 'Acme', slug: 'acme' }} onSubmit={vi.fn()} pending={false} submitLabel="Guardar" disabled />
+      </QueryClientProvider>,
+    )
+    const url = screen.getByDisplayValue('acme')
+    expect(url).toBeDisabled()
+    expect(url.parentElement).toHaveClass('opacity-50')
   })
 })

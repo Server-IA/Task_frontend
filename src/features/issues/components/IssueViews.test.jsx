@@ -78,6 +78,17 @@ describe('Tablero', () => {
   })
 })
 
+describe('Tablero con carriles por historia', () => {
+  it('los conteos de las columnas van sin ceros a la izquierda, como en el tablero normal', () => {
+    issues = [...Array.from({ length: 6 }, (_, index) => issue(`web-${index + 1}`)), issue('web-7', { state: doing })]
+    render(<IssueBoardView {...common} groupBy="story" openIssue={() => {}} />)
+    const header = (name) => screen.getByText(name, { selector: 'span.font-semibold' }).parentElement
+    expect(header('Por hacer')).toHaveTextContent(/^Por hacer6$/)
+    expect(header('En curso')).toHaveTextContent(/^En curso1$/)
+    expect(header('Hecho')).not.toHaveTextContent('00')
+  })
+})
+
 describe('Lista: estados de una historia', () => {
   async function openStatePicker() {
     const user = userEvent.setup()

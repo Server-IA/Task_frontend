@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { SplitComposer } from './SplitComposer'
 
@@ -39,5 +39,41 @@ describe('SplitComposer: Escape', () => {
     fireEvent.keyDown(screen.getByRole('textbox', { name: 'Tarea 1' }), { key: 'Escape' })
     expect(onCancel).toHaveBeenCalledTimes(1)
     expect(panelEscape).not.toHaveBeenCalled()
+  })
+})
+
+describe('SplitComposer: a la vista', () => {
+  it('al abrirse, se desplaza hasta quedar entero a la vista', async () => {
+    const scrollIntoView = vi.fn()
+    Element.prototype.scrollIntoView = scrollIntoView
+    try {
+      renderComposer()
+      await waitFor(() => expect(scrollIntoView).toHaveBeenCalledWith(expect.objectContaining({ block: 'nearest' })))
+      expect(scrollIntoView.mock.contexts[0]).toHaveClass('tf-pop')
+
+      // Lo de arriba puede crecer al cargar (criterios, checklist): al escribir se vuelve a mostrar entero
+      scrollIntoView.mockClear()
+      fireEvent.change(screen.getByRole('textbox', { name: 'Tarea 1' }), { target: { value: 'Revisar', selectionStart: 7 } })
+      expect(scrollIntoView).toHaveBeenCalledWith(expect.objectContaining({ block: 'nearest' }))
+    } finally {
+      delete Element.prototype.scrollIntoView
+    }
+  })
+
+  it('con la línea cerca del borde de abajo, el selector de «@» se abre hacia arriba', () => {
+    renderComposer()
+    const line = screen.getByRole('textbox', { name: 'Tarea 1' })
+    const bottom = window.innerHeight - 20
+    line.getBoundingClientRect = () => ({ top: bottom - 24, bottom, left: 0, right: 300, width: 300, height: 24 })
+    fireEvent.change(line, { target: { value: '@an', selectionStart: 3 } })
+    expect(screen.getByRole('listbox', { name: 'Asignar a' })).toHaveClass('bottom-full')
+  })
+
+  it('con lugar abajo, se abre hacia abajo', () => {
+    renderComposer()
+    const line = screen.getByRole('textbox', { name: 'Tarea 1' })
+    line.getBoundingClientRect = () => ({ top: 100, bottom: 124, left: 0, right: 300, width: 300, height: 24 })
+    fireEvent.change(line, { target: { value: '!al', selectionStart: 3 } })
+    expect(screen.getByRole('listbox', { name: 'Prioridad' })).toHaveClass('top-full')
   })
 })

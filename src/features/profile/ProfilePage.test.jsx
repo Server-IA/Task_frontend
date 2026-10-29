@@ -44,4 +44,16 @@ describe('Cambiar contraseña', () => {
     expect(toast.warning).toHaveBeenCalledWith('Demasiados intentos', expect.anything())
     expect(await screen.findByRole('button', { name: 'Espera 30 s' })).toBeDisabled()
   })
+
+  it('el botón usa el estilo primario (crema), como los demás botones principales', () => {
+    render(
+      <MemoryRouter>
+        <ProfilePage />
+      </MemoryRouter>,
+    )
+    const button = screen.getByRole('button', { name: 'Cambiar contraseña' })
+    expect(button).toHaveAttribute('data-variant', 'default')
+    expect(button).toHaveClass('bg-primary')
+    expect(button).not.toHaveClass('bg-foreground')
+  })
 })

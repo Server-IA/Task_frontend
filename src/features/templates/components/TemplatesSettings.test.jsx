@@ -55,7 +55,9 @@ describe('TemplatesSettings: campos del formulario', () => {
 
     // La etiqueta que los envuelve es gris (text-muted-foreground): el campo no debe heredarlo
     const name = screen.getByDisplayValue('Tarea técnica')
-    const prefix = screen.getByPlaceholderText('[Bug]', { exact: false })
+    // Ejemplo genérico, el mismo para todas las plantillas (con «[Bug] » parecía el prefijo de esta)
+    const prefix = screen.getByPlaceholderText('[Etiqueta]', { exact: false })
+    expect(screen.queryByPlaceholderText('[Bug]', { exact: false })).not.toBeInTheDocument()
     expect(name.closest('label')).toHaveClass('text-muted-foreground')
     expect(name).toHaveClass('text-foreground')
     expect(prefix).toHaveClass('text-foreground')
