@@ -14,7 +14,7 @@ export interface paths {
         get?: never;
         /**
          * Ordenar vistas
-         * @description shared = ids de todas las vistas compartidas del proyecto en el nuevo orden (solo el project manager: 403); personal = ids de todas mis vistas personales en el nuevo orden. Al menos una de las dos; cada una debe tener exactamente las vistas de su grupo, sin repetir (400). Devuelve las vistas visibles, como el listado.
+         * @description shared = ids de todas las vistas compartidas del proyecto en el nuevo orden (solo el project manager: 403); personal = ids de todas mis vistas personales en el nuevo orden. Al menos una de las dos; cada una debe tener exactamente las vistas de su grupo, sin repetir (400). Devuelve las vistas visibles, como el listado, pero con issueCount = null (el orden no cambia los filtros: se conservan los conteos del listado).
          */
         put: operations["reorder"];
         post?: never;
@@ -853,7 +853,10 @@ export interface paths {
         delete: operations["delete_4"];
         options?: never;
         head?: never;
-        /** Editar o reordenar estado (project manager) */
+        /**
+         * Editar o reordenar estado (project manager)
+         * @description Cambiar el grupo mueve con él a sus tareas: fechas de inicio y completado, historias cerradas o reabiertas (cerradas por quien cambia el grupo), historias listas para revisar y avisos de desbloqueo, como si cada tarea se moviera a un estado de ese grupo.
+         */
         patch: operations["update_4"];
         trace?: never;
     };
@@ -2201,6 +2204,7 @@ export interface components {
             afterIssueId?: string;
             /** Format: uuid */
             beforeIssueId?: string;
+            reopenParent?: boolean;
         };
         UpdateChecklistItemRequest: {
             text?: string;
