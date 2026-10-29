@@ -16,7 +16,7 @@ export function describeActivity({ field, oldValue, newValue }) {
     case 'TITLE':
       return `cambió el título a ${quote(newValue)}`
     case 'DESCRIPTION':
-      return 'actualizó la descripción'
+      return 'editó la descripción'
     case 'STATE':
       return `cambió el estado de ${quote(oldValue)} a ${quote(newValue)}`
     case 'PRIORITY':
@@ -87,7 +87,7 @@ export function describeFeedEntry({ field, oldValue, newValue }, { stateGroup } 
     case 'TITLE':
       return neutral('cambió el título de')
     case 'DESCRIPTION':
-      return neutral('actualizó la descripción de')
+      return neutral('editó la descripción de')
     case 'PRIORITY':
       return neutral('cambió la prioridad de', `a ${(PRIORITY_LABELS[newValue] ?? newValue ?? '').toLowerCase()}`)
     case 'PARENT':

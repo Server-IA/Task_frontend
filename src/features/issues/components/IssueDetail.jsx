@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { Link2, Maximize2, MoreHorizontal, Trash2, X } from 'lucide-react'
+import { FileCode2, Link2, Maximize2, MoreHorizontal, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { AvatarStack } from '@/components/common/AvatarStack'
@@ -14,6 +15,7 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { CenteredSpinner } from '@/components/common/Loaders'
 import { ErrorState } from '@/components/common/States'
 import { StateIcon } from '@/components/common/StateIcon'
+import { MarkdownView } from '@/features/editor/components/MarkdownView'
 import { useWorkspace } from '@/features/workspaces/hooks'
 import { formatDateTime, formatRelative } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
@@ -31,6 +33,7 @@ import { AssigneesPicker, DatePicker, LabelsPicker, PriorityPicker, StatePicker 
 /**
  * Detalle completo de una tarea. Se usa en el panel lateral (`variant="panel"`) y en la página propia.
  * Las secciones de otras features entran por props, sin que este componente dependa de ellas:
+ * `renderDescription` (la descripción con su editor; recibe la tarea y `{ showMarkdown, onHideMarkdown }`),
  * `renderBanner` (aviso sobre el título), `renderSections` (criterios y checklist, antes de las subtareas),
  * `renderAfterSubIssues` (relaciones), `renderActivity` (comentarios e historial) y `renderProperties`
  * (filas extra de propiedades: ciclo, módulos, progreso).
@@ -43,6 +46,7 @@ export function IssueDetail({
   onClose,
   onOpenIssue,
   renderBanner,
+  renderDescription,
   renderSections,
   renderAfterSubIssues,
   renderActivity,
@@ -53,6 +57,8 @@ export function IssueDetail({
   const { update } = useIssueUpdater(slug, project.id, issueId)
   const { guard, dialog: criteriaDialog } = useCriteriaGuard()
   const [subIssueOpen, setSubIssueOpen] = useState(false)
+  // «Ver Markdown» del menú ⋯: la descripción tal como se guarda
+  const [showMarkdown, setShowMarkdown] = useState(false)
 
   if (isLoading) return <CenteredSpinner className="flex-1" />
   if (error) return <ErrorState error={error} onRetry={refetch} homeLink={`/${slug}/projects/${project.id}/issues`} />
@@ -62,7 +68,16 @@ export function IssueDetail({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <IssueTopBar slug={slug} project={project} issue={issue} variant={variant} pageUrl={pageUrl} onClose={onClose} />
+      <IssueTopBar
+        slug={slug}
+        project={project}
+        issue={issue}
+        variant={variant}
+        pageUrl={pageUrl}
+        onClose={onClose}
+        showMarkdown={showMarkdown}
+        onToggleMarkdown={() => setShowMarkdown((current) => !current)}
+      />
 
       <div className="flex min-h-0 flex-1 flex-wrap overflow-y-auto">
         <div className="flex min-w-0 flex-[999_1_380px] flex-col gap-5.5 px-6 pt-5 pb-6">
@@ -87,14 +102,12 @@ export function IssueDetail({
               className="-mx-2 text-2xl leading-tight font-semibold tracking-[-0.01em]"
               placeholder="Título de la tarea"
             />
-            <EditableText
-              value={issue.description ?? ''}
-              maxLength={50000}
-              onSave={(description) => update({ description })}
-              className="-mx-2 mt-1.5 min-h-16 leading-relaxed whitespace-pre-wrap"
-              placeholder="Agrega una descripción…"
-            />
           </div>
+          {renderDescription ? (
+            renderDescription(issue, { showMarkdown, onHideMarkdown: () => setShowMarkdown(false) })
+          ) : (
+            <MarkdownView markdown={issue.description} slug={slug} projectId={project.id} onOpenIssue={onOpenIssue} />
+          )}
 
           {renderSections?.(issue)}
 
@@ -202,7 +215,7 @@ export function PropertyRow({ label, children }) {
   )
 }
 
-function IssueTopBar({ slug, project, issue, variant, pageUrl, onClose }) {
+function IssueTopBar({ slug, project, issue, variant, pageUrl, onClose, showMarkdown, onToggleMarkdown }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const remove = useDeleteIssue(slug, project.id)
   const navigate = useNavigate()
@@ -252,21 +265,28 @@ function IssueTopBar({ slug, project, issue, variant, pageUrl, onClose }) {
             </Link>
           </Button>
         )}
-        {canDelete && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className={iconButton} aria-label="Más acciones">
-                <MoreHorizontal />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(true)}>
-                <Trash2 />
-                Eliminar tarea
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className={iconButton} aria-label="Más acciones">
+              <MoreHorizontal />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={onToggleMarkdown}>
+              <FileCode2 />
+              {showMarkdown ? 'Ver la descripción con formato' : 'Ver Markdown'}
+            </DropdownMenuItem>
+            {canDelete && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(true)}>
+                  <Trash2 />
+                  Eliminar tarea
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
         {variant === 'panel' && (
           <Button variant="ghost" size="icon" className={iconButton} onClick={onClose} aria-label="Cerrar">
             <X />

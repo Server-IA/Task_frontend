@@ -53,6 +53,14 @@
   --chart-series: #9a7428;
   --chart-ref: #9e978c;
   --chart-grid: #efebe4;
+  /* Editor de descripciones: marco en lectura, selección, casilla marcada, tarjeta de historia y colores del código */
+  --md-frame: #fbfaf7;
+  --sel: #ebddb8;
+  --ok-box: #1d6b47;
+  --story: #fbf6ea;
+  --story-line: #eadbb8;
+  --code-key: #7a5c1e;
+  --code-str: #1d6b47;
 
   --sidebar: #ece9e3;
   --sidebar-foreground: #23201b;
@@ -108,6 +116,13 @@
   --chart-series: #b08a3a;
   --chart-ref: #6e685f;
   --chart-grid: #24211d;
+  --md-frame: #201e1b;
+  --sel: #4a3f27;
+  --ok-box: #2e9e6a;
+  --story: #221e17;
+  --story-line: #3a3224;
+  --code-key: #e6d3a3;
+  --code-str: #7ee2a8;
 
   --sidebar: #0c0b0a;
   --sidebar-foreground: #f0ece4;
@@ -169,6 +184,11 @@
   --color-chart-series: var(--chart-series);
   --color-chart-ref: var(--chart-ref);
   --color-chart-grid: var(--chart-grid);
+  --color-md-frame: var(--md-frame);
+  --color-sel: var(--sel);
+  --color-ok-box: var(--ok-box);
+  --color-story: var(--story);
+  --color-story-line: var(--story-line);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-muted: var(--sidebar-muted);
@@ -216,6 +236,353 @@
   /* Tarjeta base (encabezados, secciones) */
   .tf-panel {
     @apply rounded-2xl border bg-card text-card-foreground;
+  }
+}
+
+/*
+ * Texto con formato (descripciones, comentarios y esqueletos de plantillas). La vista de lectura (MarkdownView) y
+ * el editor (ProseMirror) usan las mismas reglas: al entrar a editar el texto no se mueve.
+ * .tf-md es el tamaño de la descripción; .tf-md-sm, el de los comentarios y los editores compactos.
+ */
+@layer components {
+  .tf-md {
+    font-size: 14.5px;
+    line-height: 1.65;
+    overflow-wrap: break-word;
+  }
+  .tf-md > :first-child {
+    margin-top: 0;
+  }
+  .tf-md > :last-child {
+    margin-bottom: 0;
+  }
+  .tf-md p {
+    margin: 0 0 12px;
+  }
+  .tf-md h1 {
+    margin: 24px 0 8px;
+    font-size: 21px;
+    line-height: 1.3;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .tf-md h2 {
+    margin: 22px 0 6px;
+    font-size: 18px;
+    line-height: 1.35;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+  }
+  .tf-md h3 {
+    margin: 18px 0 6px;
+    font-size: 15.5px;
+    line-height: 1.4;
+    font-weight: 600;
+  }
+  .tf-md strong {
+    font-weight: 600;
+  }
+  .tf-md s {
+    color: var(--muted-foreground);
+  }
+  .tf-md ul,
+  .tf-md ol {
+    margin: 0 0 12px;
+    padding-left: 22px;
+  }
+  .tf-md ul {
+    list-style: disc;
+  }
+  .tf-md ul ul {
+    list-style: circle;
+  }
+  .tf-md ol {
+    padding-left: 24px;
+    list-style: decimal;
+  }
+  .tf-md li {
+    padding-left: 4px;
+  }
+  .tf-md li > p,
+  .tf-md li > div > p,
+  .tf-md .tf-md-task-body > p {
+    margin: 0;
+  }
+  .tf-md li > ul,
+  .tf-md li > ol {
+    margin: 2px 0 0;
+  }
+  .tf-md blockquote {
+    margin: 0 0 12px;
+    padding: 2px 0 2px 14px;
+    border-left: 3px solid var(--dash);
+    color: var(--muted-foreground);
+  }
+  .tf-md blockquote > :last-child {
+    margin-bottom: 0;
+  }
+  .tf-md hr {
+    margin: 18px 0;
+    border: 0;
+    border-top: 1px solid var(--border);
+  }
+  .tf-md a:not(.tf-chip) {
+    color: var(--accent-text);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .tf-md :not(pre) > code {
+    padding: 1px 5px;
+    border-radius: 5px;
+    background: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+  }
+  .tf-md table {
+    width: 100%;
+    margin: 0 0 14px;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 13.5px;
+    line-height: 1.45;
+    table-layout: fixed;
+  }
+  .tf-md th,
+  .tf-md td {
+    position: relative;
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+    border-top: 1px solid var(--border);
+    border-left: 1px solid var(--border);
+  }
+  .tf-md tr > :first-child {
+    border-left: 0;
+  }
+  .tf-md tr:first-child > * {
+    border-top: 0;
+  }
+  .tf-md th {
+    background: var(--subtle);
+    font-weight: 600;
+  }
+  .tf-md th p,
+  .tf-md td p {
+    margin: 0;
+  }
+  /* Bloque de código: lenguaje y «Copiar» arriba */
+  .tf-md .tf-md-code {
+    margin: 0 0 14px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--subtle);
+    overflow: hidden;
+  }
+  .tf-md pre {
+    margin: 0;
+    padding: 10px 14px 12px;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.6;
+    white-space: pre;
+  }
+  .tf-md pre code {
+    font: inherit;
+  }
+  .tf-md .tf-code-key {
+    color: var(--code-key);
+  }
+  .tf-md .tf-code-str {
+    color: var(--code-str);
+  }
+  .tf-md .tf-code-punct,
+  .tf-md .tf-code-comment {
+    color: var(--muted-foreground);
+  }
+  /* Listas de tareas: la de lectura (botones) y la del editor (ul[data-type=taskList]) */
+  .tf-md ul.tf-md-tasks,
+  .tf-md ul[data-type='taskList'] {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0;
+    list-style: none;
+  }
+  .tf-md ul.tf-md-tasks ul.tf-md-tasks,
+  .tf-md ul[data-type='taskList'] ul[data-type='taskList'] {
+    margin-top: 4px;
+  }
+  .tf-md li.tf-md-task,
+  .tf-md ul[data-type='taskList'] > li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding-left: 0;
+  }
+  .tf-md ul[data-type='taskList'] > li > label {
+    flex-shrink: 0;
+    display: flex;
+    user-select: none;
+  }
+  .tf-md ul[data-type='taskList'] > li > div {
+    flex: 1;
+    min-width: 0;
+  }
+  .tf-md .tf-md-check,
+  .tf-md ul[data-type='taskList'] input[type='checkbox'] {
+    appearance: none;
+    flex-shrink: 0;
+    display: flex;
+    width: 18px;
+    height: 18px;
+    margin: 3px 0 0;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid var(--dash);
+    border-radius: 5px;
+    background: transparent no-repeat center / 11px;
+    color: #fff;
+    cursor: pointer;
+    transition: background-color 120ms ease-out, border-color 120ms ease-out;
+  }
+  .tf-md .tf-md-check:disabled {
+    cursor: default;
+  }
+  .tf-md .tf-md-check[aria-checked='true'],
+  .tf-md ul[data-type='taskList'] input[type='checkbox']:checked {
+    border-color: var(--ok-box);
+    background-color: var(--ok-box);
+  }
+  .tf-md ul[data-type='taskList'] input[type='checkbox']:checked {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+  }
+  .tf-md li.tf-md-task[data-checked='true'] > .tf-md-task-body > :first-child,
+  .tf-md ul[data-type='taskList'] > li[data-checked='true'] > div > p:first-child {
+    color: var(--muted-foreground);
+    text-decoration: line-through;
+  }
+  .tf-md .tf-md-task-body {
+    flex: 1;
+    min-width: 0;
+  }
+  /* Mención (@Nombre) y pastilla de tarea (WEB-12 Título) */
+  .tf-md .tf-mention {
+    padding: 1px 6px;
+    border-radius: 6px;
+    background: var(--muted);
+    font-weight: 600;
+    color: var(--foreground);
+    box-decoration-break: clone;
+  }
+  .tf-md .tf-mention[data-me] {
+    background: var(--accent-soft);
+    color: var(--accent-text);
+  }
+  .tf-md .tf-chip {
+    display: inline-flex;
+    max-width: 100%;
+    align-items: center;
+    gap: 5px;
+    padding: 0 7px 0 5px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--card);
+    font-size: 13px;
+    line-height: 22px;
+    vertical-align: 1px;
+    color: var(--foreground);
+    text-decoration: none;
+    transition: border-color 120ms ease-out;
+  }
+  .tf-md .tf-chip:hover {
+    border-color: var(--dash);
+  }
+  /* Código de tarea mientras se edita (sin buscar si existe) */
+  .tf-md .tf-taskref {
+    padding: 1px 3px;
+    border-radius: 5px;
+    background: var(--accent-soft);
+    color: var(--accent-text);
+    font-family: var(--font-mono);
+    font-size: 0.88em;
+  }
+  /* Historia de usuario: Como / quiero / para */
+  .tf-md .tf-md-story {
+    margin: 0 0 14px;
+    padding: 12px 14px 14px;
+    border: 1px solid var(--story-line);
+    border-radius: 14px;
+    background: var(--story);
+    color: var(--foreground);
+  }
+  .tf-md ::selection {
+    background: var(--sel);
+  }
+
+  /* Comentarios y editores compactos */
+  .tf-md.tf-md-sm {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .tf-md-sm p {
+    margin: 0 0 8px;
+  }
+  .tf-md-sm h1,
+  .tf-md-sm h2,
+  .tf-md-sm h3 {
+    margin: 12px 0 2px;
+    line-height: 1.4;
+  }
+  .tf-md-sm h1 {
+    font-size: 16.5px;
+  }
+  .tf-md-sm h2 {
+    font-size: 15px;
+  }
+  .tf-md-sm h3 {
+    font-size: 14.5px;
+  }
+  .tf-md-sm ul,
+  .tf-md-sm ol,
+  .tf-md-sm blockquote,
+  .tf-md-sm .tf-md-code,
+  .tf-md-sm table,
+  .tf-md-sm .tf-md-story {
+    margin-bottom: 8px;
+  }
+
+  /* El editor */
+  .tf-md.ProseMirror {
+    outline: none;
+    white-space: pre-wrap;
+  }
+  /* El aviso «Escribe, o pulsa / para insertar» va en el párrafo vacío donde está el cursor */
+  .tf-md.ProseMirror > p.is-empty::before {
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    color: var(--muted-foreground);
+    opacity: 0.8;
+    pointer-events: none;
+  }
+  .tf-md.ProseMirror .selectedCell::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--sel);
+    opacity: 0.45;
+    pointer-events: none;
+  }
+  .tf-md.ProseMirror .column-resize-handle {
+    display: none;
+  }
+  .tf-md.ProseMirror hr.ProseMirror-selectednode {
+    border-top-color: var(--ring);
   }
 }
 

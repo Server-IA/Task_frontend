@@ -39,6 +39,8 @@ export function CommandPalette() {
   useEffect(() => {
     const onKeyDown = (event) => {
       if (event.key.toLowerCase() !== 'k' || !(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return
+      // En el editor de texto, ctrl K es «Enlace» (el editor ya lo atendió)
+      if (event.defaultPrevented) return
       event.preventDefault()
       setOpen(!useLayoutStore.getState().commandOpen)
     }

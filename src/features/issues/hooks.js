@@ -27,6 +27,8 @@ function invalidateAfterIssueChange(queryClient, projectId, issueId) {
   queryClient.invalidateQueries({ queryKey: ['stats', projectId] })
   queryClient.invalidateQueries({ queryKey: ['myWork'] })
   queryClient.invalidateQueries({ queryKey: ['workspaceActivity'] })
+  // Pastillas de tareas dentro de descripciones y comentarios (título y estado)
+  queryClient.invalidateQueries({ queryKey: ['taskRef'] })
   if (issueId) queryClient.invalidateQueries({ queryKey: queryKeys.activity(issueId) })
 }
 
@@ -87,6 +89,29 @@ export function useUpdateIssue(slug, projectId) {
       replaceInLists(queryClient, projectId, issue)
       invalidateAfterIssueChange(queryClient, projectId, issue.id)
     },
+  })
+}
+
+/**
+ * Guardar la descripción: `mutate(markdown)`. El editor guarda mientras se escribe, así que no recarga todo lo que
+ * recarga una edición cualquiera (listas, ciclos, estadísticas): solo la tarea, sus filas en las listas y el
+ * historial. La tarea en caché cambia al instante (las casillas marcadas sin entrar a editar se ven enseguida).
+ */
+export function useSaveDescription(slug, projectId, issueId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationKey: ['saveDescription', issueId],
+    mutationFn: (description) => issuesApi.update(slug, projectId, issueId, { description }),
+    onMutate: (description) => {
+      queryClient.setQueryData(queryKeys.issue(issueId), (issue) => (issue ? { ...issue, description: description || null } : issue))
+    },
+    onSuccess: (issue) => {
+      queryClient.setQueryData(queryKeys.issue(issue.id), issue)
+      replaceInLists(queryClient, projectId, issue)
+      queryClient.invalidateQueries({ queryKey: queryKeys.activity(issueId) })
+      queryClient.invalidateQueries({ queryKey: ['workspaceActivity'] })
+    },
+    onError: () => queryClient.invalidateQueries({ queryKey: queryKeys.issue(issueId) }),
   })
 }
 

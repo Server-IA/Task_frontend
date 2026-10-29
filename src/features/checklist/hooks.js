@@ -88,6 +88,30 @@ export const useMoveChecklistItem = (slug, projectId, issueId) =>
     optimistic: (items, { itemId, position }) => moveChecklistItem(items, itemId, position)?.items ?? items,
   })
 
+/**
+ * «Pasar al checklist» desde la descripción: `mutateAsync(casillas)` crea un paso por casilla, en orden (las
+ * marcadas quedan hechas). Devuelve cuántos se crearon.
+ */
+export function useMoveToChecklist(slug, projectId, issueId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (items) => {
+      for (const item of items) {
+        const created = await checklistApi.create(slug, projectId, issueId, { kind: 'CHECK', text: item.text.slice(0, 500) })
+        if (item.checked) await checklistApi.update(slug, projectId, issueId, created.id, { done: true })
+      }
+      return items.length
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.checklist(issueId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.issue(issueId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.issuesOf(projectId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.activity(issueId) })
+      queryClient.invalidateQueries({ queryKey: ['myWork'] })
+    },
+  })
+}
+
 /** `mutate(itemId)` */
 export const useDeleteChecklistItem = (slug, projectId, issueId) =>
   useChecklistMutation(slug, projectId, issueId, {

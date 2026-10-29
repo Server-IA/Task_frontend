@@ -10,14 +10,16 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { AvatarStack } from '@/components/common/AvatarStack'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { LabelChip } from '@/components/common/LabelChip'
 import { CenteredSpinner, Spinner } from '@/components/common/Loaders'
 import { LockNote } from '@/components/common/LockNote'
+import { Segmented } from '@/components/common/Segmented'
 import { StateIcon } from '@/components/common/StateIcon'
 import { EmptyState, ErrorState } from '@/components/common/States'
+import { LazyRichEditor } from '@/features/editor/components/LazyRichEditor'
+import { MarkdownView } from '@/features/editor/components/MarkdownView'
 import { AssigneesPicker, LabelsPicker, PriorityPicker, StatePicker } from '@/features/issues/components/PropertyPickers'
 import { PriorityChip } from '@/features/issues/components/PriorityIcon'
 import { useProjectMeta } from '@/features/issues/useIssueHelpers'
@@ -228,6 +230,63 @@ export function TemplatesSettings({ slug, project }) {
 
 const fieldLabel = 'flex flex-col gap-1.5 text-xs font-medium text-muted-foreground'
 
+const SKELETON_VIEWS = [
+  { value: 'visual', label: 'Visual' },
+  { value: 'markdown', label: 'Markdown' },
+]
+
+/**
+ * «Esqueleto de la descripción»: el mismo editor que la descripción de la tarea, con la barra compacta, o el
+ * Markdown tal cual. Para los miembros, solo lectura.
+ */
+function SkeletonField({ value, onChange, readOnly, error }) {
+  const [view, setView] = useState('visual')
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center gap-2.5">
+        <span id="esqueleto-label" className="text-xs font-medium text-muted-foreground">
+          Esqueleto de la descripción
+        </span>
+        <Segmented label="Vista del esqueleto" size="sm" className="ml-auto p-0.5" value={view} onChange={setView} options={SKELETON_VIEWS} />
+      </div>
+      <div
+        className={cn(
+          'flex flex-col overflow-hidden rounded-[10px] border bg-card',
+          !readOnly && 'focus-within:border-ring focus-within:shadow-[0_0_0_3px_var(--accent-soft)]',
+        )}
+      >
+        {view === 'markdown' ? (
+          <textarea
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            readOnly={readOnly}
+            aria-labelledby="esqueleto-label"
+            rows={8}
+            className="resize-y bg-transparent px-3.5 py-2.5 font-mono text-[12.5px] leading-[1.6] outline-none"
+          />
+        ) : readOnly ? (
+          <MarkdownView markdown={value} size="sm" className="min-h-16 px-3.5 pt-2.5 pb-3" />
+        ) : (
+          <LazyRichEditor
+            value={value}
+            onChange={onChange}
+            size="sm"
+            toolbar="compact"
+            ariaLabel="Esqueleto de la descripción"
+            placeholder="Escribe la estructura, o pulsa / para insertar"
+            contentClassName="min-h-28 px-3.5 pt-2.5 pb-3"
+          />
+        )}
+        <div className="flex flex-wrap items-center gap-3 border-t px-3 py-1.5 font-mono text-[11px] text-muted-foreground">
+          <span>## título · 1. lista · [ ] tarea · / insertar</span>
+          <span className="ml-auto">se guarda como Markdown</span>
+        </div>
+      </div>
+      {error && <span className="text-xs text-destructive">{error}</span>}
+    </div>
+  )
+}
+
 /** Formulario de una plantilla (nueva si `template` es null). Para los miembros, solo lectura. */
 function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted, onCancelNew }) {
   const { states, labels, users } = useProjectMeta(slug, project.id)
@@ -304,17 +363,14 @@ function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted
           Así queda: <span className="font-mono whitespace-pre-wrap text-foreground">{values.titlePrefix}Título de la tarea</span>
         </p>
       )}
-      <label className={fieldLabel}>
-        Esqueleto de la descripción
-        <Textarea
-          {...form.register('description')}
-          readOnly={readOnly}
-          rows={7}
-          placeholder={'## Pasos para reproducir\n1.\n## Qué esperaba\n## Qué pasó'}
-          className="resize-y bg-card font-mono text-[12.5px] leading-[1.6] font-normal md:text-[12.5px] dark:bg-card"
-        />
-        {errors.description && <span className="font-normal text-destructive">{errors.description.message}</span>}
-      </label>
+      <SkeletonField
+        value={values.description ?? ''}
+        onChange={(description) => {
+          if (description !== form.getValues('description')) form.setValue('description', description, { shouldDirty: true })
+        }}
+        readOnly={readOnly}
+        error={errors.description?.message}
+      />
 
       <div className="flex flex-col gap-1.5">
         <p className="text-xs font-medium text-muted-foreground">Valores por defecto</p>

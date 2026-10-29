@@ -11,8 +11,9 @@ import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { Textarea } from '@/components/ui/textarea'
 import { Spinner } from '@/components/common/Loaders'
+import { LazyRichEditor, usePreloadRichEditor } from '@/features/editor/components/LazyRichEditor'
+import { useMentionPeople } from '@/features/mentions/hooks'
 import { applyTemplate, appliedParts, checklistLabel, fromTemplateFlags } from '@/features/templates/applyTemplate'
 import { useTemplates } from '@/features/templates/hooks'
 import { useIsManager } from '@/features/workspaces/hooks'
@@ -88,6 +89,8 @@ function CreateIssueForm({ slug, project, defaults, onCancel, onCreated }) {
   const create = useCreateIssue(slug, project.id)
   const { data: templates = [] } = useTemplates(slug, project.id)
   const isManager = useIsManager()
+  const people = useMentionPeople(slug, project.id)
+  usePreloadRichEditor()
   const [createMore, setCreateMore] = useState(false)
   // Plantilla aplicada y los valores de antes de aplicar la primera (para cambiarla o deshacerla)
   const [template, setTemplate] = useState(null)
@@ -212,18 +215,13 @@ function CreateIssueForm({ slug, project, defaults, onCancel, onCreated }) {
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormControl>
-                <Textarea
-                  {...field}
-                  rows={template?.description ? 8 : 4}
-                  placeholder="Agrega una descripción…"
-                  className={cn(
-                    'resize-y border-none bg-transparent px-0 leading-relaxed shadow-none focus-visible:ring-0 dark:bg-transparent',
-                    // El esqueleto de una plantilla (## Pasos…) se lee mejor en monoespaciada
-                    template?.description && 'max-h-[38vh] font-mono text-[12.5px] leading-[1.6] md:text-[12.5px]',
-                  )}
-                />
-              </FormControl>
+              <DescriptionField
+                value={field.value}
+                onChange={field.onChange}
+                people={people}
+                slug={slug}
+                projectIdentifier={project.identifier}
+              />
               <FormMessage />
             </FormItem>
           )}
@@ -290,6 +288,52 @@ function CreateIssueForm({ slug, project, defaults, onCancel, onCreated }) {
         </div>
       </form>
     </Form>
+  )
+}
+
+/**
+ * Descripción con el editor compacto: «/» para insertar y la barra sobre el texto seleccionado; «Aa formato»
+ * muestra la barra de formato. Una plantilla la llena (y «Deshacer» la devuelve) porque el valor viene del form.
+ */
+function DescriptionField({ value, onChange, people, slug, projectIdentifier }) {
+  const [showFormat, setShowFormat] = useState(false)
+  return (
+    <div className="flex flex-col">
+      <div className={cn(showFormat && 'overflow-hidden rounded-xl border')}>
+        <LazyRichEditor
+          value={value}
+          onChange={onChange}
+          size="sm"
+          toolbar={showFormat ? 'compact' : false}
+          people={people}
+          slug={slug}
+          projectIdentifier={projectIdentifier}
+          ariaLabel="Descripción"
+          contentClassName={cn('max-h-[360px] min-h-20 overflow-y-auto', showFormat ? 'px-3 py-2' : 'py-0.5')}
+        />
+      </div>
+      <div className="mt-2.5 flex flex-wrap items-center gap-3 border-t border-dashed pt-2 font-mono text-[11px] text-muted-foreground">
+        <span>
+          <kbd className="text-foreground">/</kbd> insertar
+        </span>
+        <span>selecciona texto para darle formato</span>
+        <span>
+          <kbd className="text-foreground">@</kbd> mencionar
+        </span>
+        <button
+          type="button"
+          aria-pressed={showFormat}
+          title={showFormat ? 'Ocultar la barra de formato' : 'Mostrar la barra de formato'}
+          onClick={() => setShowFormat((current) => !current)}
+          className={cn(
+            'ml-auto flex items-center gap-1.5 rounded-[7px] border px-2 py-0.75 font-sans text-xs font-semibold text-foreground transition-colors duration-150',
+            showFormat ? 'border-accent-text bg-accent-soft text-accent-text' : 'hover:bg-muted',
+          )}
+        >
+          Aa <span className="font-normal text-muted-foreground">formato</span>
+        </button>
+      </div>
+    </div>
   )
 }
 

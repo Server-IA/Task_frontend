@@ -9,6 +9,7 @@ import { Segmented } from '@/components/common/Segmented'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { IssueDetailWithExtras } from '@/features/issues/components/IssueDetailWithExtras'
+import { markdownToPlainText } from '@/features/editor/markdown/plainText'
 import { IssuePeekSheet } from '@/features/issues/components/IssuePeekSheet'
 import { MentionText } from '@/features/mentions/MentionText'
 import { useProject } from '@/features/projects/hooks'
@@ -291,7 +292,7 @@ function CommentExcerpt({ excerpt }) {
   return (
     <span className="mt-1.5 block rounded-[10px] bg-subtle px-2.5 py-1.5 leading-snug break-words text-muted-foreground">
       «
-      {excerptSegments(excerpt, myName).map((segment, index) =>
+      {excerptSegments(markdownToPlainText(excerpt), myName).map((segment, index) =>
         segment.me ? (
           <span key={index} className="rounded-md bg-accent-soft px-1 font-semibold text-accent-text [box-decoration-break:clone]">
             {segment.text}

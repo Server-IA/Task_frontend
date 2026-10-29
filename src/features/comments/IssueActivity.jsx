@@ -13,10 +13,10 @@ import { CenteredSpinner, Spinner } from '@/components/common/Loaders'
 import { Segmented } from '@/components/common/Segmented'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { useActivity } from '@/features/issues/hooks'
-import { useMentionDraft, useMentionPeople } from '@/features/mentions/hooks'
+import { LazyRichEditor, preloadRichEditor } from '@/features/editor/components/LazyRichEditor'
+import { MarkdownView } from '@/features/editor/components/MarkdownView'
+import { useMentionPeople } from '@/features/mentions/hooks'
 import { joinNames, mentionedIds } from '@/features/mentions/mentions'
-import { MentionText } from '@/features/mentions/MentionText'
-import { MentionTextarea } from '@/features/mentions/MentionTextarea'
 import { useWorkspace } from '@/features/workspaces/hooks'
 import { formatDateTime, formatRelative } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
@@ -29,9 +29,11 @@ import { useComments, useCreateComment, useDeleteComment, useUpdateComment } fro
 /**
  * Comentarios e historial de la tarea en una sola línea de tiempo, con filtro.
  * Las entradas COMMENT del historial no se repiten: el comentario ya aparece como tarjeta.
- * Los comentarios admiten menciones («@» abre la lista de personas del proyecto).
+ * Los comentarios se escriben con el mismo editor que la descripción, en versión liviana (sin barra: «/» y la barra
+ * sobre el texto seleccionado), con menciones («@» abre la lista de personas del proyecto) y ctrl ↵ para enviar.
+ * Se guardan en Markdown; los comentarios de antes (texto plano con menciones) se leen igual.
  */
-export function IssueActivity({ slug, projectId, issueId, issueCode, focusCommentId }) {
+export function IssueActivity({ slug, projectId, issueId, issueCode, projectIdentifier, focusCommentId, onOpenIssue }) {
   const [filter, setFilter] = useState('all')
   const comments = useComments(slug, projectId, issueId)
   const activity = useActivity(slug, projectId, issueId)
@@ -69,7 +71,15 @@ export function IssueActivity({ slug, projectId, issueId, issueCode, focusCommen
           {timeline.map((item) =>
             item.type === 'comment' ? (
               <li key={`c-${item.comment.id}`} id={commentAnchor(item.comment.id)} className="scroll-mt-4">
-                <CommentCard slug={slug} projectId={projectId} issueId={issueId} comment={item.comment} people={people} />
+                <CommentCard
+                  slug={slug}
+                  projectId={projectId}
+                  issueId={issueId}
+                  comment={item.comment}
+                  people={people}
+                  projectIdentifier={projectIdentifier}
+                  onOpenIssue={onOpenIssue}
+                />
               </li>
             ) : (
               <li key={`a-${item.entry.id}`}>
@@ -85,7 +95,14 @@ export function IssueActivity({ slug, projectId, issueId, issueCode, focusCommen
         </ol>
       )}
 
-      <CommentComposer slug={slug} projectId={projectId} issueId={issueId} issueCode={issueCode} people={people} />
+      <CommentComposer
+        slug={slug}
+        projectId={projectId}
+        issueId={issueId}
+        issueCode={issueCode}
+        projectIdentifier={projectIdentifier}
+        people={people}
+      />
     </section>
   )
 }
@@ -115,14 +132,14 @@ function ActivityLine({ entry }) {
   )
 }
 
-function CommentCard({ slug, projectId, issueId, comment, people }) {
+function CommentCard({ slug, projectId, issueId, comment, people, projectIdentifier, onOpenIssue }) {
   // Del workspace de la tarea (no de la URL): la actividad también se ve desde la Bandeja
   const { data: workspace } = useWorkspace(slug)
   const currentUserId = useSessionStore((state) => state.user?.id)
   const update = useUpdateComment(slug, projectId, issueId)
   const remove = useDeleteComment(slug, projectId, issueId)
   const [editing, setEditing] = useState(false)
-  const draft = useMentionDraft(comment.body)
+  const [draft, setDraft] = useState(comment.body)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const isAuthor = comment.author?.id === currentUserId
@@ -132,7 +149,7 @@ function CommentCard({ slug, projectId, issueId, comment, people }) {
   const mentionsMe = !isAuthor && Boolean(currentUserId) && mentionedIds(comment.body).includes(currentUserId)
 
   const save = () => {
-    const body = draft.toBody().trim()
+    const body = draft.trim()
     if (!body || body === comment.body) {
       setEditing(false)
       return
@@ -172,7 +189,7 @@ function CommentCard({ slug, projectId, issueId, comment, people }) {
                   {isAuthor && (
                     <DropdownMenuItem
                       onSelect={() => {
-                        draft.reset(comment.body)
+                        setDraft(comment.body)
                         setEditing(true)
                       }}
                     >
@@ -193,23 +210,24 @@ function CommentCard({ slug, projectId, issueId, comment, people }) {
         </div>
         {editing ? (
           <div className="space-y-2 p-2">
-            <div className="rounded-lg border bg-background focus-within:ring-2 focus-within:ring-ring/40 dark:bg-input/30">
-              <MentionTextarea
-                draft={draft}
+            <div className="rounded-lg border bg-background focus-within:border-ring focus-within:shadow-[0_0_0_3px_var(--accent-soft)] dark:bg-input/30">
+              <LazyRichEditor
+                value={draft}
+                onChange={setDraft}
+                size="sm"
+                ariaLabel="Editar comentario"
+                placeholder=""
                 people={people}
-                label="Editar comentario"
+                slug={slug}
+                projectIdentifier={projectIdentifier}
                 autoFocus
-                rows={3}
-                maxLength={10000}
-                fieldClassName="px-3 py-2 text-sm leading-relaxed"
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) save()
-                }}
+                onSubmit={save}
                 onEscape={() => setEditing(false)}
+                contentClassName="min-h-16 px-3 py-2"
               />
             </div>
             <div className="flex items-center justify-end gap-2">
-              <span className="mr-auto font-mono text-[11px] text-muted-foreground">@ mencionar · esc cancelar</span>
+              <span className="mr-auto font-mono text-[11px] text-muted-foreground">@ mencionar · ctrl ↵ guardar · esc cancelar</span>
               <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
                 Cancelar
               </Button>
@@ -220,9 +238,14 @@ function CommentCard({ slug, projectId, issueId, comment, people }) {
             </div>
           </div>
         ) : (
-          <p className="px-3 py-2.5 text-sm leading-relaxed break-words whitespace-pre-wrap">
-            <MentionText body={comment.body} />
-          </p>
+          <MarkdownView
+            markdown={comment.body}
+            size="sm"
+            slug={slug}
+            projectId={projectId}
+            onOpenIssue={onOpenIssue}
+            className="px-3 py-2.5"
+          />
         )}
       </div>
       <ConfirmDialog
@@ -245,11 +268,12 @@ function CommentCard({ slug, projectId, issueId, comment, people }) {
   )
 }
 
-function CommentComposer({ slug, projectId, issueId, issueCode, people }) {
+function CommentComposer({ slug, projectId, issueId, issueCode, projectIdentifier, people }) {
   const user = useSessionStore((state) => state.user)
   const create = useCreateComment(slug, projectId, issueId)
-  const draft = useMentionDraft()
-  const body = draft.toBody()
+  const [body, setBody] = useState('')
+  // El editor se monta al enfocar la caja (hasta entonces es solo un recuadro: abrir una tarea sigue siendo liviano)
+  const [active, setActive] = useState(false)
 
   // Quiénes recibirán el aviso de la mención (quien escribe no se avisa a sí mismo)
   const mentioned = mentionedIds(body)
@@ -257,32 +281,53 @@ function CommentComposer({ slug, projectId, issueId, issueCode, people }) {
 
   const submit = () => {
     const text = body.trim()
-    if (!text) return
-    create.mutate(text, { onSuccess: () => draft.reset(), onError: (error) => notifyError(error) })
+    if (!text || create.isPending) return
+    create.mutate(text, { onSuccess: () => setBody(''), onError: (error) => notifyError(error) })
   }
 
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex gap-2.5">
         <UserAvatar user={user} size="md" />
-        <div className="min-w-0 flex-1 rounded-xl border bg-card focus-within:ring-2 focus-within:ring-ring/40">
-          <MentionTextarea
-            draft={draft}
-            people={people}
-            label="Escribe un comentario"
-            placeholder="Escribe un comentario…"
-            maxLength={10000}
-            fieldClassName="px-3 py-2.5 text-sm leading-relaxed"
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) submit()
-            }}
-          />
-          <div className="flex items-center justify-between gap-2 pt-1.5 pr-2 pb-2 pl-3">
-            <span className="font-mono text-[11px] text-muted-foreground">@ mencionar · ctrl + enter enviar</span>
-            <Button size="sm" className="rounded-[9px]" onClick={submit} disabled={!body.trim() || create.isPending}>
-              {create.isPending && <Spinner />}
-              Comentar
-            </Button>
+        <div className="min-w-0 flex-1 rounded-xl border bg-card transition-shadow duration-150 focus-within:border-ring focus-within:shadow-[0_0_0_3px_var(--accent-soft)]">
+          {active ? (
+            <LazyRichEditor
+              value={body}
+              onChange={setBody}
+              size="sm"
+              ariaLabel="Escribe un comentario"
+              placeholder="Escribe un comentario…"
+              people={people}
+              slug={slug}
+              projectIdentifier={projectIdentifier}
+              autoFocus
+              onSubmit={submit}
+              contentClassName="min-h-11 px-3 pt-2.5 pb-1"
+            />
+          ) : (
+            <div
+              role="textbox"
+              tabIndex={0}
+              aria-label="Escribe un comentario"
+              onFocus={() => setActive(true)}
+              onPointerEnter={preloadRichEditor}
+              className="min-h-11 cursor-text px-3 pt-2.5 pb-1 text-sm leading-relaxed text-muted-foreground outline-none"
+            >
+              Escribe un comentario…
+            </div>
+          )}
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 pr-2 pb-2 pl-3">
+            <span className="font-mono text-[11px] text-muted-foreground">
+              <kbd className="text-foreground">/</kbd> insertar · <kbd className="text-foreground">@</kbd> mencionar · selecciona para dar
+              formato
+            </span>
+            <span className="ml-auto flex items-center gap-2.5">
+              <span className="font-mono text-[11px] text-muted-foreground">ctrl ↵ enviar</span>
+              <Button size="sm" className="rounded-[9px]" onClick={submit} disabled={!body.trim() || create.isPending}>
+                {create.isPending && <Spinner />}
+                Comentar
+              </Button>
+            </span>
           </div>
         </div>
       </div>

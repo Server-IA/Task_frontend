@@ -1075,6 +1075,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{slug}/search/codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tareas por código
+         * @description Las tareas con esos códigos («WEB-12,API-3»), solo de los proyectos a los que tengo acceso. Sirve para dibujar las referencias a tareas de una descripción o un comentario. Los códigos que no existen no aparecen; como mucho 50 códigos distintos.
+         */
+        get: operations["byCodes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{slug}/projects/{projectId}/stats": {
         parameters: {
             query?: never;
@@ -2207,6 +2227,8 @@ export interface components {
             newValue?: string;
             /** Format: date-time */
             createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
         };
         DailyBlocker: {
             issue?: components["schemas"]["RelatedIssueResponse"];
@@ -4531,6 +4553,31 @@ export interface operations {
                 q?: string;
                 /** @description Máximo de resultados (1 a 20) */
                 limit?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IssueResponse"][];
+                };
+            };
+        };
+    };
+    byCodes: {
+        parameters: {
+            query?: {
+                /** @description Códigos separados por comas */
+                codes?: string[];
             };
             header?: never;
             path: {
