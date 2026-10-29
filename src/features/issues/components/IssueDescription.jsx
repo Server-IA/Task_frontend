@@ -395,8 +395,10 @@ function DescriptionEditor({ slug, project, issue, variant, caret, onMoveTasks, 
   }
 
   // Al cerrar la tarea (o salir) lo que falta se guarda igual, sobre la última versión guardada
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    // En desarrollo, StrictMode desmonta y vuelve a montar: al volver, el editor sigue abierto
+    unmountedRef.current = false
+    return () => {
       unmountedRef.current = true
       clearTimeout(timerRef.current)
       const saveOnLeave = () => {
@@ -412,10 +414,9 @@ function DescriptionEditor({ slug, project, issue, variant, caret, onMoveTasks, 
       }
       if (inFlightRef.current) inFlightRef.current.then(saveOnLeave)
       else saveOnLeave()
-    },
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al desmontar
-    [],
-  )
+  }, [])
 
   // Aviso temprano: mientras se edita, la tarea se vuelve a pedir cada 20 s y al volver a la ventana
   useEffect(() => {

@@ -75,6 +75,18 @@ function dialogTitle(type, defaults) {
  *                        type?: string, templateType?: string, reopenParent?: boolean, relatesToId?: string,
  *                        relatesToCode?: string }, onCreated?: Function }} props
  */
+/**
+ * Al abrir, el cursor va al título (al final, después del prefijo de la plantilla). Abierto desde el panel de una
+ * tarea, el foco del panel recuperaba el `autoFocus` del título y el diálogo terminaba enfocando la primera plantilla.
+ */
+function focusTitle(event) {
+  const title = event.currentTarget?.querySelector('input[aria-label="Título"]')
+  if (!title) return
+  event.preventDefault()
+  title.focus()
+  title.setSelectionRange(title.value.length, title.value.length)
+}
+
 export function CreateIssueDialog({ slug, project, open, onOpenChange, defaults = {}, onCreated }) {
   const [type, setType] = useState(defaults.type ?? defaults.templateType ?? 'TASK')
   // Al abrir de nuevo con otros valores por defecto, vuelve al tipo pedido
@@ -94,7 +106,10 @@ export function CreateIssueDialog({ slug, project, open, onOpenChange, defaults 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/* Arriba y con scroll propio: con una plantilla (descripción y checklist) puede ser más alto que la pantalla */}
-      <DialogContent className="top-[min(18%,6rem)] max-h-[calc(100dvh_-_min(18%,6rem)_-_1rem)] translate-y-0 gap-3.5 overflow-y-auto px-5 pt-4.5 pb-4 sm:max-w-[680px]">
+      <DialogContent
+        className="top-[min(18%,6rem)] max-h-[calc(100dvh_-_min(18%,6rem)_-_1rem)] translate-y-0 gap-3.5 overflow-y-auto px-5 pt-4.5 pb-4 sm:max-w-[680px]"
+        onOpenAutoFocus={focusTitle}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-sm font-semibold">
             <ProjectIcon project={project} className="rounded-md px-2 text-[11px]" />

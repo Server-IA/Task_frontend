@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { CreateIssueDialog } from './CreateIssueDialog'
 
 const bugTemplate = {
@@ -165,3 +167,46 @@ describe('CreateIssueDialog: ctrl ↵', () => {
   })
 })
 
+
+describe('CreateIssueDialog: foco al abrir', () => {
+  /** Como el panel de una tarea: un diálogo abierto con su propio foco atrapado y un botón «+ agregar». */
+  function PanelWithCreate() {
+    const [open, setOpen] = useState(false)
+    return (
+      <Dialog open>
+        <DialogContent>
+          <DialogTitle>Panel</DialogTitle>
+          <DialogDescription>Detalle de la tarea</DialogDescription>
+          <button type="button" onClick={() => setOpen(true)}>
+            + agregar
+          </button>
+          <CreateIssueDialog
+            slug="equipo"
+            project={{ id: 'p1', identifier: 'WEB', name: 'Sitio web' }}
+            open={open}
+            onOpenChange={setOpen}
+            defaults={{ parentId: 'i1' }}
+          />
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
+  it('abierto desde el panel de una tarea, el cursor queda en el título (no en la primera plantilla)', async () => {
+    const user = userEvent.setup()
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <PanelWithCreate />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+
+    await user.click(screen.getByRole('button', { name: '+ agregar' }))
+
+    const title = await screen.findByRole('textbox', { name: 'Título' })
+    await waitFor(() => expect(title).toHaveFocus())
+    await user.keyboard('Subtarea nueva')
+    expect(title).toHaveValue('Subtarea nueva')
+  })
+})

@@ -20,3 +20,19 @@ export function findText(doc, search) {
   })
   return found
 }
+
+const WORD_CHAR = /[\w-]/
+
+/**
+ * El código que reemplaza al texto de `range` («Crear subtarea»), con un espacio antes o después si quedaría pegado
+ * a una letra, un número o un guion: «xy ana» + «2» no debe quedar «WEB-292» (otro código, y el deshacer ya no lo
+ * encuentra).
+ * @param {import('@tiptap/pm/model').Node} doc
+ * @param {{ from: number, to: number }} range
+ * @param {string} code
+ */
+export function codeReplacement(doc, range, code) {
+  const before = range.from > 0 ? doc.textBetween(Math.max(0, range.from - 1), range.from, '\n', '\n') : ''
+  const after = range.to < doc.content.size ? doc.textBetween(range.to, Math.min(doc.content.size, range.to + 1), '\n', '\n') : ''
+  return `${WORD_CHAR.test(before) ? ' ' : ''}${code}${WORD_CHAR.test(after) ? ' ' : ''}`
+}

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/common/Loaders'
 import { useUrlToken } from '@/hooks/useUrlToken'
 import { AuthCard, AuthHeader, AuthIcon, CenteredShell } from '@/layouts/AuthLayout'
-import { getErrorMessage } from '@/lib/errors'
+import { asSentence, getErrorMessage } from '@/lib/errors'
 import { cn } from '@/lib/utils'
 import { useSessionStore } from '@/stores/sessionStore'
 import { useVerifyEmail } from '../hooks'
@@ -63,7 +63,7 @@ export function VerifyEmailPage() {
             <AuthHeader
               size="md"
               title="No pudimos verificar tu correo"
-              description={`${token ? getErrorMessage(verify.error) : 'El enlace no es válido.'} Pide un enlace nuevo desde la pantalla de inicio de sesión.`}
+              description={`${token ? asSentence(getErrorMessage(verify.error)) : 'El enlace no es válido.'} Pide un enlace nuevo desde la pantalla de inicio de sesión.`}
             />
             <Button asChild className="h-11 rounded-xl">
               <Link to="/login">Ir a iniciar sesión</Link>

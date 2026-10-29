@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { filterStories } from './storyFilters'
+import { filterStories, hasStoryFilters } from './storyFilters'
 
 const row = (code, extra = {}) => ({
   story: { id: code, code, title: `Historia ${code}`, priority: 'MEDIUM', cycle: null, modules: [], assignees: [], ...extra.story },
@@ -33,5 +33,18 @@ describe('filtros de Historias', () => {
   it('prioridad y personas de sus tareas', () => {
     expect(codes(filterStories(rows, { ...none, priority: ['HIGH', 'LOW'] }))).toEqual(['WEB-31', 'WEB-32'])
     expect(codes(filterStories(rows, { ...none, assignee: ['luis'] }))).toEqual(['WEB-15'])
+  })
+})
+
+describe('hasStoryFilters', () => {
+  it('sin filtros (o una búsqueda en blanco) no cuenta: el vacío no habla de «esos filtros»', () => {
+    expect(hasStoryFilters(none)).toBe(false)
+    expect(hasStoryFilters({ ...none, search: '   ' })).toBe(false)
+  })
+
+  it('cualquier filtro o una búsqueda con letras cuenta', () => {
+    expect(hasStoryFilters({ ...none, search: 'perfil' })).toBe(true)
+    expect(hasStoryFilters({ ...none, priority: ['HIGH'] })).toBe(true)
+    expect(hasStoryFilters({ ...none, cycle: ['none'] })).toBe(true)
   })
 })

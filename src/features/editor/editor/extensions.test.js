@@ -3,7 +3,7 @@ import { Editor } from '@tiptap/core'
 import { TextSelection } from '@tiptap/pm/state'
 import { docToMarkdown } from '../markdown/serialize'
 import { buildExtensions, exitMark } from './extensions'
-import { findText } from './findText'
+import { codeReplacement, findText } from './findText'
 
 let editor
 afterEach(() => editor?.destroy())
@@ -89,3 +89,22 @@ describe('findText (deshacer «Crear subtarea»)', () => {
   })
 })
 
+
+describe('codeReplacement («Crear subtarea» con una selección a media palabra)', () => {
+  const rangeOf = (text) => {
+    const at = editor.state.doc.textContent.indexOf(text) + 1
+    return { from: at, to: at + text.length }
+  }
+
+  it('si el código quedaría pegado a una letra o número, lo separa con un espacio', () => {
+    setup('<p>xy ana1 ana2</p>')
+    expect(codeReplacement(editor.state.doc, rangeOf('xy ana1 ana'), 'WEB-29')).toBe('WEB-29 ')
+    expect(codeReplacement(editor.state.doc, rangeOf('na1 ana2'), 'WEB-29')).toBe(' WEB-29')
+  })
+
+  it('con espacios o al borde del párrafo, el código va tal cual', () => {
+    setup('<p>Primer paso y más</p>')
+    expect(codeReplacement(editor.state.doc, rangeOf('Primer paso'), 'WEB-28')).toBe('WEB-28')
+    expect(codeReplacement(editor.state.doc, rangeOf('y más'), 'WEB-28')).toBe('WEB-28')
+  })
+})

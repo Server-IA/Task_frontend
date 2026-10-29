@@ -27,3 +27,14 @@ export function filterStories(rows, filters) {
     return true
   })
 }
+
+/** Si hay algún filtro puesto (la búsqueda cuenta si tiene letras). */
+export function hasStoryFilters(filters) {
+  return Boolean(
+    filters.search?.trim() ||
+      filters.cycle?.length ||
+      filters.module?.length ||
+      filters.priority?.length ||
+      filters.assignee?.length,
+  )
+}

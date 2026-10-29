@@ -175,7 +175,7 @@ export function IssueDetail({
               <span className="flex flex-wrap items-center gap-1.5 px-2 text-xs">
                 {storyProgress(issue).total > 0 && <span>{storyProgress(issue).label}</span>}
                 {flags.unsplit && <UnsplitBadge />}
-                {flags.ready && <ReadyBadge className="whitespace-normal" />}
+                {flags.ready && <ReadyBadge wrap />}
                 {flags.bugsAfterClose > 0 && (
                   <span className="font-mono text-[11px] text-late">
                     +{flags.bugsAfterClose} {flags.bugsAfterClose === 1 ? 'bug' : 'bugs'}
@@ -269,7 +269,7 @@ export function IssueDetail({
 
 export function PropertyRow({ label, children }) {
   return (
-    <div className="grid min-h-[34px] grid-cols-[92px_minmax(0,1fr)] items-center gap-2">
+    <div className="grid min-h-[34px] grid-cols-[76px_minmax(0,1fr)] items-center gap-2">
       <span className="text-xs text-muted-foreground">{label}</span>
       <div className="min-w-0">{children}</div>
     </div>

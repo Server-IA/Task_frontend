@@ -135,10 +135,16 @@ export function UnsplitBadge({ className }) {
   )
 }
 
-/** «✓ lista para revisar»: todas sus tareas terminadas y ningún bug ligado abierto. */
-export function ReadyBadge({ className }) {
+/**
+ * «✓ lista para revisar»: todas sus tareas terminadas y ningún bug ligado abierto. Con `wrap` se achica y parte en dos
+ * líneas (en la columna angosta de propiedades se salía del panel).
+ */
+export function ReadyBadge({ className, wrap = false }) {
   return (
-    <span className={cn(BADGE, 'bg-ok-soft text-ok', className)} title="Todas sus tareas terminadas y ningún bug ligado abierto">
+    <span
+      className={cn(BADGE, 'bg-ok-soft text-ok', wrap && 'min-w-0 shrink whitespace-normal', className)}
+      title="Todas sus tareas terminadas y ningún bug ligado abierto"
+    >
       <CircleCheck className="size-3" strokeWidth={2.5} aria-hidden="true" />
       lista para revisar
     </span>

@@ -355,12 +355,12 @@ function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className={fieldLabel}>
           Nombre
-          <Input {...form.register('name')} readOnly={readOnly} placeholder="Reporte de bug" autoFocus={isNew} className="bg-card text-sm font-normal" />
+          <Input {...form.register('name')} readOnly={readOnly} placeholder="Reporte de bug" autoFocus={isNew} className="bg-card text-sm font-normal text-foreground" />
           {errors.name && <span className="font-normal text-destructive">{errors.name.message}</span>}
         </label>
         <label className={fieldLabel}>
           Prefijo del título
-          <Input {...form.register('titlePrefix')} readOnly={readOnly} placeholder="[Bug] " className="bg-card font-mono text-sm font-normal" />
+          <Input {...form.register('titlePrefix')} readOnly={readOnly} placeholder="[Bug] " className="bg-card font-mono text-sm font-normal text-foreground" />
           {errors.titlePrefix && <span className="font-normal text-destructive">{errors.titlePrefix.message}</span>}
         </label>
       </div>

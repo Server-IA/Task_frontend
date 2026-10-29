@@ -7,7 +7,7 @@ import { CenteredSpinner, Spinner } from '@/components/common/Loaders'
 import { useLogout } from '@/features/auth/hooks'
 import { AuthCard, AuthHeader, AuthIcon, CenteredShell } from '@/layouts/AuthLayout'
 import { formatRelative } from '@/lib/dates'
-import { getErrorMessage, toApiError } from '@/lib/errors'
+import { asSentence, getErrorMessage, toApiError } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { pendingInvitation } from '@/lib/pendingInvitation'
 import { ROLE_LABELS } from '@/lib/permissions'
@@ -74,7 +74,7 @@ export function InvitationPage() {
           <AuthHeader
             size="md"
             title="Invitación no válida"
-            description={`${getErrorMessage(error)}. Pide al project manager del workspace que te invite de nuevo.`}
+            description={`${asSentence(getErrorMessage(error))} Pide al project manager del workspace que te invite de nuevo.`}
           />
           <Button asChild className="h-11 rounded-xl">
             <Link to="/">Ir a TaskFlow</Link>

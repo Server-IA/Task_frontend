@@ -165,6 +165,11 @@ describe('estados que se ofrecen', () => {
     expect(stateOptionsFor(task, states, false)).toBe(states)
   })
 
+  it('a un miembro, una historia cerrada conserva su estado en la lista (el selector bloqueado lo muestra)', () => {
+    const closed = { ...story, state: state('COMPLETED') }
+    expect(stateOptionsFor(closed, states, false).map((item) => item.group)).toEqual(['BACKLOG', 'STARTED', 'COMPLETED'])
+  })
+
   it('una historia cerrada solo la mueve el project manager', () => {
     const closed = { ...story, state: state('COMPLETED') }
     expect(storyStateLocked(closed, false)).toBe(true)

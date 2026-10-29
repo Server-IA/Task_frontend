@@ -57,3 +57,13 @@ export function applyFieldErrors(error, setError) {
   })
   return true
 }
+
+/**
+ * El mensaje como oración, para seguirlo con otra: con punto final si no lo trae (el backend a veces lo omite y
+ * quedaba «… ya expiró Pide un enlace nuevo»).
+ */
+export function asSentence(message) {
+  const text = String(message ?? '').trim()
+  if (!text) return ''
+  return /[.!?…]$/.test(text) ? text : `${text}.`
+}

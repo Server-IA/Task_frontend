@@ -26,7 +26,7 @@ import { projectPath } from '@/lib/paths'
 import { cn } from '@/lib/utils'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { useStories } from '../hooks'
-import { filterStories } from '../storyFilters'
+import { filterStories, hasStoryFilters } from '../storyFilters'
 
 /** @typedef {import('@/api/types').StoryRow} StoryRow */
 
@@ -244,7 +244,9 @@ export function StoriesPage() {
                 <span>Estado</span>
               </div>
               {filtered.length === 0 ? (
-                <p className="px-4 py-8 text-center text-sm text-muted-foreground">Ninguna historia en esta pestaña con esos filtros.</p>
+                <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  {hasStoryFilters(filters) ? 'Ninguna historia en esta pestaña con esos filtros.' : 'Ninguna historia en esta pestaña.'}
+                </p>
               ) : (
                 <ul>
                   {filtered.map((row, index) => (

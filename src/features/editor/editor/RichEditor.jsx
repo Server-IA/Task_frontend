@@ -13,7 +13,7 @@ import { removeMovedTaskItems, takeTaskItems } from '../markdown/taskItems'
 import { isTaskCode } from '../markdown/taskRefs'
 import { BubbleBar } from './BubbleBar'
 import { buildExtensions, MENTION_KEY, SLASH_KEY } from './extensions'
-import { findText } from './findText'
+import { codeReplacement, findText } from './findText'
 import { LinkPopover } from './LinkPopover'
 import { caretRect, popupPosition } from './popups'
 import { ShortcutsDialog } from './ShortcutsDialog'
@@ -364,7 +364,7 @@ export default function RichEditor({
     try {
       await onCreateSubtask(text, (replacement) => {
         if (editor.isDestroyed || range.from >= range.to) return false
-        editor.chain().insertContentAt(range, replacement).run()
+        editor.chain().insertContentAt(range, codeReplacement(editor.state.doc, range, replacement)).run()
         return true
       })
     } finally {
