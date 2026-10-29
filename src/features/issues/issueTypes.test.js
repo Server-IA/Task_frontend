@@ -4,10 +4,12 @@ import {
   effectiveTypes,
   firstTemplateOfType,
   inStoryTab,
+  stateOptionsFor,
   isAllTypes,
   storyFlags,
   storyLanes,
   storyProgress,
+  storyStateLocked,
   storyTabCounts,
   templateType,
   typeChangeBlock,
@@ -151,3 +153,24 @@ describe('carriles por historia', () => {
     expect(lanes.at(-1).issues.map((issue) => issue.id)).toEqual(['c', 'd'])
   })
 })
+
+describe('estados que se ofrecen', () => {
+  const states = ['BACKLOG', 'STARTED', 'COMPLETED', 'CANCELLED'].map(state)
+  const story = { type: 'STORY', state: state('STARTED') }
+  const task = { type: 'TASK', state: state('STARTED') }
+
+  it('a un miembro, una historia no le ofrece completar ni cancelar', () => {
+    expect(stateOptionsFor(story, states, false).map((item) => item.group)).toEqual(['BACKLOG', 'STARTED'])
+    expect(stateOptionsFor(story, states, true)).toBe(states)
+    expect(stateOptionsFor(task, states, false)).toBe(states)
+  })
+
+  it('una historia cerrada solo la mueve el project manager', () => {
+    const closed = { ...story, state: state('COMPLETED') }
+    expect(storyStateLocked(closed, false)).toBe(true)
+    expect(storyStateLocked(closed, true)).toBe(false)
+    expect(storyStateLocked(story, false)).toBe(false)
+    expect(storyStateLocked({ ...task, state: state('COMPLETED') }, false)).toBe(false)
+  })
+})
+

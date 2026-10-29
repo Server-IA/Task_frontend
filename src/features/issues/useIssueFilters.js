@@ -86,6 +86,10 @@ export function useIssueFilters() {
     [update],
   )
 
+  // Estables: las tarjetas y filas memorizadas los reciben como prop
+  const openIssue = useCallback((issueId) => update((params) => params.set('issue', issueId), { resetPage: false }), [update])
+  const closeIssue = useCallback(() => update((params) => params.delete('issue'), { resetPage: false }), [update])
+
   /** Reemplaza los parámetros por lo que devuelva `build(anteriores)` (lo usan las vistas guardadas). */
   const replaceParams = useCallback((build) => setSearchParams((previous) => build(previous), { replace: true }), [setSearchParams])
 
@@ -122,7 +126,7 @@ export function useIssueFilters() {
         resetPage: false,
       }),
     setPage: (value) => update((params) => params.set('page', String(value)), { resetPage: false }),
-    openIssue: (issueId) => update((params) => params.set('issue', issueId), { resetPage: false }),
-    closeIssue: () => update((params) => params.delete('issue'), { resetPage: false }),
+    openIssue,
+    closeIssue,
   }
 }

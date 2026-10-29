@@ -1,29 +1,36 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { isBefore, parseISO, startOfToday } from 'date-fns'
 import { useLabels, useProjectMembers, useStates } from '@/features/projects/hooks'
 import { notifyError } from '@/lib/notify'
 import { useUpdateIssue } from './hooks'
 
-/** Estados, etiquetas y miembros del proyecto (lo que necesitan los selectores de propiedades). */
+const NONE = []
+
+/**
+ * Estados, etiquetas y miembros del proyecto (lo que necesitan los selectores de propiedades). El objeto es el mismo
+ * mientras no cambien los datos: las tarjetas y filas memorizadas lo reciben como prop.
+ */
 export function useProjectMeta(slug, projectId) {
   const states = useStates(slug, projectId)
   const labels = useLabels(slug, projectId)
   const members = useProjectMembers(slug, projectId)
-  const users = useMemo(() => (members.data ?? []).map((member) => member.user), [members.data])
+  const users = useMemo(() => (members.data ?? NONE).map((member) => member.user), [members.data])
+  const isLoading = states.isLoading || labels.isLoading || members.isLoading
 
-  return {
-    states: states.data ?? [],
-    labels: labels.data ?? [],
-    users,
-    isLoading: states.isLoading || labels.isLoading || members.isLoading,
-  }
+  return useMemo(
+    () => ({ states: states.data ?? NONE, labels: labels.data ?? NONE, users, isLoading }),
+    [states.data, labels.data, users, isLoading],
+  )
 }
 
-/** Devuelve `update(cambios)` para una tarea; muestra un toast si el backend lo rechaza. */
+/** Devuelve `update(cambios, opciones?)` para una tarea; muestra un toast si el backend lo rechaza. */
 export function useIssueUpdater(slug, projectId, issueId) {
-  const mutation = useUpdateIssue(slug, projectId)
-  const update = (changes, options) =>
-    mutation.mutate({ issueId, ...changes }, { onError: (error) => notifyError(error), ...options })
+  const mutation = useUpdateIssue(slug, projectId, issueId)
+  const { mutate } = mutation
+  const update = useCallback(
+    (changes, options) => mutate({ issueId, ...changes }, { onError: (error) => notifyError(error), ...options }),
+    [mutate, issueId],
+  )
   return { update, isPending: mutation.isPending }
 }
 

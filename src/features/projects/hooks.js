@@ -62,15 +62,22 @@ export function useDeleteProject(slug, projectId) {
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: queryKeys.project(slug, projectId) })
       queryClient.invalidateQueries({ queryKey: queryKeys.projects(slug) })
+      // Sus tareas desaparecen de Mi trabajo, la actividad, la búsqueda y la Bandeja
+      for (const key of [['myWork', slug], queryKeys.workspaceActivityOf(slug), ['search', slug], queryKeys.notificationsAll]) {
+        queryClient.invalidateQueries({ queryKey: key })
+      }
     },
   })
 }
 
-export function useProjectMembers(slug, projectId) {
+/** `enabled` y `staleTime` opcionales: las tarjetas del inicio del workspace los piden solo al verse. */
+export function useProjectMembers(slug, projectId, { enabled = true, staleTime } = {}) {
   return useQuery({
     queryKey: queryKeys.projectMembers(projectId),
     queryFn: () => projectsApi.members(slug, projectId),
-    enabled: Boolean(slug && projectId),
+    enabled: Boolean(slug && projectId) && enabled,
+    // undefined pisaría el staleTime por defecto del QueryClient
+    ...(staleTime !== undefined && { staleTime }),
   })
 }
 
@@ -107,6 +114,19 @@ export function useStates(slug, projectId) {
   })
 }
 
+/** Las tareas traen el nombre y el color de su estado y sus etiquetas: todo lo que las muestra se refresca. */
+function invalidateIssueDecorations(queryClient, slug, projectId) {
+  for (const key of [
+    queryKeys.issuesOf(projectId),
+    ['issue'],
+    ['subIssues'],
+    queryKeys.stories(projectId),
+    ['myWork', slug],
+  ]) {
+    queryClient.invalidateQueries({ queryKey: key })
+  }
+}
+
 /**
  * Al cambiar un estado, los issues muestran su nombre y color: también se refrescan. Las plantillas también
  * (el estado por defecto de una plantilla se quita si se borra el estado).
@@ -117,8 +137,8 @@ function useStateMutation(slug, projectId, mutationFn) {
     mutationFn,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.states(projectId) })
-      queryClient.invalidateQueries({ queryKey: queryKeys.issuesOf(projectId) })
       queryClient.invalidateQueries({ queryKey: queryKeys.templates(projectId) })
+      invalidateIssueDecorations(queryClient, slug, projectId)
     },
   })
 }
@@ -131,6 +151,28 @@ export const useUpdateState = (slug, projectId) =>
 
 export const useDeleteState = (slug, projectId) =>
   useStateMutation(slug, projectId, (stateId) => statesApi.remove(slug, projectId, stateId))
+
+/**
+ * Intercambia la posición de dos estados (el backend no tiene un endpoint de reordenar). Las dos peticiones van
+ * una tras otra: si falla la segunda, la primera se deshace para no dejar el orden a medias. Solo cambia el orden
+ * de las columnas, así que basta con recargar los estados, una vez.
+ * `mutate({ first: { id, from, to }, second: { id, from, to } })`.
+ */
+export function useSwapStatePositions(slug, projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ first, second }) => {
+      await statesApi.update(slug, projectId, first.id, { position: first.to })
+      try {
+        await statesApi.update(slug, projectId, second.id, { position: second.to })
+      } catch (error) {
+        await statesApi.update(slug, projectId, first.id, { position: first.from }).catch(() => {})
+        throw error
+      }
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.states(projectId) }),
+  })
+}
 
 export function useLabels(slug, projectId) {
   return useQuery({
@@ -147,7 +189,7 @@ function useLabelMutation(slug, projectId, mutationFn) {
     mutationFn,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.labels(projectId) })
-      queryClient.invalidateQueries({ queryKey: queryKeys.issuesOf(projectId) })
+      invalidateIssueDecorations(queryClient, slug, projectId)
     },
   })
 }

@@ -12,28 +12,86 @@ function replaceInLists(queryClient, projectId, issue) {
   )
 }
 
-/** Lo que cambia cuando cambia un issue: listas, avance de ciclos/módulos, historial y resúmenes. */
-function invalidateAfterIssueChange(queryClient, projectId, issueId) {
-  queryClient.invalidateQueries({ queryKey: queryKeys.issuesOf(projectId) })
-  queryClient.invalidateQueries({ queryKey: ['subIssues'] })
-  // Progreso, «lista para revisar» y bugs de las historias (cambian con sus tareas)
-  queryClient.invalidateQueries({ queryKey: ['stories'] })
-  queryClient.invalidateQueries({ queryKey: ['relations'] })
-  queryClient.invalidateQueries({ queryKey: queryKeys.cycles(projectId) })
-  queryClient.invalidateQueries({ queryKey: queryKeys.modules(projectId) })
-  // Los conteos de tareas (abiertas, vencidas, subtareas) vienen en el proyecto y en las tareas padre
-  queryClient.invalidateQueries({ queryKey: ['project'] })
-  queryClient.invalidateQueries({ queryKey: ['projects'] })
-  queryClient.invalidateQueries({ queryKey: ['issue'] })
-  // Cuántas tareas muestra cada vista guardada
-  queryClient.invalidateQueries({ queryKey: queryKeys.savedViews(projectId) })
-  // Vistas que resumen tareas de varios lados: estadísticas, Mi trabajo y la actividad del workspace
-  queryClient.invalidateQueries({ queryKey: ['stats', projectId] })
-  queryClient.invalidateQueries({ queryKey: ['myWork'] })
-  queryClient.invalidateQueries({ queryKey: ['workspaceActivity'] })
-  // Pastillas de tareas dentro de descripciones y comentarios (título y estado)
-  queryClient.invalidateQueries({ queryKey: ['taskRef'] })
-  if (issueId) queryClient.invalidateQueries({ queryKey: queryKeys.activity(issueId) })
+/**
+ * Cachés que muestran cada campo «liviano» de una tarea: los que no cambian conteos, avance ni el lugar de la tarea
+ * (estado, tipo, padre…). Un campo que no está aquí recarga todo (`issueChangeFilters` sin campos).
+ */
+const FIELD_DEPENDENTS = {
+  title: ['subIssues', 'stories', 'relations', 'taskRef', 'myWork', 'otherIssues', 'stats', 'daily'],
+  priority: ['stories', 'myWork', 'stats'],
+  assigneeIds: ['subIssues', 'stories', 'relations', 'myWork', 'stats', 'daily'],
+  labelIds: ['stories', 'myWork'],
+  dueDate: ['stories', 'myWork', 'project', 'stats', 'daily'],
+  clearDueDate: ['stories', 'myWork', 'project', 'stats', 'daily'],
+  startDate: ['stories', 'myWork'],
+  clearStartDate: ['stories', 'myWork'],
+}
+
+const ALL_DEPENDENTS = [
+  'subIssues',
+  'stories',
+  'relations',
+  'planning',
+  'project',
+  'otherIssues',
+  'stats',
+  'myWork',
+  'taskRef',
+  'daily',
+]
+
+/**
+ * Filtros de `invalidateQueries` para lo que cambia cuando cambia una tarea. Siempre: las listas del proyecto (los
+ * filtros y el orden pueden sacarla o moverla), los conteos de las vistas guardadas, su historial y la actividad del
+ * workspace. Con `fields` (las claves del PATCH) solo se suma lo que muestra esos campos; sin ellos (crear, mover,
+ * borrar, historias), todo: avance de ciclos/módulos e historias, conteos del proyecto y de las tareas padre…
+ * La tarea editada no se vuelve a pedir si solo cambiaron campos livianos: su caché ya tiene la respuesta.
+ * @param {string} projectId
+ * @param {string | undefined} issueId
+ * @param {string[] | null} [fields]
+ */
+export function issueChangeFilters(projectId, issueId, fields = null) {
+  const dependents = new Set()
+  const light = fields?.length > 0 && fields.every((field) => field in FIELD_DEPENDENTS)
+  for (const group of light ? fields.flatMap((field) => FIELD_DEPENDENTS[field]) : ALL_DEPENDENTS) dependents.add(group)
+
+  const filters = [
+    { queryKey: queryKeys.issuesOf(projectId) },
+    { queryKey: queryKeys.savedViews(projectId) },
+    { queryKey: ['workspaceActivity'] },
+  ]
+  if (issueId) filters.push({ queryKey: queryKeys.activity(issueId) })
+  const byGroup = {
+    subIssues: [{ queryKey: ['subIssues'] }],
+    // Progreso, «lista para revisar» y bugs de las historias (cambian con sus tareas)
+    stories: [{ queryKey: ['stories'] }],
+    relations: [{ queryKey: ['relations'] }],
+    planning: [
+      { queryKey: queryKeys.cycles(projectId) },
+      { queryKey: queryKeys.modules(projectId) },
+      { queryKey: ['cycle'] },
+      { queryKey: ['module'] },
+    ],
+    // Los conteos de tareas (abiertas, vencidas) vienen en el proyecto
+    project: [{ queryKey: ['project'] }, { queryKey: ['projects'] }],
+    // Las tareas padre (conteo de subtareas), la historia y las que la muestran como padre
+    otherIssues: [
+      light && issueId ? { queryKey: ['issue'], predicate: (query) => query.queryKey[1] !== issueId } : { queryKey: ['issue'] },
+    ],
+    // Vistas que resumen tareas de varios lados
+    stats: [{ queryKey: ['stats', projectId] }],
+    myWork: [{ queryKey: ['myWork'] }],
+    // Pastillas de tareas dentro de descripciones y comentarios (título y estado)
+    taskRef: [{ queryKey: ['taskRef'] }],
+    daily: [{ queryKey: queryKeys.dailyOf(projectId) }],
+  }
+  for (const group of dependents) filters.push(...byGroup[group])
+  return filters
+}
+
+/** Lo que cambia cuando cambia un issue (ver `issueChangeFilters`). */
+function invalidateAfterIssueChange(queryClient, projectId, issueId, fields = null) {
+  for (const filter of issueChangeFilters(projectId, issueId, fields)) queryClient.invalidateQueries(filter)
 }
 
 export function useIssues(slug, projectId, params, { enabled = true } = {}) {
@@ -83,15 +141,20 @@ export function useCreateIssue(slug, projectId) {
   })
 }
 
-/** Edición parcial: `mutate({ issueId, ...cambios })`. */
-export function useUpdateIssue(slug, projectId) {
+/**
+ * Edición parcial: `mutate({ issueId, ...cambios })`. Con `issueId` las ediciones de esa tarea van en fila (en
+ * cualquier tarjeta, fila o panel): así llegan al backend y vuelven en el orden en que se hicieron (marcar dos
+ * etiquetas seguidas no deja la primera respuesta pisando a la segunda).
+ */
+export function useUpdateIssue(slug, projectId, issueId) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ issueId, ...body }) => issuesApi.update(slug, projectId, issueId, body),
-    onSuccess: (issue) => {
+    mutationFn: ({ issueId: id, ...body }) => issuesApi.update(slug, projectId, id, body),
+    ...(issueId && { scope: { id: `issue:${issueId}` } }),
+    onSuccess: (issue, { issueId: _id, ...body }) => {
       queryClient.setQueryData(queryKeys.issue(issue.id), issue)
       replaceInLists(queryClient, projectId, issue)
-      invalidateAfterIssueChange(queryClient, projectId, issue.id)
+      invalidateAfterIssueChange(queryClient, projectId, issue.id, Object.keys(body))
     },
   })
 }
@@ -138,31 +201,44 @@ export function useSaveDescription(slug, projectId, issueId) {
     onMutate: async ({ description }) => {
       // Una recarga en curso traería la versión de antes de este guardado
       await queryClient.cancelQueries({ queryKey: queryKeys.issue(issueId) })
-      queryClient.setQueryData(queryKeys.issue(issueId), (issue) => (issue ? { ...issue, description: description || null } : issue))
+      const previous = queryClient.getQueryData(queryKeys.issue(issueId))
+      const optimistic = description || null
+      queryClient.setQueryData(queryKeys.issue(issueId), (issue) => (issue ? { ...issue, description: optimistic } : issue))
+      return { previousDescription: previous?.description ?? null, optimistic, hadIssue: Boolean(previous) }
     },
     onSuccess: (issue) => {
       keepNewest(queryClient, projectId, issue)
       queryClient.invalidateQueries({ queryKey: queryKeys.activity(issueId) })
       queryClient.invalidateQueries({ queryKey: ['workspaceActivity'] })
     },
-    onError: (error) => {
+    onError: (error, _variables, context) => {
       const conflict = descriptionConflict(error)
-      if (conflict?.issue) keepNewest(queryClient, projectId, conflict.issue)
-      else queryClient.invalidateQueries({ queryKey: queryKeys.issue(issueId) })
+      if (conflict?.issue) {
+        keepNewest(queryClient, projectId, conflict.issue)
+        return
+      }
+      // No se guardó: la caché vuelve a la descripción de antes (si nada la cambió mientras tanto) y se recarga
+      if (context?.hadIssue) {
+        queryClient.setQueryData(queryKeys.issue(issueId), (issue) =>
+          issue && issue.description === context.optimistic ? { ...issue, description: context.previousDescription } : issue,
+        )
+      }
+      queryClient.invalidateQueries({ queryKey: queryKeys.issue(issueId) })
     },
   })
 }
 
 /**
- * Mover en el Kanban con actualización optimista.
- * `mutate({ issueId, stateId, afterIssueId, beforeIssueId, state, sortOrder })`: `state` y `sortOrder`
- * solo se usan para pintar el cambio al instante (lo que el backend calculará).
+ * Mover en el Kanban con actualización optimista (si falla, cada lista vuelve a como estaba).
+ * `mutate({ issueId, stateId, afterIssueId, beforeIssueId, state, sortOrder, reopenParent? })`: `state` y `sortOrder`
+ * solo se usan para pintar el cambio al instante (lo que el backend calculará). `reopenParent` reabre la historia
+ * cerrada de la tarea (solo el project manager; sin él, 409 STORY_CLOSED).
  */
 export function useMoveIssue(slug, projectId) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ issueId, stateId, afterIssueId, beforeIssueId }) =>
-      issuesApi.move(slug, projectId, issueId, { stateId, afterIssueId, beforeIssueId }),
+    mutationFn: ({ issueId, stateId, afterIssueId, beforeIssueId, reopenParent }) =>
+      issuesApi.move(slug, projectId, issueId, { stateId, afterIssueId, beforeIssueId, reopenParent: reopenParent || undefined }),
     onMutate: async ({ issueId, state, sortOrder }) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.issuesOf(projectId) })
       const snapshots = queryClient.getQueriesData({ queryKey: queryKeys.issuesOf(projectId) })

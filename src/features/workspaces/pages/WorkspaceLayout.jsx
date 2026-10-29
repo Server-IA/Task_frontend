@@ -3,6 +3,7 @@ import { Outlet, useParams } from 'react-router'
 import { CenteredSpinner } from '@/components/common/Loaders'
 import { ErrorState } from '@/components/common/States'
 import { PageHeader } from '@/layouts/PageHeader'
+import { toApiError } from '@/lib/errors'
 import { usePreferencesStore } from '@/stores/preferencesStore'
 import { useWorkspace } from '../hooks'
 
@@ -19,7 +20,9 @@ export function WorkspaceLayout() {
 
   useEffect(() => {
     // Si el último workspace ya no es accesible, no se vuelve a abrir automáticamente
-    if (error && lastWorkspaceSlug === slug) setLastWorkspaceSlug(null)
+    // (un fallo de red o del servidor no cuenta: el workspace sigue siendo suyo)
+    const status = error ? toApiError(error).status : 0
+    if ((status === 403 || status === 404) && lastWorkspaceSlug === slug) setLastWorkspaceSlug(null)
   }, [error, slug, lastWorkspaceSlug, setLastWorkspaceSlug])
 
   if (isLoading) return <CenteredSpinner className="flex-1" />

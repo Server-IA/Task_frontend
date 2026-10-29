@@ -12,8 +12,9 @@ export const ROLE_LABELS = {
 /** Project manager del workspace. */
 export const isManager = (role) => role === 'OWNER'
 
-/** Eliminar una tarea: el project manager o quien la creó. */
-export const canDeleteIssue = (role, issue, userId) => isManager(role) || (Boolean(userId) && issue?.createdBy?.id === userId)
+/** Eliminar una tarea: el project manager o quien la creó. Una historia, solo el project manager. */
+export const canDeleteIssue = (role, issue, userId) =>
+  isManager(role) || (issue?.type !== 'STORY' && Boolean(userId) && issue?.createdBy?.id === userId)
 
 /** Eliminar un comentario: su autor o el project manager. */
 export const canDeleteComment = (role, comment, userId) =>

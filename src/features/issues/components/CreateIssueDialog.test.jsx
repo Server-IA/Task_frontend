@@ -146,3 +146,22 @@ describe('CreateIssueDialog: estado y asignados de la plantilla', () => {
     )
   })
 })
+
+describe('CreateIssueDialog: ctrl ↵', () => {
+  it('dos veces seguidas (o con la tecla repitiendo) crea una sola tarea', async () => {
+    const user = userEvent.setup()
+    mutate.mockClear()
+    renderDialog()
+    await user.type(screen.getByRole('textbox', { name: 'Título' }), 'Una sola')
+
+    const title = screen.getByRole('textbox', { name: 'Título' })
+    fireEvent.keyDown(title, { key: 'Enter', ctrlKey: true })
+    fireEvent.keyDown(title, { key: 'Enter', ctrlKey: true, repeat: true })
+    fireEvent.keyDown(title, { key: 'Enter', ctrlKey: true })
+    // handleSubmit valida de forma asíncrona
+    await vi.waitFor(() => expect(mutate).toHaveBeenCalled())
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(mutate).toHaveBeenCalledTimes(1)
+  })
+})
+

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { FolderClosed, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,7 @@ import { EmptyState, ErrorState } from '@/components/common/States'
 import { CreateProjectDialog } from '@/features/projects/components/CreateProjectDialog'
 import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
 import { useProjectMembers, useProjects } from '@/features/projects/hooks'
+import { useInView } from '@/hooks/useInView'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { formatShortDate } from '@/lib/dates'
 import { workspacePath } from '@/lib/paths'
@@ -103,13 +104,23 @@ export function WorkspaceHomePage() {
   )
 }
 
+/**
+ * Los miembros de cada tarjeta son una petición por proyecto (GET /projects no los trae): se piden cuando la
+ * tarjeta aparece en pantalla y no se vuelven a pedir en cada foco de la ventana (los cambios de miembros
+ * invalidan la consulta).
+ */
+const CARD_MEMBERS_STALE_TIME = 5 * 60_000
+
 function ProjectCard({ slug, project }) {
-  const { data: members = [] } = useProjectMembers(slug, project.id)
+  const cardRef = useRef(null)
+  const visible = useInView(cardRef)
+  const { data: members = [] } = useProjectMembers(slug, project.id, { enabled: visible, staleTime: CARD_MEMBERS_STALE_TIME })
   const total = project.issueCount ?? 0
   const open = project.openIssueCount ?? 0
 
   return (
     <Link
+      ref={cardRef}
       to={`/${slug}/projects/${project.id}/issues`}
       className="group flex flex-col gap-3.5 rounded-2xl border bg-card p-5 transition-[box-shadow,transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-dash hover:shadow-card focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
     >

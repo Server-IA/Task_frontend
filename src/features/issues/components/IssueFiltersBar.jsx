@@ -171,11 +171,13 @@ function SearchBox({ value, onChange, onJump, codeExample }) {
   const debounced = useDebouncedValue(draft, 350)
   const inputRef = useRef(null)
 
-  // La URL cambia por fuera (p. ej. «limpiar»): se sincroniza el campo
+  // La URL cambia por fuera (p. ej. «limpiar»): se sincroniza el campo. Si solo es el texto ya escrito sin los
+  // espacios de los extremos (lo que guarda la búsqueda), se deja como está: si no, se borraría el espacio recién
+  // escrito entre dos palabras
   const [syncedValue, setSyncedValue] = useState(value)
   if (value !== syncedValue) {
     setSyncedValue(value)
-    setDraft(value)
+    if (value !== draft.trim()) setDraft(value)
   }
 
   useEffect(() => {

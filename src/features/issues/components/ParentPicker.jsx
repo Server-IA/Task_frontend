@@ -74,7 +74,7 @@ export function ParentPicker({ slug, projectId, issue, onChange, disabled }) {
                 >
                   <StateIcon group={candidate.state?.group} color={candidate.state?.color} />
                   <IssueTypeIcon issue={candidate} size={14} />
-                  <span className="w-14 shrink-0 font-mono text-xs text-muted-foreground">{candidate.code}</span>
+                  <span className="min-w-14 shrink-0 font-mono text-xs whitespace-nowrap text-muted-foreground">{candidate.code}</span>
                   <span className="min-w-0 flex-1 truncate">{candidate.title}</span>
                   {candidate.id === issue.parent?.id && <Check className="size-4" />}
                 </CommandItem>

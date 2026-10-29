@@ -12,10 +12,17 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from '@/component
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Switch } from '@/components/ui/switch'
+import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { Spinner } from '@/components/common/Loaders'
 import { LazyRichEditor, usePreloadRichEditor } from '@/features/editor/components/LazyRichEditor'
 import { useMentionPeople } from '@/features/mentions/hooks'
-import { applyTemplate, appliedParts, checklistLabel, fromTemplateFlags } from '@/features/templates/applyTemplate'
+import {
+  applyTemplate,
+  appliedParts,
+  checklistLabel,
+  descriptionEditedSinceTemplate,
+  fromTemplateFlags,
+} from '@/features/templates/applyTemplate'
 import { useTemplates } from '@/features/templates/hooks'
 import { useIsManager } from '@/features/workspaces/hooks'
 import { applyFieldErrors } from '@/lib/errors'
@@ -174,6 +181,13 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
   }, [caretRequest])
   const caretToEnd = () => setCaretRequest((count) => count + 1)
 
+  // Cambiar o quitar la plantilla con la descripción editada la perdería: se confirma antes
+  const [pendingTemplate, setPendingTemplate] = useState(undefined)
+  const requestTemplate = (next) => {
+    if (descriptionEditedSinceTemplate(form.getValues('description'), template, base)) setPendingTemplate(next)
+    else chooseTemplate(next)
+  }
+
   const chooseTemplate = (next) => {
     const { title, description, priority, stateId: currentState, assigneeIds, labelIds } = form.getValues()
     const current = { title, description, priority, stateId: currentState, assigneeIds, labelIds }
@@ -188,7 +202,11 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
   }
   const fromTemplate = fromTemplateFlags(template, values)
 
+  // ctrl ↵ dos veces (o con la tecla repitiendo) no crea dos tareas: el botón se deshabilita, el atajo no
+  const submitting = useRef(false)
   const onSubmit = (data) => {
+    if (submitting.current) return
+    submitting.current = true
     const body = {
       ...data,
       stateId: data.stateId ?? undefined,
@@ -218,6 +236,9 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
       onError: (error) => {
         if (!applyFieldErrors(error, form.setError)) notifyError(error)
       },
+      onSettled: () => {
+        submitting.current = false
+      },
     })
   }
 
@@ -229,9 +250,11 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(onSubmit)}
+        onSubmit={(event) => form.handleSubmit(onSubmit)(event)}
         onKeyDown={(event) => {
-          if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) form.handleSubmit(onSubmit)(event)
+          if (event.key !== 'Enter' || !(event.ctrlKey || event.metaKey)) return
+          event.preventDefault()
+          if (!event.repeat && !submitting.current) form.handleSubmit(onSubmit)(event)
         }}
         className="space-y-3.5"
         noValidate
@@ -240,7 +263,7 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
           <TemplateBar
             templates={templates}
             active={template}
-            onChoose={chooseTemplate}
+            onChoose={requestTemplate}
             settingsUrl={isManager ? `/${slug}/projects/${project.id}/settings?tab=templates` : null}
             onLeave={onCancel}
           />
@@ -347,6 +370,17 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
           </Button>
         </div>
       </form>
+      <ConfirmDialog
+        open={pendingTemplate !== undefined}
+        onOpenChange={(open) => !open && setPendingTemplate(undefined)}
+        title={pendingTemplate ? `¿Cambiar a «${pendingTemplate.name}»?` : '¿Quitar la plantilla?'}
+        description="Editaste la descripción de la plantilla y se reemplazará: perderás esos cambios."
+        confirmLabel={pendingTemplate ? 'Cambiar de plantilla' : 'Quitar plantilla'}
+        onConfirm={() => {
+          chooseTemplate(pendingTemplate)
+          setPendingTemplate(undefined)
+        }}
+      />
     </Form>
   )
 }

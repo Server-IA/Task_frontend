@@ -189,3 +189,32 @@ describe('Códigos de tarea', () => {
     expect(isTaskCode('https://x.com')).toBe(false)
   })
 })
+
+describe('Markdown: bloques que el formato no admite', () => {
+  const p = (text) => ({ type: 'paragraph', content: [{ type: 'text', text }] })
+
+  it('una lista dentro de una celda se aplana en vez de perderse', () => {
+    const list = { type: 'bulletList', content: [{ type: 'listItem', content: [p('uno')] }, { type: 'listItem', content: [p('dos')] }] }
+    const doc = {
+      type: 'doc',
+      content: [
+        {
+          type: 'table',
+          content: [
+            { type: 'tableRow', content: [{ type: 'tableHeader', content: [p('Col')] }] },
+            { type: 'tableRow', content: [{ type: 'tableCell', content: [p('intro'), list] }] },
+          ],
+        },
+      ],
+    }
+    expect(docToMarkdown(doc)).toBe('| Col |\n| --- |\n| intro • uno • dos |')
+  })
+
+  it('un bloque de código con una cerca con sangría adentro no se corta', () => {
+    const text = 'Ejemplo:\n  ```js\n  code\n  ```\ndespués'
+    const doc = { type: 'doc', content: [{ type: 'codeBlock', attrs: { language: 'md' }, content: [{ type: 'text', text }] }] }
+    const back = markdownToDoc(docToMarkdown(doc))
+    expect(back.content).toEqual(doc.content)
+  })
+})
+

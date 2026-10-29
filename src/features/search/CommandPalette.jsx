@@ -10,6 +10,7 @@ import { isStory, storyProgress } from '@/features/issues/issueTypes'
 import { usePlanningList } from '@/features/planning/hooks'
 import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
 import { useProjects } from '@/features/projects/hooks'
+import { useLastWorkspaceSlug } from '@/features/workspaces/hooks'
 import { PROJECT_SECTIONS } from '@/layouts/SidebarProjects'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { useRouteParams } from '@/hooks/useRouteParams'
@@ -17,7 +18,6 @@ import { useTheme } from '@/hooks/useTheme'
 import { IS_MAC } from '@/lib/shortcuts'
 import { cn } from '@/lib/utils'
 import { useLayoutStore } from '@/stores/layoutStore'
-import { usePreferencesStore } from '@/stores/preferencesStore'
 import { useIssueSearch } from './hooks'
 
 /** Sin tildes y en minúscula: «Módulos» coincide con «modulos». */
@@ -68,7 +68,7 @@ function PaletteContent({ onClose }) {
   const navigate = useNavigate()
   const location = useLocation()
   const { slug: routeSlug, projectId } = useRouteParams()
-  const lastWorkspaceSlug = usePreferencesStore((state) => state.lastWorkspaceSlug)
+  const lastWorkspaceSlug = useLastWorkspaceSlug()
   // Fuera de un workspace (bandeja, perfil) se busca en el último abierto, como hace la sidebar
   const slug = routeSlug ?? lastWorkspaceSlug
   const { resolvedTheme, setTheme } = useTheme()

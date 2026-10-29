@@ -43,6 +43,23 @@ function mapTaskItems(doc, update) {
   return result.content?.length ? result : { ...result, content: [{ type: 'paragraph' }] }
 }
 
+/**
+ * Número de cada casilla en el orden del documento (el de `setTaskChecked` y `takeTaskItems`: la casilla, luego sus
+ * anidadas, luego la siguiente). La vista de lectura lo calcula antes de dibujar: contar mientras React pinta
+ * numeraría las anidadas después de sus hermanas.
+ * @param {DocNode} doc
+ * @returns {Map<DocNode, number>}
+ */
+export function numberTaskItems(doc) {
+  const numbers = new Map()
+  const visit = (node) => {
+    if (node.type === 'taskItem') numbers.set(node, numbers.size)
+    node.content?.forEach(visit)
+  }
+  if (doc) visit(doc)
+  return numbers
+}
+
 /** Marca o desmarca la casilla número `index`. */
 export function setTaskChecked(doc, index, checked) {
   return mapTaskItems(doc, (item, current) => (current === index ? { ...item, attrs: { ...item.attrs, checked } } : item))
@@ -60,18 +77,24 @@ export function listTaskItems(doc) {
 
 /**
  * «Pasar al checklist»: quita del documento las casillas `indexes` (con las que tengan anidadas) y devuelve sus
- * textos, en orden, para crearlas como pasos del checklist. Las vacías no se pasan.
+ * textos, en orden, para crearlas como pasos del checklist. Las vacías no se pasan. `groups[i]` es la casilla de
+ * `indexes` de la que salió `items[i]` (ella misma o una que la contiene): si no todos se pueden crear, se sabe qué
+ * casillas quitar (`movedIndexes`).
  * @param {DocNode} doc
  * @param {number[]} indexes
- * @returns {{ doc: DocNode, items: { text: string, checked: boolean }[] }}
+ * @returns {{ doc: DocNode, items: { text: string, checked: boolean }[], groups: number[] }}
  */
 export function takeTaskItems(doc, indexes) {
   const wanted = new Set(indexes)
   const taken = []
-  const collect = (item) => {
+  const groups = []
+  const collect = (item, group) => {
     const text = taskItemText(item)
-    if (text) taken.push({ text, checked: Boolean(item.attrs?.checked) })
-    item.content?.slice(1).forEach((block) => block.content?.forEach((child) => child.type === 'taskItem' && collect(child)))
+    if (text) {
+      taken.push({ text, checked: Boolean(item.attrs?.checked) })
+      groups.push(group)
+    }
+    item.content?.slice(1).forEach((block) => block.content?.forEach((child) => child.type === 'taskItem' && collect(child, group)))
   }
   let index = 0
   const visit = (node) => {
@@ -85,7 +108,7 @@ export function takeTaskItems(doc, indexes) {
           child.content?.forEach(countNested)
         }
         node.content?.forEach(countNested)
-        collect(node)
+        collect(node, current)
         return null
       }
     }
@@ -98,5 +121,21 @@ export function takeTaskItems(doc, indexes) {
   return {
     doc: result.content?.length ? result : { ...result, content: [{ type: 'paragraph' }] },
     items: taken,
+    groups,
   }
+}
+
+/**
+ * Casillas de `indexes` que se pasaron completas al checklist cuando solo se crearon los primeros `created` pasos
+ * (se crean en orden). Si se crearon todos, son todas. Si no, solo las que tenían pasos y se crearon todos: las demás
+ * (y las vacías o anidadas en otra, que van con su casilla) se quedan en la descripción.
+ * @param {number[]} indexes
+ * @param {number[]} groups los de `takeTaskItems`
+ * @param {number} created
+ */
+export function movedIndexes(indexes, groups, created) {
+  if (created >= groups.length) return indexes
+  const failed = new Set(groups.slice(created))
+  const done = new Set(groups.slice(0, created))
+  return indexes.filter((index) => done.has(index) && !failed.has(index))
 }

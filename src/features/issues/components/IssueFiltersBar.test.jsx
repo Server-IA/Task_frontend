@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react'
+import { useState } from 'react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { IssueFiltersBar } from './IssueFiltersBar'
@@ -31,3 +32,36 @@ describe('IssueFiltersBar: buscar o saltar', () => {
     expect(input).toHaveValue('login')
   })
 })
+
+/** La barra con la búsqueda en estado propio (como la URL de la página). */
+function Harness() {
+  const [current, setCurrent] = useState(filters)
+  return (
+    <IssueFiltersBar
+      filters={current}
+      activeCount={0}
+      setFilter={(key, value) => setCurrent((previous) => ({ ...previous, [key]: value }))}
+      clearFilters={() => {}}
+      meta={meta}
+    />
+  )
+}
+
+describe('IssueFiltersBar: búsqueda mientras se escribe', () => {
+  it('una pausa después de un espacio no se lo come (la URL guarda el texto sin espacios al final)', () => {
+    vi.useFakeTimers()
+    try {
+      render(<Harness />)
+      const input = screen.getByPlaceholderText(/buscar o saltar/)
+      fireEvent.change(input, { target: { value: 'fix ' } })
+      act(() => vi.advanceTimersByTime(400))
+      expect(input).toHaveValue('fix ')
+      fireEvent.change(input, { target: { value: 'fix login' } })
+      act(() => vi.advanceTimersByTime(400))
+      expect(input).toHaveValue('fix login')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
+

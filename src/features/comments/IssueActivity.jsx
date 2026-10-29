@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -285,6 +285,10 @@ function CommentComposer({ slug, projectId, issueId, issueCode, projectIdentifie
   const mentioned = mentionedIds(body)
   const notified = people.filter((person) => person.id !== user?.id && mentioned.includes(person.id))
 
+  const blurComposer = useCallback(() => {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+  }, [])
+
   const submit = () => {
     const text = body.trim()
     if (!text || create.isPending) return
@@ -308,6 +312,8 @@ function CommentComposer({ slug, projectId, issueId, issueCode, projectIdentifie
               projectIdentifier={projectIdentifier}
               autoFocus
               onSubmit={submit}
+              // Con texto, Escape suelta el campo en vez de cerrar el panel (y perder el comentario sin enviar)
+              onEscape={body.trim() ? blurComposer : undefined}
               contentClassName="min-h-11 px-3 pt-2.5 pb-1"
             />
           ) : (

@@ -418,7 +418,7 @@ function RelationAdder({ slug, projectId, issue, relatedIds, onClose }) {
               >
                 <ProjectIcon project={project} className="min-w-10" />
                 <IssueTypeIcon issue={candidate} size={14} />
-                <span className="w-14 shrink-0 font-mono text-xs text-muted-foreground">{candidate.code}</span>
+                <span className="min-w-14 shrink-0 font-mono text-xs whitespace-nowrap text-muted-foreground">{candidate.code}</span>
                 <span className="min-w-0 flex-1 truncate font-medium" title={project.name ? `${candidate.title} · ${project.name}` : candidate.title}>
                   {candidate.title}
                 </span>

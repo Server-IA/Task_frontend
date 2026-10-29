@@ -88,19 +88,40 @@ export const useMoveChecklistItem = (slug, projectId, issueId) =>
     optimistic: (items, { itemId, position }) => moveChecklistItem(items, itemId, position)?.items ?? items,
   })
 
+/** Mensaje cuando los pasos no caben en el checklist (`room`: cuántos caben todavía). */
+export function checklistFullMessage(room) {
+  if (room <= 0) return `El checklist ya tiene ${CHECKLIST_LIMIT} criterios y pasos, el máximo`
+  return `Solo caben ${room} ${room === 1 ? 'paso más' : 'pasos más'} en el checklist (máximo ${CHECKLIST_LIMIT})`
+}
+
 /**
  * «Pasar al checklist» desde la descripción: `mutateAsync(casillas)` crea un paso por casilla, en orden (las
- * marcadas quedan hechas). Devuelve cuántos se crearon.
+ * marcadas quedan hechas) y devuelve `{ created, error }`: cuántos se crearon y, si uno falló, el error (los
+ * siguientes no se intentan). Antes comprueba que quepan todos: si no, falla sin crear ninguno. Así quien llama
+ * quita de la descripción solo las casillas que de verdad quedaron en el checklist.
  */
 export function useMoveToChecklist(slug, projectId, issueId) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (items) => {
-      for (const item of items) {
-        const created = await checklistApi.create(slug, projectId, issueId, { kind: 'CHECK', text: item.text.slice(0, 500) })
-        if (item.checked) await checklistApi.update(slug, projectId, issueId, created.id, { done: true })
+      const current = await queryClient.fetchQuery({
+        queryKey: queryKeys.checklist(issueId),
+        queryFn: () => checklistApi.list(slug, projectId, issueId),
+        staleTime: 0,
+      })
+      const room = CHECKLIST_LIMIT - (current?.length ?? 0)
+      if (items.length > room) throw new Error(checklistFullMessage(room))
+      let created = 0
+      try {
+        for (const item of items) {
+          const step = await checklistApi.create(slug, projectId, issueId, { kind: 'CHECK', text: item.text.slice(0, 500) })
+          created += 1
+          if (item.checked) await checklistApi.update(slug, projectId, issueId, step.id, { done: true })
+        }
+      } catch (error) {
+        return { created, error }
       }
-      return items.length
+      return { created, error: null }
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.checklist(issueId) })

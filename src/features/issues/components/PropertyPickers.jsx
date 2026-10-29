@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { CalendarDays, Check, Clock3, Tag, UserRound, X } from 'lucide-react'
 import { es } from 'date-fns/locale'
 import { parseISO } from 'date-fns'
@@ -38,7 +38,10 @@ export function PropertyButton({ className, children, ...props }) {
  */
 function OptionsPicker({ trigger, options, value, onChange, multiple = false, placeholder, emptyText, disabled, align = 'start' }) {
   const [open, setOpen] = useState(false)
-  const selected = new Set(multiple ? value ?? [] : value ? [value] : [])
+  // Múltiple: mientras está abierto manda la selección local. `value` llega cuando el backend responde: si se
+  // marcan dos opciones antes de eso, la segunda no debe partir de la lista vieja y deshacer la primera.
+  const [draft, setDraft] = useState(null)
+  const selected = new Set(multiple ? (draft ?? value ?? []) : value ? [value] : [])
 
   const toggle = (optionValue) => {
     if (!multiple) {
@@ -49,11 +52,17 @@ function OptionsPicker({ trigger, options, value, onChange, multiple = false, pl
     const next = new Set(selected)
     if (next.has(optionValue)) next.delete(optionValue)
     else next.add(optionValue)
+    setDraft([...next])
     onChange([...next])
   }
 
+  const onOpenChange = (next) => {
+    setOpen(next)
+    if (!next) setDraft(null)
+  }
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild disabled={disabled}>
         {trigger}
       </PopoverTrigger>
@@ -233,11 +242,24 @@ export function LabelsPicker({ labels = [], value = [], onChange, disabled, clas
 
 /**
  * Fecha opcional (LocalDate 'yyyy-MM-dd'). `onChange(null)` la quita.
+ * `labelId`: id de una etiqueta visible; el botón se nombra con ella y con la fecha («Inicio 3 nov»).
  * `isOverdue` pinta la fecha en rojo (fecha límite vencida).
  * `due`: se muestra como pastilla de fecha límite en lenguaje humano («mañana», «venció hace 2 días»).
  */
-export function DatePicker({ value, onChange, placeholder = 'Fecha', disabled, className, isOverdue = false, due, minDate, maxDate }) {
+export function DatePicker({
+  value,
+  onChange,
+  placeholder = 'Fecha',
+  disabled,
+  className,
+  isOverdue = false,
+  due,
+  minDate,
+  maxDate,
+  labelId,
+}) {
   const [open, setOpen] = useState(false)
+  const valueId = useId()
   const date = value ? parseISO(value) : undefined
   const dueInfo = due && value ? describeDueDate(value, due) : null
 
@@ -254,9 +276,15 @@ export function DatePicker({ value, onChange, placeholder = 'Fecha', disabled, c
             {dueInfo.text}
           </PropertyButton>
         ) : (
-          <PropertyButton className={cn(isOverdue && 'text-late', className)} aria-label={placeholder}>
+          <PropertyButton
+            className={cn(isOverdue && 'text-late', className)}
+            aria-label={labelId ? undefined : placeholder}
+            aria-labelledby={labelId ? `${labelId} ${valueId}` : undefined}
+          >
             <CalendarDays className={cn('size-3.5', !value && 'text-muted-foreground')} />
-            <span className={cn(!value && 'text-muted-foreground')}>{value ? formatShortDate(value) : placeholder}</span>
+            <span id={valueId} className={cn(!value && 'text-muted-foreground')}>
+              {value ? formatShortDate(value) : placeholder}
+            </span>
           </PropertyButton>
         )}
       </PopoverTrigger>

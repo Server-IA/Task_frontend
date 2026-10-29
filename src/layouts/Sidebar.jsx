@@ -5,6 +5,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useMyWork } from '@/features/my-work/hooks'
 import { NotificationsLink } from '@/features/notifications/NotificationsLink'
 import { WorkspaceSwitcher } from '@/features/workspaces/components/WorkspaceSwitcher'
+import { useLastWorkspaceSlug } from '@/features/workspaces/hooks'
 import { useRouteParams } from '@/hooks/useRouteParams'
 import { COMMAND_SHORTCUT } from '@/lib/shortcuts'
 import { cn } from '@/lib/utils'
@@ -15,7 +16,7 @@ import { UserMenu } from './UserMenu'
 
 export function Sidebar({ collapsed }) {
   const toggleSidebar = usePreferencesStore((state) => state.toggleSidebar)
-  const lastWorkspaceSlug = usePreferencesStore((state) => state.lastWorkspaceSlug)
+  const lastWorkspaceSlug = useLastWorkspaceSlug()
   const { slug: routeSlug, projectId } = useRouteParams()
   // Fuera de un workspace (perfil, notificaciones) se usa el último abierto
   const slug = routeSlug ?? lastWorkspaceSlug
@@ -118,12 +119,13 @@ function SearchButton({ collapsed }) {
  * El estado activo se pinta con `aria-current="page"` (lo pone NavLink): así el className es un texto fijo
  * y el TooltipTrigger (Radix Slot) lo puede combinar sin romperlo.
  */
-export function SidebarLink({ to, icon: Icon, iconNode, label, collapsed, end = false, badge, meta, title, className }) {
+/** `ariaLabel`: nombre accesible de la versión contraída si debe decir más que `label` (p. ej. un contador). */
+export function SidebarLink({ to, icon: Icon, iconNode, label, ariaLabel, collapsed, end = false, badge, meta, title, className }) {
   const link = (
     <NavLink
       to={to}
       end={end}
-      aria-label={collapsed ? label : undefined}
+      aria-label={collapsed ? (ariaLabel ?? label) : undefined}
       title={title}
       className={cn(
         'group/link flex h-9 items-center gap-2.5 rounded-[10px] px-2.5 text-sm whitespace-nowrap text-sidebar-foreground transition-colors duration-150 hover:bg-sidebar-accent',

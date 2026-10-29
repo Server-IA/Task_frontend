@@ -65,7 +65,7 @@ export function UserMenu({ collapsed = false }) {
         <DropdownMenuSeparator />
         <DropdownMenuItem
           variant="destructive"
-          onSelect={() => logout.mutate(undefined, { onSettled: () => navigate('/login', { replace: true }) })}
+          onSelect={() => logout.mutate()}
         >
           <LogOut />
           Cerrar sesión

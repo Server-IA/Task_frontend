@@ -12,7 +12,7 @@ import { CopyButton, MarkdownView } from '@/features/editor/components/MarkdownV
 import { diffLines } from '@/features/editor/markdown/diffLines'
 import { markdownToDoc } from '@/features/editor/markdown/parse'
 import { docToMarkdown, escapeText } from '@/features/editor/markdown/serialize'
-import { setTaskChecked, takeTaskItems } from '@/features/editor/markdown/taskItems'
+import { movedIndexes, setTaskChecked, takeTaskItems } from '@/features/editor/markdown/taskItems'
 import { useMentionPeople } from '@/features/mentions/hooks'
 import { formatRelative } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
@@ -104,15 +104,26 @@ export function IssueDescription({ slug, project, issue, variant = 'page', onOpe
     return result
   }
 
-  /** «Pasar al checklist»: primero se crean los pasos y, si salió bien, se quitan de la descripción. */
+  /**
+   * «Pasar al checklist»: primero se crean los pasos; quien llama quita de la descripción solo los que se crearon.
+   * Devuelve cuántos se crearon (en orden); falla si no se creó ninguno.
+   */
   const moveTasks = async (items) => {
+    let result
     try {
-      const count = await moveToChecklist.mutateAsync(items)
-      toast.success(count === 1 ? 'Se pasó 1 paso al checklist' : `Se pasaron ${count} pasos al checklist`)
+      result = await moveToChecklist.mutateAsync(items)
     } catch (error) {
       notifyError(error, 'No se pudo pasar al checklist')
       throw error
     }
+    const { created, error } = result
+    if (created > 0) toast.success(created === 1 ? 'Se pasó 1 paso al checklist' : `Se pasaron ${created} pasos al checklist`)
+    if (error) {
+      const missing = items.length - created
+      notifyError(error, created > 0 ? `${missing} ${missing === 1 ? 'paso no se pasó' : 'pasos no se pasaron'} al checklist` : 'No se pudo pasar al checklist')
+      if (created === 0) throw error
+    }
+    return created
   }
 
   /** «Pasar al checklist» desde la lectura: antes de crear los pasos se confirma que la descripción sigue igual. */
@@ -129,16 +140,20 @@ export function IssueDescription({ slug, project, issue, variant = 'page', onOpe
       warnChanged({ by: fresh.descriptionUpdatedBy, at: fresh.descriptionUpdatedAt }, 'No se pasó nada al checklist.')
       return
     }
-    const { items } = takeTaskItems(markdownToDoc(norm(fresh.description)), indexes)
+    const { items, groups } = takeTaskItems(markdownToDoc(norm(fresh.description)), indexes)
     if (!items.length) return
+    let created
     try {
-      await moveTasks(items)
+      created = await moveTasks(items)
     } catch {
       return
     }
+    // Si alguno falló, solo se quitan las casillas que quedaron completas en el checklist
+    const moved = movedIndexes(indexes, groups, created)
+    if (!moved.length) return
     await changeDescription(
       fresh.descriptionVersion ?? 0,
-      (current) => docToMarkdown(takeTaskItems(markdownToDoc(current), indexes).doc),
+      (current) => docToMarkdown(takeTaskItems(markdownToDoc(current), moved).doc),
       'Los pasos quedaron en el checklist y también siguen en la descripción.',
     )
   }
@@ -480,8 +495,14 @@ function DescriptionEditor({ slug, project, issue, variant, caret, onMoveTasks, 
       notifyError(error, 'No se pudo deshacer')
       return
     }
-    // Si todavía se está editando, el código vuelve a ser el texto en el editor (y se guarda solo)
-    if (apiRef.current?.replaceText(created.code, text)) return
+    // Si todavía se está editando, el código vuelve a ser el texto en el editor (y se guarda solo). Si ya no está
+    // en el texto, no se guarda nada por debajo del editor: sería un conflicto con uno mismo
+    if (apiRef.current) {
+      if (!apiRef.current.replaceText(created.code, text)) {
+        toast(`${created.code} ya no está en el texto`, { description: 'La subtarea se eliminó; el texto quedó como estaba.' })
+      }
+      return
+    }
     const cached = queryClient.getQueryData(queryKeys.issue(issue.id))
     const current = norm(cached?.description)
     const pattern = new RegExp(`(?<![\\w-])${created.code}(?![\\w-])`)

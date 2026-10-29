@@ -214,7 +214,7 @@ function MyWorkRow({ slug, issue, project }) {
         <StateIcon group={issue.state?.group} color={issue.state?.color} />
         <IssueTypeIcon issue={issue} size={14} />
         {project && <ProjectIcon project={project} />}
-        <span className="min-w-14 shrink-0 font-mono text-xs text-muted-foreground">{issue.code}</span>
+        <span className="min-w-14 shrink-0 font-mono text-xs whitespace-nowrap text-muted-foreground">{issue.code}</span>
         <span className="min-w-0 flex-[1_1_240px] truncate font-medium" title={issue.title}>
           {issue.title}
         </span>

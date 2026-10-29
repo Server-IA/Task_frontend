@@ -39,6 +39,8 @@ function invalidateAfterRelationChange(queryClient, projectIds, issueIds) {
   for (const projectId of new Set(projectIds.filter(Boolean))) {
     queryClient.invalidateQueries({ queryKey: queryKeys.issuesOf(projectId) })
     queryClient.invalidateQueries({ queryKey: queryKeys.savedViews(projectId) })
+    // «Historias» muestra las relacionadas y los bloqueos de cada historia
+    queryClient.invalidateQueries({ queryKey: queryKeys.stories(projectId) })
   }
   queryClient.invalidateQueries({ queryKey: ['subIssues'] })
   queryClient.invalidateQueries({ queryKey: ['myWork'] })

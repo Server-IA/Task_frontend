@@ -3,6 +3,7 @@ import {
   applyTemplate,
   appliedParts,
   checklistLabel,
+  descriptionEditedSinceTemplate,
   fromTemplateFlags,
   stripPrefix,
   templateSummary,
@@ -124,3 +125,24 @@ describe('usos de la plantilla', () => {
     expect(usesLabel(12)).toBe('12 usos')
   })
 })
+
+describe('descripción editada después de la plantilla', () => {
+  it('sin plantilla aplicada no hay nada que perder', () => {
+    expect(descriptionEditedSinceTemplate('lo que escribí', null, null)).toBe(false)
+  })
+
+  it('igual a la de la plantilla (salvo espacios) no cuenta como editada', () => {
+    expect(descriptionEditedSinceTemplate('## Pasos para reproducir\n', bug, base)).toBe(false)
+  })
+
+  it('con cambios sobre la de la plantilla, sí', () => {
+    expect(descriptionEditedSinceTemplate('## Pasos para reproducir\n1. Abrir', bug, base)).toBe(true)
+  })
+
+  it('si la plantilla no fija descripción, se compara con la de antes', () => {
+    const noDescription = { ...bug, description: null }
+    expect(descriptionEditedSinceTemplate('', noDescription, base)).toBe(false)
+    expect(descriptionEditedSinceTemplate('nuevo', noDescription, base)).toBe(true)
+  })
+})
+

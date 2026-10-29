@@ -23,7 +23,9 @@ export function IssuePage() {
         documentTitle={[issue?.code ?? 'Tarea', project.name]}
       />
       <div className="tf-panel min-h-0 flex-1 overflow-hidden">
+        {/* Con key: al pasar a otra tarea (subtarea, relación) no se arrastran borradores de la anterior */}
         <IssueDetailWithExtras
+          key={issueId}
           slug={workspace.slug}
           project={project}
           issueId={issueId}

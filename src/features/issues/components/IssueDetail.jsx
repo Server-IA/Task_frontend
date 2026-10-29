@@ -19,13 +19,14 @@ import { MarkdownView } from '@/features/editor/components/MarkdownView'
 import { useWorkspace } from '@/features/workspaces/hooks'
 import { formatDateTime, formatRelative, formatShortDate } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
-import { canDeleteIssue, isManager as isManagerRole } from '@/lib/permissions'
+import { canDeleteIssue } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { useSessionStore } from '@/stores/sessionStore'
 import { useDeleteIssue, useIssue, useSubIssues } from '../hooks'
 import { useCriteriaGuard } from '../useCriteriaGuard'
-import { isStory, storyFlags, storyProgress, typeOf } from '../issueTypes'
+import { isStory, stateOptionsFor, storyFlags, storyProgress, storyStateLocked, typeOf } from '../issueTypes'
 import { isOverdue, useIssueUpdater, useProjectMeta } from '../useIssueHelpers'
+import { closedStoryActions, useStoryClosedGuard } from '../useStoryClosedGuard'
 import { CreateIssueDialog } from './CreateIssueDialog'
 import { ReadyBadge, TypePill, UnsplitBadge } from './IssueTypeBits'
 import { TypePicker } from './TypePicker'
@@ -60,11 +61,11 @@ export function IssueDetail({
   renderChildren,
 }) {
   const { data: issue, isLoading, error, refetch } = useIssue(slug, project.id, issueId)
-  const { data: workspace } = useWorkspace(slug)
-  const manager = isManagerRole(workspace?.myRole)
   const meta = useProjectMeta(slug, project.id)
   const { update } = useIssueUpdater(slug, project.id, issueId)
   const { guard, dialog: criteriaDialog } = useCriteriaGuard()
+  // Estado, tipo o padre que reabrirían una historia cerrada: 409 STORY_CLOSED → preguntar
+  const { onStoryClosed, dialog: storyClosedDialog, manager } = useStoryClosedGuard(slug)
   const [subIssueOpen, setSubIssueOpen] = useState(false)
   // «Ver Markdown» del menú ⋯: la descripción tal como se guarda
   const [showMarkdown, setShowMarkdown] = useState(false)
@@ -77,9 +78,11 @@ export function IssueDetail({
   const story = isStory(issue)
   const flags = story ? storyFlags(issue) : null
   // Cerrar o reabrir una historia es del project manager: un miembro solo la mueve entre estados abiertos
-  const stateOptions =
-    story && !manager && !flags.closed ? meta.states.filter((state) => state.group !== 'COMPLETED' && state.group !== 'CANCELLED') : meta.states
+  const stateOptions = stateOptionsFor(issue, meta.states, manager)
   const childrenSection = renderChildren?.(issue)
+  /** Cambio que la historia cerrada de la tarea rechaza (409): se reintenta reabriéndola. */
+  const updateReopening = (changes, action) =>
+    update(changes, { onError: onStoryClosed(issue, action, () => update({ ...changes, reopenParent: true })) })
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -93,7 +96,7 @@ export function IssueDetail({
         showMarkdown={showMarkdown}
         onToggleMarkdown={() => setShowMarkdown((current) => !current)}
         manager={manager}
-        onChangeType={(type) => update({ type })}
+        onChangeType={(type) => updateReopening({ type }, closedStoryActions.type(issue))}
       />
 
       <div className="flex min-h-0 flex-1 flex-wrap overflow-y-auto">
@@ -153,15 +156,12 @@ export function IssueDetail({
             <span className="flex min-w-0 flex-col items-start">
             <StatePicker
               states={stateOptions}
-              disabled={story && !manager && flags.closed}
+              disabled={storyStateLocked(issue, manager)}
               value={issue.state?.id}
-              onChange={(stateId) =>
-                guard(
-                  issue,
-                  meta.states.find((state) => state.id === stateId),
-                  () => update({ stateId }),
-                )
-              }
+              onChange={(stateId) => {
+                const state = meta.states.find((item) => item.id === stateId)
+                guard(issue, state, () => updateReopening({ stateId }, closedStoryActions.move(issue, state)))
+              }}
             />
             {story && (
               <span className="-mt-1 pl-2 font-mono text-[10.5px] text-muted-foreground" title="El estado de la historia sigue a sus tareas">
@@ -230,7 +230,9 @@ export function IssueDetail({
               slug={slug}
               projectId={project.id}
               issue={issue}
-              onChange={(parentId) => update(parentId ? { parentId } : { clearParent: true })}
+              onChange={(parentId) =>
+                parentId ? updateReopening({ parentId }, closedStoryActions.parent(issue)) : update({ clearParent: true })
+              }
             />
           </PropertyRow>
           {renderProperties?.(issue)}
@@ -260,6 +262,7 @@ export function IssueDetail({
         defaults={{ parentId: issue.id, parentCode: issue.code, stateId: issue.state?.id }}
       />
       {criteriaDialog}
+      {storyClosedDialog}
     </div>
   )
 }

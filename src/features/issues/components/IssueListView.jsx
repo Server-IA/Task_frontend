@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { ChevronLeft, ChevronRight, CircleDot, CornerDownRight, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -9,8 +10,10 @@ import { cn } from '@/lib/utils'
 import { BOARD_GROUP_STORY, GROUP_BY_DEFAULT, LIST_PAGE_SIZE } from '../constants'
 import { groupIssues } from '../groupIssues'
 import { useIssues } from '../hooks'
+import { stateOptionsFor, storyStateLocked } from '../issueTypes'
 import { useCriteriaGuard } from '../useCriteriaGuard'
 import { isClosed, useIssueUpdater } from '../useIssueHelpers'
+import { closedStoryActions, useStoryClosedGuard } from '../useStoryClosedGuard'
 import { BlockedChip, BlockingChip, ChecklistChip } from './IssueBadges'
 import { IssueTypeIcon, ParentStoryChip, TypeIcon } from './IssueTypeBits'
 import { PriorityIcon } from './PriorityIcon'
@@ -38,6 +41,7 @@ export function IssueListView({
   const params = { ...filters, ...extraParams, sort, page, size: LIST_PAGE_SIZE }
   const { data, isLoading, error, refetch, isFetching } = useIssues(slug, project.id, params)
   const { guard, dialog: criteriaDialog } = useCriteriaGuard()
+  const { onStoryClosed, dialog: storyClosedDialog, manager } = useStoryClosedGuard(slug)
 
   if (isLoading) {
     return (
@@ -75,7 +79,17 @@ export function IssueListView({
           <GroupHeader group={group} onCreateInState={onCreateInState} />
           <ul>
             {group.issues.map((issue) => (
-              <IssueRow key={issue.id} issue={issue} slug={slug} project={project} meta={meta} openIssue={openIssue} guard={guard} />
+              <IssueRow
+                key={issue.id}
+                issue={issue}
+                slug={slug}
+                project={project}
+                meta={meta}
+                openIssue={openIssue}
+                guard={guard}
+                onStoryClosed={onStoryClosed}
+                manager={manager}
+              />
             ))}
           </ul>
         </section>
@@ -103,6 +117,7 @@ export function IssueListView({
         )}
       </footer>
       {criteriaDialog}
+      {storyClosedDialog}
     </div>
   )
 }
@@ -162,9 +177,14 @@ function GroupHeader({ group, onCreateInState }) {
 const revealOnHover =
   'opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100'
 
-function IssueRow({ issue, slug, project, meta, openIssue, guard }) {
+const stop = (event) => event.stopPropagation()
+
+/**
+ * Una fila. Memorizada: guardar la descripción de una tarea (cada segundo mientras se escribe en el panel) reemplaza
+ * esa tarea en la lista y solo su fila vuelve a pintarse.
+ */
+const IssueRow = memo(function IssueRow({ issue, slug, project, meta, openIssue, guard, onStoryClosed, manager }) {
   const { update } = useIssueUpdater(slug, project.id, issue.id)
-  const stop = (event) => event.stopPropagation()
 
   return (
     <li className="border-t">
@@ -177,15 +197,18 @@ function IssueRow({ issue, slug, project, meta, openIssue, guard }) {
       >
         <span className="flex items-center gap-1" onClick={stop} onKeyDown={stop}>
           <StatePicker
-            states={meta.states}
+            states={stateOptionsFor(issue, meta.states, manager)}
+            disabled={storyStateLocked(issue, manager)}
             value={issue.state?.id}
-            onChange={(stateId) =>
-              guard(
-                issue,
-                meta.states.find((state) => state.id === stateId),
-                () => update({ stateId }),
+            onChange={(stateId) => {
+              const state = meta.states.find((item) => item.id === stateId)
+              guard(issue, state, () =>
+                update(
+                  { stateId },
+                  { onError: onStoryClosed(issue, closedStoryActions.move(issue, state), () => update({ stateId, reopenParent: true })) },
+                ),
               )
-            }
+            }}
             showLabel={false}
             className="px-1"
           />
@@ -200,7 +223,7 @@ function IssueRow({ issue, slug, project, meta, openIssue, guard }) {
             />
           </span>
         </span>
-        <span className="w-16 shrink-0 font-mono text-xs text-muted-foreground">{issue.code}</span>
+        <span className="min-w-16 shrink-0 font-mono text-xs whitespace-nowrap text-muted-foreground">{issue.code}</span>
         <span className="flex min-w-0 flex-[1_1_260px] items-center gap-2">
           {issue.parent && issue.parent.type !== 'STORY' && (
             <span className="hidden shrink-0 items-center gap-1 font-mono text-[11px] text-muted-foreground lg:flex" title={`Subtarea de ${issue.parent.code}`}>
@@ -251,4 +274,4 @@ function IssueRow({ issue, slug, project, meta, openIssue, guard }) {
       </div>
     </li>
   )
-}
+})

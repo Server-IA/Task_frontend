@@ -241,8 +241,9 @@ export function buildExtensions({ bridge, placeholder, meId }) {
     TaskItem.configure({ nested: true }),
     Table.configure({ resizable: false, allowTableNodeSelection: true }),
     TableRow,
-    TableHeader,
-    TableCell,
+    // Una celda de Markdown es una sola línea: solo párrafos (una lista o una cita adentro no se podría guardar)
+    TableHeader.extend({ content: 'paragraph+' }),
+    TableCell.extend({ content: 'paragraph+' }),
     Mention.configure({ meId }),
     TaskRefHighlight,
     TaskFromBullet,

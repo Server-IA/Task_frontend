@@ -143,6 +143,22 @@ export function storyTabCounts(stories) {
 }
 
 /**
+ * Estados que el selector ofrece para una tarea. Cerrar o reabrir una historia es del project manager: a un miembro,
+ * una historia abierta no le ofrece los estados completados ni cancelados, y una cerrada no se puede mover
+ * (`storyStateLocked`).
+ * @param {IssueResponse} issue
+ * @param {import('@/api/types').StateResponse[]} states
+ * @param {boolean} manager
+ */
+export function stateOptionsFor(issue, states, manager) {
+  if (!isStory(issue) || manager) return states
+  return states.filter((state) => !isClosedGroup(state.group))
+}
+
+/** Un miembro no cambia el estado de una historia cerrada (reabrirla es del project manager). */
+export const storyStateLocked = (issue, manager) => isStory(issue) && !manager && storyFlags(issue).closed
+
+/**
  * Por qué no se puede pasar la tarea a ese tipo (para el selector), o null si se puede.
  * Convertir en historia o dejar de serlo es del project manager; una historia con tareas no deja de serlo.
  * @param {IssueResponse} issue

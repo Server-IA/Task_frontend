@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -9,6 +9,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { LockNote } from '@/components/common/LockNote'
 import { Spinner } from '@/components/common/Loaders'
@@ -22,6 +23,7 @@ import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { closedText } from '../closeCycle'
+import { planningUpdateBody, SINGLE_DATE_CLEARED_MESSAGE } from '../planningDates'
 import { useAddPlanningIssues, useCreatePlanning, useUpdatePlanning } from '../hooks'
 
 /** Textos y nombres de campos que cambian entre ciclos y módulos. */
@@ -252,6 +254,8 @@ function PlanningForm({ kind, slug, projectId, item, onCancel, onSaved }) {
     },
   })
   const [startDate, endDate] = useWatch({ control: form.control, name: ['startDate', 'endDate'] })
+  const startLabelId = useId()
+  const endLabelId = useId()
 
   const onSubmit = (values) => {
     const body = { name: values.name, description: values.description, startDate: values.startDate, [text.endField]: values.endDate }
@@ -267,9 +271,13 @@ function PlanningForm({ kind, slug, projectId, item, onCancel, onSaved }) {
     if (closed) {
       update.mutate({ id: item.id, description: values.description }, options)
     } else if (item) {
-      // Al editar, quitar ambas fechas se pide con clearDates (los null no cambian nada)
-      const cleared = !values.startDate && !values.endDate && (item.startDate || item[text.endField])
-      update.mutate(cleared ? { id: item.id, name: values.name, description: values.description, clearDates: true } : { id: item.id, ...body }, options)
+      // Al editar, quitar ambas fechas se pide con clearDates (los null no cambian nada); una sola no se puede
+      const result = planningUpdateBody(item, values, text.endField)
+      if (result.error) {
+        form.setError(result.error, { message: SINGLE_DATE_CLEARED_MESSAGE })
+        return
+      }
+      update.mutate(result.body, options)
     } else {
       create.mutate(body, options)
     }
@@ -306,22 +314,30 @@ function PlanningForm({ kind, slug, projectId, item, onCancel, onSaved }) {
         />
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <FormLabel>Inicio</FormLabel>
+            <Label id={startLabelId}>Inicio</Label>
             <DatePicker
               value={startDate}
-              onChange={(value) => form.setValue('startDate', value, { shouldDirty: true })}
+              onChange={(value) => {
+                form.clearErrors('startDate')
+                form.setValue('startDate', value, { shouldDirty: true })
+              }}
               placeholder="Sin fecha"
+              labelId={startLabelId}
               maxDate={endDate}
               disabled={closed}
               className="h-9 w-full justify-start border-input"
             />
+            {form.formState.errors.startDate && (
+              <p className="text-sm text-destructive">{form.formState.errors.startDate.message}</p>
+            )}
           </div>
           <div className="space-y-2">
-            <FormLabel>{text.endLabel}</FormLabel>
+            <Label id={endLabelId}>{text.endLabel}</Label>
             <DatePicker
               value={endDate}
               onChange={(value) => form.setValue('endDate', value, { shouldDirty: true, shouldValidate: true })}
               placeholder="Sin fecha"
+              labelId={endLabelId}
               minDate={startDate}
               disabled={closed}
               className="h-9 w-full justify-start border-input"
@@ -421,7 +437,7 @@ export function AddIssuesDialog({ kind, slug, projectId, item, existingIds, open
                     {selected.has(issue.id) && <Check className="size-3" />}
                   </span>
                   <StateIcon group={issue.state?.group} color={issue.state?.color} />
-                  <span className="w-14 shrink-0 font-mono text-xs text-muted-foreground">{issue.code}</span>
+                  <span className="min-w-14 shrink-0 font-mono text-xs whitespace-nowrap text-muted-foreground">{issue.code}</span>
                   <span className="min-w-0 flex-1 truncate">{issue.title}</span>
                   {kind === 'cycles' && issue.cycle && (
                     <span className="max-w-24 truncate text-xs text-muted-foreground">{issue.cycle.name}</span>

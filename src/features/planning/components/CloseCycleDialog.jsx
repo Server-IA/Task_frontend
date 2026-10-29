@@ -247,7 +247,7 @@ function CloseCycleForm({ slug, projectId, cycle: initialCycle, onClose }) {
                     // En el teléfono el destino baja a su propia línea si el título no cabe
                     <li key={issue.id} className={cn('flex flex-wrap items-center gap-x-2.5 gap-y-1 py-1.5 pr-2 pl-3', index > 0 && 'border-t')}>
                       <StateIcon group={issue.state?.group} color={issue.state?.color} className="size-3.5" />
-                      <span className="w-14 shrink-0 font-mono text-xs text-muted-foreground">{issue.code}</span>
+                      <span className="min-w-14 shrink-0 font-mono text-xs whitespace-nowrap text-muted-foreground">{issue.code}</span>
                       <span className="min-w-0 flex-[1_1_8rem] truncate text-sm font-medium" title={issue.title}>
                         {issue.title}
                       </span>

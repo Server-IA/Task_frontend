@@ -37,8 +37,10 @@ export function usePlanningItem(kind, slug, projectId, id) {
 }
 
 /**
- * Mutaciones de ciclos/módulos. Cambiar sus issues afecta el avance, los listados de issues
- * (filtros ?cycle= / ?module=) y el detalle de cada issue (muestra su ciclo y módulos).
+ * Mutaciones de ciclos/módulos. Las fechas y las tareas de un ciclo mueven las estadísticas (burndown).
+ * Cambiar sus issues afecta el avance, los listados de issues (filtros ?cycle= / ?module=), el detalle de cada
+ * issue (muestra su ciclo y módulos), las historias y los demás ciclos/módulos (pasar una tarea del ciclo A al B
+ * la saca de A).
  */
 function usePlanningMutation(kind, slug, projectId, mutationFn, { touchesIssues = false } = {}) {
   const queryClient = useQueryClient()
@@ -48,10 +50,17 @@ function usePlanningMutation(kind, slug, projectId, mutationFn, { touchesIssues 
     onSuccess: (result) => {
       if (result?.id) queryClient.setQueryData(itemKey(result.id), result)
       queryClient.invalidateQueries({ queryKey: listKey(projectId) })
+      queryClient.invalidateQueries({ queryKey: ['stats', projectId] })
       if (touchesIssues) {
+        // Prefijo de todos los ciclos (o módulos), sin volver a pedir el que ya llegó en la respuesta
+        queryClient.invalidateQueries({
+          queryKey: [itemKey('')[0]],
+          predicate: (query) => query.queryKey[1] !== result?.id,
+        })
         queryClient.invalidateQueries({ queryKey: queryKeys.issuesOf(projectId) })
         queryClient.invalidateQueries({ queryKey: ['issue'] })
         queryClient.invalidateQueries({ queryKey: ['activity'] })
+        queryClient.invalidateQueries({ queryKey: queryKeys.stories(projectId) })
       }
     },
   })

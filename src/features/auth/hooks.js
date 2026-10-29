@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/api/queryKeys'
+import { withSessionLock } from '@/api/session'
+import { pendingInvitation } from '@/lib/pendingInvitation'
 import { tokenStorage } from '@/lib/tokenStorage'
+import { usePreferencesStore } from '@/stores/preferencesStore'
 import { useSessionStore } from '@/stores/sessionStore'
 import { authApi, userApi } from './api'
 
@@ -36,19 +39,28 @@ export function useVerifyEmail() {
   return useMutation({ mutationFn: authApi.verifyEmail })
 }
 
-/** Cierra la sesión en el backend (revoca el refresh token) y limpia todo en el navegador. */
+/**
+ * Cierra la sesión en el backend (revoca el refresh token) y limpia todo en el navegador, incluido lo que
+ * es de este usuario (último workspace, invitación pendiente). RequireAuth lleva al login sin recordar la
+ * página: el siguiente usuario no debe aterrizar en la del anterior.
+ */
 export function useLogout() {
   const clearSession = useSessionStore((state) => state.clearSession)
+  const setLastWorkspaceSlug = usePreferencesStore((state) => state.setLastWorkspaceSlug)
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async () => {
-      const refreshToken = tokenStorage.get()
-      if (refreshToken) {
-        await authApi.logout(refreshToken).catch(() => {})
-      }
-    },
+    // Bajo el mismo lock que el refresh: se revoca el token vigente, no uno que se esté rotando
+    mutationFn: () =>
+      withSessionLock(async () => {
+        const refreshToken = tokenStorage.get()
+        if (refreshToken) {
+          await authApi.logout(refreshToken).catch(() => {})
+        }
+      }),
     onSettled: () => {
-      clearSession()
+      clearSession({ loggedOut: true })
+      setLastWorkspaceSlug(null)
+      pendingInvitation.clear()
       queryClient.clear()
     },
   })

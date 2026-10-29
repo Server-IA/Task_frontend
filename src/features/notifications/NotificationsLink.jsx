@@ -13,6 +13,7 @@ export function NotificationsLink({ collapsed }) {
         to="/notifications"
         icon={Inbox}
         label="Bandeja"
+        ariaLabel={collapsed && count > 0 ? `Bandeja, ${label} sin leer` : undefined}
         collapsed={collapsed}
         badge={
           count > 0 && (
@@ -26,7 +27,7 @@ export function NotificationsLink({ collapsed }) {
         }
       />
       {collapsed && count > 0 && (
-        <span className="pointer-events-none absolute top-1 right-3 size-2 rounded-full bg-badge" aria-label={`${label} sin leer`} />
+        <span aria-hidden="true" className="pointer-events-none absolute top-1 right-3 size-2 rounded-full bg-badge" />
       )}
     </div>
   )

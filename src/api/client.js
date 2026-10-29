@@ -32,9 +32,15 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && original && !original._retried && !isAuthEndpoint) {
       original._retried = true
       try {
-        // Import dinámico para evitar el ciclo client ↔ session
-        const { refreshSession } = await import('@/api/session')
-        const accessToken = await refreshSession()
+        // Si otro refresh terminó mientras volaba esta petición, basta con reintentarla con el token nuevo
+        const sentToken = String(original.headers?.Authorization ?? '').replace(/^Bearer /, '')
+        const current = useSessionStore.getState().accessToken
+        let accessToken = current
+        if (!current || current === sentToken) {
+          // Import dinámico para evitar el ciclo client ↔ session
+          const { refreshSession } = await import('@/api/session')
+          accessToken = await refreshSession()
+        }
         original.headers.Authorization = `Bearer ${accessToken}`
         return api(original)
       } catch {

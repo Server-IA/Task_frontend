@@ -1,5 +1,7 @@
+import { useCallback, useEffect, useRef } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/api/queryKeys'
+import { flattenUniquePages } from '@/lib/pagination'
 import { notificationsApi } from './api'
 import { INBOX_TABS, markReadInPages } from './notificationParts'
 
@@ -25,16 +27,39 @@ export function useUnreadCount() {
   return useQuery({ ...countsQuery, select: (counts) => counts.unread })
 }
 
-/** @param {{ tab: keyof typeof INBOX_TABS }} options */
+/**
+ * Avisos de una pestaña por páginas («Cargar más»), sin repetidos.
+ * - No se consultan cada 30 s (eso recargaría todas las páginas cargadas): se recargan cuando el contador de
+ *   sin leer sube, es decir, cuando llegó algo.
+ * - En «No leídas», abrir un aviso lo marca leído solo en caché y el servidor ya no lo cuenta en sus páginas:
+ *   `loadMore` vuelve a pedir las páginas cargadas antes de la siguiente para no saltarse avisos.
+ * @param {{ tab: keyof typeof INBOX_TABS }} options
+ */
 export function useNotifications({ tab }) {
   const filter = INBOX_TABS[tab] ?? INBOX_TABS.unread
-  return useInfiniteQuery({
+  const query = useInfiniteQuery({
     queryKey: queryKeys.notifications({ tab }),
     queryFn: ({ pageParam }) => notificationsApi.list({ ...filter, page: pageParam, size: PAGE_SIZE }),
     initialPageParam: 0,
     getNextPageParam: (lastPage) => (lastPage.last ? undefined : lastPage.page + 1),
-    refetchInterval: 30_000,
   })
+  const { data, refetch, fetchNextPage } = query
+
+  const { data: unread } = useUnreadCount()
+  const previousUnread = useRef(unread)
+  useEffect(() => {
+    if (unread != null && previousUnread.current != null && unread > previousUnread.current) refetch()
+    previousUnread.current = unread
+  }, [unread, refetch])
+
+  const onlyUnread = Boolean(filter.unread)
+  const loadMore = useCallback(async () => {
+    const readLocally = data?.pages.some((page) => page.content?.some((notification) => notification.read))
+    if (onlyUnread && readLocally) await refetch()
+    return fetchNextPage()
+  }, [data, onlyUnread, refetch, fetchNextPage])
+
+  return { ...query, notifications: flattenUniquePages(data), loadMore }
 }
 
 function useNotificationMutation(mutationFn) {

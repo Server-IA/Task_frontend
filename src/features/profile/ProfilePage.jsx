@@ -1,5 +1,4 @@
 import { useEffect } from 'react'
-import { useNavigate } from 'react-router'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { format, parseISO } from 'date-fns'
@@ -270,7 +269,6 @@ function ChangePasswordCard() {
 
 function SessionCard() {
   const logout = useLogout()
-  const navigate = useNavigate()
   return (
     <section
       aria-labelledby="sesion-titulo"
@@ -286,7 +284,7 @@ function SessionCard() {
         variant="outline"
         className="font-semibold text-late"
         disabled={logout.isPending}
-        onClick={() => logout.mutate(undefined, { onSettled: () => navigate('/login', { replace: true }) })}
+        onClick={() => logout.mutate()}
       >
         Cerrar sesión
       </Button>

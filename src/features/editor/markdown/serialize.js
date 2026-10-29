@@ -198,11 +198,30 @@ function serializeList(node, siblings, index) {
     .join('\n')
 }
 
+/** Bloques con texto directo (párrafo, título, código): el resto (listas, citas) contiene otros bloques. */
+const hasInlineContent = (block) => (block.content ?? []).some((child) => child.type === 'text' || child.type === 'mention' || child.type === 'hardBreak')
+
+/**
+ * Texto de un bloque dentro de una celda (una sola línea). El editor solo deja párrafos en las celdas; si llega otra
+ * cosa (una lista, una cita), se aplana en vez de perderla: «• uno • dos».
+ */
+function cellBlockText(block) {
+  if (!block.content?.length) return ''
+  if (hasInlineContent(block)) return serializeInline(block.content, { table: true })
+  return block.content
+    .map((child) => {
+      const text = cellBlockText(child)
+      return text && (child.type === 'listItem' || child.type === 'taskItem') ? `• ${text}` : text
+    })
+    .filter(Boolean)
+    .join(' ')
+}
+
 function serializeTable(node) {
   const rows = (node.content ?? []).map((row) =>
     (row.content ?? []).map((cell) =>
       (cell.content ?? [])
-        .map((block) => (block.content ? serializeInline(block.content, { table: true }) : ''))
+        .map(cellBlockText)
         .filter(Boolean)
         .join(' ')
         .trim(),
@@ -216,7 +235,8 @@ function serializeTable(node) {
 
 function serializeCode(node) {
   const value = (node.content ?? []).map((child) => child.text ?? '').join('')
-  const longest = Math.max(2, ...(value.match(/^`{3,}/gm) ?? []).map((run) => run.length))
+  // Una cerca se cierra con hasta 3 espacios delante (CommonMark): esas también cuentan
+  const longest = Math.max(2, ...(value.match(/^ {0,3}`{3,}/gm) ?? []).map((run) => run.trimStart().length))
   const fence = '`'.repeat(longest + 1)
   return `${fence}${node.attrs?.language ?? ''}\n${value}\n${fence}`
 }

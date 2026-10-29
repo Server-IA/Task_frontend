@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { markdownToDoc } from './parse'
 import { markdownToPlainText } from './plainText'
 import { docToMarkdown } from './serialize'
-import { listTaskItems, setTaskChecked, takeTaskItems } from './taskItems'
+import { listTaskItems, movedIndexes, numberTaskItems, setTaskChecked, takeTaskItems } from './taskItems'
 import { parseUserStory } from './userStory'
 
 const UUID = '0b6f6d2e-1c1a-4d4e-9a55-3f1f6a1b2c3d'
@@ -124,3 +124,37 @@ describe('Casillas de la descripción', () => {
     expect(docToMarkdown(doc)).toBe('')
   })
 })
+
+describe('Casillas: numeración y pasos que no se crearon', () => {
+  const markdown = '- [ ] A\n  - [ ] A1\n- [ ] B\n- [ ] C'
+
+  it('numberTaskItems numera en el orden del documento (la anidada antes que la hermana siguiente)', () => {
+    const doc = markdownToDoc(markdown)
+    const numbers = numberTaskItems(doc)
+    const byText = Object.fromEntries([...numbers].map(([node, index]) => [node.content[0].content[0].text, index]))
+    expect(byText).toEqual({ A: 0, A1: 1, B: 2, C: 3 })
+    expect(listTaskItems(doc).map((item) => item.text)).toEqual(['A', 'A1', 'B', 'C'])
+  })
+
+  it('takeTaskItems dice de qué casilla salió cada paso', () => {
+    const { items, groups } = takeTaskItems(markdownToDoc(markdown), [0, 3])
+    expect(items.map((item) => item.text)).toEqual(['A', 'A1', 'C'])
+    expect(groups).toEqual([0, 0, 3])
+  })
+
+  it('movedIndexes: solo las casillas con todos sus pasos creados', () => {
+    const indexes = [0, 2, 3]
+    const groups = [0, 0, 2, 3]
+    expect(movedIndexes(indexes, groups, 4)).toEqual([0, 2, 3])
+    expect(movedIndexes(indexes, groups, 3)).toEqual([0, 2])
+    // A creada pero A1 no: A se queda en la descripción (con A1)
+    expect(movedIndexes(indexes, groups, 1)).toEqual([])
+    expect(movedIndexes(indexes, groups, 0)).toEqual([])
+  })
+
+  it('si se crearon todos, también se quitan las casillas vacías', () => {
+    const { groups } = takeTaskItems(markdownToDoc('- [ ] A\n- [ ] \n- [ ] B'), [0, 1, 2])
+    expect(movedIndexes([0, 1, 2], groups, groups.length)).toEqual([0, 1, 2])
+  })
+})
+

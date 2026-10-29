@@ -66,12 +66,11 @@ export function NotificationsPage() {
   const navigate = useNavigate()
   const tab = inboxTab(searchParams.get('tab'))
   const opened = openedIssueFromParams(searchParams)
-  const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useNotifications({ tab })
+  const { notifications, isLoading, error, refetch, loadMore, hasNextPage, isFetchingNextPage } = useNotifications({ tab })
   const { data: counts } = useNotificationCounts()
   const unreadCount = counts?.unread ?? 0
   const markAll = useMarkAllAsRead()
   const markAsRead = useMarkAsRead()
-  const notifications = data?.pages.flatMap((page) => page.content) ?? []
   const empty = EMPTY[tab]
   const rootRef = useRef(null)
   const split = useElementWidth(rootRef, 0) >= SPLIT_MIN_WIDTH
@@ -199,7 +198,7 @@ export function NotificationsPage() {
           ))}
           {hasNextPage && (
             <div className="flex justify-center">
-              <Button variant="outline" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+              <Button variant="outline" onClick={() => loadMore()} disabled={isFetchingNextPage}>
                 {isFetchingNextPage && <Spinner />}
                 Cargar más
               </Button>
@@ -239,6 +238,7 @@ function OpenedIssue({ opened, onClose, onOpenIssue }) {
   return (
     <div className="tf-fade h-full min-h-0">
       <IssueDetailWithExtras
+        key={opened.issueId}
         slug={opened.slug}
         project={project}
         issueId={opened.issueId}

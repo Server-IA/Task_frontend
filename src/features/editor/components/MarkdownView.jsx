@@ -8,7 +8,7 @@ import { highlightCode } from '../highlight'
 import { safeHref } from '../markdown/links'
 import { markdownToDoc } from '../markdown/parse'
 import { collectTaskCodes, splitTaskRefs } from '../markdown/taskRefs'
-import { taskItemText } from '../markdown/taskItems'
+import { numberTaskItems, taskItemText } from '../markdown/taskItems'
 import { parseUserStory } from '../markdown/userStory'
 import { useTaskRefs } from '../taskRefs'
 
@@ -43,9 +43,10 @@ export function MarkdownView({
   const codes = useMemo(() => collectTaskCodes(doc), [doc])
   const refs = useTaskRefs(slug, codes)
   const me = useSessionStore((state) => state.user?.id)
+  // Número de cada casilla en el orden del documento (el mismo que usan setTaskChecked y takeTaskItems)
+  const taskNumbers = useMemo(() => numberTaskItems(doc), [doc])
 
-  // Contador de casillas en el orden del documento (el mismo que usan setTaskChecked y takeTaskItems)
-  const ctx = { refs, slug, projectId, onOpenIssue, onToggleTask, onMoveTasks, me, size, tasks: { next: 0 } }
+  const ctx = { refs, slug, projectId, onOpenIssue, onToggleTask, onMoveTasks, me, size, taskNumbers }
   return (
     <div className={cn('tf-md', size === 'sm' && 'tf-md-sm', className)} {...props}>
       {renderBlocks(doc.content, ctx)}
@@ -73,11 +74,8 @@ function renderBlock(node, ctx) {
       return <li>{renderBlocks(node.content, ctx)}</li>
     case 'taskList':
       return <ul className="tf-md-tasks">{renderBlocks(node.content, ctx)}</ul>
-    case 'taskItem': {
-      const index = ctx.tasks.next
-      ctx.tasks.next += 1
-      return <TaskItemView node={node} index={index} ctx={ctx} />
-    }
+    case 'taskItem':
+      return <TaskItemView node={node} index={ctx.taskNumbers.get(node) ?? -1} ctx={ctx} />
     case 'blockquote': {
       const story = parseUserStory(node)
       if (story) return <UserStoryCard story={story} size={ctx.size} textLength={textLength(node)} />

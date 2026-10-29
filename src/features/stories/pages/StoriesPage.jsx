@@ -370,7 +370,7 @@ function StoryRowItem({ row, manager, expanded, onToggle, onOpen, active, button
         </button>
         <div className="flex min-w-0 items-start gap-2.5">
           <TypeIcon type="STORY" className="mt-0.5" />
-          <span className="mt-0.5 w-14 shrink-0 font-mono text-xs text-muted-foreground">{story.code}</span>
+          <span className="mt-0.5 min-w-14 shrink-0 font-mono text-xs whitespace-nowrap text-muted-foreground">{story.code}</span>
           <div className="flex min-w-0 flex-col gap-1">
             <span className="truncate text-sm font-semibold">{story.title}</span>
             <span className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
@@ -474,7 +474,7 @@ function ChildRow({ child, onOpen }) {
     >
       <TypeIcon type={typeOf(child)} size={14} />
       <StateIcon group={child.state?.group} color={child.state?.color} />
-      <span className="w-14 shrink-0 font-mono text-xs text-muted-foreground">{child.code}</span>
+      <span className="min-w-14 shrink-0 font-mono text-xs whitespace-nowrap text-muted-foreground">{child.code}</span>
       <span className={cn('min-w-0 flex-1 truncate', done && 'text-muted-foreground line-through')}>{child.title}</span>
       {child.afterClose && <span className="shrink-0 font-mono text-[11px] font-semibold text-late">después de cerrar</span>}
       <span className="w-24 shrink-0 text-xs text-muted-foreground">{child.state?.name}</span>

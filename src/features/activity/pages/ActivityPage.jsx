@@ -15,6 +15,7 @@ import { useProjects } from '@/features/projects/hooks'
 import { useCurrentWorkspace, useMembers } from '@/features/workspaces/hooks'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { formatDateTime, formatRelative, groupByDay } from '@/lib/dates'
+import { flattenUniquePages } from '@/lib/pagination'
 import { workspacePath } from '@/lib/paths'
 import { cn } from '@/lib/utils'
 import { SingleFilter } from '../components/SingleFilter'
@@ -47,7 +48,7 @@ export function ActivityPage() {
   const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useWorkspaceActivity(slug, filters)
   const { data: projects = [] } = useProjects(slug)
   const { data: members = [] } = useMembers(slug)
-  const entries = useMemo(() => data?.pages.flatMap((page) => page.content) ?? [], [data])
+  const entries = useMemo(() => flattenUniquePages(data), [data])
   const days = groupByDay(entries, (entry) => entry.createdAt)
   const feedProjectIds = useMemo(() => [...new Set(entries.map((entry) => entry.project?.id).filter(Boolean))], [entries])
   const stateGroups = useStateGroups(slug, feedProjectIds)

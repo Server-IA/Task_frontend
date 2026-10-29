@@ -270,7 +270,7 @@ function PlanningIssues({ kind, slug, projectId, item, issues, isLoading, onOpen
             <li key={issue.id} className="group flex items-center gap-3 border-t px-4 py-2 hover:bg-subtle">
               <button type="button" onClick={() => onOpenIssue(issue.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
                 <StateIcon group={issue.state?.group} color={issue.state?.color} />
-                <span className="w-16 shrink-0 font-mono text-xs text-muted-foreground">{issue.code}</span>
+                <span className="min-w-16 shrink-0 font-mono text-xs whitespace-nowrap text-muted-foreground">{issue.code}</span>
                 <span className={cn('min-w-0 flex-1 truncate text-sm font-medium', closed && 'text-muted-foreground line-through')}>
                   {issue.title}
                 </span>

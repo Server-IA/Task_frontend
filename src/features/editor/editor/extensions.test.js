@@ -3,6 +3,7 @@ import { Editor } from '@tiptap/core'
 import { TextSelection } from '@tiptap/pm/state'
 import { docToMarkdown } from '../markdown/serialize'
 import { buildExtensions, exitMark } from './extensions'
+import { findText } from './findText'
 
 let editor
 afterEach(() => editor?.destroy())
@@ -63,3 +64,28 @@ describe('salir de una marca con →', () => {
     expect(markdown()).toBe('corre `npm ci`\n\nsiguiente')
   })
 })
+
+describe('tablas', () => {
+  it('una celda solo admite párrafos: una lista pegada queda como texto y se guarda', () => {
+    setup('<table><tr><th>Col</th></tr><tr><td><ul><li>uno</li><li>dos</li></ul></td></tr></table>')
+    const cell = editor.getJSON().content[0].content[1].content[0]
+    expect(cell.content.every((block) => block.type === 'paragraph')).toBe(true)
+    expect(markdown()).toContain('uno')
+    expect(markdown()).toContain('dos')
+  })
+})
+
+describe('findText (deshacer «Crear subtarea»)', () => {
+  it('encuentra el código como palabra suelta, no dentro de otro más largo', () => {
+    setup('<p>Ver TF-12 y luego TF-1.</p>')
+    const range = findText(editor.state.doc, 'TF-1')
+    expect(editor.state.doc.textBetween(range.from, range.to)).toBe('TF-1')
+    expect(range.from).toBe(editor.state.doc.textContent.indexOf('TF-1.') + 1)
+  })
+
+  it('sin aparición suelta devuelve null', () => {
+    setup('<p>Solo TF-12 y XTF-1</p>')
+    expect(findText(editor.state.doc, 'TF-1')).toBeNull()
+  })
+})
+

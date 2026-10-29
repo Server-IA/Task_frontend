@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { Bug } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState, ErrorState } from '@/components/common/States'
@@ -5,7 +6,9 @@ import { cn } from '@/lib/utils'
 import { BOARD_PAGE_SIZE, PRIORITY_LABELS } from '../constants'
 import { useIssues } from '../hooks'
 import { bugGroups } from '../issueTypes'
+import { useCriteriaGuard } from '../useCriteriaGuard'
 import { useIssueUpdater } from '../useIssueHelpers'
+import { closedStoryActions, useStoryClosedGuard } from '../useStoryClosedGuard'
 import { BlockedChip } from './IssueBadges'
 import { ParentStoryChip, TypeIcon } from './IssueTypeBits'
 import { PriorityIcon } from './PriorityIcon'
@@ -32,6 +35,8 @@ export function BugsView({ slug, project, meta, filters, openIssue, openIssueId 
     size: BOARD_PAGE_SIZE,
   }
   const { data, isLoading, error, refetch } = useIssues(slug, project.id, params, { enabled: meta.states.length > 0 })
+  const { guard, dialog: criteriaDialog } = useCriteriaGuard()
+  const { onStoryClosed, dialog: storyClosedDialog } = useStoryClosedGuard(slug)
 
   if (isLoading || meta.states.length === 0) {
     return (
@@ -85,18 +90,23 @@ export function BugsView({ slug, project, meta, filters, openIssue, openIssueId 
                 first={index === 0}
                 active={bug.id === openIssueId}
                 openIssue={openIssue}
+                guard={guard}
+                onStoryClosed={onStoryClosed}
               />
             ))}
           </ul>
         </section>
       ))}
+      {criteriaDialog}
+      {storyClosedDialog}
     </div>
   )
 }
 
-function BugRow({ bug, slug, project, meta, triage, first, active, openIssue }) {
+const stop = (event) => event.stopPropagation()
+
+const BugRow = memo(function BugRow({ bug, slug, project, meta, triage, first, active, openIssue, guard, onStoryClosed }) {
   const { update } = useIssueUpdater(slug, project.id, bug.id)
-  const stop = (event) => event.stopPropagation()
   const unassigned = !bug.assignees?.length
   const noPriority = !bug.priority || bug.priority === 'NONE'
   return (
@@ -116,12 +126,21 @@ function BugRow({ bug, slug, project, meta, triage, first, active, openIssue }) 
           <StatePicker
             states={meta.states}
             value={bug.state?.id}
-            onChange={(stateId) => update({ stateId })}
+            onChange={(stateId) => {
+              // Como en la lista y el tablero: completar con criterios sin marcar se confirma antes
+              const state = meta.states.find((item) => item.id === stateId)
+              guard(bug, state, () =>
+                update(
+                  { stateId },
+                  { onError: onStoryClosed(bug, closedStoryActions.move(bug, state), () => update({ stateId, reopenParent: true })) },
+                ),
+              )
+            }}
             showLabel={false}
             className="px-1"
           />
         </span>
-        <span className="w-14 shrink-0 font-mono text-xs text-muted-foreground">{bug.code}</span>
+        <span className="min-w-14 shrink-0 font-mono text-xs whitespace-nowrap text-muted-foreground">{bug.code}</span>
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{bug.title}</span>
         <BlockedChip issue={bug} codes="inline" />
         {bug.parent?.type === 'STORY' && <ParentStoryChip parent={bug.parent} label="apareció en" onOpen={openIssue} />}
@@ -147,4 +166,4 @@ function BugRow({ bug, slug, project, meta, triage, first, active, openIssue }) 
       </div>
     </li>
   )
-}
+})

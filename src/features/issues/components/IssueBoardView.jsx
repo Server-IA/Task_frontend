@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   closestCenter,
@@ -23,14 +23,14 @@ import { ErrorState } from '@/components/common/States'
 import { StateIcon } from '@/components/common/StateIcon'
 import { useStories } from '@/features/stories/hooks'
 import { findColumn, getNeighbors, groupByState, sortOrderBetween } from '@/lib/kanban'
-import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { BOARD_GROUP_STORY, BOARD_PAGE_SIZE } from '../constants'
 import { useIssues, useMoveIssue } from '../hooks'
 import { needsCriteriaConfirm } from '../issueFlags'
-import { storyFlags, storyLanes, storyProgress } from '../issueTypes'
+import { isStory, storyFlags, storyLanes, storyProgress } from '../issueTypes'
 import { useCriteriaGuard } from '../useCriteriaGuard'
 import { isClosed, useIssueUpdater } from '../useIssueHelpers'
+import { closedStoryActions, useStoryClosedGuard } from '../useStoryClosedGuard'
 import { BlockedChip, BlockingChip, ChecklistChip } from './IssueBadges'
 import { BugCountBadge, IssueTypeIcon, ParentStoryChip, ReadyBadge, StoryProgress, TypeIcon } from './IssueTypeBits'
 import { AssigneesPicker, DatePicker, LabelsPicker, PriorityPicker } from './PropertyPickers'
@@ -46,6 +46,11 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
   const laned = groupBy === BOARD_GROUP_STORY
   const { data: stories } = useStories(slug, project.id, { enabled: laned })
   const issues = useMemo(() => data?.content ?? [], [data])
+  // Memorizados: si cada render armara carriles nuevos, sus columnas se recalcularían y una tarjeta recién soltada
+  // volvería un instante a su lugar
+  const lanes = useMemo(() => (laned ? storyLanes(issues, stories ?? []) : []), [laned, issues, stories])
+  // Mover una tarea de una historia cerrada a un estado abierto: 409 STORY_CLOSED → la tarjeta vuelve y se pregunta
+  const { onStoryClosed, dialog: storyClosedDialog } = useStoryClosedGuard(slug)
 
   if (isLoading) {
     return (
@@ -64,18 +69,18 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
       Se muestran {BOARD_PAGE_SIZE} de {data.totalElements} tareas. Usa los filtros o la vista de lista para ver el resto.
     </div>
   )
-  const common = { slug, project, meta, openIssue }
+  const common = { slug, project, meta, openIssue, onStoryClosed }
 
   if (!laned) {
     return (
       <div className="tf-fade flex h-full min-h-0 flex-col">
         {tooMany}
         <BoardColumns issues={issues} {...common} onCreateInState={onCreateInState} />
+        {storyClosedDialog}
       </div>
     )
   }
 
-  const lanes = storyLanes(issues, stories ?? [])
   const countOf = (stateId) => issues.filter((issue) => issue.state?.id === stateId).length
   return (
     <div className="tf-fade flex h-full min-h-0 flex-col">
@@ -102,12 +107,13 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
           {lanes.map((lane) => (lane.story || lane.issues.length > 0 ? <StoryLane key={lane.key} lane={lane} {...common} /> : null))}
         </div>
       </div>
+      {storyClosedDialog}
     </div>
   )
 }
 
 /** Un carril del tablero agrupado por historia: su encabezado (plegable) y sus columnas. */
-function StoryLane({ lane, slug, project, meta, openIssue }) {
+function StoryLane({ lane, slug, project, meta, openIssue, onStoryClosed }) {
   const { story } = lane
   const flags = story ? storyFlags(story) : null
   // Las historias listas para revisar (y las cerradas) empiezan plegadas en una línea
@@ -160,7 +166,15 @@ function StoryLane({ lane, slug, project, meta, openIssue }) {
       </header>
       {open && (
         <div className="mt-1.5">
-          <BoardColumns issues={lane.issues} slug={slug} project={project} meta={meta} openIssue={openIssue} inLane />
+          <BoardColumns
+            issues={lane.issues}
+            slug={slug}
+            project={project}
+            meta={meta}
+            openIssue={openIssue}
+            onStoryClosed={onStoryClosed}
+            inLane
+          />
         </div>
       )}
     </section>
@@ -171,7 +185,7 @@ function StoryLane({ lane, slug, project, meta, openIssue }) {
  * Las columnas (una por estado) con sus tarjetas y el arrastre. En un carril (`inLane`) no llevan encabezado (va
  * arriba, una sola vez) y una columna vacía se ve como un hueco punteado.
  */
-function BoardColumns({ issues, slug, project, meta, openIssue, onCreateInState, inLane = false }) {
+function BoardColumns({ issues, slug, project, meta, openIssue, onStoryClosed, onCreateInState, inLane = false }) {
   const move = useMoveIssue(slug, project.id)
   const issuesById = useMemo(() => Object.fromEntries(issues.map((issue) => [issue.id, issue])), [issues])
   const serverColumns = useMemo(() => groupByState(issues, meta.states), [issues, meta.states])
@@ -235,7 +249,8 @@ function BoardColumns({ issues, slug, project, meta, openIssue, onCreateInState,
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    // Solo Espacio levanta la tarjeta: Enter la abre (como dice la barra de atajos)
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates, keyboardCodes: KEYBOARD_CODES }),
   )
 
   const columnOf = (id, source = columns) =>
@@ -298,13 +313,22 @@ function BoardColumns({ issues, slug, project, meta, openIssue, onCreateInState,
       others.length ? Math.max(...others) : null,
     )
     const state = meta.states.find((item) => item.id === targetState)
-    const commit = () => {
+    const commit = (extra) => {
       setAwaitingConfirm(false)
       // Lo que haya en caché ahora (pudo recargarse mientras se confirmaba): el cambio optimista lo reemplaza
       setSettlingFrom(serverColumnsRef.current)
+      // Si falla, useMoveIssue devuelve la tarjeta a su columna; si fue por una historia cerrada, se pregunta si
+      // se reabre y se reintenta
       move.mutate(
-        { issueId: active.id, stateId: targetState, afterIssueId, beforeIssueId, state, sortOrder },
-        { onError: (moveError) => notifyError(moveError, 'No se pudo mover la tarea') },
+        { issueId: active.id, stateId: targetState, afterIssueId, beforeIssueId, state, sortOrder, ...extra },
+        {
+          onError: onStoryClosed(
+            issue,
+            closedStoryActions.move(issue, state),
+            () => commit({ reopenParent: true }),
+            'No se pudo mover la tarea',
+          ),
+        },
       )
     }
     if (issue.state.id !== targetState && needsCriteriaConfirm(issue, state)) {
@@ -365,8 +389,21 @@ function BoardColumns({ issues, slug, project, meta, openIssue, onCreateInState,
   )
 }
 
-function BoardColumn({ state, ids, issuesById, slug, project, meta, openIssue, onCreate, inLane }) {
+/** Las teclas del arrastre con teclado: sin Enter para empezar (abre la tarea). */
+const KEYBOARD_CODES = { start: ['Space'], cancel: ['Escape'], end: ['Space', 'Enter'] }
+
+/**
+ * Los mismos ids mientras no cambie su contenido: SortableContext avisa a todas sus tarjetas cuando cambia el
+ * arreglo, y reagrupar (por ejemplo al guardar la descripción de una tarea) arma arreglos nuevos.
+ */
+function useStableIds(ids) {
+  const key = ids.join('|')
+  return useMemo(() => (key ? key.split('|') : []), [key])
+}
+
+function BoardColumn({ state, ids: currentIds, issuesById, slug, project, meta, openIssue, onCreate, inLane }) {
   const { setNodeRef, isOver } = useDroppable({ id: `column:${state.id}` })
+  const ids = useStableIds(currentIds)
 
   if (inLane) {
     return (
@@ -424,8 +461,15 @@ function BoardColumn({ state, ids, issuesById, slug, project, meta, openIssue, o
   )
 }
 
-function SortableIssueCard({ issue, openIssue, ...props }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: issue.id })
+/**
+ * Tarjeta arrastrable. Memorizada (como `IssueCard`): al reemplazarse una tarea en la caché solo se vuelve a pintar
+ * su tarjeta. Las historias no se arrastran: su estado sigue a sus tareas y cerrarlas es del project manager.
+ */
+const SortableIssueCard = memo(function SortableIssueCard({ issue, openIssue, ...props }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: issue.id,
+    disabled: isStory(issue),
+  })
   return (
     <div
       ref={setNodeRef}
@@ -446,14 +490,14 @@ function SortableIssueCard({ issue, openIssue, ...props }) {
       <IssueCard issue={issue} {...props} />
     </div>
   )
-}
+})
 
 /** Evita que los selectores de la tarjeta inicien el arrastre o abran el detalle. */
 const stop = (event) => event.stopPropagation()
 const revealOnHover =
   'opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100'
 
-function IssueCard({ issue, slug, project, meta, overlay = false, inLane = false }) {
+const IssueCard = memo(function IssueCard({ issue, slug, project, meta, overlay = false, inLane = false }) {
   const { update } = useIssueUpdater(slug, project.id, issue.id)
   const hasLabels = issue.labels?.length > 0
   // En un carril la historia ya está en el encabezado
@@ -462,7 +506,8 @@ function IssueCard({ issue, slug, project, meta, overlay = false, inLane = false
   return (
     <article
       className={cn(
-        'group flex cursor-grab flex-col gap-2.5 rounded-xl border bg-card p-3 shadow-card transition-[box-shadow,border-color] duration-200 hover:border-dash hover:shadow-md active:cursor-grabbing',
+        'group flex flex-col gap-2.5 rounded-xl border bg-card p-3 shadow-card transition-[box-shadow,border-color] duration-200 hover:border-dash hover:shadow-md',
+        isStory(issue) ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing',
         overlay && 'cursor-grabbing shadow-xl ring-1 ring-foreground/10',
       )}
     >
@@ -522,4 +567,4 @@ function IssueCard({ issue, slug, project, meta, overlay = false, inLane = false
       </div>
     </article>
   )
-}
+})

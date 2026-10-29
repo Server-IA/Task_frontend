@@ -55,6 +55,19 @@ export function applyTemplate(values, template, { previous = null, base }) {
 }
 
 /**
+ * Si la descripción se editó después de aplicar la plantilla: cambiar de plantilla (o quitarla) la reemplaza por otra,
+ * y «Deshacer» solo vuelve a la de antes de la primera plantilla. Sin plantilla aplicada no se pierde nada.
+ * @param {string} description descripción actual
+ * @param {IssueTemplate | null} template plantilla aplicada
+ * @param {TemplateFields | null} base valores de antes de aplicar la primera plantilla
+ */
+export function descriptionEditedSinceTemplate(description, template, base) {
+  if (!template) return false
+  const applied = template.description ?? base?.description ?? ''
+  return (description ?? '').trim() !== applied.trim()
+}
+
+/**
  * Qué valores del formulario siguen siendo los de la plantilla (para el punto dorado de cada pastilla): solo los
  * que la plantilla fija y nadie cambió después.
  * @param {IssueTemplate | null} template

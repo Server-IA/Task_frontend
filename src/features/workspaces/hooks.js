@@ -2,10 +2,49 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router'
 import { queryKeys } from '@/api/queryKeys'
 import { isManager } from '@/lib/permissions'
+import { usePreferencesStore } from '@/stores/preferencesStore'
+import { useSessionStore } from '@/stores/sessionStore'
 import { invitationsApi, workspacesApi } from './api'
 
 export function useWorkspaces() {
   return useQuery({ queryKey: queryKeys.workspaces, queryFn: workspacesApi.list })
+}
+
+/**
+ * Último workspace abierto, solo si el usuario sigue siendo miembro (fuera de un workspace, como en el
+ * perfil o la Bandeja, el menú lateral y la paleta lo usan para sus enlaces).
+ */
+export function useLastWorkspaceSlug() {
+  const lastWorkspaceSlug = usePreferencesStore((state) => state.lastWorkspaceSlug)
+  const { data: workspaces } = useWorkspaces()
+  if (!lastWorkspaceSlug || !workspaces) return null
+  return workspaces.some((workspace) => workspace.slug === lastWorkspaceSlug) ? lastWorkspaceSlug : null
+}
+
+/**
+ * Quita del caché un workspace que el usuario ya no puede abrir (lo eliminó o salió de él) antes de
+ * navegar: si no, «/» elegiría el listado viejo y lo mandaría de vuelta al mismo workspace.
+ */
+export function forgetWorkspace(queryClient, slug) {
+  queryClient.setQueryData(queryKeys.workspaces, (list) => list?.filter((workspace) => workspace.slug !== slug))
+  for (const key of [
+    queryKeys.workspace(slug),
+    queryKeys.members(slug),
+    queryKeys.invitations(slug),
+    queryKeys.projects(slug),
+    ['project', slug],
+    ['myWork', slug],
+    queryKeys.workspaceActivityOf(slug),
+    ['search', slug],
+  ]) {
+    queryClient.removeQueries({ queryKey: key })
+  }
+  if (usePreferencesStore.getState().lastWorkspaceSlug === slug) {
+    usePreferencesStore.getState().setLastWorkspaceSlug(null)
+  }
+  queryClient.invalidateQueries({ queryKey: queryKeys.workspaces })
+  // Notificaciones de ese workspace
+  queryClient.invalidateQueries({ queryKey: queryKeys.notificationsAll })
 }
 
 export function useWorkspace(slug) {
@@ -54,10 +93,7 @@ export function useDeleteWorkspace(slug) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: () => workspacesApi.remove(slug),
-    onSuccess: () => {
-      queryClient.removeQueries({ queryKey: queryKeys.workspace(slug) })
-      queryClient.invalidateQueries({ queryKey: queryKeys.workspaces })
-    },
+    onSuccess: () => forgetWorkspace(queryClient, slug),
   })
 }
 
@@ -81,7 +117,12 @@ export function useRemoveMember(slug) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (userId) => workspacesApi.removeMember(slug, userId),
-    onSuccess: () => {
+    onSuccess: (_, userId) => {
+      // Salir del workspace es quitarse a uno mismo
+      if (userId === useSessionStore.getState().user?.id) {
+        forgetWorkspace(queryClient, slug)
+        return
+      }
       queryClient.invalidateQueries({ queryKey: queryKeys.members(slug) })
       queryClient.invalidateQueries({ queryKey: queryKeys.workspaces })
     },

@@ -7,7 +7,7 @@ import { CenteredSpinner, Spinner } from '@/components/common/Loaders'
 import { useLogout } from '@/features/auth/hooks'
 import { AuthCard, AuthHeader, AuthIcon, CenteredShell } from '@/layouts/AuthLayout'
 import { formatRelative } from '@/lib/dates'
-import { getErrorMessage } from '@/lib/errors'
+import { getErrorMessage, toApiError } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { pendingInvitation } from '@/lib/pendingInvitation'
 import { ROLE_LABELS } from '@/lib/permissions'
@@ -36,8 +36,17 @@ export function InvitationPage() {
 
   // Sin sesión: se recuerda la invitación para volver aquí después de registrarse o iniciar sesión
   useEffect(() => {
-    if (invitation && !isAuthenticated) pendingInvitation.set(token)
+    if (invitation && !isAuthenticated) pendingInvitation.set(token, invitation.expiresAt)
   }, [invitation, isAuthenticated, token])
+
+  // Invitación inválida (revocada, vencida, ya usada) o para otro correo: no se vuelve a ella en cada login.
+  // «Cambiar de cuenta» la vuelve a guardar.
+  const errorStatus = error ? toApiError(error).status : 0
+  const invalid = errorStatus >= 400 && errorStatus < 500
+  const otherAccount = isAuthenticated && invitation && user && !emailMatches
+  useEffect(() => {
+    if (invalid || otherAccount) pendingInvitation.clear()
+  }, [invalid, otherAccount])
 
   const meta = isAuthenticated ? (
     <span className="font-sans text-[13px]">
@@ -152,7 +161,9 @@ export function InvitationPage() {
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => logout.mutate(undefined, { onSettled: () => pendingInvitation.set(token) })}
+                onClick={() =>
+                  logout.mutate(undefined, { onSettled: () => pendingInvitation.set(token, invitation.expiresAt) })
+                }
               >
                 Cambiar de cuenta
               </Button>

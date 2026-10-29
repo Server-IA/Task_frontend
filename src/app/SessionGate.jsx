@@ -1,7 +1,10 @@
 import { useEffect } from 'react'
 import { Outlet } from 'react-router'
+import { WifiOff } from 'lucide-react'
 import { listenToOtherTabs, restoreSession } from '@/api/session'
+import { Button } from '@/components/ui/button'
 import { FullScreenLoader } from '@/components/common/Loaders'
+import { EmptyState } from '@/components/common/States'
 import { useSessionStore } from '@/stores/sessionStore'
 
 // Fuera del componente: en desarrollo StrictMode monta los efectos dos veces y el refresh
@@ -21,5 +24,29 @@ export function SessionGate() {
   }, [])
 
   if (status === 'loading') return <FullScreenLoader />
+  if (status === 'offline') return <OfflineScreen />
   return <Outlet />
+}
+
+/** El backend no respondió al abrir la app: se conserva la sesión y se reintenta al volver la conexión. */
+function OfflineScreen() {
+  useEffect(() => {
+    const retry = () => restoreSession()
+    window.addEventListener('online', retry)
+    window.addEventListener('focus', retry)
+    return () => {
+      window.removeEventListener('online', retry)
+      window.removeEventListener('focus', retry)
+    }
+  }, [])
+
+  return (
+    <EmptyState
+      className="h-full"
+      icon={WifiOff}
+      title="Sin conexión con el servidor"
+      description="No pudimos recuperar tu sesión. Revisa tu conexión; reintentaremos cuando vuelva."
+      action={<Button onClick={() => restoreSession()}>Reintentar</Button>}
+    />
+  )
 }

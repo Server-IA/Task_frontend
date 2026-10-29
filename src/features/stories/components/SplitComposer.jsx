@@ -7,6 +7,7 @@ import { UserAvatar } from '@/components/common/UserAvatar'
 import { PRIORITIES, PRIORITY_LABELS } from '@/features/issues/constants'
 import { PriorityChip } from '@/features/issues/components/PriorityIcon'
 import { TypeIcon } from '@/features/issues/components/IssueTypeBits'
+import { useLocalEscape } from '@/hooks/useLocalEscape'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { useSplitStory } from '../hooks'
@@ -25,7 +26,15 @@ export function SplitComposer({ slug, project, story, members, onDone, onCancel 
   // Selector abierto (personas con «@», prioridades con «!») en la línea `lineId`
   const [picker, setPicker] = useState(null)
   const inputs = useRef(new Map())
+  const rootRef = useRef(null)
   const items = linesToItems(lines)
+
+  // Esc cierra el selector abierto o cancela, sin cerrar también el panel de la historia (Radix escucha Escape
+  // antes que el onKeyDown de React)
+  useLocalEscape(rootRef, () => {
+    if (picker) setPicker(null)
+    else onCancel()
+  })
 
   const focusLine = (id) => requestAnimationFrame(() => inputs.current.get(id)?.focus())
   const updateLine = (id, change) => setLines((current) => current.map((line) => (line.id === id ? { ...line, ...change } : line)))
@@ -93,13 +102,6 @@ export function SplitComposer({ slug, project, story, members, onDone, onCancel 
       choose(line, options[picker.active] ?? options[0])
       return
     }
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      event.stopPropagation()
-      if (picker) setPicker(null)
-      else onCancel()
-      return
-    }
     if (event.key === 'Enter') {
       event.preventDefault()
       const next = emptyLine(line.type)
@@ -127,7 +129,7 @@ export function SplitComposer({ slug, project, story, members, onDone, onCancel 
   const storyPriority = story.priority && story.priority !== 'NONE' ? PRIORITY_LABELS[story.priority].toLowerCase() : 'sin prioridad'
 
   return (
-    <div className="tf-pop flex flex-col rounded-[14px] border border-ring/60 bg-card shadow-card">
+    <div ref={rootRef} className="tf-pop flex flex-col rounded-[14px] border border-ring/60 bg-card shadow-card">
       <div className="flex items-center gap-2 border-b px-3.5 py-2.5">
         <GitBranch className="size-4 text-muted-foreground" aria-hidden="true" />
         <h3 className="text-sm font-semibold">Partir en tareas</h3>

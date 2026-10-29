@@ -9,10 +9,11 @@ import { useSessionStore } from '@/stores/sessionStore'
 import { normalizeHref } from '../markdown/links'
 import { markdownToDoc } from '../markdown/parse'
 import { docToMarkdown } from '../markdown/serialize'
-import { takeTaskItems } from '../markdown/taskItems'
+import { movedIndexes, takeTaskItems } from '../markdown/taskItems'
 import { isTaskCode } from '../markdown/taskRefs'
 import { BubbleBar } from './BubbleBar'
 import { buildExtensions, MENTION_KEY, SLASH_KEY } from './extensions'
+import { findText } from './findText'
 import { LinkPopover } from './LinkPopover'
 import { caretRect, popupPosition } from './popups'
 import { ShortcutsDialog } from './ShortcutsDialog'
@@ -69,20 +70,6 @@ function posFromTextIndex(doc, index) {
       else count += 1
     }
     return found == null
-  })
-  return found
-}
-
-/** Primer texto igual a `search` en el documento: su rango. */
-function findText(doc, search) {
-  let found = null
-  doc.descendants((node, pos) => {
-    if (found) return false
-    if (node.isText) {
-      const at = node.text.indexOf(search)
-      if (at >= 0) found = { from: pos + at, to: pos + at + search.length }
-    }
-    return true
   })
   return found
 }
@@ -335,14 +322,34 @@ export default function RichEditor({
     const indexes = taskIndexesIn(editor.state.doc, from, to)
     if (!indexes.length) return
     const before = editor.getJSON()
-    const { doc, items } = takeTaskItems(before, indexes)
+    const { doc, items, groups } = takeTaskItems(before, indexes)
     editor.commands.setContent(doc, { emitUpdate: true })
     editor.commands.focus()
     const after = editor.state.doc
-    // Si no se pudieron crear los pasos, las casillas vuelven (salvo que ya se haya escrito algo más)
-    Promise.resolve(onMoveTasks(items)).catch(() => {
-      if (!editor.isDestroyed && editor.state.doc.eq(after)) editor.commands.setContent(before, { emitUpdate: true })
-    })
+    // Las casillas cuyos pasos no se crearon vuelven: a su lugar si no se escribió nada más; si no, al final (para
+    // que no queden ni en la descripción ni en el checklist)
+    const restore = (moved) => {
+      const failed = indexes.filter((index) => !moved.includes(index))
+      if (!failed.length || editor.isDestroyed) return
+      if (editor.state.doc.eq(after)) {
+        editor.commands.setContent(takeTaskItems(before, moved).doc, { emitUpdate: true })
+        return
+      }
+      const back = takeTaskItems(before, failed).items
+      if (!back.length) return
+      editor.commands.insertContentAt(editor.state.doc.content.size, {
+        type: 'taskList',
+        content: back.map((item) => ({
+          type: 'taskItem',
+          attrs: { checked: item.checked },
+          content: [{ type: 'paragraph', content: [{ type: 'text', text: item.text }] }],
+        })),
+      })
+    }
+    Promise.resolve(onMoveTasks(items)).then(
+      (created) => restore(typeof created === 'number' ? movedIndexes(indexes, groups, created) : indexes),
+      () => restore([]),
+    )
   }
 
   const createSubtask = async () => {
