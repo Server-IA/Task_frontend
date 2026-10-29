@@ -50,20 +50,23 @@ export function PriorityIcon({ priority = 'NONE', className }) {
 }
 
 /** Pastilla con el ícono y el nombre en minúscula («alta»), como en las tarjetas del tablero. */
-export function PriorityChip({ priority = 'NONE', className }) {
+export function PriorityChip({ priority = 'NONE', iconOnlyWhenEmpty = false, className }) {
   const style = STYLES[priority] ?? STYLES.NONE
   const label = PRIORITY_LABELS[priority] ?? ''
+  // En espacios angostos (filas de la lista) «sin prioridad» no cabe: se deja solo el ícono
+  const iconOnly = iconOnlyWhenEmpty && priority === 'NONE'
   return (
     <span
       title={`Prioridad ${label.toLowerCase()}`}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-md py-0.5 pr-2 pl-1 font-mono text-[11.5px] font-semibold whitespace-nowrap',
+        'inline-flex items-center gap-1.5 rounded-md py-0.5 font-mono text-[11.5px] font-semibold whitespace-nowrap',
+        iconOnly ? 'px-1' : 'pr-2 pl-1',
         style.chip,
         className,
       )}
     >
       <PriorityIcon priority={priority} />
-      {label.toLowerCase()}
+      {iconOnly ? <span className="sr-only">{label}</span> : label.toLowerCase()}
     </span>
   )
 }

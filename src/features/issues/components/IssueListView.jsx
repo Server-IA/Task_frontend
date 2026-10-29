@@ -188,6 +188,7 @@ function IssueRow({ issue, slug, project, meta, openIssue, guard }) {
           <span className="w-24">
             <PriorityPicker
               chip
+              iconOnlyWhenEmpty
               value={issue.priority}
               onChange={(priority) => update({ priority })}
               className={cn(issue.priority === 'NONE' && revealOnHover)}

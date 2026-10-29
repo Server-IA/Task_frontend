@@ -122,7 +122,15 @@ export function StatePicker({ states = [], value, onChange, disabled, showLabel 
 }
 
 /** `chip`: muestra la pastilla de prioridad del diseño («▮▮▯ media») en lugar de solo el ícono. */
-export function PriorityPicker({ value = 'NONE', onChange, disabled, showLabel = true, chip = false, className }) {
+export function PriorityPicker({
+  value = 'NONE',
+  onChange,
+  disabled,
+  showLabel = true,
+  chip = false,
+  iconOnlyWhenEmpty = false,
+  className,
+}) {
   return (
     <OptionsPicker
       disabled={disabled}
@@ -137,7 +145,7 @@ export function PriorityPicker({ value = 'NONE', onChange, disabled, showLabel =
       trigger={
         chip ? (
           <PropertyButton className={cn('h-auto p-0 hover:bg-transparent hover:opacity-80', className)} aria-label="Prioridad">
-            <PriorityChip priority={value} />
+            <PriorityChip priority={value} iconOnlyWhenEmpty={iconOnlyWhenEmpty} />
           </PropertyButton>
         ) : (
           <PropertyButton className={className} aria-label="Prioridad">

@@ -86,10 +86,13 @@ export function applyViewToParams(previous, savedView) {
   return next
 }
 
-/** Parámetros de la URL sin vista guardada, filtros, búsqueda, orden ni agrupación («Todas»). */
+/**
+ * Parámetros de la URL sin vista guardada, filtros, búsqueda, orden ni agrupación («Todas»). También quita `view`:
+ * así vuelve a la lista o tablero que la persona eligió (su preferencia), no al que traía la vista guardada.
+ */
 export function clearViewParams(previous) {
   const next = new URLSearchParams(previous)
-  for (const key of [...VIEW_PARAMS, SAVED_VIEW_PARAM]) next.delete(key)
+  for (const key of [...VIEW_PARAMS, 'view', SAVED_VIEW_PARAM]) next.delete(key)
   return next
 }
 

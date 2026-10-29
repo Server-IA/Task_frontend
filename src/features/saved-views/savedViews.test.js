@@ -51,9 +51,9 @@ describe('vistas guardadas', () => {
     expect(next.get('savedView')).toBe('v1')
   })
 
-  it('«Todas» quita la vista, los filtros y el orden', () => {
-    const next = clearViewParams(new URLSearchParams('state=a&sort=title,asc&savedView=v1&view=board&issue=7'))
-    expect(next.toString()).toBe('view=board&issue=7')
+  it('«Todas» quita la vista, los filtros, el orden y la lista o tablero que traía la vista (vuelve a la preferencia)', () => {
+    const next = clearViewParams(new URLSearchParams('state=a&sort=title,asc&savedView=v1&view=list&issue=7'))
+    expect(next.toString()).toBe('issue=7')
   })
 
   it('resume los filtros con nombres legibles', () => {
@@ -124,7 +124,7 @@ describe('vistas guardadas', () => {
     expect(plain.get('cycle')).toBeNull()
     expect(plain.get('blocked')).toBeNull()
     expect(plain.get('groupBy')).toBeNull()
-    expect(clearViewParams(next).toString()).toBe('view=list')
+    expect(clearViewParams(next).toString()).toBe('')
   })
 
   it('resume ciclo, módulo, bloqueadas y agrupación', () => {
