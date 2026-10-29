@@ -1,0 +1,782 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+/* Tema oscuro por clase (.dark en <html>) */
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Tema de TaskFlow (diseño «Fusión B + C»): color principal crema, neutros cálidos,
+ * Bricolage Grotesque para títulos, Geist para la interfaz y Geist Mono para códigos y rutas.
+ * Además de las variables de shadcn/ui hay algunas propias (column, dash, accent-soft…).
+ */
+:root {
+  color-scheme: light;
+  --radius: 0.75rem;
+  --background: #f4f2ee;
+  --foreground: #23201b;
+  --card: #ffffff;
+  --card-foreground: #23201b;
+  --popover: #ffffff;
+  --popover-foreground: #23201b;
+  --primary: #e4cf9c;
+  --primary-foreground: #23201b;
+  --secondary: #f1eee8;
+  --secondary-foreground: #23201b;
+  --muted: #f1eee8;
+  --muted-foreground: #67615a;
+  --accent: #f1eee8;
+  --accent-foreground: #23201b;
+  --destructive: #b3261e;
+  --border: #e6e2da;
+  --input: #ddd8ce;
+  --ring: #b08a3a;
+
+  /* Propias */
+  --column: #eae7e1;
+  --subtle: #f8f7f4;
+  --dash: #c4bdb0;
+  --accent-soft: #f3e8cf;
+  --accent-text: #7a5c1e;
+  --badge: #e4cf9c;
+  --badge-foreground: #23201b;
+  --late: #a3271c;
+  --late-soft: #ffe4e0;
+  --soon: #7a5a00;
+  --soon-soft: #fff1d6;
+  --ok: #1d6b47;
+  --ok-dot: #2e9e6a;
+  --ok-soft: #e3f5ec;
+  --overlay: rgb(35 32 27 / 0.35);
+  --dot: #ddd8ce;
+  --card-shadow: 0 1px 2px rgb(35 32 27 / 0.05), 0 4px 12px rgb(35 32 27 / 0.05);
+  /* Gráficos: serie (dorado), línea de referencia (gris punteado) y cuadrícula (casi del color de la tarjeta) */
+  --chart-series: #9a7428;
+  --chart-ref: #9e978c;
+  --chart-grid: #efebe4;
+  /* Editor de descripciones: marco en lectura, selección, casilla marcada, tarjeta de historia y colores del código */
+  --md-frame: #fbfaf7;
+  --sel: #ebddb8;
+  --ok-box: #1d6b47;
+  --story: #fbf6ea;
+  --story-line: #eadbb8;
+  --code-key: #7a5c1e;
+  --code-str: #1d6b47;
+  /* Tipos de tarea: historia (violeta), tarea (azul) y bug (rojo); el glifo del icono va en blanco */
+  --ty-story: #7b5bd6;
+  --ty-story-soft: #efeafe;
+  --ty-story-text: #5b3fb8;
+  --ty-task: #2f78c4;
+  --ty-task-soft: #e1f0ff;
+  --ty-task-text: #1c4e86;
+  --ty-bug: #d93025;
+  --ty-bug-soft: #ffe4e0;
+  --ty-bug-text: #a3271c;
+  --ty-glyph: #ffffff;
+  /* Parte «en curso» de la barra de progreso de una historia */
+  --started: #d9700f;
+
+  --sidebar: #ece9e3;
+  --sidebar-foreground: #23201b;
+  --sidebar-muted: #67615a;
+  --sidebar-primary: #e4cf9c;
+  --sidebar-primary-foreground: #23201b;
+  --sidebar-accent: #e2ded6;
+  --sidebar-accent-foreground: #23201b;
+  --sidebar-active: #ffffff;
+  --sidebar-active-foreground: #23201b;
+  --sidebar-border: #dad5cb;
+  --sidebar-ring: #b08a3a;
+}
+
+.dark {
+  color-scheme: dark;
+  --background: #12110f;
+  --foreground: #f0ece4;
+  --card: #1b1917;
+  --card-foreground: #f0ece4;
+  --popover: #1f1d1a;
+  --popover-foreground: #f0ece4;
+  --primary: #ead9b0;
+  --primary-foreground: #12110f;
+  --secondary: #22201c;
+  --secondary-foreground: #f0ece4;
+  --muted: #22201c;
+  --muted-foreground: #a59e93;
+  --accent: #26231f;
+  --accent-foreground: #f0ece4;
+  --destructive: #e5484d;
+  --border: #2e2b27;
+  --input: #3a3631;
+  --ring: #ead9b0;
+
+  --column: #151412;
+  --subtle: #171513;
+  --dash: #45403a;
+  --accent-soft: #2e281c;
+  --accent-text: #e6d3a3;
+  --badge: #ead9b0;
+  --badge-foreground: #121212;
+  --late: #ff8a80;
+  --late-soft: #3d1a17;
+  --soon: #ffd27a;
+  --soon-soft: #3a2e10;
+  --ok: #86efac;
+  --ok-dot: #7ee2a8;
+  --ok-soft: #12291d;
+  --overlay: rgb(5 4 10 / 0.6);
+  --dot: #26231f;
+  --card-shadow: none;
+  --chart-series: #b08a3a;
+  --chart-ref: #6e685f;
+  --chart-grid: #24211d;
+  --md-frame: #201e1b;
+  --sel: #4a3f27;
+  --ok-box: #2e9e6a;
+  --story: #221e17;
+  --story-line: #3a3224;
+  --code-key: #e6d3a3;
+  --code-str: #7ee2a8;
+  --ty-story: #a893ff;
+  --ty-story-soft: #2a2340;
+  --ty-story-text: #cdbeff;
+  --ty-task: #6ab0f0;
+  --ty-task-soft: #14283a;
+  --ty-task-text: #9ccbf5;
+  --ty-bug: #ff6b61;
+  --ty-bug-soft: #3d1a17;
+  --ty-bug-text: #ff8a80;
+  --ty-glyph: #12110f;
+  --started: #f6a35c;
+
+  --sidebar: #0c0b0a;
+  --sidebar-foreground: #f0ece4;
+  --sidebar-muted: #a59e93;
+  --sidebar-primary: #ead9b0;
+  --sidebar-primary-foreground: #12110f;
+  --sidebar-accent: #1a1815;
+  --sidebar-accent-foreground: #f0ece4;
+  --sidebar-active: #2a2722;
+  --sidebar-active-foreground: #f0ece4;
+  --sidebar-border: #2e2b27;
+  --sidebar-ring: #ead9b0;
+}
+
+@theme inline {
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, 'SFMono-Regular', monospace;
+  --font-display: 'Bricolage Grotesque Variable', 'Geist Variable', ui-sans-serif, sans-serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 2px);
+  --radius-2xl: calc(var(--radius) + 6px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-column: var(--column);
+  --color-subtle: var(--subtle);
+  --color-dash: var(--dash);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-text: var(--accent-text);
+  --color-badge: var(--badge);
+  --color-badge-foreground: var(--badge-foreground);
+  --color-late: var(--late);
+  --color-late-soft: var(--late-soft);
+  --color-soon: var(--soon);
+  --color-soon-soft: var(--soon-soft);
+  --color-ok: var(--ok);
+  --color-ok-dot: var(--ok-dot);
+  --color-ok-soft: var(--ok-soft);
+  --color-overlay: var(--overlay);
+  --shadow-card: var(--card-shadow);
+  --color-chart-series: var(--chart-series);
+  --color-chart-ref: var(--chart-ref);
+  --color-chart-grid: var(--chart-grid);
+  --color-md-frame: var(--md-frame);
+  --color-sel: var(--sel);
+  --color-ok-box: var(--ok-box);
+  --color-story: var(--story);
+  --color-story-line: var(--story-line);
+  --color-ty-story: var(--ty-story);
+  --color-ty-story-soft: var(--ty-story-soft);
+  --color-ty-story-text: var(--ty-story-text);
+  --color-ty-task: var(--ty-task);
+  --color-ty-task-soft: var(--ty-task-soft);
+  --color-ty-task-text: var(--ty-task-text);
+  --color-ty-bug: var(--ty-bug);
+  --color-ty-bug-soft: var(--ty-bug-soft);
+  --color-ty-bug-text: var(--ty-bug-text);
+  --color-ty-glyph: var(--ty-glyph);
+  --color-started: var(--started);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-active-foreground: var(--sidebar-active-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html,
+  body,
+  #root {
+    @apply h-full;
+  }
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+  kbd {
+    @apply font-mono;
+  }
+  /* Barras de scroll discretas con los colores del tema */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--dash) transparent;
+  }
+}
+
+@layer components {
+  /* Ruta en monoespaciada sobre los títulos: «equipo-diseno / web / tareas» */
+  .tf-path {
+    @apply font-mono text-xs text-muted-foreground;
+  }
+  /* Títulos de página en Bricolage Grotesque */
+  .tf-title {
+    @apply font-display text-[2.125rem] leading-[1.05] font-extrabold tracking-[-0.02em];
+  }
+  /* Tarjeta base (encabezados, secciones) */
+  .tf-panel {
+    @apply rounded-2xl border bg-card text-card-foreground;
+  }
+}
+
+/*
+ * Texto con formato (descripciones, comentarios y esqueletos de plantillas). La vista de lectura (MarkdownView) y
+ * el editor (ProseMirror) usan las mismas reglas: al entrar a editar el texto no se mueve.
+ * .tf-md es el tamaño de la descripción; .tf-md-sm, el de los comentarios y los editores compactos.
+ */
+@layer components {
+  .tf-md {
+    font-size: 14.5px;
+    line-height: 1.65;
+    overflow-wrap: break-word;
+  }
+  .tf-md > :first-child {
+    margin-top: 0;
+  }
+  .tf-md > :last-child {
+    margin-bottom: 0;
+  }
+  .tf-md p {
+    margin: 0 0 12px;
+  }
+  .tf-md h1 {
+    margin: 24px 0 8px;
+    font-size: 21px;
+    line-height: 1.3;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .tf-md h2 {
+    margin: 22px 0 6px;
+    font-size: 18px;
+    line-height: 1.35;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+  }
+  .tf-md h3 {
+    margin: 18px 0 6px;
+    font-size: 15.5px;
+    line-height: 1.4;
+    font-weight: 600;
+  }
+  .tf-md strong {
+    font-weight: 600;
+  }
+  .tf-md s {
+    color: var(--muted-foreground);
+  }
+  .tf-md ul,
+  .tf-md ol {
+    margin: 0 0 12px;
+    padding-left: 22px;
+  }
+  .tf-md ul {
+    list-style: disc;
+  }
+  .tf-md ul ul {
+    list-style: circle;
+  }
+  .tf-md ol {
+    padding-left: 24px;
+    list-style: decimal;
+  }
+  .tf-md li {
+    padding-left: 4px;
+  }
+  .tf-md li > p,
+  .tf-md li > div > p,
+  .tf-md .tf-md-task-body > p {
+    margin: 0;
+  }
+  .tf-md li > ul,
+  .tf-md li > ol {
+    margin: 2px 0 0;
+  }
+  .tf-md blockquote {
+    margin: 0 0 12px;
+    padding: 2px 0 2px 14px;
+    border-left: 3px solid var(--dash);
+    color: var(--muted-foreground);
+  }
+  .tf-md blockquote > :last-child {
+    margin-bottom: 0;
+  }
+  .tf-md hr {
+    margin: 18px 0;
+    border: 0;
+    border-top: 1px solid var(--border);
+  }
+  .tf-md a:not(.tf-chip) {
+    color: var(--accent-text);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .tf-md :not(pre) > code {
+    padding: 1px 5px;
+    border-radius: 5px;
+    background: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+  }
+  .tf-md table {
+    width: 100%;
+    margin: 0 0 14px;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 13.5px;
+    line-height: 1.45;
+    table-layout: fixed;
+  }
+  .tf-md th,
+  .tf-md td {
+    position: relative;
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+    border-top: 1px solid var(--border);
+    border-left: 1px solid var(--border);
+  }
+  .tf-md tr > :first-child {
+    border-left: 0;
+  }
+  .tf-md tr:first-child > * {
+    border-top: 0;
+  }
+  .tf-md th {
+    background: var(--subtle);
+    font-weight: 600;
+  }
+  .tf-md th p,
+  .tf-md td p {
+    margin: 0;
+  }
+  /* Una tabla dentro de un punto de una lista (o de una casilla): igual que las demás, separada del texto */
+  .tf-md li table,
+  .tf-md li .tableWrapper {
+    margin: 6px 0 10px;
+  }
+  .tf-md li .tableWrapper table {
+    margin: 0;
+  }
+  /* Bloque de código: lenguaje y «Copiar» arriba */
+  .tf-md .tf-md-code {
+    margin: 0 0 14px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--subtle);
+    overflow: hidden;
+  }
+  .tf-md pre {
+    margin: 0;
+    padding: 10px 14px 12px;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.6;
+    white-space: pre;
+  }
+  .tf-md pre code {
+    font: inherit;
+  }
+  .tf-md .tf-code-key {
+    color: var(--code-key);
+  }
+  .tf-md .tf-code-str {
+    color: var(--code-str);
+  }
+  .tf-md .tf-code-punct,
+  .tf-md .tf-code-comment {
+    color: var(--muted-foreground);
+  }
+  /* Listas de tareas: la de lectura (botones) y la del editor (ul[data-type=taskList]) */
+  .tf-md ul.tf-md-tasks,
+  .tf-md ul[data-type='taskList'] {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0;
+    list-style: none;
+  }
+  .tf-md ul.tf-md-tasks ul.tf-md-tasks,
+  .tf-md ul[data-type='taskList'] ul[data-type='taskList'] {
+    margin-top: 4px;
+  }
+  .tf-md li.tf-md-task,
+  .tf-md ul[data-type='taskList'] > li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding-left: 0;
+  }
+  .tf-md ul[data-type='taskList'] > li > label {
+    flex-shrink: 0;
+    display: flex;
+    user-select: none;
+  }
+  .tf-md ul[data-type='taskList'] > li > div {
+    flex: 1;
+    min-width: 0;
+  }
+  .tf-md .tf-md-check,
+  .tf-md ul[data-type='taskList'] input[type='checkbox'] {
+    appearance: none;
+    flex-shrink: 0;
+    display: flex;
+    width: 18px;
+    height: 18px;
+    margin: 3px 0 0;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid var(--dash);
+    border-radius: 5px;
+    background: transparent no-repeat center / 11px;
+    color: #fff;
+    cursor: pointer;
+    transition: background-color 120ms ease-out, border-color 120ms ease-out;
+  }
+  .tf-md .tf-md-check:disabled {
+    cursor: default;
+  }
+  .tf-md .tf-md-check[aria-checked='true'],
+  .tf-md ul[data-type='taskList'] input[type='checkbox']:checked {
+    border-color: var(--ok-box);
+    background-color: var(--ok-box);
+  }
+  .tf-md ul[data-type='taskList'] input[type='checkbox']:checked {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+  }
+  .tf-md li.tf-md-task[data-checked='true'] > .tf-md-task-body > :first-child,
+  .tf-md ul[data-type='taskList'] > li[data-checked='true'] > div > p:first-child {
+    color: var(--muted-foreground);
+    text-decoration: line-through;
+  }
+  .tf-md .tf-md-task-body {
+    flex: 1;
+    min-width: 0;
+  }
+  /* Mención (@Nombre) y pastilla de tarea (WEB-12 Título) */
+  .tf-md .tf-mention {
+    padding: 1px 6px;
+    border-radius: 6px;
+    background: var(--muted);
+    font-weight: 600;
+    color: var(--foreground);
+    box-decoration-break: clone;
+  }
+  .tf-md .tf-mention[data-me] {
+    background: var(--accent-soft);
+    color: var(--accent-text);
+  }
+  .tf-md .tf-chip {
+    display: inline-flex;
+    max-width: 100%;
+    align-items: center;
+    gap: 5px;
+    padding: 0 7px 0 5px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--card);
+    font-size: 13px;
+    line-height: 22px;
+    vertical-align: 1px;
+    color: var(--foreground);
+    text-decoration: none;
+    transition: border-color 120ms ease-out;
+  }
+  .tf-md .tf-chip:hover {
+    border-color: var(--dash);
+  }
+  /* Código de tarea mientras se edita (sin buscar si existe) */
+  .tf-md .tf-taskref {
+    padding: 1px 3px;
+    border-radius: 5px;
+    background: var(--accent-soft);
+    color: var(--accent-text);
+    font-family: var(--font-mono);
+    font-size: 0.88em;
+  }
+  /* Historia de usuario: Como / quiero / para */
+  .tf-md .tf-md-story {
+    margin: 0 0 14px;
+    padding: 12px 14px 14px;
+    border: 1px solid var(--story-line);
+    border-radius: 14px;
+    background: var(--story);
+    color: var(--foreground);
+  }
+  .tf-md ::selection {
+    background: var(--sel);
+  }
+
+  /* Comentarios y editores compactos */
+  .tf-md.tf-md-sm {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .tf-md-sm p {
+    margin: 0 0 8px;
+  }
+  .tf-md-sm h1,
+  .tf-md-sm h2,
+  .tf-md-sm h3 {
+    margin: 12px 0 2px;
+    line-height: 1.4;
+  }
+  .tf-md-sm h1 {
+    font-size: 16.5px;
+  }
+  .tf-md-sm h2 {
+    font-size: 15px;
+  }
+  .tf-md-sm h3 {
+    font-size: 14.5px;
+  }
+  .tf-md-sm ul,
+  .tf-md-sm ol,
+  .tf-md-sm blockquote,
+  .tf-md-sm .tf-md-code,
+  .tf-md-sm table,
+  .tf-md-sm .tf-md-story {
+    margin-bottom: 8px;
+  }
+
+  /* El editor */
+  .tf-md.ProseMirror {
+    outline: none;
+    white-space: pre-wrap;
+  }
+  /* El aviso «Escribe, o pulsa / para insertar» va en el párrafo vacío donde está el cursor */
+  .tf-md.ProseMirror > p.is-empty::before {
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    color: var(--muted-foreground);
+    opacity: 0.8;
+    pointer-events: none;
+  }
+  .tf-md.ProseMirror .selectedCell::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--sel);
+    opacity: 0.45;
+    pointer-events: none;
+  }
+  .tf-md.ProseMirror .column-resize-handle {
+    display: none;
+  }
+  .tf-md.ProseMirror hr.ProseMirror-selectednode {
+    border-top-color: var(--ring);
+  }
+}
+
+/*
+ * Colores de proyecto (claves de ProjectColor del backend), con data-project-color en el elemento:
+ * --project / --project-ink: la pastilla con el identificador («WEB»), igual en los dos temas;
+ * --project-soft / --project-soft-ink: la versión suave (tarjetas de Proyectos), una por tema.
+ * Sin color conocido, la pastilla queda neutra. Se usan con bg-(--project) text-(--project-ink).
+ */
+@layer base {
+  [data-project-color] {
+    --project: var(--muted);
+    --project-ink: var(--muted-foreground);
+    --project-soft: var(--muted);
+    --project-soft-ink: var(--muted-foreground);
+  }
+  [data-project-color='TEAL'] {
+    --project: #2ec4a0;
+    --project-ink: #0b2a22;
+    --project-soft: #d6f5ee;
+    --project-soft-ink: #0a6656;
+  }
+  [data-project-color='AMBER'] {
+    --project: #ffc145;
+    --project-ink: #3a2a00;
+    --project-soft: #fff1d6;
+    --project-soft-ink: #7a5a00;
+  }
+  [data-project-color='BLUE'] {
+    --project: #8ccbff;
+    --project-ink: #0b2540;
+    --project-soft: #e1f0ff;
+    --project-soft-ink: #1c4e86;
+  }
+  [data-project-color='PINK'] {
+    --project: #ffa6cb;
+    --project-ink: #3d0f24;
+    --project-soft: #ffe6ef;
+    --project-soft-ink: #9a2457;
+  }
+  [data-project-color='VIOLET'] {
+    --project: #b6a6ff;
+    --project-ink: #1c1240;
+    --project-soft: #ece8ff;
+    --project-soft-ink: #4b3a9e;
+  }
+  [data-project-color='ORANGE'] {
+    --project: #f6a35c;
+    --project-ink: #3a1e05;
+    --project-soft: #ffebdc;
+    --project-soft-ink: #8f420c;
+  }
+  [data-project-color='GREEN'] {
+    --project: #9be7b4;
+    --project-ink: #0e3a1e;
+    --project-soft: #e3f5ec;
+    --project-soft-ink: #1d6b47;
+  }
+  .dark [data-project-color='TEAL'] {
+    --project-soft: #0f2e29;
+    --project-soft-ink: #6fe0c6;
+  }
+  .dark [data-project-color='AMBER'] {
+    --project-soft: #3a2e10;
+    --project-soft-ink: #ffd27a;
+  }
+  .dark [data-project-color='BLUE'] {
+    --project-soft: #132a3d;
+    --project-soft-ink: #8ccbff;
+  }
+  .dark [data-project-color='PINK'] {
+    --project-soft: #3a1a2b;
+    --project-soft-ink: #ffa6cb;
+  }
+  .dark [data-project-color='VIOLET'] {
+    --project-soft: #251f3f;
+    --project-soft-ink: #c4b8ff;
+  }
+  .dark [data-project-color='ORANGE'] {
+    --project-soft: #3a2414;
+    --project-soft-ink: #f6a35c;
+  }
+  .dark [data-project-color='GREEN'] {
+    --project-soft: #1b3324;
+    --project-soft-ink: #9be7b4;
+  }
+}
+
+/*
+ * Movimiento. Curva «ease-out-quint» para entradas: arranca rápido y frena suave.
+ * - .tf-enter: páginas y tarjetas que aparecen (sube 6 px y aparece).
+ * - .tf-fade: contenido que cambia en el mismo lugar (vista, pestaña, tarea abierta).
+ * - .tf-pop: elementos pequeños que aparecen (pastillas, grupos de la sidebar).
+ * Van con «backwards» y no «both»: al terminar no queda ningún transform aplicado. Si quedara, el
+ * contenedor pasaría a ser la referencia de los elementos fixed de adentro (p. ej. la tarjeta que se arrastra).
+ */
+@keyframes tf-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes tf-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes tf-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@utility tf-enter {
+  animation: tf-enter 280ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+@utility tf-fade {
+  animation: tf-fade 200ms ease-out backwards;
+}
+@utility tf-pop {
+  animation: tf-pop 180ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+/* Mientras cambia el tema no se anima nada (si no, unos elementos cambian de color animados y otros de golpe) */
+.tf-no-transitions,
+.tf-no-transitions *,
+.tf-no-transitions *::before,
+.tf-no-transitions *::after {
+  transition: none !important;
+}
+
+/* Quien pide menos movimiento en su sistema ve los cambios sin animación */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
