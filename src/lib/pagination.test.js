@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { flattenUniquePages } from './pagination'
+import { flattenUniquePages, nextCursorParam } from './pagination'
+
+describe('nextCursorParam', () => {
+  it('sigue con el nextCursor de la última página y para cuando es null', () => {
+    expect(nextCursorParam({ content: [], nextCursor: '2026-10-29T12:00:00Z,3f1c' })).toBe('2026-10-29T12:00:00Z,3f1c')
+    expect(nextCursorParam({ content: [], nextCursor: null })).toBeUndefined()
+    expect(nextCursorParam({ content: [] })).toBeUndefined()
+  })
+})
 
 describe('flattenUniquePages', () => {
   it('une las páginas en orden', () => {

@@ -18,37 +18,27 @@ import { STATE_GROUP_LABELS, StateIcon } from '@/components/common/StateIcon'
 import { useIsManager } from '@/features/workspaces/hooks'
 import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
-import { useCreateState, useDeleteState, useStates, useSwapStatePositions, useUpdateState } from '../hooks'
+import { useCreateState, useDeleteState, useReorderStates, useStates, useUpdateState } from '../hooks'
 import { STATE_GROUPS, stateSchema } from '../schemas'
 
 export function StatesSettings({ slug, project }) {
   const { data: states, isLoading, error, refetch } = useStates(slug, project.id)
-  const swap = useSwapStatePositions(slug, project.id)
+  const reorder = useReorderStates(slug, project.id)
   const remove = useDeleteState(slug, project.id)
   const [editing, setEditing] = useState(null)
   const [creating, setCreating] = useState(false)
   const [toDelete, setToDelete] = useState(null)
-  const [moving, setMoving] = useState(false)
   const canManage = useIsManager()
+  // Un cambio de orden a la vez: el siguiente parte del orden ya guardado (y un fallo no deshace otro)
+  const moving = reorder.isPending
 
-  /** Intercambia la posición con el estado vecino (el orden es el de las columnas del tablero). */
-  const move = async (index, direction) => {
-    const current = states[index]
-    const neighbor = states[index + direction]
-    if (!neighbor) return
-    setMoving(true)
-    try {
-      const currentPosition = current.position === neighbor.position ? index : current.position
-      const neighborPosition = current.position === neighbor.position ? index + direction : neighbor.position
-      await swap.mutateAsync({
-        first: { id: current.id, from: current.position, to: neighborPosition },
-        second: { id: neighbor.id, from: neighbor.position, to: currentPosition },
-      })
-    } catch (moveError) {
-      notifyError(moveError)
-    } finally {
-      setMoving(false)
-    }
+  /** Intercambia el lugar con el estado vecino (el orden es el de las columnas del tablero). */
+  const move = (index, direction) => {
+    if (!states[index + direction]) return
+    const stateIds = states.map((state) => state.id)
+    const [moved] = stateIds.splice(index, 1)
+    stateIds.splice(index + direction, 0, moved)
+    reorder.mutate(stateIds, { onError: (moveError) => notifyError(moveError) })
   }
 
   const handleDelete = () => {

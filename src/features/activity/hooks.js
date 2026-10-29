@@ -1,20 +1,21 @@
 import { useInfiniteQuery, useQueries, useQuery } from '@tanstack/react-query'
 import { queryKeys } from '@/api/queryKeys'
 import { statesApi } from '@/features/projects/api'
+import { nextCursorParam } from '@/lib/pagination'
 import { activityApi } from './api'
 
 const PAGE_SIZE = 30
 
 /**
- * Feed de actividad del workspace por páginas («Cargar más»).
+ * Feed de actividad del workspace por páginas con cursor («Cargar más»).
  * @param {{ type: string, projectId?: string, actorId?: string }} filters
  */
 export function useWorkspaceActivity(slug, filters) {
   return useInfiniteQuery({
     queryKey: queryKeys.workspaceActivity(slug, filters),
-    queryFn: ({ pageParam }) => activityApi.feed(slug, { ...filters, page: pageParam, size: PAGE_SIZE }),
-    initialPageParam: 0,
-    getNextPageParam: (lastPage) => (lastPage.last ? undefined : lastPage.page + 1),
+    queryFn: ({ pageParam }) => activityApi.feed(slug, { ...filters, before: pageParam, size: PAGE_SIZE }),
+    initialPageParam: undefined,
+    getNextPageParam: nextCursorParam,
     enabled: Boolean(slug),
   })
 }

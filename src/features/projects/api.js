@@ -44,6 +44,13 @@ export const statesApi = {
     api.patch(`${base(slug)}/${projectId}/states/${stateId}`, body).then(data),
 
   remove: (slug, projectId, stateId) => api.delete(`${base(slug)}/${projectId}/states/${stateId}`),
+
+  /**
+   * Nuevo orden de las columnas: `stateIds` trae todos los estados del proyecto, cada uno una vez.
+   * @returns {Promise<StateResponse[]>} los estados en el orden nuevo
+   */
+  reorder: (slug, projectId, stateIds) =>
+    api.put(`${base(slug)}/${projectId}/states/order`, { stateIds }).then(data),
 }
 
 export const labelsApi = {

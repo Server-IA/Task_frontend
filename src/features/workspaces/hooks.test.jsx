@@ -98,10 +98,11 @@ describe('eliminar o salir de un workspace', () => {
 })
 
 describe('useRemoveMember', () => {
-  it('quitar a otro miembro recarga los miembros de los proyectos (las tarjetas del inicio)', async () => {
+  it('quitar a otro miembro recarga los miembros de los proyectos y las tarjetas del inicio', async () => {
     const queryClient = client()
     queryClient.setQueryData(queryKeys.projectMembers('p1'), [{ user: { id: 'otro' } }])
     queryClient.setQueryData(queryKeys.projectMembers('p2'), [])
+    queryClient.setQueryData(queryKeys.projects('acme'), [{ id: 'p1', memberCount: 1, members: [{ id: 'otro' }] }])
     workspacesApi.removeMember.mockResolvedValue({})
     workspacesApi.list.mockReturnValue(new Promise(() => {}))
     const { result } = renderHook(() => useRemoveMember('acme'), { wrapper: wrapperFor(queryClient) })
@@ -109,6 +110,7 @@ describe('useRemoveMember', () => {
     await act(() => result.current.mutateAsync('otro'))
     expect(queryClient.getQueryState(queryKeys.projectMembers('p1')).isInvalidated).toBe(true)
     expect(queryClient.getQueryState(queryKeys.projectMembers('p2')).isInvalidated).toBe(true)
+    expect(queryClient.getQueryState(queryKeys.projects('acme')).isInvalidated).toBe(true)
   })
 })
 

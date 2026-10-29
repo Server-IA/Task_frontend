@@ -7,9 +7,10 @@ const data = (response) => response.data
 
 export const activityApi = {
   /**
-   * Historial de las tareas de todos los proyectos accesibles, de lo más reciente a lo más antiguo.
+   * Historial de las tareas de todos los proyectos accesibles, de lo más reciente a lo más antiguo. `before` es
+   * el `nextCursor` de la página anterior (sin él, la primera página).
    * @param {{ type?: 'all' | 'state' | 'comments' | 'assignments', projectId?: string, actorId?: string,
-   *           page?: number, size?: number }} params
+   *           before?: string, size?: number }} params
    * @returns {Promise<import('@/api/types').Page<ActivityFeedItem>>}
    */
   feed: (slug, params) => api.get(`/workspaces/${slug}/activity`, { params }).then(data),

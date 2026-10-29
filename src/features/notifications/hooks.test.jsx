@@ -8,7 +8,8 @@ import { useMarkAsRead, useNotifications } from './hooks'
 vi.mock('./api', () => ({ notificationsApi: { list: vi.fn(), counts: vi.fn(), markAsRead: vi.fn() } }))
 
 const notification = (id, read = false) => ({ id, read })
-const page = (number, ids, last = false) => ({ page: number, last, content: ids.map((id) => notification(id)) })
+/** Página con cursor: `next` es el nextCursor (null en la última). */
+const page = (ids, next = null) => ({ content: ids.map((id) => notification(id)), nextCursor: next, totalElements: -1 })
 
 function setup() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -24,33 +25,47 @@ describe('useNotifications', () => {
     notificationsApi.markAsRead.mockResolvedValue({})
   })
 
-  it('en «No leídas», después de abrir uno, «Cargar más» vuelve a pedir desde la página 0 y no se salta avisos', async () => {
-    // Servidor: 4 sin leer, de a 2 por página
-    notificationsApi.list.mockResolvedValueOnce(page(0, ['a', 'b']))
+  it('«Cargar más» pide la página siguiente con el nextCursor de la anterior', async () => {
+    notificationsApi.list.mockResolvedValueOnce(page(['a', 'b'], '2026-10-29T10:00:00Z,b'))
+    const { result } = setup()
+    await waitFor(() => expect(result.current.list.notifications).toHaveLength(2))
+    expect(result.current.list.hasNextPage).toBe(true)
+
+    notificationsApi.list.mockResolvedValueOnce(page(['c']))
+    await act(() => result.current.list.fetchNextPage())
+
+    expect(notificationsApi.list.mock.calls.map(([params]) => params.before)).toEqual([undefined, '2026-10-29T10:00:00Z,b'])
+    expect(notificationsApi.list.mock.calls[1][0]).toMatchObject({ unread: true, size: 20 })
+    await waitFor(() => expect(result.current.list.notifications.map((item) => item.id)).toEqual(['a', 'b', 'c']))
+    expect(result.current.list.hasNextPage).toBe(false)
+  })
+
+  it('en «No leídas», abrir uno no recarga nada antes de «Cargar más» (el cursor no se corre)', async () => {
+    notificationsApi.list.mockResolvedValueOnce(page(['a', 'b'], '2026-10-29T10:00:00Z,b'))
     const { result } = setup()
     await waitFor(() => expect(result.current.list.notifications).toHaveLength(2))
 
     await act(() => result.current.markAsRead.mutateAsync('a'))
     // Se marca leído en la lista sin recargarla (sigue a la vista mientras se lee)
     await waitFor(() => expect(result.current.list.notifications[0]).toEqual({ id: 'a', read: true }))
-    // Ya leído, el servidor corre todo un lugar: la página 0 es [b, c] y la 1, [d]
-    notificationsApi.list.mockResolvedValueOnce(page(0, ['b', 'c'])).mockResolvedValueOnce(page(1, ['d'], true))
-    await act(() => result.current.list.loadMore())
+    notificationsApi.list.mockResolvedValueOnce(page(['c', 'd']))
+    await act(() => result.current.list.fetchNextPage())
 
-    expect(notificationsApi.list.mock.calls.map(([params]) => params.page)).toEqual([0, 0, 1])
-    await waitFor(() => expect(result.current.list.notifications.map((item) => item.id)).toEqual(['b', 'c', 'd']))
+    expect(notificationsApi.list).toHaveBeenCalledTimes(2)
+    expect(notificationsApi.list.mock.calls[1][0].before).toBe('2026-10-29T10:00:00Z,b')
+    await waitFor(() => expect(result.current.list.notifications.map((item) => item.id)).toEqual(['a', 'b', 'c', 'd']))
   })
 
   it('no repite un aviso que llega en dos páginas', async () => {
-    notificationsApi.list.mockResolvedValueOnce(page(0, ['a', 'b'])).mockResolvedValueOnce(page(1, ['b', 'c'], true))
+    notificationsApi.list.mockResolvedValueOnce(page(['a', 'b'], 'cursor-b')).mockResolvedValueOnce(page(['b', 'c']))
     const { result } = setup()
     await waitFor(() => expect(result.current.list.notifications).toHaveLength(2))
-    await act(() => result.current.list.loadMore())
+    await act(() => result.current.list.fetchNextPage())
     await waitFor(() => expect(result.current.list.notifications.map((item) => item.id)).toEqual(['a', 'b', 'c']))
   })
 
   it('no se consulta sola cada 30 s: se recarga cuando sube el contador de sin leer', async () => {
-    notificationsApi.list.mockResolvedValue(page(0, ['a'], true))
+    notificationsApi.list.mockResolvedValue(page(['a']))
     const { queryClient, result } = setup()
     await waitFor(() => expect(result.current.list.notifications).toHaveLength(1))
     await waitFor(() => expect(queryClient.getQueryData(queryKeys.notificationCounts)).toBeTruthy())

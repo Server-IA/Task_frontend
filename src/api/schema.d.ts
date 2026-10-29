@@ -24,6 +24,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{slug}/projects/{projectId}/states/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Reordenar las columnas (project manager)
+         * @description stateIds: todos los estados del proyecto, cada uno una vez, en el orden nuevo (cada uno queda con position = su índice). Si falta o sobra alguno, o se repite, responde 400 y no cambia nada. Devuelve los estados en el orden nuevo.
+         */
+        put: operations["reorder_1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{slug}/projects/{projectId}/daily/note": {
         parameters: {
             query?: never;
@@ -878,7 +898,10 @@ export interface paths {
         delete: operations["delete_5"];
         options?: never;
         head?: never;
-        /** Editar módulo (project manager) */
+        /**
+         * Editar módulo (project manager)
+         * @description clearDates quita las dos fechas; clearStartDate y clearTargetDate (o clearEndDate), solo una. Enviar una fecha y pedir quitarla a la vez, o una fecha objetivo anterior al inicio, responde 400.
+         */
         patch: operations["update_5"];
         trace?: never;
     };
@@ -1007,7 +1030,7 @@ export interface paths {
         head?: never;
         /**
          * Editar ciclo (project manager)
-         * @description En un ciclo cerrado solo se puede cambiar la descripción: cambiar el nombre o las fechas responde 409.
+         * @description En un ciclo cerrado solo se puede cambiar la descripción: cambiar el nombre o las fechas responde 409. clearDates quita las dos fechas; clearStartDate y clearEndDate, solo una. Enviar una fecha y pedir quitarla a la vez, o un fin anterior al inicio, responde 400.
          */
         patch: operations["update_10"];
         trace?: never;
@@ -1338,7 +1361,7 @@ export interface paths {
         };
         /**
          * Feed de actividad (lo más reciente primero)
-         * @description Historial de las tareas de los proyectos a los que tengo acceso. type: all (todo), state (cambios de estado, incluido completar), comments (comentarios: newValue trae el texto, recortado a 240 caracteres) o assignments (cambios de asignados). Tamaño máximo de página: 100.
+         * @description Historial de las tareas de los proyectos a los que tengo acceso. type: all (todo), state (cambios de estado, incluido completar), comments (comentarios: newValue trae el texto, recortado a 240 caracteres) o assignments (cambios de asignados). Tamaño máximo de página: 100. Paginación por cursor: nextCursor se pasa como before=<createdAt>,<id> para pedir lo siguiente; con before se ignora page y totalElements y totalPages son -1.
          */
         get: operations["getFeed"];
         put?: never;
@@ -1378,7 +1401,7 @@ export interface paths {
         };
         /**
          * Mis notificaciones (las más recientes primero)
-         * @description type filtra por tipo (acepta varios: ?type=ISSUE_MENTIONED&type=ISSUE_COMMENTED); sin type, todos. issue = la tarea (null en RETRO_STARTED); cycle = el ciclo de RETRO_STARTED; comment = extracto del comentario de ISSUE_COMMENTED e ISSUE_MENTIONED.
+         * @description type filtra por tipo (acepta varios: ?type=ISSUE_MENTIONED&type=ISSUE_COMMENTED); sin type, todos. issue = la tarea (null en RETRO_STARTED); cycle = el ciclo de RETRO_STARTED; comment = extracto del comentario de ISSUE_COMMENTED e ISSUE_MENTIONED. Paginación por cursor: nextCursor (con el orden por defecto) se pasa como before=<createdAt>,<id> para pedir las siguientes; con before se ignoran page y sort, size es como mucho 100 y totalElements y totalPages son -1. page y size siguen funcionando sin before.
          */
         get: operations["getMyNotifications"];
         put?: never;
@@ -1578,6 +1601,19 @@ export interface components {
             fullName?: string;
             avatarUrl?: string;
         };
+        ReorderStatesRequest: {
+            stateIds: string[];
+        };
+        StateResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            color?: string;
+            /** @enum {string} */
+            group?: "BACKLOG" | "UNSTARTED" | "STARTED" | "COMPLETED" | "CANCELLED";
+            /** Format: int32 */
+            position?: number;
+        };
         DailyNoteRequest: {
             text?: string;
         };
@@ -1630,6 +1666,9 @@ export interface components {
             /** Format: int32 */
             unsplitStoryCount?: number;
             nextIssueCode?: string;
+            /** Format: int32 */
+            memberCount?: number;
+            members?: components["schemas"]["UserSummaryResponse"][];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -1683,16 +1722,6 @@ export interface components {
             id?: string;
             name?: string;
             color?: string;
-        };
-        StateResponse: {
-            /** Format: uuid */
-            id?: string;
-            name?: string;
-            color?: string;
-            /** @enum {string} */
-            group?: "BACKLOG" | "UNSTARTED" | "STARTED" | "COMPLETED" | "CANCELLED";
-            /** Format: int32 */
-            position?: number;
         };
         TemplateChecklistItemResponse: {
             /** @enum {string} */
@@ -2157,6 +2186,8 @@ export interface components {
             /** Format: date */
             targetDate?: string;
             clearDates?: boolean;
+            clearStartDate?: boolean;
+            clearTargetDate?: boolean;
         };
         UpdateIssueRequest: {
             title?: string;
@@ -2220,6 +2251,8 @@ export interface components {
             /** Format: date */
             endDate?: string;
             clearDates?: boolean;
+            clearStartDate?: boolean;
+            clearEndDate?: boolean;
         };
         UpdateRetroNoteRequest: {
             text?: string;
@@ -2391,6 +2424,7 @@ export interface components {
             totalPages?: number;
             first?: boolean;
             last?: boolean;
+            nextCursor?: string;
         };
         IssueRelationsResponse: {
             blocks?: components["schemas"]["IssueRelationResponse"][];
@@ -2527,6 +2561,7 @@ export interface components {
             totalPages?: number;
             first?: boolean;
             last?: boolean;
+            nextCursor?: string;
         };
         ActivitySummaryResponse: {
             /** Format: int64 */
@@ -2561,6 +2596,7 @@ export interface components {
             totalPages?: number;
             first?: boolean;
             last?: boolean;
+            nextCursor?: string;
         };
         CountResponse: {
             /** Format: int64 */
@@ -2616,6 +2652,33 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["SavedViewResponse"][];
+                };
+            };
+        };
+    };
+    reorder_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReorderStatesRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StateResponse"][];
                 };
             };
         };
@@ -5098,6 +5161,8 @@ export interface operations {
                 projectId?: string;
                 /** @description Solo los cambios de esta persona */
                 actorId?: string;
+                /** @description Cursor: el nextCursor de la página anterior (<createdAt>,<id>) */
+                before?: string;
             };
             header?: never;
             path: {
@@ -5155,6 +5220,8 @@ export interface operations {
                 size?: number;
                 /** @description Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported. */
                 sort?: string[];
+                /** @description Cursor: el nextCursor de la página anterior (<createdAt>,<id>) */
+                before?: string;
             };
             header?: never;
             path?: never;

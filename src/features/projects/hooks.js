@@ -70,25 +70,26 @@ export function useDeleteProject(slug, projectId) {
   })
 }
 
-/** `enabled` y `staleTime` opcionales: las tarjetas del inicio del workspace los piden solo al verse. */
-export function useProjectMembers(slug, projectId, { enabled = true, staleTime } = {}) {
+export function useProjectMembers(slug, projectId) {
   return useQuery({
     queryKey: queryKeys.projectMembers(projectId),
     queryFn: () => projectsApi.members(slug, projectId),
-    enabled: Boolean(slug && projectId) && enabled,
-    // undefined pisaría el staleTime por defecto del QueryClient
-    ...(staleTime !== undefined && { staleTime }),
+    enabled: Boolean(slug && projectId),
   })
+}
+
+/** Los proyectos traen sus primeros miembros y cuántos son (las tarjetas del inicio): se refrescan con ellos. */
+function invalidateMembers(queryClient, slug, projectId) {
+  queryClient.invalidateQueries({ queryKey: queryKeys.projectMembers(projectId) })
+  queryClient.invalidateQueries({ queryKey: queryKeys.projects(slug) })
+  queryClient.invalidateQueries({ queryKey: queryKeys.project(slug, projectId) })
 }
 
 export function useAddProjectMember(slug, projectId) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (userId) => projectsApi.addMember(slug, projectId, userId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.projectMembers(projectId) })
-      queryClient.invalidateQueries({ queryKey: queryKeys.projects(slug) })
-    },
+    onSuccess: () => invalidateMembers(queryClient, slug, projectId),
   })
 }
 
@@ -97,8 +98,7 @@ export function useRemoveProjectMember(slug, projectId) {
   return useMutation({
     mutationFn: (userId) => projectsApi.removeMember(slug, projectId, userId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.projectMembers(projectId) })
-      queryClient.invalidateQueries({ queryKey: queryKeys.projects(slug) })
+      invalidateMembers(queryClient, slug, projectId)
       // Quien sale del proyecto deja de ser asignado por defecto en sus plantillas
       queryClient.invalidateQueries({ queryKey: queryKeys.templates(projectId) })
     },
@@ -153,24 +153,36 @@ export const useDeleteState = (slug, projectId) =>
   useStateMutation(slug, projectId, (stateId) => statesApi.remove(slug, projectId, stateId))
 
 /**
- * Intercambia la posición de dos estados (el backend no tiene un endpoint de reordenar). Las dos peticiones van
- * una tras otra: si falla la segunda, la primera se deshace para no dejar el orden a medias. Solo cambia el orden
- * de las columnas, así que basta con recargar los estados, una vez.
- * `mutate({ first: { id, from, to }, second: { id, from, to } })`.
+ * Estados en el orden de `stateIds`, cada uno con `position` = su índice (lo mismo que hace el backend). Los que
+ * no estén en la lista quedan al final, en su orden.
  */
-export function useSwapStatePositions(slug, projectId) {
+export function reorderStates(states, stateIds) {
+  const index = new Map(stateIds.map((id, position) => [id, position]))
+  return [...states]
+    .sort((a, b) => (index.get(a.id) ?? Infinity) - (index.get(b.id) ?? Infinity))
+    .map((state, position) => ({ ...state, position }))
+}
+
+/**
+ * Reordena las columnas en una sola petición: `mutate(stateIds)` con todos los estados del proyecto en el orden
+ * nuevo. La lista cambia al instante y vuelve atrás si falla; solo cambia el orden, así que al terminar basta con
+ * recargar los estados, una vez.
+ */
+export function useReorderStates(slug, projectId) {
   const queryClient = useQueryClient()
+  const key = queryKeys.states(projectId)
   return useMutation({
-    mutationFn: async ({ first, second }) => {
-      await statesApi.update(slug, projectId, first.id, { position: first.to })
-      try {
-        await statesApi.update(slug, projectId, second.id, { position: second.to })
-      } catch (error) {
-        await statesApi.update(slug, projectId, first.id, { position: first.from }).catch(() => {})
-        throw error
-      }
+    mutationFn: (stateIds) => statesApi.reorder(slug, projectId, stateIds),
+    onMutate: async (stateIds) => {
+      await queryClient.cancelQueries({ queryKey: key })
+      const previous = queryClient.getQueryData(key)
+      if (previous) queryClient.setQueryData(key, reorderStates(previous, stateIds))
+      return { previous }
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.states(projectId) }),
+    onError: (_error, _stateIds, context) => {
+      if (context?.previous) queryClient.setQueryData(key, context.previous)
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: key }),
   })
 }
 

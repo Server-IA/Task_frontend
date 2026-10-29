@@ -7,12 +7,13 @@ const data = (response) => response.data
 
 export const notificationsApi = {
   /**
-   * `types` filtra por tipo (sin tipos, todos); `unread` deja solo las sin leer.
-   * @param {{ unread?: boolean, types?: NotificationType[], page?: number, size?: number }} [params]
+   * `types` filtra por tipo (sin tipos, todos); `unread` deja solo las sin leer. `before` es el `nextCursor` de la
+   * página anterior (sin él, la primera página).
+   * @param {{ unread?: boolean, types?: NotificationType[], before?: string, size?: number }} [params]
    * @returns {Promise<import('@/api/types').Page<NotificationResponse>>}
    */
-  list: ({ unread = false, types, page = 0, size = 20 } = {}) =>
-    api.get('/notifications', { params: { unread, type: types?.length ? types : undefined, page, size } }).then(data),
+  list: ({ unread = false, types, before, size = 20 } = {}) =>
+    api.get('/notifications', { params: { unread, type: types?.length ? types : undefined, before, size } }).then(data),
 
   /** @returns {Promise<{ count: number }>} */
   unreadCount: () => api.get('/notifications/unread-count').then(data),

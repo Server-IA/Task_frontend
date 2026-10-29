@@ -23,7 +23,7 @@ import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { closedText } from '../closeCycle'
-import { planningUpdateBody, SINGLE_DATE_CLEARED_MESSAGE } from '../planningDates'
+import { planningUpdateBody } from '../planningDates'
 import { useAddPlanningIssues, useCreatePlanning, useUpdatePlanning } from '../hooks'
 
 /** Textos y nombres de campos que cambian entre ciclos y módulos. */
@@ -271,13 +271,8 @@ function PlanningForm({ kind, slug, projectId, item, onCancel, onSaved }) {
     if (closed) {
       update.mutate({ id: item.id, description: values.description }, options)
     } else if (item) {
-      // Al editar, quitar ambas fechas se pide con clearDates (los null no cambian nada); una sola no se puede
-      const result = planningUpdateBody(item, values, text.endField)
-      if (result.error) {
-        form.setError(result.error, { message: SINGLE_DATE_CLEARED_MESSAGE })
-        return
-      }
-      update.mutate(result.body, options)
+      // Al editar, quitar una fecha se pide con su bandera (los null no cambian nada)
+      update.mutate(planningUpdateBody(item, values, text.endField), options)
     } else {
       create.mutate(body, options)
     }

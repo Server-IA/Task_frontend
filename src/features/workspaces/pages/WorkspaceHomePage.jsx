@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router'
 import { FolderClosed, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -7,8 +7,7 @@ import { AvatarStack } from '@/components/common/AvatarStack'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { CreateProjectDialog } from '@/features/projects/components/CreateProjectDialog'
 import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
-import { useProjectMembers, useProjects } from '@/features/projects/hooks'
-import { useInView } from '@/hooks/useInView'
+import { useProjects } from '@/features/projects/hooks'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { formatShortDate } from '@/lib/dates'
 import { workspacePath } from '@/lib/paths'
@@ -104,23 +103,14 @@ export function WorkspaceHomePage() {
   )
 }
 
-/**
- * Los miembros de cada tarjeta son una petición por proyecto (GET /projects no los trae): se piden cuando la
- * tarjeta aparece en pantalla y no se vuelven a pedir en cada foco de la ventana (los cambios de miembros
- * invalidan la consulta).
- */
-const CARD_MEMBERS_STALE_TIME = 5 * 60_000
-
+/** Los miembros vienen en el proyecto: los primeros (`members`) y cuántos son (`memberCount`). */
 function ProjectCard({ slug, project }) {
-  const cardRef = useRef(null)
-  const visible = useInView(cardRef)
-  const { data: members = [] } = useProjectMembers(slug, project.id, { enabled: visible, staleTime: CARD_MEMBERS_STALE_TIME })
+  const members = project.members ?? []
   const total = project.issueCount ?? 0
   const open = project.openIssueCount ?? 0
 
   return (
     <Link
-      ref={cardRef}
       to={`/${slug}/projects/${project.id}/issues`}
       className="group flex flex-col gap-3.5 rounded-2xl border bg-card p-5 transition-[box-shadow,transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-dash hover:shadow-card focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
     >
@@ -135,7 +125,7 @@ function ProjectCard({ slug, project }) {
       </div>
       <p className="line-clamp-2 min-h-10 text-sm text-muted-foreground">{project.description || 'Sin descripción'}</p>
       <div className="mt-auto flex items-center gap-3">
-        {members.length > 0 && <AvatarStack users={members.map((member) => member.user)} size="sm" max={4} />}
+        {members.length > 0 && <AvatarStack users={members} total={project.memberCount} size="sm" max={4} />}
         <span className="font-mono text-[11px] text-muted-foreground">creado el {formatShortDate(project.createdAt)}</span>
         <span className="ml-auto text-sm font-semibold text-accent-text group-hover:underline">Abrir →</span>
       </div>

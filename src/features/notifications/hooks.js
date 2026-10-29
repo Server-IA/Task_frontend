@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/api/queryKeys'
-import { flattenUniquePages } from '@/lib/pagination'
+import { flattenUniquePages, nextCursorParam } from '@/lib/pagination'
 import { notificationsApi } from './api'
 import { INBOX_TABS, markReadInPages } from './notificationParts'
 
@@ -28,22 +28,23 @@ export function useUnreadCount() {
 }
 
 /**
- * Avisos de una pestaña por páginas («Cargar más»), sin repetidos.
+ * Avisos de una pestaña por páginas con cursor («Cargar más»), sin repetidos.
  * - No se consultan cada 30 s (eso recargaría todas las páginas cargadas): se recargan cuando el contador de
  *   sin leer sube, es decir, cuando llegó algo.
- * - En «No leídas», abrir un aviso lo marca leído solo en caché y el servidor ya no lo cuenta en sus páginas:
- *   `loadMore` vuelve a pedir las páginas cargadas antes de la siguiente para no saltarse avisos.
+ * - En «No leídas», abrir un aviso lo marca leído solo en caché (sigue a la vista mientras se lee). Como la
+ *   página siguiente se pide desde el último aviso recibido, que el servidor ya no lo cuente no hace saltarse
+ *   ninguno.
  * @param {{ tab: keyof typeof INBOX_TABS }} options
  */
 export function useNotifications({ tab }) {
   const filter = INBOX_TABS[tab] ?? INBOX_TABS.unread
   const query = useInfiniteQuery({
     queryKey: queryKeys.notifications({ tab }),
-    queryFn: ({ pageParam }) => notificationsApi.list({ ...filter, page: pageParam, size: PAGE_SIZE }),
-    initialPageParam: 0,
-    getNextPageParam: (lastPage) => (lastPage.last ? undefined : lastPage.page + 1),
+    queryFn: ({ pageParam }) => notificationsApi.list({ ...filter, before: pageParam, size: PAGE_SIZE }),
+    initialPageParam: undefined,
+    getNextPageParam: nextCursorParam,
   })
-  const { data, refetch, fetchNextPage } = query
+  const { data, refetch } = query
 
   const { data: unread } = useUnreadCount()
   const previousUnread = useRef(unread)
@@ -52,14 +53,7 @@ export function useNotifications({ tab }) {
     previousUnread.current = unread
   }, [unread, refetch])
 
-  const onlyUnread = Boolean(filter.unread)
-  const loadMore = useCallback(async () => {
-    const readLocally = data?.pages.some((page) => page.content?.some((notification) => notification.read))
-    if (onlyUnread && readLocally) await refetch()
-    return fetchNextPage()
-  }, [data, onlyUnread, refetch, fetchNextPage])
-
-  return { ...query, notifications: flattenUniquePages(data), loadMore }
+  return { ...query, notifications: flattenUniquePages(data) }
 }
 
 function useNotificationMutation(mutationFn) {

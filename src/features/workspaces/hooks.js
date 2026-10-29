@@ -144,8 +144,10 @@ export function useRemoveMember(slug, { onGone } = {}) {
       }
       queryClient.invalidateQueries({ queryKey: queryKeys.members(slug) })
       queryClient.invalidateQueries({ queryKey: queryKeys.workspaces })
-      // Las tarjetas del inicio muestran los miembros de cada proyecto
+      // Sale también de sus proyectos: sus miembros y las tarjetas del inicio (que traen los primeros miembros)
       queryClient.invalidateQueries({ queryKey: ['projectMembers'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects(slug) })
+      queryClient.invalidateQueries({ queryKey: ['project', slug] })
     },
   })
 }

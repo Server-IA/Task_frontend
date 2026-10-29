@@ -66,7 +66,7 @@ export function NotificationsPage() {
   const navigate = useNavigate()
   const tab = inboxTab(searchParams.get('tab'))
   const opened = openedIssueFromParams(searchParams)
-  const { notifications, isLoading, error, refetch, loadMore, hasNextPage, isFetchingNextPage } = useNotifications({ tab })
+  const { notifications, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useNotifications({ tab })
   const { data: counts } = useNotificationCounts()
   const unreadCount = counts?.unread ?? 0
   const markAll = useMarkAllAsRead()
@@ -198,7 +198,7 @@ export function NotificationsPage() {
           ))}
           {hasNextPage && (
             <div className="flex justify-center">
-              <Button variant="outline" onClick={() => loadMore()} disabled={isFetchingNextPage}>
+              <Button variant="outline" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
                 {isFetchingNextPage && <Spinner />}
                 Cargar más
               </Button>

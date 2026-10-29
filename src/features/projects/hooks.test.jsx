@@ -6,11 +6,19 @@ import { cyclesApi } from '@/features/planning/api'
 import { useAddRelation } from '@/features/relations/hooks'
 import { relationsApi } from '@/features/relations/api'
 import { labelsApi, projectsApi, statesApi } from './api'
-import { useDeleteProject, useSwapStatePositions, useUpdateLabel, useUpdateState } from './hooks'
+import {
+  reorderStates,
+  useAddProjectMember,
+  useDeleteProject,
+  useRemoveProjectMember,
+  useReorderStates,
+  useUpdateLabel,
+  useUpdateState,
+} from './hooks'
 
 vi.mock('./api', () => ({
-  projectsApi: { remove: vi.fn() },
-  statesApi: { update: vi.fn() },
+  projectsApi: { remove: vi.fn(), addMember: vi.fn(), removeMember: vi.fn() },
+  statesApi: { update: vi.fn(), reorder: vi.fn() },
   labelsApi: { update: vi.fn() },
 }))
 vi.mock('@/features/planning/api', () => ({
@@ -60,33 +68,60 @@ describe('al renombrar un estado o una etiqueta', () => {
   })
 })
 
-describe('reordenar estados', () => {
-  it('si falla el segundo cambio, deshace el primero (no queda el orden a medias) y recarga una vez', async () => {
+describe('miembros del proyecto', () => {
+  it('agregar o quitar un miembro refresca los proyectos (las tarjetas del inicio traen los primeros miembros)', async () => {
     const { wrapper, keys } = setup()
-    statesApi.update.mockResolvedValueOnce({}).mockRejectedValueOnce(new Error('500')).mockResolvedValueOnce({})
-    const result = await run(
-      () => useSwapStatePositions('acme', 'p1'),
-      { first: { id: 'a', from: 0, to: 1 }, second: { id: 'b', from: 1, to: 0 } },
-      wrapper,
-    )
-    await waitFor(() => expect(result.current.isError).toBe(true))
-    expect(statesApi.update.mock.calls.map((call) => [call[2], call[3]])).toEqual([
-      ['a', { position: 1 }],
-      ['b', { position: 0 }],
-      ['a', { position: 0 }],
+    projectsApi.addMember.mockResolvedValue({})
+    projectsApi.removeMember.mockResolvedValue({})
+    await run(() => useAddProjectMember('acme', 'p1'), 'u2', wrapper)
+    await run(() => useRemoveProjectMember('acme', 'p1'), 'u2', wrapper)
+    for (const key of ['["projectMembers","p1"]', '["projects","acme"]', '["project","acme","p1"]']) {
+      expect(keys().filter((item) => item === key)).toHaveLength(2)
+    }
+  })
+})
+
+describe('reordenar estados', () => {
+  const states = [
+    { id: 'a', name: 'Backlog', position: 0 },
+    { id: 'b', name: 'Doing', position: 1 },
+    { id: 'c', name: 'Done', position: 2 },
+  ]
+
+  it('reorderStates ordena por la lista y renumera las posiciones', () => {
+    expect(reorderStates(states, ['b', 'a', 'c'])).toEqual([
+      { id: 'b', name: 'Doing', position: 0 },
+      { id: 'a', name: 'Backlog', position: 1 },
+      { id: 'c', name: 'Done', position: 2 },
     ])
+  })
+
+  it('manda el orden en una sola petición, cambia la lista al instante y recarga una vez', async () => {
+    const { queryClient, wrapper, keys } = setup()
+    queryClient.setQueryData(['states', 'p1'], states)
+    let resolve
+    statesApi.reorder.mockReturnValue(new Promise((done) => (resolve = done)))
+    const { result } = renderHook(() => useReorderStates('acme', 'p1'), { wrapper })
+
+    act(() => result.current.mutate(['b', 'a', 'c']))
+    await waitFor(() => expect(queryClient.getQueryData(['states', 'p1']).map((state) => state.id)).toEqual(['b', 'a', 'c']))
+    expect(statesApi.reorder).toHaveBeenCalledWith('acme', 'p1', ['b', 'a', 'c'])
+
+    await act(async () => resolve([]))
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(statesApi.reorder).toHaveBeenCalledTimes(1)
+    expect(statesApi.update).not.toHaveBeenCalled()
     expect(keys()).toEqual(['["states","p1"]'])
   })
 
-  it('van una tras otra, no en paralelo', async () => {
-    const { wrapper } = setup()
-    let resolveFirst
-    statesApi.update.mockReturnValueOnce(new Promise((resolve) => (resolveFirst = resolve))).mockResolvedValueOnce({})
-    const { result } = renderHook(() => useSwapStatePositions('acme', 'p1'), { wrapper })
-    act(() => result.current.mutate({ first: { id: 'a', from: 0, to: 1 }, second: { id: 'b', from: 1, to: 0 } }))
-    await waitFor(() => expect(statesApi.update).toHaveBeenCalledTimes(1))
-    resolveFirst({})
-    await waitFor(() => expect(statesApi.update).toHaveBeenCalledTimes(2))
+  it('si falla, vuelve al orden anterior y recarga una vez', async () => {
+    const { queryClient, wrapper, keys } = setup()
+    queryClient.setQueryData(['states', 'p1'], states)
+    statesApi.reorder.mockRejectedValue(new Error('400'))
+    const result = await run(() => useReorderStates('acme', 'p1'), ['b', 'a', 'c'], wrapper)
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect(queryClient.getQueryData(['states', 'p1'])).toEqual(states)
+    expect(keys()).toEqual(['["states","p1"]'])
   })
 })
 

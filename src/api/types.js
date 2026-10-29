@@ -91,8 +91,10 @@
 /** @typedef {'OWNER' | 'MEMBER'} WorkspaceRole */
 
 /**
+ * En la Bandeja y la actividad, `nextCursor` es lo que se pasa como `before` para la página siguiente (`null` si
+ * no hay más); con `before`, `totalElements` y `totalPages` son -1.
  * @template T
- * @typedef {{ content: T[], page: number, size: number, totalElements: number, totalPages: number, first: boolean, last: boolean }} Page
+ * @typedef {{ content: T[], page: number, size: number, totalElements: number, totalPages: number, first: boolean, last: boolean, nextCursor?: string | null }} Page
  */
 
 export {}
