@@ -22,6 +22,7 @@ import { formatShortDate } from '@/lib/dates'
 import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
+import { addableIssues } from '../addableIssues'
 import { closedText } from '../closeCycle'
 import { planningUpdateBody } from '../planningDates'
 import { useAddPlanningIssues, useCreatePlanning, useUpdatePlanning } from '../hooks'
@@ -366,10 +367,10 @@ export function AddIssuesDialog({ kind, slug, projectId, item, existingIds, open
   const { data, isFetching } = useIssues(
     slug,
     projectId,
-    { search: debounced || undefined, size: 50, sort: 'sequenceId,desc' },
+    { search: debounced || undefined, size: 100, sort: 'sequenceId,desc' },
     { enabled: open },
   )
-  const candidates = (data?.content ?? []).filter((issue) => !existingIds.has(issue.id))
+  const candidates = addableIssues(data?.content ?? [], existingIds, kind)
 
   const toggle = (id) =>
     setSelected((current) => {
