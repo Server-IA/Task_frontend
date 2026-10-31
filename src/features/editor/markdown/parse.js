@@ -1,4 +1,5 @@
 import { Marked } from 'marked'
+import { fileReference, parseFileReference } from '@/features/files/fileRefs'
 
 /**
  * Markdown guardado → documento del editor (el JSON de TipTap/ProseMirror). Lo usan el editor y la vista de lectura,
@@ -10,6 +11,7 @@ import { Marked } from 'marked'
  * - El HTML no se interpreta: se muestra tal cual, como texto.
  * - Las menciones `@[Nombre](id)` son nodos `mention`. Los códigos de tarea («WEB-12») quedan como texto: la vista
  *   los dibuja como pastilla si la tarea existe.
+ * - Las imágenes subidas (`![nombre](/files/<id>)`) son bloques `image`; las de otros sitios quedan como enlace.
  */
 
 /** @typedef {{ type: string, attrs?: Record<string, any>, content?: DocNode[], text?: string, marks?: Mark[] }} DocNode */
@@ -99,7 +101,8 @@ function inline(tokens = [], marks = []) {
         nodes.push(...inline(token.tokens, withMark(marks, { type: 'link', attrs: { href: token.href } })))
         break
       case 'image':
-        // Las imágenes llegan con la subida de archivos: por ahora, un enlace con su texto alternativo
+        // Una imagen dentro de una línea (un título, una celda) o de otro sitio: un enlace con su texto alternativo. Las
+        // subidas, solas en su párrafo, son bloques (`imageNode`)
         nodes.push(text(token.text || token.href, withMark(marks, { type: 'link', attrs: { href: token.href } })))
         break
       case 'br':
@@ -121,6 +124,49 @@ function inline(tokens = [], marks = []) {
     }
   }
   return mergeText(nodes)
+}
+
+/**
+ * Nodo de una imagen subida (`![nombre](/files/<id>)`, con `#full` si va a todo el ancho y el pie de foto como título);
+ * `null` si el enlace no es de un archivo subido (las imágenes de otros sitios no se cargan: quedan como enlace).
+ */
+function imageNode(token) {
+  const reference = parseFileReference(token.href)
+  if (!reference) return null
+  return {
+    type: 'image',
+    attrs: { src: fileReference(reference.id), alt: decodeEntities(token.text ?? ''), title: token.title ? decodeEntities(token.title) : null, wide: reference.wide },
+  }
+}
+
+/**
+ * Un párrafo con imágenes subidas: cada imagen es un bloque y el texto de alrededor queda en sus propios párrafos
+ * (los saltos de línea que las separaban se descartan).
+ */
+function paragraphsWithImages(tokens = []) {
+  if (!tokens.some((token) => token.type === 'image' && parseFileReference(token.href))) return [paragraph(inline(tokens))]
+  const blocks = []
+  let run = []
+  const closeRun = () => {
+    const content = inline(run)
+    // Sin los saltos de línea de los bordes (los que separaban la imagen del texto)
+    while (content[0]?.type === 'hardBreak') content.shift()
+    while (content.at(-1)?.type === 'hardBreak') content.pop()
+    const hasText = content.some((node) => node.type !== 'text' || node.text.trim())
+    if (hasText) blocks.push(paragraph(content))
+    run = []
+  }
+  for (const token of tokens) {
+    const image = token.type === 'image' ? imageNode(token) : null
+    if (image) {
+      closeRun()
+      blocks.push(image)
+    } else {
+      run.push(token)
+    }
+  }
+  closeRun()
+  return blocks
 }
 
 /** Texto con saltos de línea → nodos en línea con hardBreak (para HTML en bloque y casos raros). */
@@ -180,11 +226,12 @@ function blocksOf(tokens = []) {
       case 'def':
         break
       case 'paragraph':
-        blocks.push(paragraph(inline(token.tokens)))
+        blocks.push(...paragraphsWithImages(token.tokens))
         break
       case 'text':
         // Dentro de las listas compactas, el texto viene sin párrafo
-        blocks.push(paragraph(token.tokens ? inline(token.tokens) : literalLines(decodeEntities(token.text))))
+        if (token.tokens) blocks.push(...paragraphsWithImages(token.tokens))
+        else blocks.push(paragraph(literalLines(decodeEntities(token.text))))
         break
       case 'heading':
         blocks.push({ type: 'heading', attrs: { level: Math.min(Math.max(token.depth, 1), 3) }, content: inline(token.tokens) })

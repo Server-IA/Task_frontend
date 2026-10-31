@@ -66,10 +66,16 @@ function OptionsPicker({ trigger, options, value, onChange, multiple = false, pl
       <PopoverTrigger asChild disabled={disabled}>
         {trigger}
       </PopoverTrigger>
-      <PopoverContent className="w-60 p-0" align={align} onClick={(event) => event.stopPropagation()}>
-        <Command>
+      {/* Nunca más alto que el lugar que queda en la ventana: abierto desde un disparador alto (las etiquetas en la
+          columna de propiedades) se salía por arriba y se perdía el buscador. Se achica la lista, no el buscador */}
+      <PopoverContent
+        className="flex max-h-(--radix-popover-content-available-height) w-60 flex-col p-0"
+        align={align}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <Command className="min-h-0">
           <CommandInput placeholder={placeholder} />
-          <CommandList>
+          <CommandList className="min-h-0">
             <CommandEmpty>{emptyText ?? 'Sin resultados'}</CommandEmpty>
             <CommandGroup>
               {options.map((option) => (
@@ -268,7 +274,12 @@ export function DatePicker({
       <PopoverTrigger asChild disabled={disabled}>
         {dueInfo ? (
           <PropertyButton
-            className={cn('h-6 gap-1 rounded-md px-2 font-medium hover:opacity-85', DUE_TONES[dueInfo.tone], className)}
+            className={cn(
+              // Nunca en dos líneas: en una tarjeta angosta «venció ayer» se partía y se montaba sobre el clip
+              'h-6 shrink-0 gap-1 rounded-md px-2 font-medium whitespace-nowrap hover:opacity-85',
+              DUE_TONES[dueInfo.tone],
+              className,
+            )}
             aria-label={`${placeholder}: ${formatShortDate(value)}`}
             title={formatShortDate(value)}
           >

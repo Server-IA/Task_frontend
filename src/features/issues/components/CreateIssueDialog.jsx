@@ -15,6 +15,7 @@ import { Switch } from '@/components/ui/switch'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { Spinner } from '@/components/common/Loaders'
 import { LazyRichEditor, usePreloadRichEditor } from '@/features/editor/components/LazyRichEditor'
+import { inlineImageTarget } from '@/features/files/hooks'
 import { useMentionPeople } from '@/features/mentions/hooks'
 import {
   applyTemplate,
@@ -219,7 +220,14 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
 
   // ctrl ↵ dos veces (o con la tecla repitiendo) no crea dos tareas: el botón se deshabilita, el atajo no
   const submitting = useRef(false)
+  // Imágenes pegadas en la descripción: sin tarea todavía (el backend las liga al crearla); se crea cuando terminan
+  const [imageUpload] = useState(() => ({ target: inlineImageTarget(slug, project.id) }))
+  const [uploading, setUploading] = useState(0)
   const onSubmit = (data) => {
+    if (uploading > 0) {
+      toast.info(uploading === 1 ? 'La imagen sigue subiendo' : 'Las imágenes siguen subiendo', { description: 'La tarea se puede crear cuando termine.' })
+      return
+    }
     if (submitting.current) return
     submitting.current = true
     const body = {
@@ -316,6 +324,8 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
                 people={people}
                 slug={slug}
                 projectIdentifier={project.identifier}
+                imageUpload={imageUpload}
+                onUploadsChange={setUploading}
               />
               <FormMessage />
             </FormItem>
@@ -378,9 +388,9 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
           <Button type="button" variant="ghost" onClick={onCancel}>
             Cancelar
           </Button>
-          <Button type="submit" disabled={create.isPending}>
-            {create.isPending && <Spinner />}
-            {type === 'STORY' ? 'Crear historia' : type === 'BUG' ? 'Reportar bug' : 'Crear tarea'}
+          <Button type="submit" disabled={create.isPending || uploading > 0} title={uploading > 0 ? 'Se activa cuando termina la subida' : undefined}>
+            {(create.isPending || uploading > 0) && <Spinner />}
+            {uploading > 0 ? 'Subiendo…' : type === 'STORY' ? 'Crear historia' : type === 'BUG' ? 'Reportar bug' : 'Crear tarea'}
             <kbd className="rounded-[5px] bg-foreground/10 px-1.5 text-[11px] font-normal">ctrl ↵</kbd>
           </Button>
         </div>
@@ -404,11 +414,12 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
  * Descripción con el editor compacto: «/» para insertar y la barra sobre el texto seleccionado; «Aa formato»
  * muestra la barra de formato. Una plantilla la llena (y «Deshacer» la devuelve) porque el valor viene del form.
  */
-function DescriptionField({ value, onChange, people, slug, projectIdentifier }) {
+function DescriptionField({ value, onChange, people, slug, projectIdentifier, imageUpload, onUploadsChange }) {
   const [showFormat, setShowFormat] = useState(false)
   return (
     <div className="flex flex-col">
-      <div className={cn(showFormat && 'overflow-hidden rounded-xl border')}>
+      {/* Sin overflow-hidden: recortaba los menús del editor (el enlace, «/», @). La barra redondea sus esquinas */}
+      <div className={cn(showFormat && 'rounded-xl border [&_[role=toolbar]]:rounded-t-[11px]')}>
         <LazyRichEditor
           value={value}
           onChange={onChange}
@@ -418,6 +429,8 @@ function DescriptionField({ value, onChange, people, slug, projectIdentifier }) 
           slug={slug}
           projectIdentifier={projectIdentifier}
           ariaLabel="Descripción"
+          imageUpload={imageUpload}
+          onUploadsChange={onUploadsChange}
           contentClassName={cn('max-h-[360px] min-h-20 overflow-y-auto', showFormat ? 'px-3 py-2' : 'py-0.5')}
         />
       </div>

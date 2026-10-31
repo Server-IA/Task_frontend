@@ -1,4 +1,4 @@
-import { ArrowRight, Ban, SquareCheck } from 'lucide-react'
+import { ArrowRight, Ban, Paperclip, SquareCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { blockedBySummary, blockingSummary, checklistProgress, joinCodes } from '../issueFlags'
 
@@ -78,6 +78,32 @@ export function ChecklistChip({ issue, className }) {
     >
       <SquareCheck className="size-3" aria-hidden="true" />
       {progress.done}/{progress.total}
+    </span>
+  )
+}
+
+/**
+ * «📎 5»: cuántos archivos tiene la tarea en Adjuntos (las imágenes dentro del texto no cuentan). Con 0 no se muestra;
+ * `reserve` deja el lugar vacío (la columna fija de la lista).
+ * @param {{ issue: { attachmentCount?: number | null } | undefined, reserve?: boolean, className?: string }} props
+ */
+export function AttachmentsChip({ issue, reserve = false, className }) {
+  const count = issue?.attachmentCount ?? 0
+  if (count <= 0 && !reserve) return null
+  const label = count === 1 ? '1 adjunto' : `${count} adjuntos`
+  return (
+    <span
+      title={count > 0 ? label : 'Sin adjuntos'}
+      aria-label={count > 0 ? label : undefined}
+      aria-hidden={count > 0 ? undefined : true}
+      className={cn('inline-flex shrink-0 items-center gap-0.75 font-mono text-[11px] text-muted-foreground', className)}
+    >
+      {count > 0 && (
+        <>
+          <Paperclip className="size-3" strokeWidth={2.2} aria-hidden="true" />
+          {count}
+        </>
+      )}
     </span>
   )
 }

@@ -9,7 +9,8 @@ export function LabelChip({ label, className }) {
   return (
     <span
       className={cn(
-        'inline-flex h-5.5 max-w-40 items-center rounded-full px-2.5 text-xs font-medium',
+        // Nunca más ancha que su contenedor: en la columna de propiedades una etiqueta larga se salía por la derecha
+        'inline-flex h-5.5 max-w-[min(10rem,100%)] min-w-0 items-center rounded-full px-2.5 text-xs font-medium',
         'bg-[color-mix(in_oklab,var(--label)_18%,transparent)] text-[color-mix(in_oklab,var(--label)_62%,var(--foreground))]',
         className,
       )}

@@ -64,8 +64,12 @@ export function SidebarProjects({ slug, currentProjectId, collapsed }) {
               key={project.id}
               // A la raíz del proyecto (redirige a tareas): así queda marcado en cualquiera de sus secciones
               to={base}
-              iconNode={<ProjectIcon project={project} className={collapsed ? 'max-w-11 truncate' : undefined} />}
+              // Un identificador largo (hasta 12 letras) se corta: abierta, para no dejar el nombre en «Pl…»; plegada, para
+              // caber junto a la barra de scroll
+              iconNode={<ProjectIcon project={project} className={collapsed ? 'max-w-full' : 'max-w-[4.5rem]'} />}
               label={project.name}
+              // El nombre suele quedar cortado («Plat…»): completo al pasar el mouse
+              title={collapsed ? undefined : project.name}
               meta={project.openIssueCount > 0 ? openLabel(project.openIssueCount) : undefined}
               collapsed={collapsed}
             />
@@ -105,7 +109,7 @@ function CurrentProject({ slug, project, base }) {
   return (
     <div className="tf-pop rounded-[14px] bg-sidebar-accent p-1.5">
       <NavLink to={`${base}/issues`} className="flex items-center gap-2 px-1.5 py-1.5 text-sm font-semibold text-sidebar-foreground">
-        <ProjectIcon project={project} />
+        <ProjectIcon project={project} className="max-w-[4.5rem]" />
         <span className="min-w-0 flex-1 truncate">{project.name}</span>
       </NavLink>
       <div className="mt-0.5 flex flex-col gap-0.5">

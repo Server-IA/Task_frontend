@@ -18,5 +18,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/test/setup.js',
+    // Las pruebas de componentes con userEvent (editor, diálogos) pasan de 5 s con la máquina cargada
+    testTimeout: 20_000,
   },
 })

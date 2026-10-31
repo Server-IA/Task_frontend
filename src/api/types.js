@@ -98,3 +98,9 @@
  */
 
 export {}
+
+/** @typedef {Schemas['FileResponse']} FileResponse */
+/** @typedef {Schemas['FileUrlResponse']} FileUrlResponse */
+/** @typedef {Schemas['UploadTicketResponse']} UploadTicketResponse */
+/** @typedef {Schemas['StorageUsageResponse']} StorageUsageResponse */
+/** @typedef {Schemas['StorageReportResponse']} StorageReportResponse */

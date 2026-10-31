@@ -6,9 +6,12 @@ import { isManager } from '@/lib/permissions'
 import { GeneralSettings } from '../components/GeneralSettings'
 import { InvitationsSettings } from '../components/InvitationsSettings'
 import { MembersSettings } from '../components/MembersSettings'
+import { StorageSettings } from '../components/StorageSettings'
 import { useCurrentWorkspace, useMembers } from '../hooks'
 
-const TABS = ['general', 'members', 'invitations']
+const TABS = ['general', 'members', 'invitations', 'storage']
+/** Pestañas que solo ve el project manager (con otro rol, la URL lleva a «General»). */
+const MANAGER_TABS = ['invitations', 'storage']
 
 export function WorkspaceSettingsPage() {
   const workspace = useCurrentWorkspace()
@@ -16,7 +19,7 @@ export function WorkspaceSettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const canManage = isManager(workspace.myRole)
   const requested = searchParams.get('tab')
-  const tab = TABS.includes(requested) && (requested !== 'invitations' || canManage) ? requested : 'general'
+  const tab = TABS.includes(requested) && (!MANAGER_TABS.includes(requested) || canManage) ? requested : 'general'
 
   return (
     <Tabs
@@ -35,6 +38,12 @@ export function WorkspaceSettingsPage() {
             Miembros {members && <span className="font-mono">{members.length}</span>}
           </TabsTrigger>
           {canManage && <TabsTrigger value="invitations">Invitaciones</TabsTrigger>}
+          {canManage && (
+            <TabsTrigger value="storage">
+              Almacenamiento
+              <span className="rounded-md bg-card px-1.5 font-mono text-[10.5px] font-medium text-muted-foreground">solo PM</span>
+            </TabsTrigger>
+          )}
         </TabsList>
       </PageHeader>
       <PageBody>
@@ -48,6 +57,11 @@ export function WorkspaceSettingsPage() {
           {canManage && (
             <TabsContent value="invitations">
               <InvitationsSettings workspace={workspace} />
+            </TabsContent>
+          )}
+          {canManage && (
+            <TabsContent value="storage">
+              <StorageSettings workspace={workspace} />
             </TabsContent>
           )}
         </div>

@@ -4,10 +4,10 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { toast } from 'sonner'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CenteredSpinner, Spinner } from '@/components/common/Loaders'
@@ -15,7 +15,7 @@ import { PasswordInput } from '@/components/common/PasswordInput'
 import { PasswordRules } from '@/components/common/PasswordRules'
 import { Segmented } from '@/components/common/Segmented'
 import { THEME_OPTIONS } from '@/components/common/ThemeToggle'
-import { avatarColor, initials } from '@/components/common/UserAvatar'
+import { AvatarPhoto, avatarColor, initials } from '@/components/common/UserAvatar'
 import { useChangePassword, useLogout, useMe, useUpdateProfile } from '@/features/auth/hooks'
 import { changePasswordSchema, profileSchema } from '@/features/auth/schemas'
 import { useWorkspaces } from '@/features/workspaces/hooks'
@@ -25,6 +25,7 @@ import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
+import { ProfilePhotoSection } from './ProfilePhoto'
 
 export function ProfilePage() {
   const { data: user, isLoading } = useMe()
@@ -35,6 +36,7 @@ export function ProfilePage() {
     <div className="mx-auto flex w-full max-w-[920px] min-h-0 flex-1 flex-col gap-3.5">
       <ProfileHeader user={user} />
       <PageBody className="flex flex-col gap-3.5">
+        <ProfilePhotoSection user={user} />
         <div className="grid items-start gap-3.5 lg:grid-cols-2">
           <ProfileCard user={user} />
           <ChangePasswordCard />
@@ -57,7 +59,7 @@ function ProfileHeader({ user }) {
       documentTitle={['Mi perfil']}
       leading={
         <Avatar className="size-18 self-center rounded-[22px]">
-          {user.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.fullName} className="rounded-[22px]" />}
+          <AvatarPhoto src={user.avatarUrl} alt={`Foto de ${user.fullName}`} className="rounded-[22px]" />
           <AvatarFallback className={cn('rounded-[22px] font-display text-[28px] font-extrabold text-[#23201B]', avatarColor(user.fullName))}>
             {initials(user.fullName)}
           </AvatarFallback>
@@ -95,12 +97,13 @@ function ProfileCard({ user }) {
   const { theme, setTheme } = useTheme()
   const form = useForm({
     resolver: zodResolver(profileSchema),
-    defaultValues: { fullName: user.fullName, avatarUrl: user.avatarUrl ?? '' },
+    defaultValues: { fullName: user.fullName },
   })
 
+  // La foto se cambia aparte (ver ProfilePhoto): el formulario solo manda el nombre
   useEffect(() => {
-    form.reset({ fullName: user.fullName, avatarUrl: user.avatarUrl ?? '' })
-  }, [user, form])
+    form.reset({ fullName: user.fullName })
+  }, [user.fullName, form])
 
   const onSubmit = (values) => {
     update.mutate(values, {
@@ -129,20 +132,6 @@ function ProfileCard({ user }) {
                   <FormControl>
                     <Input autoComplete="name" {...field} />
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="avatarUrl"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>URL del avatar</FormLabel>
-                  <FormControl>
-                    <Input type="url" placeholder="https://…" {...field} />
-                  </FormControl>
-                  <FormDescription className="font-mono text-[11px]">vacío = se muestran tus iniciales</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

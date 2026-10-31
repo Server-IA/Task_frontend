@@ -65,6 +65,9 @@ export function describeActivity({ field, oldValue, newValue }) {
     case 'STORY_AUTO_STATE':
       // «TaskFlow movió la historia a In Progress · Luis empezó WEB-41»
       return `movió la historia a ${newValue}${oldValue ? ` · ${oldValue}` : ''}`
+    case 'ATTACHMENT':
+      // El nombre del archivo: en `newValue` al adjuntarlo y en `oldValue` al eliminarlo
+      return newValue ? `adjuntó ${quote(newValue)}` : `eliminó ${oldValue ? quote(oldValue) : 'un archivo'}`
     default:
       return 'actualizó la tarea'
   }
@@ -78,12 +81,13 @@ function describeDate(name, oldValue, newValue) {
 
 /**
  * @typedef {{ verb: string, suffix?: string, mark: string, tone: 'neutral' | 'accent' | 'ok',
- *             change?: { from: string, to: string, done: boolean }, quote?: string }} FeedSentence
+ *             change?: { from: string, to: string, done: boolean }, quote?: string, file?: boolean }} FeedSentence
  */
 
 /**
  * Frase de una entrada del feed de actividad del workspace, alrededor de la tarea:
- * «{quién} {verb} WEB-4 Recuperar contraseña {suffix}». `mark` es el símbolo sobre el avatar.
+ * «{quién} {verb} WEB-4 Recuperar contraseña {suffix}». `mark` es el símbolo sobre el avatar. `file`: va la tarjeta del
+ * archivo adjuntado (si todavía existe).
  * `stateGroup` es el grupo del estado nuevo (si se conoce) para distinguir «completó» de «movió».
  * @param {import('@/api/types').ActivityFeedItem} entry
  * @param {{ stateGroup?: string }} [options]
@@ -137,6 +141,10 @@ export function describeFeedEntry({ field, oldValue, newValue }, { stateGroup } 
       return neutral('cambió el tipo de', `a ${typeName(newValue).toLowerCase()}`)
     case 'STORY_AUTO_STATE':
       return neutral('movió la historia', `a ${newValue}${oldValue ? ` · ${oldValue}` : ''}`, '→')
+    case 'ATTACHMENT':
+      return newValue
+        ? { verb: `adjuntó ${quote(newValue)} en`, mark: '↑', tone: 'accent', file: true }
+        : neutral(`eliminó ${oldValue ? quote(oldValue) : 'un archivo'} de`, undefined, '×')
     default:
       return neutral('actualizó')
   }

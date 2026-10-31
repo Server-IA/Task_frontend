@@ -4,10 +4,12 @@
  * diálogos, y se mueven con el scroll). Debajo del ancla, o arriba si abajo no hay lugar en la ventana.
  * @param {DOMRect | null | undefined} anchor rectángulo del cursor o de la selección (coordenadas de la ventana)
  * @param {HTMLElement | null} container
- * @param {{ width?: number, height?: number, gap?: number, offsetX?: number }} [options]
+ * `fit`: el menú tiene scroll propio y se achica (`maxHeight`) al lugar que queda en el lado elegido. Sin esto, el menú
+ * «/» (420 px) abierto hacia arriba en el diálogo «Nueva tarea» se salía por arriba y el diálogo le cortaba el comienzo.
+ * @param {{ width?: number, height?: number, gap?: number, offsetX?: number, fit?: boolean }} [options]
  * @returns {React.CSSProperties}
  */
-export function popupPosition(anchor, container, { width = 320, height = 320, gap = 6, offsetX = -6 } = {}) {
+export function popupPosition(anchor, container, { width = 320, height = 320, gap = 6, offsetX = -6, fit = false } = {}) {
   if (!anchor || !container) return { display: 'none' }
   const box = container.getBoundingClientRect()
   const left = Math.max(0, Math.min(anchor.left - box.left + offsetX, box.width - width))
@@ -17,7 +19,10 @@ export function popupPosition(anchor, container, { width = 320, height = 320, ga
   const top = Math.max(0, visible?.top ?? 0)
   const spaceBelow = bottom - anchor.bottom
   const above = spaceBelow < height + gap && anchor.top - top > spaceBelow
-  return above ? { left, bottom: box.bottom - anchor.top + gap } : { left, top: anchor.bottom - box.top + gap }
+  const position = above ? { left, bottom: box.bottom - anchor.top + gap } : { left, top: anchor.bottom - box.top + gap }
+  if (!fit) return position
+  const room = Math.floor((above ? anchor.top - top : spaceBelow) - gap - 4)
+  return { ...position, maxHeight: Math.max(Math.min(height, room), 160) }
 }
 
 /**

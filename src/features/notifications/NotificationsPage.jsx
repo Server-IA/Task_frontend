@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
-import { AtSign, BellOff, CheckCheck, MousePointerClick } from 'lucide-react'
+import { AtSign, BellOff, CheckCheck, HardDrive, MousePointerClick } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -25,15 +25,20 @@ import {
   excerptSegments,
   inboxTab,
   isOpenedNotification,
+  isSystemNotification,
   notificationIssue,
   notificationProject,
   notificationProjectColor,
   notificationTarget,
+  notificationWorkspaceSlug,
   openedIssueFromParams,
   withOpenedIssue,
 } from './notificationParts'
 
-/** Marca pequeña sobre el avatar según el tipo de aviso: las menciones van con el acento y el desbloqueo en verde. */
+/**
+ * Marca pequeña sobre el avatar según el tipo de aviso: las menciones van con el acento, el desbloqueo en verde y el
+ * espacio casi lleno en ámbar.
+ */
 const TYPE_MARKS = {
   ISSUE_ASSIGNED: { mark: '+', className: 'bg-card text-muted-foreground' },
   ISSUE_COMMENTED: { mark: '“', className: 'bg-card text-muted-foreground' },
@@ -41,6 +46,7 @@ const TYPE_MARKS = {
   ISSUE_UNBLOCKED: { mark: '✓', className: 'border-transparent bg-ok-soft text-ok' },
   RETRO_STARTED: { mark: '↻', className: 'bg-card text-accent-text' },
   STORY_READY: { mark: '✓', className: 'border-transparent bg-ok-soft text-ok' },
+  STORAGE_WARNING: { mark: '!', className: 'border-transparent bg-soon-soft text-soon' },
 }
 const DEFAULT_MARK = { mark: '·', className: 'bg-card text-muted-foreground' }
 
@@ -59,7 +65,8 @@ const SPLIT_MIN_WIDTH = 880
 /**
  * Bandeja: avisos por día con pestañas (No leídas, Menciones, Todas). Al abrir un aviso, su tarea se muestra al
  * lado con el comentario del aviso a la vista (en pantallas angostas, en el panel flotante). La tarea abierta vive
- * en la URL (?workspace=&project=&issue=&comment=). Los avisos de retrospectiva llevan a su página.
+ * en la URL (?workspace=&project=&issue=&comment=). Los avisos de retrospectiva llevan a su página y los de espacio
+ * casi lleno, a Ajustes › Almacenamiento.
  */
 export function NotificationsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -310,8 +317,8 @@ function CommentExcerpt({ excerpt }) {
 }
 
 /**
- * Un aviso: abre su tarea (al lado o en el panel flotante) o, si es de una retrospectiva, la retro. El de la tarea
- * abierta queda marcado.
+ * Un aviso: abre su tarea (al lado o en el panel flotante) o, si es de una retrospectiva o del espacio del workspace,
+ * su página. El de la tarea abierta queda marcado.
  * @param {{ notification: import('@/api/types').NotificationResponse, first: boolean, current: boolean,
  *           onOpen: () => void }} props
  */
@@ -319,7 +326,8 @@ function NotificationItem({ notification, first, current, onOpen }) {
   const issue = notification.issue
   const mark = TYPE_MARKS[notification.type] ?? DEFAULT_MARK
   const project = notificationProject(notification)
-  const workspaceSlug = issue?.workspaceSlug ?? notification.cycle?.workspaceSlug
+  const workspaceSlug = notificationWorkspaceSlug(notification)
+  const storage = notification.type === 'STORAGE_WARNING'
 
   return (
     <li className={cn(!first && 'border-t')}>
@@ -334,7 +342,7 @@ function NotificationItem({ notification, first, current, onOpen }) {
         )}
       >
         <span className="relative shrink-0">
-          {notification.type === 'STORY_READY' ? (
+          {isSystemNotification(notification) ? (
             // Lo manda TaskFlow (sin autor)
             <span aria-hidden="true" className="flex size-9 items-center justify-center rounded-full bg-primary font-mono text-xs font-bold text-primary-foreground">
               TF
@@ -353,7 +361,18 @@ function NotificationItem({ notification, first, current, onOpen }) {
           </span>
         </span>
         <span className="min-w-0 flex-1">
-          {notification.type === 'STORY_READY' && issue ? (
+          {storage ? (
+            <>
+              <span className="block leading-snug">
+                <span className={cn(!notification.read && 'font-semibold')}>TaskFlow</span>{' '}
+                <span className="text-muted-foreground">avisa: espacio para archivos</span>
+              </span>
+              <span className={cn('mt-0.5 flex min-w-0 items-start gap-1.5 leading-snug', !notification.read && 'font-semibold')}>
+                <HardDrive aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-soon" />
+                <span>{notification.message}</span>
+              </span>
+            </>
+          ) : notification.type === 'STORY_READY' && issue ? (
             <>
               <span className="block leading-snug">
                 <span className={cn(!notification.read && 'font-semibold')}>TaskFlow</span>{' '}
@@ -385,6 +404,7 @@ function NotificationItem({ notification, first, current, onOpen }) {
                 {project} ·{' '}
               </>
             )}
+            {storage && workspaceSlug && <>{workspaceSlug} · </>}
             {formatRelative(notification.createdAt)}
           </span>
         </span>

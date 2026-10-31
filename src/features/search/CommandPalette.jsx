@@ -219,7 +219,7 @@ function PaletteContent({ onClose }) {
                   key={issue.id}
                   value={`issue-${issue.id}`}
                   onSelect={() => run(() => navigate(`/${slug}/projects/${issue.projectId}/issues?issue=${issue.id}`))}
-                  icon={<ProjectIcon project={issueProject ?? { identifier: issue.code.split('-')[0] }} className="h-6.5 rounded-lg px-1.5" />}
+                  icon={<ProjectIcon project={issueProject ?? { identifier: issue.code.split('-')[0] }} className="h-6.5 max-w-20 rounded-lg px-1.5" />}
                   label={
                     <span className="flex min-w-0 items-center gap-2">
                       <IssueTypeIcon issue={issue} />
@@ -253,7 +253,7 @@ function PaletteContent({ onClose }) {
                 key={item.id}
                 value={item.id}
                 onSelect={() => run(() => navigate(item.to))}
-                icon={item.project ? <ProjectIcon project={item.project} className="h-6.5 rounded-lg px-1.5" /> : item.icon}
+                icon={item.project ? <ProjectIcon project={item.project} className="h-6.5 max-w-20 rounded-lg px-1.5" /> : item.icon}
                 label={item.label}
                 hint={item.hint}
                 shortcut={item.shortcut}
@@ -316,7 +316,8 @@ function PaletteItem({ value, onSelect, icon, label, hint, shortcut }) {
       <span
         aria-hidden="true"
         className={cn(
-          'flex size-6.5 shrink-0 items-center justify-center font-mono text-[11px] font-semibold',
+          // Ancho mínimo, no fijo: el identificador de un proyecto («QAVISUALLONG») se salía de la caja y tapaba el título
+          'flex h-6.5 min-w-6.5 shrink-0 items-center justify-center font-mono text-[11px] font-semibold',
           typeof icon === 'string' && 'rounded-lg bg-muted text-muted-foreground',
         )}
       >

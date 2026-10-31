@@ -2,6 +2,11 @@ import { Fragment, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { ArrowRight, Check, Copy, UserRound } from 'lucide-react'
 import { StateIcon } from '@/components/common/StateIcon'
+import { FileImage } from '@/features/files/components/FileImage'
+import { parseFileReference } from '@/features/files/fileRefs'
+import { openFileInNewTab } from '@/features/files/fileUrls'
+import { useImageViewer } from '@/features/files/imageViewerContext'
+import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { useSessionStore } from '@/stores/sessionStore'
 import { highlightCode } from '../highlight'
@@ -22,6 +27,7 @@ import { useTaskRefs } from '../taskRefs'
  * - Con `onToggleTask(index, checked)` las casillas se pueden marcar; con `onMoveTasks([index])` cada casilla
  *   ofrece «Pasar al checklist».
  * - Una cita «**Como** … **quiero** … **para** …» se dibuja como la tarjeta de la historia de usuario.
+ * - Las imágenes subidas (`![nombre](/files/<id>)`) se ven con su URL firmada y se abren en el visor de la tarea.
  *
  * @param {{ markdown?: string | null, doc?: object, size?: 'md' | 'sm', slug?: string, projectId?: string,
  *           onOpenIssue?: (issueId: string) => void, onToggleTask?: (index: number, checked: boolean) => void,
@@ -85,6 +91,8 @@ function renderBlock(node, ctx) {
       return <CodeBlockView language={node.attrs?.language} code={(node.content ?? []).map((child) => child.text).join('')} />
     case 'horizontalRule':
       return <hr />
+    case 'image':
+      return <MarkdownImage node={node} />
     case 'table':
       return (
         <table>
@@ -135,6 +143,27 @@ function renderInline(nodes = [], ctx) {
     }
     return <Fragment key={index}>{content}</Fragment>
   })
+}
+
+/**
+ * Imagen subida: se abre en el visor de la tarea (si hay uno) o en otra pestaña. Con `wide`, a todo el ancho; el pie de
+ * foto es su título.
+ */
+export function MarkdownImage({ node }) {
+  const viewer = useImageViewer()
+  const reference = parseFileReference(node.attrs?.src)
+  if (!reference) return null
+  const alt = node.attrs?.alt ?? ''
+  const open = () => {
+    if (viewer) viewer.open(reference.id)
+    else openFileInNewTab(reference.id).catch((error) => notifyError(error, 'No se pudo abrir la imagen'))
+  }
+  return (
+    <figure className="tf-md-figure" data-wide={node.attrs?.wide || undefined} data-md-ui="">
+      <FileImage src={node.attrs.src} alt={alt} onClick={open} className="tf-md-figure-frame" imgClassName="tf-md-image" />
+      {node.attrs?.title && <figcaption>{node.attrs.title}</figcaption>}
+    </figure>
+  )
 }
 
 /** Texto con los códigos de tarea que existen como pastillas. */

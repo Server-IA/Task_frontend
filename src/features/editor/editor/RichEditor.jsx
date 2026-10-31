@@ -3,6 +3,9 @@ import { getMarkRange } from '@tiptap/core'
 import { TextSelection } from '@tiptap/pm/state'
 import { EditorContent, useEditor, useEditorState } from '@tiptap/react'
 import { exitSuggestion } from '@tiptap/suggestion'
+import { toast } from 'sonner'
+import { IMAGE_ACCEPT, isImageFile, pastedName, renameFile, validateFile } from '@/features/files/fileTypes'
+import { uploadQueue } from '@/features/files/uploadQueue'
 import { filterPeople, mentionName } from '@/features/mentions/mentions'
 import { cn } from '@/lib/utils'
 import { useSessionStore } from '@/stores/sessionStore'
@@ -14,6 +17,7 @@ import { isTaskCode } from '../markdown/taskRefs'
 import { BubbleBar } from './BubbleBar'
 import { buildExtensions, MENTION_KEY, SLASH_KEY } from './extensions'
 import { codeReplacement, findText } from './findText'
+import { syncUploadingImages } from './imageExtension'
 import { LinkPopover } from './LinkPopover'
 import { caretRect, popupPosition } from './popups'
 import { ShortcutsDialog } from './ShortcutsDialog'
@@ -90,6 +94,10 @@ function posFromTextIndex(doc, index) {
  * - `apiRef.current`: `{ focus, getMarkdown, setMarkdown, replaceText }`.
  * - `onCommandChange(abierto)`: avisa cuando se abre o se cierra un menú de comando (el «/», las personas de «@» o
  *   la búsqueda de tareas). Mientras hay uno abierto, lo escrito está a medias (por ejemplo, para no guardarlo solo).
+ * - `imageUpload`: `{ target, onOtherFiles? }` habilita las imágenes (pegar, soltar, «Imagen» y «/imagen»): entran
+ *   donde está el cursor con su vista previa y suben por detrás (`target`, ver features/files/uploads.js); al terminar,
+ *   quedan como `![nombre](/files/<id>)`. Los archivos que no son imágenes van a `onOtherFiles` (en la descripción, a
+ *   Adjuntos); sin él, se avisa que solo se aceptan imágenes. `onUploadsChange(n)` avisa cuántas siguen subiendo.
  */
 export default function RichEditor({
   value = '',
@@ -109,11 +117,16 @@ export default function RichEditor({
   onMoveTasks,
   apiRef,
   onCommandChange,
+  imageUpload,
+  onUploadsChange,
   ariaLabel = 'Descripción',
   className,
   contentClassName,
 }) {
   const meId = useSessionStore((state) => state.user?.id)
+  const fileInputRef = useRef(null)
+  // Las subidas de este editor en la cola de la app
+  const [uploadScope] = useState(() => `editor:${Math.random().toString(36).slice(2)}`)
   // Puente con las extensiones (lo llaman desde afuera de React); se llena en cada render
   const [bridge] = useState(createBridge)
   const lastValueRef = useRef(value)
@@ -142,6 +155,7 @@ export default function RichEditor({
           'aria-label': ariaLabel,
         },
         handlePaste: (view, event) => bridge.current.paste?.(event) ?? false,
+        handleDrop: (view, event, slice, moved) => bridge.current.drop?.(view, event, moved) ?? false,
         handleClick: (view, pos) => bridge.current.click?.(pos) ?? false,
         // Copiar desde el editor deja Markdown como texto plano
         clipboardTextSerializer: (slice) => docToMarkdown({ type: 'doc', content: slice.content.toJSON() ?? [] }),
@@ -218,11 +232,48 @@ export default function RichEditor({
         editor.chain().insertContentAt(range, replacement).run()
         return true
       },
+      /** Inserta imágenes donde está el cursor (lo demás va a `imageUpload.onOtherFiles`). */
+      insertFiles: (files) => bridge.current.insertFiles?.(files) ?? false,
+      openImagePicker: () => fileInputRef.current?.click(),
+      /** Imágenes que siguen subiendo. */
+      pendingUploads: () => syncUploadingImages(editor, uploadQueue.get),
     }
     return () => {
       apiRef.current = null
     }
-  }, [apiRef, editor])
+  }, [apiRef, editor, bridge])
+
+  // Las imágenes que suben: al terminar pasan a su referencia y al cancelarse se quitan; se avisa cuántas faltan
+  const onUploadsChangeRef = useRef(onUploadsChange)
+  useLayoutEffect(() => {
+    onUploadsChangeRef.current = onUploadsChange
+  })
+  useEffect(() => {
+    if (!editor) return undefined
+    let last = -1
+    let scheduled = false
+    const sync = () => {
+      scheduled = false
+      const pending = syncUploadingImages(editor, uploadQueue.get)
+      if (pending !== last) {
+        last = pending
+        onUploadsChangeRef.current?.(pending)
+      }
+    }
+    // Después de cada cambio del documento (deshacer puede devolver una imagen que ya terminó de subir)
+    const later = () => {
+      if (scheduled) return
+      scheduled = true
+      queueMicrotask(sync)
+    }
+    sync()
+    const unsubscribe = uploadQueue.subscribe(sync)
+    editor.on('update', later)
+    return () => {
+      unsubscribe()
+      editor.off('update', later)
+    }
+  }, [editor])
 
   // Mientras se arrastra para seleccionar, la barra flotante espera a que se suelte el botón
   useEffect(() => {
@@ -265,7 +316,7 @@ export default function RichEditor({
     return () => window.removeEventListener('mousedown', onDown)
   }, [root, link, taskSearch])
 
-  const features = { people: people.length > 0, tasks: Boolean(slug), taskHint: projectIdentifier }
+  const features = { people: people.length > 0, tasks: Boolean(slug), taskHint: projectIdentifier, images: Boolean(imageUpload) }
   const groups = slash ? slashGroups(slash.query, features) : []
   const slashItems = groups.flatMap((group) => group.items).filter((item) => !item.disabled)
   const slashCurrent = slashItems.some((item) => item.id === slashActive) ? slashActive : slashItems[0]?.id
@@ -399,9 +450,48 @@ export default function RichEditor({
         lastValueRef.current = markdown
         onChange?.(markdown)
       },
+      insertFiles: (files, pos) => {
+        if (!editor || !imageUpload) return false
+        const list = [...files]
+        const nodes = []
+        for (const original of list.filter(isImageFile)) {
+          const file = renameFile(original, pastedName(original))
+          const check = validateFile(file, { imagesOnly: true })
+          if (!check.ok) {
+            toast.error(`${check.error} No se pegó.`)
+            continue
+          }
+          const uploadId = uploadQueue.add(file, { target: imageUpload.target, scope: uploadScope, contentType: check.contentType })
+          nodes.push({ type: 'image', attrs: { src: URL.createObjectURL(file), alt: file.name, uploadId } })
+        }
+        if (nodes.length) {
+          const chain = editor.chain().focus()
+          ;(typeof pos === 'number' ? chain.insertContentAt(pos, nodes) : chain.insertContent(nodes)).run()
+          imageUpload.onInserted?.(nodes.length)
+        }
+        const others = list.filter((file) => !isImageFile(file))
+        if (others.length) {
+          if (imageUpload.onOtherFiles) imageUpload.onOtherFiles(others)
+          else toast.error(others.length === 1 ? `«${others[0].name}» no es una imagen` : 'Algunos archivos no son imágenes', { description: 'Aquí solo se pueden pegar imágenes PNG, JPG, GIF o WebP.' })
+        }
+        return true
+      },
+      drop: (view, event, moved) => {
+        const files = event.dataTransfer?.files
+        if (moved || !files?.length || !imageUpload) return false
+        // Lo soltado sobre el editor entra aquí (y no llega a la zona de Adjuntos del panel)
+        event.preventDefault()
+        event.stopPropagation()
+        const pos = view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos
+        bridge.current.insertFiles?.(files, pos)
+        return true
+      },
       paste: (event) => {
         const text = event.clipboardData?.getData('text/plain')
         const html = event.clipboardData?.getData('text/html') ?? ''
+        const files = event.clipboardData?.files
+        // Una captura o una imagen copiada (sin texto: Word y Excel copian además una imagen del texto, que no se pega)
+        if (files?.length && imageUpload && !text?.trim()) return bridge.current.insertFiles?.(files) ?? false
         if (!text || !editor || editor.isActive('codeBlock') || editor.isActive('code')) return false
         // Copiado de otro editor como este: ProseMirror ya lo pega con su formato
         if (html.includes('data-pm-slice') || !looksLikeMarkdown(text)) return false
@@ -442,7 +532,10 @@ export default function RichEditor({
         select: (current, range, item) => {
           const chain = current.chain().focus().deleteRange(range)
           if (item.id === 'mention') chain.insertContent('@').run()
-          else if (item.id === 'taskLink') {
+          else if (item.id === 'image') {
+            chain.run()
+            fileInputRef.current?.click()
+          } else if (item.id === 'taskLink') {
             chain.run()
             const pos = current.state.selection.from
             setTaskSearch({ key: Date.now(), pos })
@@ -514,9 +607,25 @@ export default function RichEditor({
           onLink={() => openLink()}
           onHelp={() => setHelp(true)}
           onMoveTasks={onMoveTasks ? moveTasks : undefined}
+          onImage={imageUpload ? () => fileInputRef.current?.click() : undefined}
         />
       )}
       <EditorContent editor={editor} />
+      {imageUpload && (
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={IMAGE_ACCEPT}
+          multiple
+          hidden
+          aria-hidden="true"
+          tabIndex={-1}
+          onChange={(event) => {
+            if (event.target.files?.length) bridge.current.insertFiles?.(event.target.files)
+            event.target.value = ''
+          }}
+        />
+      )}
 
       {bubbleStyle && (
         <BubbleBar
@@ -536,7 +645,7 @@ export default function RichEditor({
           active={slashCurrent}
           onSelect={(item) => slash.command(item)}
           onHover={setSlashActive}
-          style={popupPosition(slash.clientRect?.(), root, { width: 330, height: 420 })}
+          style={popupPosition(slash.clientRect?.(), root, { width: 330, height: 420, fit: true })}
         />
       )}
       {mention && candidates.length > 0 && (

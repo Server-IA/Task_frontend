@@ -121,7 +121,8 @@ export function InvitationPage() {
           </h1>
           <dl className="grid grid-cols-[auto_1fr] gap-x-3.5 gap-y-1.5 rounded-xl bg-muted px-3.5 py-3 font-mono text-xs">
             <dt className="text-muted-foreground">para</dt>
-            <dd className="truncate">{invitation.email}</dd>
+            {/* Completo aunque sea largo: la invitación solo sirve con este correo, no se puede cortar */}
+            <dd className="min-w-0 wrap-anywhere">{invitation.email}</dd>
             <dt className="text-muted-foreground">rol</dt>
             <dd>
               {/* «Miembro» o «Project manager», nunca el valor de la API («MEMBER») */}

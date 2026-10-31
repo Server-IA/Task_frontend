@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canDeleteIssue } from './permissions'
+import { canDeleteFile, canDeleteIssue } from './permissions'
 
 describe('canDeleteIssue', () => {
   const mine = { type: 'TASK', createdBy: { id: 'u1' } }
@@ -14,5 +14,20 @@ describe('canDeleteIssue', () => {
     expect(canDeleteIssue('MEMBER', { ...mine, type: 'BUG' }, 'u1')).toBe(true)
     expect(canDeleteIssue('MEMBER', { ...mine, type: 'STORY' }, 'u1')).toBe(false)
     expect(canDeleteIssue('MEMBER', { ...mine, createdBy: { id: 'otro' } }, 'u1')).toBe(false)
+  })
+})
+
+describe('canDeleteFile', () => {
+  const file = { id: 'f1', uploadedBy: { id: 'ana' } }
+
+  it('quien subió el archivo o el project manager', () => {
+    expect(canDeleteFile('MEMBER', file, 'ana')).toBe(true)
+    expect(canDeleteFile('OWNER', file, 'luis')).toBe(true)
+  })
+
+  it('otro miembro no, ni sin sesión', () => {
+    expect(canDeleteFile('MEMBER', file, 'luis')).toBe(false)
+    expect(canDeleteFile('MEMBER', file, undefined)).toBe(false)
+    expect(canDeleteFile('MEMBER', { ...file, uploadedBy: null }, 'ana')).toBe(false)
   })
 })

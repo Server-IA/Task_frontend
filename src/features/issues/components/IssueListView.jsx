@@ -14,7 +14,7 @@ import { stateOptionsFor, storyStateLocked } from '../issueTypes'
 import { useCriteriaGuard } from '../useCriteriaGuard'
 import { isClosed, useIssueUpdater } from '../useIssueHelpers'
 import { closedStoryActions, useStoryClosedGuard } from '../useStoryClosedGuard'
-import { BlockedChip, BlockingChip, ChecklistChip } from './IssueBadges'
+import { AttachmentsChip, BlockedChip, BlockingChip, ChecklistChip } from './IssueBadges'
 import { IssueTypeIcon, ParentStoryChip, TypeIcon } from './IssueTypeBits'
 import { PriorityIcon } from './PriorityIcon'
 import { AssigneesPicker, DatePicker, LabelsPicker, PriorityPicker, StatePicker } from './PropertyPickers'
@@ -262,6 +262,8 @@ const IssueRow = memo(function IssueRow({ issue, slug, project, meta, openIssue,
             onChange={(dueDate) => update(dueDate ? { dueDate } : { clearDueDate: true })}
             className={cn(!issue.dueDate && revealOnHover)}
           />
+          {/* Columna fija: el clip con el número de adjuntos (vacía si no hay) */}
+          <AttachmentsChip issue={issue} reserve className="w-8.5 justify-end" />
           <AssigneesPicker
             members={meta.users}
             value={issue.assignees?.map((user) => user.id) ?? []}

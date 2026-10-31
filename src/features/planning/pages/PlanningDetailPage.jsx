@@ -134,7 +134,8 @@ export function PlanningDetailPage({ kind }) {
                 </Button>
               )}
             </div>
-            <div className="w-full sm:w-72">
+            {/* Del ancho de los botones: cuando bajan debajo del título, el avance ya no queda corrido a la derecha */}
+            <div className="w-full self-stretch sm:min-w-72">
               <ProgressBlock kind={kind} item={item} issues={issues} />
             </div>
           </div>

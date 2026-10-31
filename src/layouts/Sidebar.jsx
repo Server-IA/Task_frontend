@@ -44,7 +44,8 @@ export function Sidebar({ collapsed }) {
         </Tooltip>
       </div>
 
-      <nav className="flex min-h-0 flex-1 flex-col gap-4.5 overflow-y-auto" aria-label="Principal">
+      {/* overflow-x-hidden: plegada y con scroll vertical, la barra le quitaba ancho y aparecía otra horizontal */}
+      <nav className="flex min-h-0 flex-1 flex-col gap-4.5 overflow-x-hidden overflow-y-auto" aria-label="Principal">
         <div className="flex flex-col gap-0.5">
           <SearchButton collapsed={collapsed} />
           <NotificationsLink collapsed={collapsed} />

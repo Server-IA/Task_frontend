@@ -3,7 +3,14 @@
  * mención resaltada.
  */
 
-/** @typedef {import('@/api/types').NotificationResponse} NotificationResponse */
+/**
+ * `workspace` solo viene en los avisos del workspace (STORAGE_WARNING: el espacio para archivos pasó del 90 %).
+ * @typedef {Omit<import('@/api/types').NotificationResponse, 'type'> & { type?: string,
+ *           workspace?: { id: string, slug: string, name: string } | null }} NotificationResponse
+ */
+
+/** Pestaña de los ajustes del workspace a la que lleva el aviso de espacio (solo la ven los PM). */
+export const STORAGE_SETTINGS_TAB = 'storage'
 
 /** Pestañas de la Bandeja y qué pide cada una a la API. */
 export const INBOX_TABS = {
@@ -18,12 +25,16 @@ export function inboxTab(value) {
 }
 
 /**
- * Ruta a la que lleva el aviso: la retrospectiva del ciclo (RETRO_STARTED) o la tarea abierta en su proyecto.
+ * Ruta a la que lleva el aviso: «Almacenamiento» en los ajustes del workspace (STORAGE_WARNING), la retrospectiva del
+ * ciclo (RETRO_STARTED) o la tarea abierta en su proyecto.
  * @param {NotificationResponse} notification
  * @returns {string | null}
  */
 export function notificationTarget(notification) {
-  const { issue, cycle } = notification
+  const { issue, cycle, workspace } = notification
+  if (notification.type === 'STORAGE_WARNING') {
+    return workspace?.slug ? `/${workspace.slug}/settings?tab=${STORAGE_SETTINGS_TAB}` : null
+  }
   if (cycle?.workspaceSlug && cycle.projectId && cycle.id) {
     return `/${cycle.workspaceSlug}/projects/${cycle.projectId}/cycles/${cycle.id}/retro`
   }
@@ -51,6 +62,21 @@ export function notificationProject(notification) {
 export function notificationProjectColor(notification) {
   return notification.cycle?.projectColor ?? notification.issue?.projectColor ?? null
 }
+
+/**
+ * Workspace del aviso (slug), de la tarea, del ciclo o del propio aviso; null si no lo trae.
+ * @param {NotificationResponse} notification
+ * @returns {string | null}
+ */
+export function notificationWorkspaceSlug(notification) {
+  return notification.issue?.workspaceSlug ?? notification.cycle?.workspaceSlug ?? notification.workspace?.slug ?? null
+}
+
+/**
+ * Lo manda TaskFlow (sin autor): historia lista para revisar y espacio casi lleno.
+ * @param {NotificationResponse} notification
+ */
+export const isSystemNotification = (notification) => ['STORY_READY', 'STORAGE_WARNING'].includes(notification.type)
 
 function codePrefix(code = '') {
   const dash = code.lastIndexOf('-')

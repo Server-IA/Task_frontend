@@ -31,7 +31,7 @@ import { isStory, storyFlags, storyLanes, storyProgress } from '../issueTypes'
 import { useCriteriaGuard } from '../useCriteriaGuard'
 import { isClosed, useIssueUpdater } from '../useIssueHelpers'
 import { closedStoryActions, useStoryClosedGuard } from '../useStoryClosedGuard'
-import { BlockedChip, BlockingChip, ChecklistChip } from './IssueBadges'
+import { AttachmentsChip, BlockedChip, BlockingChip, ChecklistChip } from './IssueBadges'
 import { BugCountBadge, IssueTypeIcon, ParentStoryChip, ReadyBadge, StoryProgress, TypeIcon } from './IssueTypeBits'
 import { AssigneesPicker, DatePicker, LabelsPicker, PriorityPicker } from './PropertyPickers'
 
@@ -91,7 +91,9 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
             {meta.states.map((state) => (
               <div key={state.id} className="flex w-[284px] shrink-0 items-center gap-2 px-1.5 font-mono text-[11px] tracking-[0.08em] uppercase">
                 <StateIcon group={state.group} color={state.color} className="size-3.5" />
-                <span className="min-w-0 truncate font-semibold">{state.name}</span>
+                <span className="min-w-0 truncate font-semibold" title={state.name}>
+                  {state.name}
+                </span>
                 {/* Sin ceros a la izquierda, como en el tablero normal */}
                 <span className="text-muted-foreground">{countOf(state.id)}</span>
                 <button
@@ -136,7 +138,7 @@ function StoryLane({ lane, slug, project, meta, openIssue, onStoryClosed }) {
         {story ? (
           <>
             <TypeIcon type="STORY" />
-            <span className="font-mono text-xs text-muted-foreground">{story.code}</span>
+            <span className="shrink-0 font-mono text-xs whitespace-nowrap text-muted-foreground">{story.code}</span>
             <button
               type="button"
               onClick={() => openIssue(story.id)}
@@ -431,7 +433,10 @@ function BoardColumn({ state, ids: currentIds, issuesById, slug, project, meta, 
     <section className="flex max-h-full w-[284px] shrink-0 flex-col gap-2 rounded-2xl bg-column p-2" aria-label={state.name}>
       <header className="flex items-center gap-2 px-1.5 pt-1.5 pb-1 font-mono text-[11px] tracking-[0.08em] uppercase">
         <StateIcon group={state.group} color={state.color} className="size-3.5" />
-        <h3 className="min-w-0 truncate font-semibold">{state.name}</h3>
+        {/* Un estado de nombre largo se corta: completo al pasar el mouse */}
+        <h3 className="min-w-0 truncate font-semibold" title={state.name}>
+          {state.name}
+        </h3>
         <span className="text-muted-foreground">{ids.length}</span>
         <button
           type="button"
@@ -515,10 +520,12 @@ const IssueCard = memo(function IssueCard({ issue, slug, project, meta, overlay 
     >
       <div className="flex items-center gap-2 font-mono text-[11px]">
         <IssueTypeIcon issue={issue} size={14} />
-        <span className="text-muted-foreground">{issue.code}</span>
+        <span className="shrink-0 whitespace-nowrap text-muted-foreground">{issue.code}</span>
         <span className="ml-auto" onPointerDown={stop} onKeyDown={stop} onClick={stop}>
           <PriorityPicker
             chip
+            // «sin prioridad» (oculto hasta pasar el mouse) ocupaba 126 px y empujaba el código a dos líneas
+            iconOnlyWhenEmpty
             value={issue.priority}
             onChange={(priority) => update({ priority })}
             className={cn(issue.priority === 'NONE' && revealOnHover)}
@@ -540,7 +547,7 @@ const IssueCard = memo(function IssueCard({ issue, slug, project, meta, overlay 
           />
         </div>
       )}
-      <div className="flex items-center gap-2 text-xs" onPointerDown={stop} onKeyDown={stop} onClick={stop}>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs" onPointerDown={stop} onKeyDown={stop} onClick={stop}>
         <DatePicker
           value={issue.dueDate}
           placeholder="Fecha límite"
@@ -554,6 +561,7 @@ const IssueCard = memo(function IssueCard({ issue, slug, project, meta, overlay 
             ↳ {issue.completedSubIssueCount}/{issue.subIssueCount}
           </span>
         )}
+        <AttachmentsChip issue={issue} />
         <ChecklistChip issue={issue} />
         {!hasLabels && meta.labels.length > 0 && (
           <LabelsPicker compact labels={meta.labels} value={[]} onChange={(labelIds) => update({ labelIds })} className={revealOnHover} />

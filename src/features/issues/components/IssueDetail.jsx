@@ -303,13 +303,14 @@ function IssueTopBar({ slug, project, issue, variant, pageUrl, onClose, showMark
   return (
     <div className="flex shrink-0 items-center gap-2.5 border-b px-4 py-3">
       <TypePicker issue={issue} isManager={manager} onChange={onChangeType} />
-      <span className="font-mono text-[13px] text-muted-foreground">{issue.code}</span>
+      {/* El código no se parte (en el panel quedaba «QAVISUALLONG-» / «1»); un estado de nombre largo se corta */}
+      <span className="shrink-0 font-mono text-[13px] whitespace-nowrap text-muted-foreground">{issue.code}</span>
       <span className="hidden truncate font-mono text-xs text-muted-foreground sm:inline">· {project.name.toLowerCase()}</span>
-      <span className="flex shrink-0 items-center gap-1.5 text-[13px]">
+      <span className="flex max-w-60 shrink-0 items-center gap-1.5 text-[13px]" title={issue.state?.name}>
         <StateIcon group={issue.state?.group} color={issue.state?.color} />
-        {issue.state?.name}
+        <span className="truncate">{issue.state?.name}</span>
         {isStory(issue) && issue.state?.group !== 'COMPLETED' && issue.state?.group !== 'CANCELLED' && (
-          <span className="font-mono text-[11px] text-muted-foreground">automático</span>
+          <span className="shrink-0 font-mono text-[11px] text-muted-foreground">automático</span>
         )}
       </span>
       {issue.assignees?.length > 0 && <AvatarStack users={issue.assignees} size="xs" className="ml-1" />}
