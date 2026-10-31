@@ -272,7 +272,12 @@ function RelationRow({ relation, first, slug, projectId, onOpenIssue, onRemove }
           sin acceso{other.project?.name ? ` · ${other.project.name}` : ''}
         </span>
       )}
-      {accessible && <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">{other.state?.name}</span>}
+      {/* Un estado de nombre largo se corta: en un panel angosto empujaba el avatar y la «x» fuera de la fila */}
+      {accessible && (
+        <span className="hidden max-w-28 shrink-0 truncate text-xs text-muted-foreground sm:block" title={other.state?.name}>
+          {other.state?.name}
+        </span>
+      )}
       {accessible &&
         (assignee ? (
           <UserAvatar user={assignee} size="xs" className="size-5.5" />

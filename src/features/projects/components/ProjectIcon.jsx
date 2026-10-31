@@ -17,7 +17,8 @@ export function ProjectIcon({ project, variant = 'solid', className }) {
         className,
       )}
     >
-      {project?.identifier ?? '?'}
+      {/* En su propio span para que `truncate` (con un `max-w-*` desde afuera) ponga los puntos suspensivos */}
+      <span className="min-w-0 truncate">{project?.identifier ?? '?'}</span>
     </span>
   )
 }

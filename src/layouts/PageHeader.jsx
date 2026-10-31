@@ -74,8 +74,11 @@ export function PageHeader({ path = [], title, titleAddon, leading, description,
   )
 }
 
-/** Contenedor con scroll para el contenido de la página. */
+/**
+ * Contenedor con scroll para el contenido de la página. `relative`: los textos `sr-only` (absolutos) de las filas se
+ * ubican dentro de esta caja; sin ella se medían contra la página y le sumaban una segunda barra de scroll.
+ */
 export function PageBody({ className, children }) {
-  return <div className={cn('min-h-0 flex-1 overflow-y-auto', className)}>{children}</div>
+  return <div className={cn('relative min-h-0 flex-1 overflow-y-auto', className)}>{children}</div>
 }
 

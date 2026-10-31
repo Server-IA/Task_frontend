@@ -25,11 +25,11 @@ class FakeImage extends EventTarget {
   }
 }
 
-function renderAvatar(user) {
+function renderAvatar(user, size) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
-      <UserAvatar user={user} />
+      <UserAvatar user={user} size={size} />
     </QueryClientProvider>,
   )
 }
@@ -90,5 +90,12 @@ describe('UserAvatar', () => {
     renderAvatar(ana('https://fotos.example/ana.png'))
     expect(screen.getByRole('img', { name: 'Ana Pérez' })).toHaveAttribute('src', 'https://fotos.example/ana.png')
     expect(filesApi.urls).not.toHaveBeenCalled()
+  })
+
+  it('las iniciales usan el tamaño del avatar (el text-sm del fallback las agrandaba y se cortaban en las pilas)', () => {
+    renderAvatar(ana(null), 'sm')
+    const fallback = screen.getByText('AP')
+    expect(fallback).toHaveClass('text-[11px]')
+    expect(fallback).not.toHaveClass('text-sm')
   })
 })

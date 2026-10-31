@@ -248,7 +248,8 @@ function CloseCycleForm({ slug, projectId, cycle: initialCycle, onClose }) {
                     <li key={issue.id} className={cn('flex flex-wrap items-center gap-x-2.5 gap-y-1 py-1.5 pr-2 pl-3', index > 0 && 'border-t')}>
                       <StateIcon group={issue.state?.group} color={issue.state?.color} className="size-3.5" />
                       <span className="min-w-14 shrink-0 font-mono text-xs whitespace-nowrap text-muted-foreground">{issue.code}</span>
-                      <span className="min-w-0 flex-[1_1_8rem] truncate text-sm font-medium" title={issue.title}>
+                      {/* Base angosta: con «bloqueada» y avatares el destino ya no baja a otra línea en el escritorio */}
+                      <span className="min-w-0 flex-[1_1_5rem] truncate text-sm font-medium" title={issue.title}>
                         {issue.title}
                       </span>
                       {/* Cada tarea de la vista previa trae cuántas tareas abiertas la bloquean */}
@@ -302,10 +303,11 @@ function CloseCycleForm({ slug, projectId, cycle: initialCycle, onClose }) {
         <Button variant="ghost" className="ml-auto" onClick={onClose}>
           Cancelar
         </Button>
-        <Button onClick={submit} disabled={!canSubmit} className="rounded-[10px]">
+        {/* Con un nombre largo el botón se salía del diálogo (scroll horizontal y el atajo cortado): el nombre se corta */}
+        <Button onClick={submit} disabled={!canSubmit} className="max-w-full min-w-0 shrink rounded-[10px]" title={`Cerrar ${cycle.name}`}>
           {close.isPending && <Spinner />}
-          Cerrar {cycle.name}
-          <kbd className="hidden rounded-[5px] bg-primary-foreground/20 px-1.5 font-mono text-[11px] font-normal sm:inline">
+          <span className="truncate">Cerrar {cycle.name}</span>
+          <kbd className="hidden shrink-0 rounded-[5px] bg-primary-foreground/20 px-1.5 font-mono text-[11px] font-normal sm:inline">
             {IS_MAC ? '⌘ ↵' : 'ctrl ↵'}
           </kbd>
         </Button>

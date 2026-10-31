@@ -127,7 +127,8 @@ function DailyIssueItem({ item, size, onOpenIssue }) {
           className="text-left outline-none after:absolute after:inset-0 after:rounded-[inherit] focus-visible:after:ring-2 focus-visible:after:ring-ring"
         >
           <span className={cn('font-mono text-muted-foreground', focus ? 'text-[13px]' : 'text-xs')}>{issue.code}</span>{' '}
-          <span className="break-words">{issue.title}</span>
+          {/* wrap-anywhere: una palabra larga sin espacios se salía de la columna (break-words no achica el botón) */}
+          <span className="wrap-anywhere">{issue.title}</span>
         </button>
         {blocked ? (
           <span className={cn('mt-0.5 flex flex-wrap items-center gap-x-1', noteSize, TONES.late)}>

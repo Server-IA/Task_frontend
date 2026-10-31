@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { Link } from 'react-router'
 import { TrendingDown, TrendingUp } from 'lucide-react'
 import { isTooDark } from '@/components/common/StateIcon'
@@ -68,14 +68,18 @@ export function KpiTiles({ stats, onOpenIssue }) {
           overdue.length > 0 ? (
             <span className="font-mono font-semibold text-late">
               {overdue.slice(0, 3).map((issue, index) => (
-                <span key={issue.id}>
-                  {index > 0 && ', '}
-                  <button type="button" className="hover:underline" title={issue.title} onClick={() => onOpenIssue(issue.id)}>
-                    {issue.code}
-                  </button>
-                </span>
+                // La coma (y el «+N») va pegada al código: si la línea se parte, no queda «, WEB-9» ni «+3» solo al principio
+                <Fragment key={issue.id}>
+                  {index > 0 && ' '}
+                  <span className="whitespace-nowrap">
+                    <button type="button" className="hover:underline" title={issue.title} onClick={() => onOpenIssue(issue.id)}>
+                      {issue.code}
+                    </button>
+                    {index < Math.min(overdue.length, 3) - 1 && ','}
+                    {index === 2 && overdue.length > 3 && ` +${overdue.length - 3}`}
+                  </span>
+                </Fragment>
               ))}
-              {overdue.length > 3 && ` +${overdue.length - 3}`}
             </span>
           ) : (
             'ninguna con la fecha límite pasada'

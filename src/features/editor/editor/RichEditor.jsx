@@ -645,7 +645,7 @@ export default function RichEditor({
           active={slashCurrent}
           onSelect={(item) => slash.command(item)}
           onHover={setSlashActive}
-          style={popupPosition(slash.clientRect?.(), root, { width: 330, height: 420 })}
+          style={popupPosition(slash.clientRect?.(), root, { width: 330, height: 420, fit: true })}
         />
       )}
       {mention && candidates.length > 0 && (

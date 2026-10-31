@@ -7,11 +7,20 @@ import { fileUrlKey } from '@/features/files/fileUrls'
 import { cn } from '@/lib/utils'
 
 const SIZES = {
-  xs: 'size-5 text-[10px]',
-  sm: 'size-6 text-[11px]',
-  md: 'size-8 text-xs',
-  lg: 'size-12 text-base',
-  xl: 'size-20 text-2xl',
+  xs: 'size-5',
+  sm: 'size-6',
+  md: 'size-8',
+  lg: 'size-12',
+  xl: 'size-20',
+}
+
+/** Tamaño de las iniciales. Va en el `AvatarFallback` (trae su propio `text-sm`, que pisaba al del contenedor). */
+const TEXT_SIZES = {
+  xs: 'text-[10px]',
+  sm: 'text-[11px]',
+  md: 'text-xs',
+  lg: 'text-base',
+  xl: 'text-2xl',
 }
 
 /** Paleta pastel para el fondo de las iniciales (texto oscuro); el color depende del nombre para que sea estable. */
@@ -87,7 +96,7 @@ export function UserAvatar({ user, size = 'md', className }) {
   return (
     <Avatar className={cn(SIZES[size], className)} title={name}>
       <AvatarPhoto src={user?.avatarUrl} alt={name} />
-      <AvatarFallback className={cn('font-bold text-[#23201B]', avatarColor(name))}>{initials(name)}</AvatarFallback>
+      <AvatarFallback className={cn('font-bold text-[#23201B]', TEXT_SIZES[size], avatarColor(name))}>{initials(name)}</AvatarFallback>
     </Avatar>
   )
 }

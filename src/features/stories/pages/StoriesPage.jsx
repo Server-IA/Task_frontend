@@ -33,6 +33,14 @@ import { storySummary } from '../storySummary'
 const TAB_VALUES = new Set(STORY_TABS.map((tab) => tab.value))
 
 /**
+ * Columnas de la tabla. Por debajo de 1360 px «Personas» y «Módulo» se ocultan: con todas, en 1024 px la columna
+ * «Historia» quedaba en 0 (el título desaparecía, los encabezados se montaban y «Estado» se cortaba a la derecha).
+ */
+const TABLE_COLUMNS =
+  'grid-cols-[24px_minmax(0,1fr)_120px_96px_104px_132px] min-[1360px]:grid-cols-[24px_minmax(0,1fr)_150px_88px_96px_120px_104px_132px]'
+const WIDE_ONLY = 'hidden min-[1360px]:block'
+
+/**
  * «Historias» (la página del project manager; los miembros la ven sin crear ni partir): pestañas Abiertas, Sin
  * partir, Para revisar y Cerradas; cada fila con su progreso «x de y tareas», las personas de sus tareas, ciclo,
  * módulo, prioridad, el estado (automático) y sus marcas. Una fila se despliega con sus tareas y bugs. La pestaña va en
@@ -233,13 +241,18 @@ export function StoriesPage() {
         ) : (
           <div className="flex min-h-full flex-col gap-3">
             <div className="overflow-hidden rounded-2xl border bg-card">
-              <div className="grid grid-cols-[24px_minmax(0,1fr)_150px_88px_96px_120px_104px_132px] gap-3 border-b bg-subtle px-4 py-2.5 font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase">
+              <div
+                className={cn(
+                  'grid gap-3 border-b bg-subtle px-4 py-2.5 font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase',
+                  TABLE_COLUMNS,
+                )}
+              >
                 <span />
                 <span>Historia</span>
                 <span>Progreso</span>
-                <span>Personas</span>
+                <span className={WIDE_ONLY}>Personas</span>
                 <span>Ciclo</span>
-                <span>Módulo</span>
+                <span className={WIDE_ONLY}>Módulo</span>
                 <span>Prioridad</span>
                 <span>Estado</span>
               </div>
@@ -354,7 +367,8 @@ function StoryRowItem({ row, manager, expanded, onToggle, onOpen, active, button
           if (event.key === 'ArrowLeft' && expanded) onToggle()
         }}
         className={cn(
-          'grid cursor-pointer grid-cols-[24px_minmax(0,1fr)_150px_88px_96px_120px_104px_132px] items-center gap-3 px-4 py-3 outline-none hover:bg-subtle focus-visible:bg-accent',
+          'grid cursor-pointer items-center gap-3 px-4 py-3 outline-none hover:bg-subtle focus-visible:bg-accent',
+          TABLE_COLUMNS,
           active && 'bg-accent-soft hover:bg-accent-soft',
         )}
       >
@@ -374,7 +388,9 @@ function StoryRowItem({ row, manager, expanded, onToggle, onOpen, active, button
           <TypeIcon type="STORY" className="mt-0.5" />
           <span className="mt-0.5 min-w-14 shrink-0 font-mono text-xs whitespace-nowrap text-muted-foreground">{story.code}</span>
           <div className="flex min-w-0 flex-col gap-1">
-            <span className="truncate text-sm font-semibold">{story.title}</span>
+            <span className="truncate text-sm font-semibold" title={story.title}>
+              {story.title}
+            </span>
             <span className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
               {flags.unsplit && (
                 <>
@@ -413,9 +429,9 @@ function StoryRowItem({ row, manager, expanded, onToggle, onOpen, active, button
           </div>
         </div>
         <StoryProgress story={story} />
-        <span>{people.length > 0 ? <AvatarStack users={people} size="xs" /> : <span className="text-muted-foreground">—</span>}</span>
+        <span className={WIDE_ONLY}>{people.length > 0 ? <AvatarStack users={people} size="xs" /> : <span className="text-muted-foreground">—</span>}</span>
         <span className={cn('truncate text-[13px]', !story.cycle && 'text-muted-foreground')}>{story.cycle?.name ?? 'Sin ciclo'}</span>
-        <span className={cn('truncate text-[13px]', !modules && 'text-muted-foreground')}>{modules || '—'}</span>
+        <span className={cn('truncate text-[13px]', WIDE_ONLY, !modules && 'text-muted-foreground')}>{modules || '—'}</span>
         <span>
           <PriorityChip priority={story.priority} iconOnlyWhenEmpty />
         </span>
