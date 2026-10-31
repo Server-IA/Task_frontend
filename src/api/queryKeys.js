@@ -25,6 +25,8 @@ export const queryKeys = {
   activity: (issueId) => ['activity', issueId],
   relations: (issueId) => ['relations', issueId],
   checklist: (issueId) => ['checklist', issueId],
+  /** Adjuntos confirmados de una tarea. */
+  attachments: (issueId) => ['attachments', issueId],
 
   /** Historias del proyecto (GET /stories) con su progreso, sus tareas y bugs. */
   stories: (projectId) => ['stories', projectId],
@@ -51,6 +53,10 @@ export const queryKeys = {
   workspaceActivity: (slug, params) => ['workspaceActivity', slug, 'feed', params],
   activitySummary: (slug, days) => ['workspaceActivity', slug, 'summary', days],
   search: (slug, q) => ['search', slug, q],
+  /** Espacio usado del workspace (aviso del 90 %) y la pestaña «Almacenamiento» (PM). */
+  storageUsage: (slug) => ['storage', slug, 'usage'],
+  storageReport: (slug) => ['storage', slug, 'report'],
+  storageOf: (slug) => ['storage', slug],
 
   notifications: (params) => ['notifications', 'list', params],
   notificationsAll: ['notifications'],

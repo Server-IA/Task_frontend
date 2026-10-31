@@ -31,7 +31,7 @@ import { isStory, storyFlags, storyLanes, storyProgress } from '../issueTypes'
 import { useCriteriaGuard } from '../useCriteriaGuard'
 import { isClosed, useIssueUpdater } from '../useIssueHelpers'
 import { closedStoryActions, useStoryClosedGuard } from '../useStoryClosedGuard'
-import { BlockedChip, BlockingChip, ChecklistChip } from './IssueBadges'
+import { AttachmentsChip, BlockedChip, BlockingChip, ChecklistChip } from './IssueBadges'
 import { BugCountBadge, IssueTypeIcon, ParentStoryChip, ReadyBadge, StoryProgress, TypeIcon } from './IssueTypeBits'
 import { AssigneesPicker, DatePicker, LabelsPicker, PriorityPicker } from './PropertyPickers'
 
@@ -554,6 +554,7 @@ const IssueCard = memo(function IssueCard({ issue, slug, project, meta, overlay 
             ↳ {issue.completedSubIssueCount}/{issue.subIssueCount}
           </span>
         )}
+        <AttachmentsChip issue={issue} />
         <ChecklistChip issue={issue} />
         {!hasLabels && meta.labels.length > 0 && (
           <LabelsPicker compact labels={meta.labels} value={[]} onChange={(labelIds) => update({ labelIds })} className={revealOnHover} />

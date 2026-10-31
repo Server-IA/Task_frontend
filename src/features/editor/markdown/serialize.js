@@ -4,6 +4,8 @@
  * («*», «_» en los bordes de palabra, «[», «<div» o «- » al principio de una línea).
  */
 
+import { fileReference, parseFileReference } from '@/features/files/fileRefs'
+
 /** @typedef {import('./parse').DocNode} DocNode */
 
 /** Orden de las marcas, de afuera hacia adentro (el código siempre va adentro). */
@@ -241,9 +243,25 @@ function serializeCode(node) {
   return `${fence}${node.attrs?.language ?? ''}\n${value}\n${fence}`
 }
 
+/**
+ * Imagen subida → `![nombre](/files/<id> "pie de foto")` (con `#full` si va a todo el ancho). Una que todavía se está
+ * subiendo (su vista previa es un `blob:`) no se guarda: «el texto se guarda igual» y la imagen entra al terminar.
+ * @param {DocNode} node
+ */
+export function serializeImage(node) {
+  const reference = parseFileReference(node.attrs?.src)
+  if (!reference || node.attrs?.uploadId) return ''
+  const alt = (node.attrs?.alt ?? '').replace(/[\r\n]+/g, ' ').replace(/([\\[\]])/g, '\\$1').trim()
+  const title = (node.attrs?.title ?? '').replace(/[\r\n]+/g, ' ').trim()
+  const src = fileReference(reference.id, { wide: Boolean(node.attrs?.wide) })
+  return `![${alt}](${src}${title ? ` "${title.replace(/(["\\])/g, '\\$1')}"` : ''})`
+}
+
 /** @param {DocNode} node */
 function serializeBlock(node, siblings, index) {
   switch (node.type) {
+    case 'image':
+      return serializeImage(node)
     case 'paragraph':
       return serializeInline(node.content)
     case 'heading': {

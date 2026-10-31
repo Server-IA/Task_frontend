@@ -125,3 +125,23 @@ describe('tipos e historias', () => {
     expect(describeFeedEntry(auto)).toMatchObject({ verb: 'movió la historia', suffix: 'a In Progress · Luis empezó WEB-41' })
   })
 })
+
+describe('adjuntos', () => {
+  it('en el historial, con el nombre del archivo', () => {
+    expect(describeActivity({ field: 'ATTACHMENT', oldValue: null, newValue: 'mockup-perfil.png' })).toBe('adjuntó «mockup-perfil.png»')
+    expect(describeActivity({ field: 'ATTACHMENT', oldValue: 'requisitos.pdf', newValue: null })).toBe('eliminó «requisitos.pdf»')
+    expect(describeActivity({ field: 'ATTACHMENT', oldValue: null, newValue: null })).toBe('eliminó un archivo')
+  })
+
+  it('en el feed va alrededor de la tarea, con la marca ↑ y la tarjeta del archivo', () => {
+    expect(describeFeedEntry({ field: 'ATTACHMENT', newValue: 'mockup-perfil.png' })).toEqual({
+      verb: 'adjuntó «mockup-perfil.png» en',
+      mark: '↑',
+      tone: 'accent',
+      file: true,
+    })
+    const removed = describeFeedEntry({ field: 'ATTACHMENT', oldValue: 'requisitos.pdf', newValue: null })
+    expect(removed).toMatchObject({ verb: 'eliminó «requisitos.pdf» de', tone: 'neutral' })
+    expect(removed.file).toBeUndefined()
+  })
+})

@@ -402,6 +402,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{slug}/projects/{projectId}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pedir una subida (URL firmada)
+         * @description Valida la extensión, el tipo declarado y el tamaño (imágenes PNG, JPG, GIF o WebP hasta 5 MB; PDF, DOCX, XLSX, PPTX, TXT, MD, CSV y ZIP hasta 10 MB) y el espacio del workspace (2 GB; 409 con code STORAGE_FULL si no cabe). Devuelve una URL para mandar el archivo directo a R2 con PUT y las cabeceras exactas: la firma incluye el tipo y el tamaño. purpose INLINE_IMAGE = imagen pegada en una descripción o un comentario (solo imágenes; no va a «Adjuntos»; sin issueId en «Nueva tarea»). Sin R2 configurado responde 503.
+         */
+        post: operations["createUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{slug}/projects/{projectId}/files/{fileId}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirmar una subida (quien la pidió)
+         * @description Comprueba en R2 que el archivo llegó con el tamaño y el tipo firmados (y que su contenido corresponde al tipo). Si no, lo borra y responde 400 con code UPLOAD_REJECTED; si todavía no está, 409 con code UPLOAD_MISSING. Un adjunto queda en el historial de la tarea.
+         */
+        post: operations["confirmUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{slug}/projects/{projectId}/cycles": {
         parameters: {
             query?: never;
@@ -579,6 +619,50 @@ export interface paths {
          * @description La persona entra como MEMBER.
          */
         post: operations["invite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pedir la subida de mi foto de perfil (URL firmada)
+         * @description La foto ya recortada en el navegador (512 × 512, WebP; también PNG o JPG) de hasta 5 MB. Se manda directo a R2 con PUT y las cabeceras indicadas, y después se confirma. Las fotos no cuentan para el espacio de ningún workspace.
+         */
+        post: operations["startAvatarUpload"];
+        /**
+         * Quitar mi foto de perfil
+         * @description Vuelven las iniciales.
+         */
+        delete: operations["removeAvatar"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/avatar/{fileId}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirmar mi foto de perfil
+         * @description Comprueba la subida en R2 y la pone en el perfil: avatarUrl pasa a ser /files/<id> (su URL se pide con GET /api/v1/files/urls). La foto anterior se borra.
+         */
+        post: operations["confirmAvatar"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1141,6 +1225,46 @@ export interface paths {
         patch: operations["markAsRead"];
         trace?: never;
     };
+    "/api/v1/workspaces/{slug}/storage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Almacenamiento del workspace (project manager)
+         * @description Espacio usado de los 2 GB (adjuntos e imágenes de las tareas; las fotos de perfil no cuentan), por tipo, por proyecto y los archivos más pesados.
+         */
+        get: operations["getReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{slug}/storage/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Espacio usado del workspace
+         * @description warning desde el 90 %; full al 100 % (no se pueden subir archivos nuevos).
+         */
+        get: operations["getUsage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{slug}/search": {
         parameters: {
             query?: never;
@@ -1230,6 +1354,26 @@ export interface paths {
         };
         /** Sub-issues */
         get: operations["getSubIssues"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{slug}/projects/{projectId}/issues/{issueId}/attachments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Adjuntos de la tarea
+         * @description Los confirmados, del más antiguo al más reciente. Sus URLs se piden aparte (GET /api/v1/files/urls).
+         */
+        get: operations["getAttachments"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1469,6 +1613,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/files/urls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * URLs firmadas para ver o descargar archivos
+         * @description ids separados por coma (hasta 100): los de las referencias /files/<id> del Markdown, de los adjuntos y de las fotos de perfil (avatarUrl). Solo vienen los que el usuario puede ver: los de proyectos a los que tiene acceso y las fotos de quien comparte un workspace con él; los demás (o los que no existen) se omiten. Las URLs vencen en expiresAt (1 h): hay que pedirlas de nuevo antes. Imágenes y PDF se abren en el navegador; lo demás, o todo con download=true, se descarga con su nombre original.
+         */
+        get: operations["resolveUrls"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/reset-password/validate": {
         parameters: {
             query?: never;
@@ -1538,6 +1702,26 @@ export interface paths {
          * @description relationId debe ser una relación de esta tarea (si no, 404). Se registra en el historial de ambas tareas.
          */
         delete: operations["delete_11"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{slug}/projects/{projectId}/files/{fileId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Eliminar un archivo (quien lo subió o un project manager)
+         * @description Lo borra de la base y de R2. También cancela una subida en curso. Borrar un adjunto queda en el historial de la tarea.
+         */
+        delete: operations["deleteFile"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1900,6 +2084,8 @@ export interface components {
             /** Format: date-time */
             closedAt?: string;
             closedBy?: components["schemas"]["UserSummaryResponse"];
+            /** Format: int32 */
+            attachmentCount?: number;
         };
         IssueSummaryResponse: {
             /** Format: uuid */
@@ -1994,6 +2180,58 @@ export interface components {
             checkedBy?: components["schemas"]["UserSummaryResponse"];
             /** Format: date-time */
             checkedAt?: string;
+        };
+        CreateUploadRequest: {
+            /** @enum {string} */
+            purpose: "ATTACHMENT" | "INLINE_IMAGE";
+            /** Format: uuid */
+            issueId?: string;
+            fileName: string;
+            contentType?: string;
+            /** Format: int64 */
+            size: number;
+        };
+        FileResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            kind?: "ATTACHMENT" | "INLINE_IMAGE" | "AVATAR";
+            /** @enum {string} */
+            status?: "PENDING" | "READY";
+            fileName?: string;
+            contentType?: string;
+            /** Format: int64 */
+            size?: number;
+            image?: boolean;
+            /** Format: uuid */
+            projectId?: string;
+            /** Format: uuid */
+            issueId?: string;
+            uploadedBy?: components["schemas"]["UserSummaryResponse"];
+            /** Format: date-time */
+            createdAt?: string;
+            reference?: string;
+        };
+        StorageUsageResponse: {
+            /** Format: int64 */
+            usedBytes?: number;
+            /** Format: int64 */
+            quotaBytes?: number;
+            /** Format: int32 */
+            percent?: number;
+            warning?: boolean;
+            full?: boolean;
+        };
+        UploadTicketResponse: {
+            file?: components["schemas"]["FileResponse"];
+            url?: string;
+            method?: string;
+            headers?: {
+                [key: string]: string;
+            };
+            /** Format: date-time */
+            expiresAt?: string;
+            storage?: components["schemas"]["StorageUsageResponse"];
         };
         CycleRequest: {
             name: string;
@@ -2110,6 +2348,21 @@ export interface components {
             /** Format: date-time */
             createdAt?: string;
         };
+        AvatarUploadRequest: {
+            contentType?: string;
+            /** Format: int64 */
+            size: number;
+        };
+        UserResponse: {
+            /** Format: uuid */
+            id?: string;
+            email?: string;
+            fullName?: string;
+            avatarUrl?: string;
+            emailVerified?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+        };
         TokenRequest: {
             token: string;
         };
@@ -2129,16 +2382,6 @@ export interface components {
             email: string;
             password: string;
             fullName: string;
-        };
-        UserResponse: {
-            /** Format: uuid */
-            id?: string;
-            email?: string;
-            fullName?: string;
-            avatarUrl?: string;
-            emailVerified?: boolean;
-            /** Format: date-time */
-            createdAt?: string;
         };
         RefreshTokenRequest: {
             refreshToken: string;
@@ -2332,7 +2575,7 @@ export interface components {
             /** Format: uuid */
             id?: string;
             /** @enum {string} */
-            type?: "ISSUE_ASSIGNED" | "ISSUE_COMMENTED" | "ISSUE_UNBLOCKED" | "ISSUE_MENTIONED" | "RETRO_STARTED" | "STORY_READY";
+            type?: "ISSUE_ASSIGNED" | "ISSUE_COMMENTED" | "ISSUE_UNBLOCKED" | "ISSUE_MENTIONED" | "RETRO_STARTED" | "STORY_READY" | "STORAGE_WARNING";
             message?: string;
             read?: boolean;
             actor?: components["schemas"]["UserSummaryResponse"];
@@ -2341,6 +2584,48 @@ export interface components {
             comment?: components["schemas"]["NotificationCommentResponse"];
             /** Format: date-time */
             createdAt?: string;
+            workspace?: components["schemas"]["NotificationWorkspaceResponse"];
+        };
+        NotificationWorkspaceResponse: {
+            /** Format: uuid */
+            id?: string;
+            slug?: string;
+            name?: string;
+        };
+        LargeFile: {
+            /** Format: uuid */
+            id?: string;
+            fileName?: string;
+            contentType?: string;
+            /** Format: int64 */
+            size?: number;
+            image?: boolean;
+            project?: components["schemas"]["ProjectRefResponse"];
+            issue?: components["schemas"]["IssueSummaryResponse"];
+            uploadedBy?: components["schemas"]["UserSummaryResponse"];
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        ProjectUsage: {
+            project?: components["schemas"]["ProjectRefResponse"];
+            /** Format: int64 */
+            bytes?: number;
+            /** Format: int64 */
+            count?: number;
+        };
+        StorageReportResponse: {
+            usage?: components["schemas"]["StorageUsageResponse"];
+            byType?: components["schemas"]["TypeUsage"][];
+            byProject?: components["schemas"]["ProjectUsage"][];
+            largest?: components["schemas"]["LargeFile"][];
+        };
+        TypeUsage: {
+            /** @enum {string} */
+            type?: "IMAGES" | "DOCUMENTS" | "OTHER";
+            /** Format: int64 */
+            bytes?: number;
+            /** Format: int64 */
+            count?: number;
         };
         StoryChildResponse: {
             /** Format: uuid */
@@ -2456,13 +2741,23 @@ export interface components {
             id?: string;
             actor?: components["schemas"]["UserSummaryResponse"];
             /** @enum {string} */
-            field?: "CREATED" | "TITLE" | "DESCRIPTION" | "STATE" | "PRIORITY" | "PARENT" | "START_DATE" | "DUE_DATE" | "ASSIGNEES" | "LABELS" | "CYCLE" | "MODULE" | "COMMENT" | "RELATION" | "DESCRIPTION_CHECKED" | "DESCRIPTION_UNCHECKED" | "TYPE" | "STORY_AUTO_STATE";
+            field?: "CREATED" | "TITLE" | "DESCRIPTION" | "STATE" | "PRIORITY" | "PARENT" | "START_DATE" | "DUE_DATE" | "ASSIGNEES" | "LABELS" | "CYCLE" | "MODULE" | "COMMENT" | "RELATION" | "DESCRIPTION_CHECKED" | "DESCRIPTION_UNCHECKED" | "TYPE" | "STORY_AUTO_STATE" | "ATTACHMENT";
             oldValue?: string;
             newValue?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+            file?: components["schemas"]["FileRefResponse"];
+        };
+        FileRefResponse: {
+            /** Format: uuid */
+            id?: string;
+            fileName?: string;
+            contentType?: string;
+            /** Format: int64 */
+            size?: number;
+            image?: boolean;
         };
         DailyBlocker: {
             issue?: components["schemas"]["RelatedIssueResponse"];
@@ -2561,13 +2856,14 @@ export interface components {
             id?: string;
             actor?: components["schemas"]["UserSummaryResponse"];
             /** @enum {string} */
-            field?: "CREATED" | "TITLE" | "DESCRIPTION" | "STATE" | "PRIORITY" | "PARENT" | "START_DATE" | "DUE_DATE" | "ASSIGNEES" | "LABELS" | "CYCLE" | "MODULE" | "COMMENT" | "RELATION" | "DESCRIPTION_CHECKED" | "DESCRIPTION_UNCHECKED" | "TYPE" | "STORY_AUTO_STATE";
+            field?: "CREATED" | "TITLE" | "DESCRIPTION" | "STATE" | "PRIORITY" | "PARENT" | "START_DATE" | "DUE_DATE" | "ASSIGNEES" | "LABELS" | "CYCLE" | "MODULE" | "COMMENT" | "RELATION" | "DESCRIPTION_CHECKED" | "DESCRIPTION_UNCHECKED" | "TYPE" | "STORY_AUTO_STATE" | "ATTACHMENT";
             oldValue?: string;
             newValue?: string;
             /** Format: date-time */
             createdAt?: string;
             issue?: components["schemas"]["IssueSummaryResponse"];
             project?: components["schemas"]["ProjectRefResponse"];
+            file?: components["schemas"]["FileRefResponse"];
         };
         PageResponseActivityFeedItemResponse: {
             content?: components["schemas"]["ActivityFeedItemResponse"][];
@@ -2639,6 +2935,18 @@ export interface components {
             invitedByName?: string;
             /** Format: date-time */
             expiresAt?: string;
+        };
+        FileUrlResponse: {
+            /** Format: uuid */
+            id?: string;
+            url?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            fileName?: string;
+            contentType?: string;
+            /** Format: int64 */
+            size?: number;
+            image?: boolean;
         };
     };
     responses: never;
@@ -3469,6 +3777,57 @@ export interface operations {
             };
         };
     };
+    createUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateUploadRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UploadTicketResponse"];
+                };
+            };
+        };
+    };
+    confirmUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+                fileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FileResponse"];
+                };
+            };
+        };
+    };
     getCycles: {
         parameters: {
             query?: never;
@@ -3770,6 +4129,72 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["InvitationResponse"];
+                };
+            };
+        };
+    };
+    startAvatarUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AvatarUploadRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UploadTicketResponse"];
+                };
+            };
+        };
+    };
+    removeAvatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserResponse"];
+                };
+            };
+        };
+    };
+    confirmAvatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserResponse"];
                 };
             };
         };
@@ -4896,6 +5321,50 @@ export interface operations {
             };
         };
     };
+    getReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StorageReportResponse"];
+                };
+            };
+        };
+    };
+    getUsage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StorageUsageResponse"];
+                };
+            };
+        };
+    };
     search: {
         parameters: {
             query?: {
@@ -5019,6 +5488,30 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["IssueResponse"][];
+                };
+            };
+        };
+    };
+    getAttachments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+                issueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FileResponse"][];
                 };
             };
         };
@@ -5233,7 +5726,7 @@ export interface operations {
             query?: {
                 unread?: boolean;
                 /** @description Tipo(s): ISSUE_ASSIGNED, ISSUE_COMMENTED, ISSUE_UNBLOCKED, ISSUE_MENTIONED, RETRO_STARTED */
-                type?: ("ISSUE_ASSIGNED" | "ISSUE_COMMENTED" | "ISSUE_UNBLOCKED" | "ISSUE_MENTIONED" | "RETRO_STARTED" | "STORY_READY")[];
+                type?: ("ISSUE_ASSIGNED" | "ISSUE_COMMENTED" | "ISSUE_UNBLOCKED" | "ISSUE_MENTIONED" | "RETRO_STARTED" | "STORY_READY" | "STORAGE_WARNING")[];
                 /** @description Zero-based page index (0..N) */
                 page?: number;
                 /** @description The size of the page to be returned */
@@ -5322,6 +5815,29 @@ export interface operations {
             };
         };
     };
+    resolveUrls: {
+        parameters: {
+            query: {
+                ids: string[];
+                download?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FileUrlResponse"][];
+                };
+            };
+        };
+    };
     validateResetToken: {
         parameters: {
             query?: {
@@ -5398,6 +5914,28 @@ export interface operations {
                 projectId: string;
                 issueId: string;
                 relationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteFile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                projectId: string;
+                fileId: string;
             };
             cookie?: never;
         };

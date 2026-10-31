@@ -8,6 +8,7 @@ import { Segmented } from '@/components/common/Segmented'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { activityActorName, describeFeedEntry } from '@/features/comments/describeActivity'
+import { FeedFileCard } from '@/features/files/components/FeedFileCard'
 import { markdownToPlainText } from '@/features/editor/markdown/plainText'
 import { MentionText } from '@/features/mentions/MentionText'
 import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
@@ -166,7 +167,7 @@ export function ActivityPage() {
 
 /**
  * Una entrada: avatar con la marca del tipo, frase legible, «de → a» en los cambios de estado,
- * el comentario citado y, abajo, el proyecto y cuándo.
+ * el comentario citado, el archivo adjuntado y, abajo, el proyecto y cuándo.
  * @param {{ slug: string, entry: import('@/api/types').ActivityFeedItem, stateGroup?: string }} props
  */
 function FeedEntry({ slug, entry, stateGroup }) {
@@ -223,6 +224,7 @@ function FeedEntry({ slug, entry, stateGroup }) {
             </span>
           </p>
         )}
+        {sentence.file && entry.file && <FeedFileCard file={entry.file} className="mt-1.5" />}
         {sentence.quote && (
           <blockquote className="mt-1.5 rounded-[10px] bg-muted px-2.5 py-2 leading-normal break-words text-muted-foreground">
             {/* El comentario se guarda en Markdown: aquí, sin «**», «##» ni listas, en una línea */}

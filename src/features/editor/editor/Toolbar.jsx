@@ -51,7 +51,7 @@ const BLOCKS = [
   { name: 'table', label: 'Tabla', kbd: '', run: (chain) => chain.insertTable({ rows: 3, cols: 3, withHeaderRow: true }) },
   { name: 'divider', label: 'Separador', kbd: '---', run: (chain) => chain.setHorizontalRule() },
 ]
-export const IMAGE_SOON = 'Imágenes: llega con la subida de archivos'
+export const IMAGE_SOON = 'Imágenes: solo en la descripción y los comentarios de una tarea'
 
 /** Botón de la barra: no le quita el foco al editor. */
 export function ToolButton({ icon, label, kbd, pressed, disabled, onClick, size = 30, className, children }) {
@@ -79,11 +79,20 @@ export function ToolButton({ icon, label, kbd, pressed, disabled, onClick, size 
   )
 }
 
+/**
+ * «Imagen»: abre el selector de archivos (también se puede pegar o soltar). Sin `onImage` (un editor fuera de una
+ * tarea), deshabilitado con su aviso al pasar el mouse.
+ */
+export function ImageButton({ size, onImage }) {
+  if (onImage) return <ToolButton icon="image" label="Imagen · también puedes pegar o soltar" size={size} onClick={onImage} />
+  return <ImageSoonButton size={size} />
+}
+
 /** Botón de imagen deshabilitado, con su aviso al pasar el mouse. */
 export function ImageSoonButton({ size }) {
   return (
     <span className="group/img relative flex">
-      <ToolButton icon="image" label="Imagen (llega con la subida de archivos)" disabled size={size} />
+      <ToolButton icon="image" label="Imagen (solo en las tareas)" disabled size={size} />
       <span
         role="tooltip"
         className="pointer-events-none absolute top-[calc(100%+8px)] right-[-6px] z-40 hidden w-max rounded-lg bg-foreground px-2.5 py-1.5 text-xs font-medium text-background shadow-lg group-hover/img:block"
@@ -103,7 +112,7 @@ const Group = ({ children, first }) => (
  * o `compact` (Nueva tarea y plantillas). Muestra además las acciones del contexto: la tabla donde está el cursor
  * o «Pasar al checklist» en una casilla.
  */
-export function Toolbar({ editor, state, variant = 'full', sticky = false, onLink, onHelp, onMoveTasks, className }) {
+export function Toolbar({ editor, state, variant = 'full', sticky = false, onLink, onHelp, onMoveTasks, onImage, className }) {
   const run = (action) => action(editor.chain().focus()).run()
   const size = variant === 'compact' ? 28 : 30
   const blockType = BLOCK_TYPES.find((type) => type.value === state.blockType) ?? BLOCK_TYPES[0]
@@ -158,6 +167,11 @@ export function Toolbar({ editor, state, variant = 'full', sticky = false, onLin
       </Group>
       <Group>{listButtons}</Group>
 
+      {variant === 'panel' && onImage && (
+        <Group>
+          <ImageButton size={size} onImage={onImage} />
+        </Group>
+      )}
       {variant === 'panel' ? (
         <Group>
           <DropdownMenu>
@@ -174,11 +188,13 @@ export function Toolbar({ editor, state, variant = 'full', sticky = false, onLin
                   {block.kbd && <DropdownMenuShortcut className="font-mono">{block.kbd}</DropdownMenuShortcut>}
                 </DropdownMenuItem>
               ))}
-              <DropdownMenuItem disabled title={IMAGE_SOON}>
-                <EditorIcon name="image" size={15} />
-                Imagen
-                <DropdownMenuShortcut>pronto</DropdownMenuShortcut>
-              </DropdownMenuItem>
+              {!onImage && (
+                <DropdownMenuItem disabled title={IMAGE_SOON}>
+                  <EditorIcon name="image" size={15} />
+                  Imagen
+                  <DropdownMenuShortcut>en tareas</DropdownMenuShortcut>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={onHelp}>
                 Atajos de teclado
@@ -190,9 +206,9 @@ export function Toolbar({ editor, state, variant = 'full', sticky = false, onLin
       ) : (
         <Group>{variant === 'compact' ? blockButtons.slice(0, 3) : blockButtons}</Group>
       )}
-      {variant === 'full' && (
+      {(variant === 'full' || (variant === 'compact' && onImage)) && (
         <Group>
-          <ImageSoonButton size={size} />
+          <ImageButton size={size} onImage={onImage} />
         </Group>
       )}
 

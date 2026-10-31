@@ -3,11 +3,13 @@ import {
   excerptSegments,
   inboxTab,
   isOpenedNotification,
+  isSystemNotification,
   markReadInPages,
   notificationIssue,
   notificationProject,
   notificationProjectColor,
   notificationTarget,
+  notificationWorkspaceSlug,
   openedIssueFromParams,
   withOpenedIssue,
 } from './notificationParts'
@@ -27,6 +29,29 @@ describe('avisos de la Bandeja', () => {
     expect(notificationTarget({ type: 'ISSUE_MENTIONED', issue })).toBe('/equipo/projects/p1/issues?issue=i1')
     expect(notificationTarget({ type: 'RETRO_STARTED', issue: null, cycle })).toBe('/equipo/projects/p1/cycles/c1/retro')
     expect(notificationTarget({ type: 'ISSUE_ASSIGNED', issue: null })).toBeNull()
+  })
+
+  it('el aviso de espacio lleva a Ajustes › Almacenamiento de su workspace', () => {
+    const workspace = { id: 'w1', slug: 'equipo-diseno', name: 'Equipo Diseño' }
+    const storage = { type: 'STORAGE_WARNING', actor: null, issue: null, cycle: null, workspace }
+    expect(notificationTarget(storage)).toBe('/equipo-diseno/settings?tab=storage')
+    expect(notificationTarget({ ...storage, workspace: null })).toBeNull()
+    expect(notificationIssue(storage)).toBeNull()
+    expect(notificationProject(storage)).toBe('')
+    expect(notificationProjectColor(storage)).toBeNull()
+    expect(notificationWorkspaceSlug(storage)).toBe('equipo-diseno')
+  })
+
+  it('workspace del aviso: de la tarea, del ciclo o del propio aviso', () => {
+    expect(notificationWorkspaceSlug({ issue })).toBe('equipo')
+    expect(notificationWorkspaceSlug({ issue: null, cycle })).toBe('equipo')
+    expect(notificationWorkspaceSlug({ issue: null, cycle: null, workspace: null })).toBeNull()
+  })
+
+  it('los avisos de TaskFlow no tienen autor', () => {
+    expect(isSystemNotification({ type: 'STORAGE_WARNING' })).toBe(true)
+    expect(isSystemNotification({ type: 'STORY_READY' })).toBe(true)
+    expect(isSystemNotification({ type: 'ISSUE_MENTIONED' })).toBe(false)
   })
 
   it('proyecto en minúsculas', () => {

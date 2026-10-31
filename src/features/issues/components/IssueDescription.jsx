@@ -10,6 +10,7 @@ import { LazyRichEditor, preloadRichEditor, usePreloadRichEditor } from '@/featu
 import { textIndexFromPoint } from '@/features/editor/caret'
 import { CopyButton, MarkdownView } from '@/features/editor/components/MarkdownView'
 import { diffLines } from '@/features/editor/markdown/diffLines'
+import { inlineImageTarget, useAttachFiles } from '@/features/files/hooks'
 import { markdownToDoc } from '@/features/editor/markdown/parse'
 import { docToMarkdown, escapeText } from '@/features/editor/markdown/serialize'
 import { removeMovedTaskItems, setTaskChecked, takeTaskItems } from '@/features/editor/markdown/taskItems'
@@ -291,6 +292,26 @@ function DescriptionEditor({ slug, project, issue, variant, caret, onMoveTasks, 
   const people = useMentionPeople(slug, project.id)
   const me = useSessionStore((state) => state.user?.id)
   const apiRef = useRef(null)
+  const attachFiles = useAttachFiles(slug, project.id, issue.id)
+  const [uploading, setUploading] = useState(0)
+  const [justPasted, setJustPasted] = useState(false)
+  const pastedTimerRef = useRef(null)
+  useEffect(() => () => clearTimeout(pastedTimerRef.current), [])
+  // Imágenes pegadas o soltadas: suben por detrás; lo que no es imagen va a Adjuntos
+  const [imageUpload] = useState(() => ({
+    target: inlineImageTarget(slug, project.id, issue.id),
+    onOtherFiles: (files) => {
+      attachFiles(files)
+      toast.success(files.length === 1 ? `«${files[0].name}» va a Adjuntos` : `${files.length} archivos van a Adjuntos`, {
+        description: 'En la descripción solo entran imágenes.',
+      })
+    },
+    onInserted: () => {
+      setJustPasted(true)
+      clearTimeout(pastedTimerRef.current)
+      pastedTimerRef.current = setTimeout(() => setJustPasted(false), PASTE_HINT_MS)
+    },
+  }))
   const [initial] = useState(() => norm(issue.description))
   const draftRef = useRef(initial)
   // La versión de la que parte lo que escribo (la que abrí o la última que guardé) y su texto
@@ -396,6 +417,12 @@ function DescriptionEditor({ slug, project, issue, variant, caret, onMoveTasks, 
 
   /** Terminar: guarda lo que falte y cierra solo si se guardó (con un conflicto o un error, el editor sigue abierto). */
   const finish = async () => {
+    if (uploading > 0) {
+      toast.info(uploading === 1 ? 'La imagen sigue subiendo' : 'Las imágenes siguen subiendo', {
+        description: 'Espera a que termine para cerrar el editor; el texto ya se está guardando.',
+      })
+      return
+    }
     if (conflictRef.current) {
       toast.warning('Elige qué versión mantener', { description: 'Alguien más cambió la descripción mientras editabas.' })
       return
@@ -565,6 +592,8 @@ function DescriptionEditor({ slug, project, issue, variant, caret, onMoveTasks, 
           onMoveTasks={onMoveTasks}
           apiRef={apiRef}
           onCommandChange={onCommandChange}
+          imageUpload={imageUpload}
+          onUploadsChange={setUploading}
           contentClassName={contentClass}
           fallback={
             <>
@@ -578,16 +607,20 @@ function DescriptionEditor({ slug, project, issue, variant, caret, onMoveTasks, 
             role="status"
             className={cn('flex items-center gap-1.5', status === 'saved' && 'text-foreground', status === 'error' && 'text-destructive', status === 'conflict' && 'text-soon')}
           >
-            {busy && <Spinner className="size-3" />}
-            {status === 'saved' && <Check className="size-3.25 text-ok-dot" strokeWidth={2.6} />}
-            {SAVE_TEXT[status]}
+            {(busy || uploading > 0) && <Spinner className="size-3" />}
+            {status === 'saved' && uploading === 0 && <Check className="size-3.25 text-ok-dot" strokeWidth={2.6} />}
+            {uploading > 0 && status !== 'error' && status !== 'conflict'
+              ? uploading === 1
+                ? 'Subiendo 1 imagen…'
+                : `Subiendo ${uploading} imágenes…`
+              : SAVE_TEXT[status]}
             {status === 'error' && (
               <button type="button" className="font-semibold underline underline-offset-2" onClick={flush}>
                 Reintentar
               </button>
             )}
           </span>
-          {page && <span className="font-mono text-[11px]">## título · - lista · [ ] tarea · &gt; cita · ``` código · / insertar</span>}
+          <PasteHint recent={justPasted} page={page} />
           <span className="ml-auto font-mono text-[11px]">
             <kbd className="text-foreground">esc</kbd> o <kbd className="text-foreground">ctrl ↵</kbd> terminar
           </span>
@@ -599,6 +632,28 @@ function DescriptionEditor({ slug, project, issue, variant, caret, onMoveTasks, 
     </section>
   )
 }
+
+/**
+ * Ayuda del pie del editor: después de pegar una imagen, «Imagen pegada · ctrl Z deshace» (unos segundos); si no, en la
+ * página, los atajos de Markdown y los tipos de imagen que se aceptan.
+ */
+function PasteHint({ recent, page }) {
+  if (recent) {
+    return (
+      <span className="font-mono text-[11px]">
+        Imagen pegada · <kbd className="text-foreground">ctrl Z</kbd> deshace
+      </span>
+    )
+  }
+  return (
+    <>
+      {page && <span className="font-mono text-[11px]">## título · - lista · [ ] tarea · &gt; cita · ``` código · / insertar</span>}
+      <span className="font-mono text-[11px]">PNG, JPG, GIF o WebP · hasta 5 MB · también puedes pegar</span>
+    </>
+  )
+}
+
+const PASTE_HINT_MS = 5000
 
 /** «Alguien cambió la descripción»: quién y cuándo, comparar las dos versiones y elegir. */
 function ConflictBanner({ conflict, me, mine, onCompare, onKeepTheirs, onKeepMine }) {

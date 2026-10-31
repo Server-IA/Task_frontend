@@ -29,7 +29,7 @@ const SLASH_GROUPS = [
     items: [
       { id: 'mention', label: 'Mencionar persona', desc: 'Le llega a su bandeja', hint: '@', icon: 'mention', needs: 'people', keywords: 'persona arroba' },
       { id: 'taskLink', label: 'Enlazar tarea', desc: 'Busca por código o título', hint: 'WEB-', icon: 'taskLink', needs: 'tasks', keywords: 'referencia codigo' },
-      { id: 'image', label: 'Imagen', desc: 'Llega con la subida de archivos', icon: 'image', disabled: true, keywords: 'foto' },
+      { id: 'image', label: 'Imagen', desc: 'Elige una, o pega una captura', icon: 'image', needs: 'images', keywords: 'foto captura subir' },
     ],
   },
 ]
@@ -37,7 +37,7 @@ const SLASH_GROUPS = [
 /**
  * Grupos del menú «/» que coinciden con lo escrito después de la barra.
  * @param {string} query
- * @param {{ people: boolean, tasks: boolean, taskHint?: string }} features
+ * @param {{ people: boolean, tasks: boolean, taskHint?: string, images?: boolean }} features
  */
 export function slashGroups(query, features) {
   const needle = normalizeForSearch(query.trim())

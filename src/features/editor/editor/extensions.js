@@ -11,6 +11,7 @@ import StarterKit from '@tiptap/starter-kit'
 import Suggestion from '@tiptap/suggestion'
 import { taskRefRanges } from '../markdown/taskRefs'
 import { CodeBlockNodeView } from './CodeBlockNodeView'
+import { ImageBlock } from './imageExtension'
 
 /**
  * Extensiones del editor. Todo lo que depende de React (abrir el menú «/», la lista de personas, el enlace,
@@ -256,6 +257,7 @@ export function buildExtensions({ bridge, placeholder, meId }) {
     TableHeader.extend({ content: 'paragraph+' }),
     TableCell.extend({ content: 'paragraph+' }),
     Mention.configure({ meId }),
+    ImageBlock,
     TaskRefHighlight,
     TaskFromBullet,
     Placeholder.configure({ placeholder: placeholder ?? '', showOnlyCurrent: true, includeChildren: false }),

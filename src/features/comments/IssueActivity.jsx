@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { MoreHorizontal, Paperclip, Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,6 +15,9 @@ import { UserAvatar } from '@/components/common/UserAvatar'
 import { useActivity } from '@/features/issues/hooks'
 import { LazyRichEditor, preloadRichEditor } from '@/features/editor/components/LazyRichEditor'
 import { MarkdownView } from '@/features/editor/components/MarkdownView'
+import { useFileActions } from '@/features/files/attachmentHooks'
+import { IMAGE_ACCEPT } from '@/features/files/fileTypes'
+import { inlineImageTarget } from '@/features/files/hooks'
 import { useMentionPeople } from '@/features/mentions/hooks'
 import { joinNames, mentionedIds } from '@/features/mentions/mentions'
 import { useWorkspace } from '@/features/workspaces/hooks'
@@ -128,13 +131,39 @@ function ActivityLine({ entry }) {
       )}
       <p className="min-w-0 flex-1">
         <span className="font-semibold text-foreground">{activityActorName(entry)}</span>{' '}
-        {describeActivity(entry)}
+        {entry.field === 'ATTACHMENT' && entry.newValue && entry.file ? (
+          <AttachedFileText file={entry.file} />
+        ) : (
+          describeActivity(entry)
+        )}
         <span className="font-mono" title={formatDateTime(entry.createdAt)}>
           {' '}
           · {formatRelative(entry.createdAt)}
         </span>
       </p>
     </div>
+  )
+}
+
+/**
+ * «adjuntó «mockup-perfil.png»» con el nombre como enlace: la imagen se abre en el visor, el PDF en otra pestaña y el
+ * resto se descarga (si el archivo ya se eliminó, la entrada no trae `file` y queda solo el texto).
+ */
+function AttachedFileText({ file }) {
+  const actions = useFileActions()
+  return (
+    <>
+      adjuntó «
+      <button
+        type="button"
+        onClick={() => actions.open(file)}
+        className="font-medium text-foreground underline-offset-2 hover:underline"
+        title={file.image ? 'Ver la imagen' : 'Abrir el archivo'}
+      >
+        {file.fileName}
+      </button>
+      »
+    </>
   )
 }
 
@@ -147,6 +176,9 @@ function CommentCard({ slug, projectId, issueId, comment, people, projectIdentif
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(comment.body)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  // En un comentario solo entran imágenes
+  const [imageUpload] = useState(() => ({ target: inlineImageTarget(slug, projectId, issueId) }))
+  const [uploading, setUploading] = useState(0)
 
   const isAuthor = comment.author?.id === currentUserId
   const canDelete = canDeleteComment(workspace?.myRole, comment, currentUserId)
@@ -155,6 +187,7 @@ function CommentCard({ slug, projectId, issueId, comment, people, projectIdentif
   const mentionsMe = !isAuthor && Boolean(currentUserId) && mentionedIds(comment.body).includes(currentUserId)
 
   const save = () => {
+    if (uploading > 0) return
     const body = draft.trim()
     if (!body || body === comment.body) {
       setEditing(false)
@@ -229,6 +262,8 @@ function CommentCard({ slug, projectId, issueId, comment, people, projectIdentif
                 autoFocus
                 onSubmit={save}
                 onEscape={() => setEditing(false)}
+                imageUpload={imageUpload}
+                onUploadsChange={setUploading}
                 contentClassName="min-h-16 px-3 py-2"
               />
             </div>
@@ -237,9 +272,9 @@ function CommentCard({ slug, projectId, issueId, comment, people, projectIdentif
               <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
                 Cancelar
               </Button>
-              <Button size="sm" onClick={save} disabled={update.isPending}>
-                {update.isPending && <Spinner />}
-                Guardar
+              <Button size="sm" onClick={save} disabled={update.isPending || uploading > 0} title={uploading > 0 ? 'Se activa cuando termina la subida' : undefined}>
+                {(update.isPending || uploading > 0) && <Spinner />}
+                {uploading > 0 ? 'Subiendo…' : 'Guardar'}
               </Button>
             </div>
           </div>
@@ -250,7 +285,7 @@ function CommentCard({ slug, projectId, issueId, comment, people, projectIdentif
             slug={slug}
             projectId={projectId}
             onOpenIssue={onOpenIssue}
-            className="px-3 py-2.5"
+            className="tf-md-thumbs px-3 py-2.5"
           />
         )}
       </div>
@@ -280,6 +315,39 @@ function CommentComposer({ slug, projectId, issueId, issueCode, projectIdentifie
   const [body, setBody] = useState('')
   // El editor se monta al enfocar la caja (hasta entonces es solo un recuadro: abrir una tarea sigue siendo liviano)
   const [active, setActive] = useState(false)
+  // Imágenes: se pegan, se sueltan o se eligen con el clip; «Comentar» espera a que terminen de subir
+  const [imageUpload] = useState(() => ({ target: inlineImageTarget(slug, projectId, issueId) }))
+  const [uploading, setUploading] = useState(0)
+  const apiRef = useRef(null)
+  const fileInputRef = useRef(null)
+  const waitingFilesRef = useRef(null)
+
+  // Imágenes elegidas con el clip antes de que el editor estuviera listo: entran en cuanto aparece
+  useEffect(() => {
+    if (!active || !waitingFilesRef.current) return undefined
+    let frame = 0
+    let tries = 0
+    const insert = () => {
+      if (apiRef.current) {
+        apiRef.current.insertFiles(waitingFilesRef.current)
+        waitingFilesRef.current = null
+      } else if ((tries += 1) < 300) {
+        frame = requestAnimationFrame(insert)
+      }
+    }
+    insert()
+    return () => cancelAnimationFrame(frame)
+  }, [active])
+
+  const pickImages = (files) => {
+    if (!files?.length) return
+    if (apiRef.current) {
+      apiRef.current.insertFiles(files)
+      return
+    }
+    waitingFilesRef.current = [...files]
+    setActive(true)
+  }
 
   // Quiénes recibirán el aviso de la mención (quien escribe no se avisa a sí mismo)
   const mentioned = mentionedIds(body)
@@ -291,7 +359,7 @@ function CommentComposer({ slug, projectId, issueId, issueCode, projectIdentifie
 
   const submit = () => {
     const text = body.trim()
-    if (!text || create.isPending) return
+    if (!text || create.isPending || uploading > 0) return
     create.mutate(text, { onSuccess: () => setBody(''), onError: (error) => notifyError(error) })
   }
 
@@ -314,6 +382,9 @@ function CommentComposer({ slug, projectId, issueId, issueCode, projectIdentifie
               onSubmit={submit}
               // Con texto, Escape suelta el campo en vez de cerrar el panel (y perder el comentario sin enviar)
               onEscape={body.trim() ? blurComposer : undefined}
+              apiRef={apiRef}
+              imageUpload={imageUpload}
+              onUploadsChange={setUploading}
               contentClassName="min-h-11 px-3 pt-2.5 pb-1"
             />
           ) : (
@@ -328,16 +399,43 @@ function CommentComposer({ slug, projectId, issueId, issueCode, projectIdentifie
               Escribe un comentario…
             </div>
           )}
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 pr-2 pb-2 pl-3">
-            <span className="font-mono text-[11px] text-muted-foreground">
-              <kbd className="text-foreground">/</kbd> insertar · <kbd className="text-foreground">@</kbd> mencionar · selecciona para dar
-              formato
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 pr-2 pb-2 pl-1.5">
+            <button
+              type="button"
+              aria-label="Adjuntar imagen"
+              title="Adjuntar imagen · también puedes pegar o soltar"
+              className="-mr-1 rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Paperclip className="size-3.5" aria-hidden="true" />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={IMAGE_ACCEPT}
+              multiple
+              hidden
+              aria-hidden="true"
+              tabIndex={-1}
+              onChange={(event) => {
+                pickImages(event.target.files ? [...event.target.files] : [])
+                event.target.value = ''
+              }}
+            />
+            <span className="mr-auto font-mono text-[11px] text-muted-foreground">
+              <kbd className="text-foreground">/</kbd> insertar · <kbd className="text-foreground">@</kbd> mencionar · pega o arrastra una imagen
             </span>
             <span className="ml-auto flex items-center gap-2.5">
               <span className="font-mono text-[11px] text-muted-foreground">ctrl ↵ enviar</span>
-              <Button size="sm" className="rounded-[9px]" onClick={submit} disabled={!body.trim() || create.isPending}>
-                {create.isPending && <Spinner />}
-                Comentar
+              <Button
+                size="sm"
+                className="rounded-[9px]"
+                onClick={submit}
+                disabled={!body.trim() || create.isPending || uploading > 0}
+                title={uploading > 0 ? 'Se activa cuando termina la subida' : undefined}
+              >
+                {(create.isPending || uploading > 0) && <Spinner />}
+                {uploading > 0 ? 'Subiendo…' : 'Comentar'}
               </Button>
             </span>
           </div>

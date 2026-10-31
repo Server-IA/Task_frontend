@@ -78,6 +78,24 @@ describe('Tablero', () => {
   })
 })
 
+describe('Clip de adjuntos', () => {
+  it('la tarjeta y la fila muestran cuántos adjuntos tiene la tarea; con 0, nada', () => {
+    issues = [issue('web-1', { attachmentCount: 5 }), issue('web-2', { attachmentCount: 0 })]
+    const { unmount } = render(<IssueBoardView {...common} openIssue={() => {}} />)
+    expect(screen.getByLabelText('5 adjuntos')).toHaveTextContent('5')
+    expect(screen.getAllByLabelText(/adjuntos?$/)).toHaveLength(1)
+    unmount()
+
+    render(
+      <MemoryRouter>
+        <IssueListView {...common} sort="sortOrder,asc" page={0} setPage={() => {}} openIssue={() => {}} onCreate={() => {}} />
+      </MemoryRouter>,
+    )
+    expect(screen.getAllByLabelText(/adjuntos?$/)).toHaveLength(1)
+    expect(screen.getByLabelText('5 adjuntos')).toHaveTextContent('5')
+  })
+})
+
 describe('Tablero con carriles por historia', () => {
   it('los conteos de las columnas van sin ceros a la izquierda, como en el tablero normal', () => {
     issues = [...Array.from({ length: 6 }, (_, index) => issue(`web-${index + 1}`)), issue('web-7', { state: doing })]

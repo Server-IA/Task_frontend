@@ -54,11 +54,7 @@ export const changePasswordSchema = z
     message: 'Debe ser distinta de la actual',
   })
 
+/** La foto de perfil no va aquí: se sube aparte (`POST /users/me/avatar`). */
 export const profileSchema = z.object({
   fullName: z.string().trim().min(1, 'El nombre es obligatorio').max(120, 'Máximo 120 caracteres'),
-  avatarUrl: z
-    .string()
-    .trim()
-    .max(500, 'La URL es demasiado larga')
-    .refine((value) => value === '' || /^https?:\/\/.+/.test(value), 'Debe empezar por http:// o https://'),
 })

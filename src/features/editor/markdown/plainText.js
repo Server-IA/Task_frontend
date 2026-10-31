@@ -27,6 +27,11 @@ function blockTexts(doc, { mentionTokens }) {
       })
       .join('')
   const visit = (node) => {
+    if (node.type === 'image') {
+      const name = (node.attrs?.alt ?? '').trim()
+      lines.push(name ? `[imagen: ${name}]` : '[imagen]')
+      return
+    }
     if (node.type === 'codeBlock') {
       lines.push((node.content ?? []).map((child) => child.text ?? '').join(''))
       return
