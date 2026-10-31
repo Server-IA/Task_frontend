@@ -268,7 +268,12 @@ export function DatePicker({
       <PopoverTrigger asChild disabled={disabled}>
         {dueInfo ? (
           <PropertyButton
-            className={cn('h-6 gap-1 rounded-md px-2 font-medium hover:opacity-85', DUE_TONES[dueInfo.tone], className)}
+            className={cn(
+              // Nunca en dos líneas: en una tarjeta angosta «venció ayer» se partía y se montaba sobre el clip
+              'h-6 shrink-0 gap-1 rounded-md px-2 font-medium whitespace-nowrap hover:opacity-85',
+              DUE_TONES[dueInfo.tone],
+              className,
+            )}
             aria-label={`${placeholder}: ${formatShortDate(value)}`}
             title={formatShortDate(value)}
           >

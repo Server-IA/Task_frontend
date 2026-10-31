@@ -257,7 +257,8 @@ function SkeletonField({ value, onChange, readOnly, error }) {
       </div>
       <div
         className={cn(
-          'flex flex-col overflow-hidden rounded-[10px] border bg-card',
+          // Sin overflow-hidden: recortaba los menús del editor (el enlace, «/», @). La barra redondea sus esquinas
+          'flex flex-col rounded-[10px] border bg-card [&_[role=toolbar]]:rounded-t-[9px]',
           !readOnly && 'focus-within:border-ring focus-within:shadow-[0_0_0_3px_var(--accent-soft)]',
         )}
       >

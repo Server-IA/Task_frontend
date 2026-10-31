@@ -418,7 +418,8 @@ function DescriptionField({ value, onChange, people, slug, projectIdentifier, im
   const [showFormat, setShowFormat] = useState(false)
   return (
     <div className="flex flex-col">
-      <div className={cn(showFormat && 'overflow-hidden rounded-xl border')}>
+      {/* Sin overflow-hidden: recortaba los menús del editor (el enlace, «/», @). La barra redondea sus esquinas */}
+      <div className={cn(showFormat && 'rounded-xl border [&_[role=toolbar]]:rounded-t-[11px]')}>
         <LazyRichEditor
           value={value}
           onChange={onChange}

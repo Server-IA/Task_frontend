@@ -540,7 +540,7 @@ const IssueCard = memo(function IssueCard({ issue, slug, project, meta, overlay 
           />
         </div>
       )}
-      <div className="flex items-center gap-2 text-xs" onPointerDown={stop} onKeyDown={stop} onClick={stop}>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs" onPointerDown={stop} onKeyDown={stop} onClick={stop}>
         <DatePicker
           value={issue.dueDate}
           placeholder="Fecha límite"
