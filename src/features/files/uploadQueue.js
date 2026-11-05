@@ -69,6 +69,16 @@ export function createUploadQueue({ concurrency = MAX_PARALLEL_UPLOADS, put = xh
     emit()
   }
   const find = (id) => tasks.find((task) => task.id === id)
+  /**
+   * Suelta la subida pendiente en el backend (si se llegó a pedir): mientras exista, ocupa cuota del workspace hasta
+   * que la limpieza la borra (24 h). Se llama al fallar, al cancelar y al quitarla; «Reintentar» pide otra.
+   */
+  const release = (state) => {
+    const ticket = state?.ticket
+    if (!ticket) return
+    state.ticket = null
+    state.target.discard?.(ticket)?.catch?.(() => {})
+  }
 
   function pump() {
     let active = tasks.filter((task) => ACTIVE.has(task.status)).length
@@ -102,11 +112,9 @@ export function createUploadQueue({ concurrency = MAX_PARALLEL_UPLOADS, put = xh
       state.file = null
       state.target.onDone?.(result, find(id))
     } catch (error) {
-      if (!find(id) || controller.signal.aborted) {
-        // Cancelada: se borra la subida pendiente, si se llegó a pedir
-        if (state.ticket) state.target.discard?.(state.ticket)?.catch?.(() => {})
-        return
-      }
+      // Cancelada o fallida: se borra la subida pendiente, si se llegó a pedir
+      release(state)
+      if (!find(id) || controller.signal.aborted) return
       const { message, retryable } = describeUploadError(error)
       update(id, { status: 'error', error: message, retryable })
     } finally {
@@ -152,6 +160,7 @@ export function createUploadQueue({ concurrency = MAX_PARALLEL_UPLOADS, put = xh
       tasks = tasks.filter((task) => task.id !== id)
       emit()
       state?.controller?.abort()
+      release(state)
       runtime.delete(id)
       pump()
     },
@@ -161,8 +170,7 @@ export function createUploadQueue({ concurrency = MAX_PARALLEL_UPLOADS, put = xh
       const task = find(id)
       const state = runtime.get(id)
       if (!task || task.status !== 'error' || !task.retryable || !state?.file) return
-      if (state.ticket) state.target.discard?.(state.ticket)?.catch?.(() => {})
-      state.ticket = null
+      release(state)
       update(id, { status: 'queued', progress: 0, error: null })
       pump()
     },
@@ -172,6 +180,7 @@ export function createUploadQueue({ concurrency = MAX_PARALLEL_UPLOADS, put = xh
       const task = find(id)
       if (!task || ACTIVE.has(task.status) || task.status === 'queued') return
       tasks = tasks.filter((current) => current.id !== id)
+      release(runtime.get(id))
       runtime.delete(id)
       emit()
     },

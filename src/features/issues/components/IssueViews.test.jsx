@@ -159,3 +159,45 @@ describe('Bugs', () => {
     expect(update).toHaveBeenCalledWith({ stateId: 's-done' }, expect.objectContaining({ onError: expect.any(Function) }))
   })
 })
+
+describe('Atajos con el foco en un selector de la fila o la tarjeta', () => {
+  /** Un atajo de la página (como «c» o «/»), escuchado en `window` como useHotkey. */
+  function listenShortcut() {
+    const shortcut = vi.fn()
+    const onKeyDown = (event) => event.key === 'c' && shortcut()
+    window.addEventListener('keydown', onKeyDown)
+    return { shortcut, stop: () => window.removeEventListener('keydown', onKeyDown) }
+  }
+
+  it('en la lista, después de elegir una prioridad la tecla llega al atajo y Enter no abre la fila', () => {
+    issues = [issue('web-1')]
+    const openIssue = vi.fn()
+    const { shortcut, stop } = listenShortcut()
+    render(
+      <MemoryRouter>
+        <IssueListView {...common} sort="sortOrder,asc" page={0} setPage={() => {}} openIssue={openIssue} onCreate={() => {}} />
+      </MemoryRouter>,
+    )
+    const picker = within(screen.getByRole('list')).getByRole('button', { name: 'Prioridad' })
+    fireEvent.keyDown(picker, { key: 'c', code: 'KeyC' })
+    fireEvent.keyDown(picker, { key: 'Enter', code: 'Enter' })
+    stop()
+    expect(shortcut).toHaveBeenCalledTimes(1)
+    expect(openIssue).not.toHaveBeenCalled()
+  })
+
+  it('en el tablero, la tecla de un selector llega al atajo y no abre ni levanta la tarjeta', () => {
+    issues = [issue('web-1')]
+    const openIssue = vi.fn()
+    const { shortcut, stop } = listenShortcut()
+    render(<IssueBoardView {...common} openIssue={openIssue} />)
+    const picker = screen.getByRole('button', { name: 'Fecha límite' })
+    fireEvent.keyDown(picker, { key: 'c', code: 'KeyC' })
+    fireEvent.keyDown(picker, { key: 'Enter', code: 'Enter' })
+    fireEvent.keyDown(picker, { key: ' ', code: 'Space' })
+    stop()
+    expect(shortcut).toHaveBeenCalledTimes(1)
+    expect(openIssue).not.toHaveBeenCalled()
+    expect(screen.queryByText(/Picked up/)).not.toBeInTheDocument()
+  })
+})

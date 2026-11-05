@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react'
 import { useSearchParams } from 'react-router'
 import { usePreferencesStore } from '@/stores/preferencesStore'
-import { BOARD_GROUP_OPTIONS, GROUP_BY_DEFAULT, GROUP_BY_OPTIONS, SAVED_VIEW_PARAM } from './constants'
+import { BOARD_GROUP_OPTIONS, GROUP_BY_DEFAULT, GROUP_BY_OPTIONS, SAVED_VIEW_PARAM, sanitizeSort } from './constants'
 import { effectiveTypes, typeParam, typesToUrl } from './issueTypes'
 
 const MULTI_KEYS = ['state', 'priority', 'assignee', 'label', 'type']
@@ -41,7 +41,7 @@ export function useIssueFilters() {
   const queryFilters = useMemo(() => ({ ...filters, type: typeParam(types) }), [filters, types])
 
   const view = searchParams.get('view') ?? preferredView
-  const sort = searchParams.get('sort') ?? 'sortOrder,asc'
+  const sort = sanitizeSort(searchParams.get('sort'))
   const groupParam = searchParams.get('groupBy')
   const groupBy = GROUP_VALUES.has(groupParam) ? groupParam : GROUP_BY_DEFAULT
   const page = Math.max(0, Number(searchParams.get('page') ?? 0) || 0)

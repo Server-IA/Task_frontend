@@ -192,10 +192,11 @@ const IssueRow = memo(function IssueRow({ issue, slug, project, meta, openIssue,
         role="button"
         tabIndex={0}
         onClick={() => openIssue(issue.id)}
-        onKeyDown={(event) => event.key === 'Enter' && openIssue(issue.id)}
+        // Solo la fila: las teclas de sus selectores (Enter abre el selector) no la abren y siguen hasta los atajos
+        onKeyDown={(event) => event.target === event.currentTarget && event.key === 'Enter' && openIssue(issue.id)}
         className="group flex cursor-pointer flex-wrap items-center gap-x-2.5 gap-y-1.5 px-4 py-2 transition-colors duration-150 outline-none hover:bg-subtle focus-visible:bg-accent"
       >
-        <span className="flex items-center gap-1" onClick={stop} onKeyDown={stop}>
+        <span className="flex items-center gap-1" onClick={stop}>
           <StatePicker
             states={stateOptionsFor(issue, meta.states, manager)}
             disabled={storyStateLocked(issue, manager)}
@@ -244,7 +245,7 @@ const IssueRow = memo(function IssueRow({ issue, slug, project, meta, openIssue,
           )}
           <ChecklistChip issue={issue} />
         </span>
-        <span className="flex items-center gap-1.5" onClick={stop} onKeyDown={stop}>
+        <span className="flex items-center gap-1.5" onClick={stop}>
           {(meta.labels.length > 0 || issue.labels?.length > 0) && (
             <LabelsPicker
               compact

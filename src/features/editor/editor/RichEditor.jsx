@@ -29,15 +29,20 @@ import { currentBlockType, Toolbar } from './Toolbar'
 const looksLikeMarkdown = (text) =>
   /^(#{1,6}\s|[-*+]\s|\d+[.)]\s|>\s?|```|\|.+\|\s*$)/m.test(text) || /\*\*[^*\n]+\*\*|\[[^\]\n]+\]\([^)\s]+\)|`[^`\n]+`|~~[^~\n]+~~/.test(text)
 
-/** Casillas (numeradas en el orden del documento) cuyo primer párrafo toca el rango. */
+/**
+ * Casillas (numeradas en el orden del documento) cuyo primer párrafo toca el rango. Con texto seleccionado, la que
+ * solo roza un borde no cuenta: «Mayús ↓» desde el inicio de una línea termina al inicio de la siguiente.
+ */
 function taskIndexesIn(doc, from, to) {
   const indexes = []
   let index = 0
   doc.descendants((node, pos) => {
     if (node.type.name !== 'taskItem') return true
-    const start = pos + 1
-    const end = start + (node.firstChild?.nodeSize ?? 0)
-    if (start <= to && end >= from) indexes.push(index)
+    // El texto del párrafo va de `start` a `end`
+    const start = pos + 2
+    const end = pos + 1 + (node.firstChild?.nodeSize ?? 2) - 1
+    const touches = from === to ? start <= to && end >= from : start < to && end > from
+    if (touches) indexes.push(index)
     index += 1
     return true
   })

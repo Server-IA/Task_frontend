@@ -80,6 +80,46 @@ describe('«Pasar al checklist» en el editor, si solo se creó parte', () => {
   })
 })
 
+describe('«Pasar al checklist» con una selección que roza otra casilla', () => {
+  /** Selecciona de `from` a `to` y pulsa «Pasar al checklist»; devuelve las casillas que se pasaron. */
+  async function moveSelection(pick) {
+    const onMoveTasks = vi.fn(() => new Promise(() => {}))
+    render(
+      <TooltipProvider>
+        <RichEditor value={'- [ ] Ver logs\n- [ ] Segundo paso'} toolbar onMoveTasks={onMoveTasks} />
+      </TooltipProvider>,
+    )
+    const editor = await waitFor(() => {
+      const found = document.querySelector('.ProseMirror')?.editor
+      if (!found) throw new Error('sin editor')
+      return found
+    })
+    const text = {}
+    editor.state.doc.descendants((node, pos) => {
+      if (node.isText) text[node.text] = { start: pos, end: pos + node.text.length }
+    })
+    const [from, to] = pick(text)
+    act(() => {
+      editor.view.focus()
+      editor.view.dispatch(editor.state.tr.setSelection(TextSelection.create(editor.state.doc, from, to)))
+    })
+    act(() => screen.getByRole('button', { name: /Pasar al checklist de la tarea/ }).click())
+    return onMoveTasks.mock.calls[0]?.[0].map((item) => item.text)
+  }
+
+  it('«Mayús ↓» desde el inicio de una línea (termina al inicio de la siguiente) pasa solo esa', async () => {
+    expect(await moveSelection((t) => [t['Ver logs'].start, t['Segundo paso'].start])).toEqual(['Ver logs'])
+  })
+
+  it('«Mayús ↑» desde el final de una línea (empieza al final de la anterior) pasa solo esa', async () => {
+    expect(await moveSelection((t) => [t['Ver logs'].end, t['Segundo paso'].end])).toEqual(['Segundo paso'])
+  })
+
+  it('con el cursor (sin selección) pasa la casilla donde está', async () => {
+    expect(await moveSelection((t) => [t['Segundo paso'].start, t['Segundo paso'].start])).toEqual(['Segundo paso'])
+  })
+})
+
 async function mountEditor(props = {}) {
   render(
     <TooltipProvider>

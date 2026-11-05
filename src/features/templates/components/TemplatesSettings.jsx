@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -97,10 +97,19 @@ export function TemplatesSettings({ slug, project }) {
   const update = useUpdateTemplate(slug, project.id)
   const canManage = useIsManager()
   const [selectedId, setSelectedId] = useState(null)
+  // El editor tiene cambios sin guardar; elegir otra plantilla los descartaría, así que se pregunta antes
+  const [dirty, setDirty] = useState(false)
+  const [leavingTo, setLeavingTo] = useState(undefined)
 
   const list = templates ?? []
   const selected = selectedId === NEW ? null : (list.find((template) => template.id === selectedId) ?? list[0] ?? null)
   const editingNew = selectedId === NEW || (canManage && list.length === 0)
+
+  const select = (id) => {
+    if (id === (editingNew ? NEW : selected?.id)) return
+    if (dirty) setLeavingTo(id)
+    else setSelectedId(id)
+  }
 
   /** Sube o baja una plantilla (position = índice nuevo). */
   const move = (template, index, direction) =>
@@ -139,7 +148,7 @@ export function TemplatesSettings({ slug, project }) {
                       <button
                         type="button"
                         aria-current={current ? 'true' : undefined}
-                        onClick={() => setSelectedId(template.id)}
+                        onClick={() => select(template.id)}
                         className={cn(
                           'flex w-full flex-col gap-1.5 rounded-[14px] border px-3.5 py-3 text-left transition-colors duration-150',
                           current ? 'border-accent-text bg-accent-soft' : 'bg-card hover:border-dash',
@@ -203,7 +212,7 @@ export function TemplatesSettings({ slug, project }) {
               {canManage && (
                 <button
                   type="button"
-                  onClick={() => setSelectedId(NEW)}
+                  onClick={() => select(NEW)}
                   aria-pressed={editingNew}
                   className={cn(
                     'flex items-center justify-center gap-2 rounded-[14px] border border-dashed border-dash px-3.5 py-2.5 font-medium transition-colors duration-150 hover:border-foreground/40 hover:bg-accent',
@@ -225,10 +234,22 @@ export function TemplatesSettings({ slug, project }) {
                 onSaved={(saved) => setSelectedId(saved.id)}
                 onDeleted={() => setSelectedId(null)}
                 onCancelNew={() => setSelectedId(null)}
+                onDirtyChange={setDirty}
               />
             )}
           </div>
         )}
+        <ConfirmDialog
+          open={leavingTo !== undefined}
+          onOpenChange={(open) => !open && setLeavingTo(undefined)}
+          title="¿Descartar los cambios sin guardar?"
+          description="La plantilla que estás editando tiene cambios sin guardar. Si eliges otra, se pierden."
+          confirmLabel="Descartar cambios"
+          onConfirm={() => {
+            setSelectedId(leavingTo)
+            setLeavingTo(undefined)
+          }}
+        />
       </CardContent>
     </Card>
   )
@@ -295,7 +316,7 @@ function SkeletonField({ value, onChange, readOnly, error }) {
 }
 
 /** Formulario de una plantilla (nueva si `template` es null). Para los miembros, solo lectura. */
-function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted, onCancelNew }) {
+function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted, onCancelNew, onDirtyChange }) {
   const { states, labels, users } = useProjectMeta(slug, project.id)
   const create = useCreateTemplate(slug, project.id)
   const update = useUpdateTemplate(slug, project.id)
@@ -311,6 +332,11 @@ function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted
   const readOnly = !canManage
   const dirty = form.formState.isDirty
   const pending = create.isPending || update.isPending
+  // Avisa si hay cambios sin guardar (al desmontarse, ya no los hay)
+  useEffect(() => {
+    onDirtyChange?.(dirty)
+    return () => onDirtyChange?.(false)
+  }, [dirty, onDirtyChange])
   const errors = form.formState.errors
 
   const onSubmit = (formValues) => {

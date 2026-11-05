@@ -488,6 +488,9 @@ const SortableIssueCard = memo(function SortableIssueCard({ issue, openIssue, ..
       {...listeners}
       onClick={() => openIssue(issue.id)}
       onKeyDown={(event) => {
+        // Solo la tarjeta: las teclas de sus selectores (Enter, Espacio) no la abren ni la levantan, y siguen hasta
+        // los atajos de la página («c», «/»)
+        if (event.target !== event.currentTarget) return
         listeners?.onKeyDown?.(event)
         // Mientras se arrastra con el teclado, Enter suelta la tarjeta (lo maneja dnd-kit en el documento, después
         // de este manejador): no la abre
@@ -499,7 +502,7 @@ const SortableIssueCard = memo(function SortableIssueCard({ issue, openIssue, ..
   )
 })
 
-/** Evita que los selectores de la tarjeta inicien el arrastre o abran el detalle. */
+/** Evita que el clic en los selectores de la tarjeta inicie el arrastre o abra el detalle. */
 const stop = (event) => event.stopPropagation()
 const revealOnHover =
   'opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100'
@@ -521,7 +524,7 @@ const IssueCard = memo(function IssueCard({ issue, slug, project, meta, overlay 
       <div className="flex items-center gap-2 font-mono text-[11px]">
         <IssueTypeIcon issue={issue} size={14} />
         <span className="shrink-0 whitespace-nowrap text-muted-foreground">{issue.code}</span>
-        <span className="ml-auto" onPointerDown={stop} onKeyDown={stop} onClick={stop}>
+        <span className="ml-auto" onPointerDown={stop} onClick={stop}>
           <PriorityPicker
             chip
             // «sin prioridad» (oculto hasta pasar el mouse) ocupaba 126 px y empujaba el código a dos líneas
@@ -537,7 +540,7 @@ const IssueCard = memo(function IssueCard({ issue, slug, project, meta, overlay 
       <BlockedChip issue={issue} codes="by" className="self-start" />
       <BlockingChip issue={issue} className="self-start" />
       {hasLabels && (
-        <div onPointerDown={stop} onKeyDown={stop} onClick={stop}>
+        <div onPointerDown={stop} onClick={stop}>
           <LabelsPicker
             compact
             labels={meta.labels}
@@ -547,7 +550,7 @@ const IssueCard = memo(function IssueCard({ issue, slug, project, meta, overlay 
           />
         </div>
       )}
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs" onPointerDown={stop} onKeyDown={stop} onClick={stop}>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs" onPointerDown={stop} onClick={stop}>
         <DatePicker
           value={issue.dueDate}
           placeholder="Fecha límite"

@@ -228,6 +228,7 @@ export function StorySections({ slug, project, issue, onOpenIssue, onAdd, onRepo
           members={meta.users}
           onDone={() => setSplitting(false)}
           onCancel={() => setSplitting(false)}
+          sticky={!splitting}
         />
       )}
       {bugs.length > 0 && (

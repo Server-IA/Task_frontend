@@ -23,6 +23,7 @@ import { slugify } from '@/lib/slug'
 import { cn } from '@/lib/utils'
 import { canCloseCycle, isCycleClosed } from '../closeCycle'
 import { PLANNING, useDeletePlanning, usePlanningItem, useRemovePlanningIssue } from '../hooks'
+import { progressBreakdown } from '../progressBreakdown'
 import { CloseCycleDialog } from '../components/CloseCycleDialog'
 import {
   AddIssuesDialog,
@@ -207,11 +208,13 @@ function usePlanningIssues(kind, slug, projectId, itemId) {
   return useIssues(slug, projectId, params)
 }
 
-/** «50%  4 de 8 completadas», la barra y el desglose «○ 3 por hacer ◐ 1 en curso ● 4 hechas». */
+/**
+ * «50%  4 de 8 completadas», la barra y el desglose «○ 3 por hacer ◐ 1 en curso ● 4 hechas» (sin las historias, como
+ * el avance: las tres partes suman el total).
+ */
 function ProgressBlock({ kind, item, issues }) {
   const { completedIssues, totalIssues, percentage } = item.progress
-  const started = issues.filter((issue) => issue.state?.group === 'STARTED').length
-  const pending = issues.filter((issue) => !isClosed(issue) && issue.state?.group !== 'STARTED').length
+  const { started, pending } = progressBreakdown(issues)
   const bar = kind === 'cycles' ? (CYCLE_STATUS[cycleStatusKey(item)] ?? CYCLE_STATUS.DRAFT).bar : 'bg-accent-text'
 
   return (

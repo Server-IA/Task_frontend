@@ -8,7 +8,9 @@ const Toaster = ({ ...props }) => {
   return (
     <Sonner
       theme={resolvedTheme}
-      className="toaster group"
+      // Con un diálogo o panel abierto, Radix apaga los clics en el resto de la página: los avisos los recuperan
+      // para que sus botones («Deshacer») funcionen
+      className="toaster group pointer-events-auto"
       icons={{
         success: <CircleCheckIcon className="size-4" />,
         info: <InfoIcon className="size-4" />,

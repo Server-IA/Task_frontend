@@ -115,14 +115,15 @@ const BugRow = memo(function BugRow({ bug, slug, project, meta, triage, first, a
         role="button"
         tabIndex={0}
         onClick={() => openIssue(bug.id)}
-        onKeyDown={(event) => event.key === 'Enter' && openIssue(bug.id)}
+        // Solo la fila: las teclas de sus selectores no la abren y siguen hasta los atajos
+        onKeyDown={(event) => event.target === event.currentTarget && event.key === 'Enter' && openIssue(bug.id)}
         className={cn(
           'group flex cursor-pointer items-center gap-2.5 px-4 py-2.5 outline-none hover:bg-subtle focus-visible:bg-accent',
           active && 'bg-accent-soft hover:bg-accent-soft',
         )}
       >
         <TypeIcon type="BUG" size={14} />
-        <span onClick={stop} onKeyDown={stop}>
+        <span onClick={stop}>
           <StatePicker
             states={meta.states}
             value={bug.state?.id}
@@ -144,7 +145,7 @@ const BugRow = memo(function BugRow({ bug, slug, project, meta, triage, first, a
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{bug.title}</span>
         <BlockedChip issue={bug} codes="inline" />
         {bug.parent?.type === 'STORY' && <ParentStoryChip parent={bug.parent} label="apareció en" onOpen={openIssue} />}
-        <span className="flex items-center gap-1.5" onClick={stop} onKeyDown={stop}>
+        <span className="flex items-center gap-1.5" onClick={stop}>
           {triage && (
             <PriorityPicker
               chip={!noPriority}

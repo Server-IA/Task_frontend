@@ -14,9 +14,9 @@ afterEach(() => {
   panelEscape.mockClear()
 })
 
-function renderComposer(onCancel = vi.fn()) {
+function renderComposer(onCancel = vi.fn(), extra = {}) {
   document.addEventListener('keydown', panelEscape, true)
-  render(<SplitComposer slug="acme" project={{ id: 'p1' }} story={story} members={members} onDone={vi.fn()} onCancel={onCancel} />)
+  render(<SplitComposer slug="acme" project={{ id: 'p1' }} story={story} members={members} onDone={vi.fn()} onCancel={onCancel} {...extra} />)
   return onCancel
 }
 
@@ -39,6 +39,28 @@ describe('SplitComposer: Escape', () => {
     fireEvent.keyDown(screen.getByRole('textbox', { name: 'Tarea 1' }), { key: 'Escape' })
     expect(onCancel).toHaveBeenCalledTimes(1)
     expect(panelEscape).not.toHaveBeenCalled()
+  })
+
+  it('abierto solo (historia sin partir): con algo escrito, Escape y «Cancelar» vacían las líneas', () => {
+    const onCancel = renderComposer(vi.fn(), { sticky: true })
+    const line = screen.getByRole('textbox', { name: 'Tarea 1' })
+    fireEvent.change(line, { target: { value: 'Plantilla de correo', selectionStart: 19 } })
+
+    fireEvent.keyDown(line, { key: 'Escape' })
+    expect(screen.getByRole('textbox', { name: 'Tarea 1' })).toHaveValue('')
+    expect(onCancel).toHaveBeenCalledTimes(1)
+    expect(panelEscape).not.toHaveBeenCalled()
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'Tarea 1' }), { target: { value: 'Otra', selectionStart: 4 } })
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+    expect(screen.getByRole('textbox', { name: 'Tarea 1' })).toHaveValue('')
+  })
+
+  it('abierto solo y sin nada escrito, Escape llega al panel (lo cierra)', () => {
+    const onCancel = renderComposer(vi.fn(), { sticky: true })
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Tarea 1' }), { key: 'Escape' })
+    expect(panelEscape).toHaveBeenCalledTimes(1)
+    expect(onCancel).not.toHaveBeenCalled()
   })
 })
 
