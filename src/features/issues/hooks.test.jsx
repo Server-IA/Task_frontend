@@ -226,6 +226,83 @@ describe('useMoveIssue', () => {
     expect(issuesApi.move.mock.calls[0][3]).not.toHaveProperty('onError')
   })
 
+  describe('soltada en el carril de otra historia', () => {
+    const story = { id: 'st2', code: 'WEB-2', title: 'Pago', type: 'STORY' }
+    const oldStory = { id: 'st1', code: 'WEB-1', title: 'Login', type: 'STORY' }
+    const laned = { content: [{ id: 'i1', state: done, sortOrder: 1, parent: oldStory }] }
+
+    it('cambia historia y estado en una sola edición y después ajusta la posición; avisa al terminar', async () => {
+      const { queryClient, wrapper } = setup()
+      queryClient.setQueryData(listKey, laned)
+      issuesApi.update.mockResolvedValueOnce({ id: 'i1', state: todo, sortOrder: 9, parent: story })
+      issuesApi.move.mockResolvedValueOnce({ id: 'i1', state: todo, sortOrder: 5, parent: story })
+      const onMoved = vi.fn()
+      const { result } = renderHook(() => useMoveIssue('acme', 'p1'), { wrapper })
+
+      act(() =>
+        result.current.mutate({
+          issueId: 'i1',
+          stateId: todo.id,
+          afterIssueId: 'i7',
+          beforeIssueId: null,
+          state: todo,
+          sortOrder: 5,
+          parentChange: { parentId: story.id },
+          parent: story,
+          onMoved,
+        }),
+      )
+      // Al instante, en su carril nuevo
+      await waitFor(() => expect(queryClient.getQueryData(listKey).content[0].parent).toEqual(story))
+      await waitFor(() => expect(onMoved).toHaveBeenCalled())
+      expect(issuesApi.update).toHaveBeenCalledWith('acme', 'p1', 'i1', { stateId: todo.id, parentId: story.id, reopenParent: undefined })
+      expect(issuesApi.move).toHaveBeenCalledWith('acme', 'p1', 'i1', { stateId: todo.id, afterIssueId: 'i7', beforeIssueId: null })
+      expect(issuesApi.update.mock.calls[0][3]).not.toHaveProperty('onMoved')
+    })
+
+    it('a «Sin historia» le quita el padre', async () => {
+      const { wrapper } = setup()
+      issuesApi.update.mockResolvedValueOnce({ id: 'i1', parent: null })
+      issuesApi.move.mockResolvedValueOnce({ id: 'i1', parent: null })
+      const { result } = renderHook(() => useMoveIssue('acme', 'p1'), { wrapper })
+
+      act(() => result.current.mutate({ issueId: 'i1', stateId: todo.id, state: todo, sortOrder: 5, parentChange: { clearParent: true }, parent: null }))
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+      expect(issuesApi.update).toHaveBeenCalledWith('acme', 'p1', 'i1', { stateId: todo.id, clearParent: true, reopenParent: undefined })
+    })
+
+    it('si el backend la rechaza (historia cerrada), vuelve a su carril y a su columna sin mover nada', async () => {
+      const { queryClient, wrapper } = setup()
+      queryClient.setQueryData(listKey, laned)
+      const closed = new ApiError({ status: 409, message: 'WEB-2 está cerrada', code: 'STORY_CLOSED' })
+      issuesApi.update.mockRejectedValueOnce(closed)
+      const onError = vi.fn()
+      const onMoved = vi.fn()
+      const { result } = renderHook(() => useMoveIssue('acme', 'p1'), { wrapper })
+
+      act(() =>
+        result.current.mutate({ issueId: 'i1', stateId: todo.id, state: todo, sortOrder: 5, parentChange: { parentId: story.id }, parent: story, onError, onMoved }),
+      )
+      await waitFor(() => expect(onError).toHaveBeenCalledWith(closed))
+      expect(queryClient.getQueryData(listKey).content[0]).toMatchObject({ state: done, sortOrder: 1, parent: oldStory })
+      expect(issuesApi.move).not.toHaveBeenCalled()
+      expect(onMoved).not.toHaveBeenCalled()
+    })
+
+    it('el reintento del project manager reabre la historia en la misma edición', async () => {
+      const { wrapper } = setup()
+      issuesApi.update.mockResolvedValueOnce({ id: 'i1' })
+      issuesApi.move.mockResolvedValueOnce({ id: 'i1' })
+      const { result } = renderHook(() => useMoveIssue('acme', 'p1'), { wrapper })
+
+      act(() =>
+        result.current.mutate({ issueId: 'i1', stateId: todo.id, state: todo, sortOrder: 5, parentChange: { parentId: story.id }, parent: story, reopenParent: true }),
+      )
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+      expect(issuesApi.update).toHaveBeenCalledWith('acme', 'p1', 'i1', { stateId: todo.id, parentId: story.id, reopenParent: true })
+    })
+  })
+
   it('reintentar con reopenParent lo manda al backend', async () => {
     const { wrapper } = setup()
     issuesApi.move.mockResolvedValueOnce({ id: 'i1' })

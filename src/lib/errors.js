@@ -19,6 +19,15 @@ export class ApiError extends Error {
   }
 }
 
+/** Código del error de una petición que falló porque la sesión venció (el refresh ya no sirve): no se avisa con un toast. */
+export const SESSION_EXPIRED = 'SESSION_EXPIRED'
+export const SESSION_EXPIRED_MESSAGE = 'Tu sesión expiró. Vuelve a iniciar sesión.'
+
+/** Si el error es el de una sesión vencida (la app ya lleva al login y lo dice ahí). */
+export function isSessionExpired(error) {
+  return toApiError(error).code === SESSION_EXPIRED
+}
+
 /** Convierte un error de axios (o cualquier otro) en un ApiError. */
 export function toApiError(error) {
   if (error instanceof ApiError) return error

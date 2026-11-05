@@ -1,5 +1,5 @@
 import { toast } from 'sonner'
-import { toApiError } from '@/lib/errors'
+import { SESSION_EXPIRED, toApiError } from '@/lib/errors'
 
 /**
  * Muestra un error de la API como toast. Para un 429 indica cuánto esperar y devuelve los
@@ -7,6 +7,8 @@ import { toApiError } from '@/lib/errors'
  */
 export function notifyError(error, fallbackTitle) {
   const apiError = toApiError(error)
+  // Sesión vencida: la app ya va al login, que lo dice; un toast más solo confunde
+  if (apiError.code === SESSION_EXPIRED) return 0
   if (apiError.status === 429) {
     const seconds = apiError.retryAfter ?? 60
     toast.warning('Demasiados intentos', {

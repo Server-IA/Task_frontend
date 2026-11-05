@@ -23,7 +23,8 @@ vi.mock('@/features/auth/hooks', () => ({
   useUpdateProfile: () => ({ mutate: updateProfile, isPending: false }),
   useLogout: () => ({ mutate: vi.fn(), isPending: false }),
 }))
-vi.mock('@/features/workspaces/hooks', () => ({ useWorkspaces: () => ({ data: [] }) }))
+let lastWorkspace = null
+vi.mock('@/features/workspaces/hooks', () => ({ useWorkspaces: () => ({ data: [] }), useLastWorkspace: () => lastWorkspace }))
 vi.mock('@/features/files/api', () => ({
   filesApi: { urls: vi.fn(async () => []), removeAvatar: vi.fn(), createAvatarUpload: vi.fn(), confirmAvatar: vi.fn() },
 }))
@@ -45,6 +46,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   me = { id: 'u1', fullName: 'Ana Pérez', email: 'ana@correo.com', avatarUrl: null }
+  lastWorkspace = null
   URL.createObjectURL = vi.fn(() => 'blob:recorte')
   URL.revokeObjectURL = vi.fn()
 })
@@ -178,8 +180,51 @@ describe('Foto de perfil', () => {
     expect(screen.getAllByRole('button', { name: 'Cambiar foto' }).length).toBeGreaterThan(0)
     await user.click(screen.getByRole('button', { name: 'Quitar foto' }))
 
+    // Antes de borrarla, se confirma
+    const confirm = await screen.findByRole('alertdialog', { name: '¿Quitar tu foto de perfil?' })
+    expect(confirm).toHaveTextContent('Se borra la foto que subiste')
+    expect(filesApi.removeAvatar).not.toHaveBeenCalled()
+    await user.click(within(confirm).getByRole('button', { name: 'Quitar foto' }))
+
     expect(filesApi.removeAvatar).toHaveBeenCalled()
     await vi.waitFor(() => expect(useSessionStore.getState().user).toEqual(withoutPhoto))
     expect(toast.success).toHaveBeenCalledWith('Foto quitada', expect.anything())
+  })
+
+  it('cancelar la confirmación no quita la foto y devuelve el foco al botón', async () => {
+    const user = userEvent.setup()
+    me = { ...me, avatarUrl: `/files/${FILE_ID}` }
+    renderPage()
+
+    const trigger = screen.getByRole('button', { name: 'Quitar foto' })
+    await user.click(trigger)
+    const confirm = await screen.findByRole('alertdialog', { name: '¿Quitar tu foto de perfil?' })
+    await user.click(within(confirm).getByRole('button', { name: 'Cancelar' }))
+
+    await vi.waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
+    expect(filesApi.removeAvatar).not.toHaveBeenCalled()
+    expect(trigger).toHaveFocus()
+  })
+})
+
+describe('«Así te ven»: el rol', () => {
+  const seen = () => screen.getByText('Así te ven').closest('[data-slot="card"]')
+
+  it('muestra el rol real en el workspace actual: project manager', () => {
+    lastWorkspace = { id: 'w1', slug: 'acme', name: 'Acme', myRole: 'OWNER' }
+    renderPage()
+    expect(within(seen()).getByText('Project manager · Acme')).toBeInTheDocument()
+    expect(within(seen()).queryByText('Miembro')).not.toBeInTheDocument()
+  })
+
+  it('o miembro', () => {
+    lastWorkspace = { id: 'w1', slug: 'acme', name: 'Acme', myRole: 'MEMBER' }
+    renderPage()
+    expect(within(seen()).getByText('Miembro · Acme')).toBeInTheDocument()
+  })
+
+  it('sin workspace no inventa un rol', () => {
+    renderPage()
+    expect(within(seen()).queryByText(/Miembro|Project manager/)).not.toBeInTheDocument()
   })
 })

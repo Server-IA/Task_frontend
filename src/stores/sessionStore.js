@@ -16,18 +16,20 @@ export const useSessionStore = create((set) => ({
   user: null,
   /** true si la sesión se cerró a propósito: el login siguiente no vuelve a la página del usuario anterior. */
   loggedOut: false,
+  /** true si la sesión venció (el refresh token ya no sirve): el login lo dice. Un cierre de sesión normal, no. */
+  expired: false,
 
   /** @param {import('@/api/types').AuthResponse} auth */
   setSession: (auth) => {
     tokenStorage.set(auth.refreshToken)
-    set({ status: 'authenticated', accessToken: auth.accessToken, user: auth.user, loggedOut: false })
+    set({ status: 'authenticated', accessToken: auth.accessToken, user: auth.user, loggedOut: false, expired: false })
   },
 
   setUser: (user) => set({ user }),
 
-  /** @param {{ loggedOut?: boolean }} [options] */
-  clearSession: ({ loggedOut = false } = {}) => {
+  /** @param {{ loggedOut?: boolean, expired?: boolean }} [options] */
+  clearSession: ({ loggedOut = false, expired = false } = {}) => {
     tokenStorage.clear()
-    set({ status: 'anonymous', accessToken: null, user: null, loggedOut })
+    set({ status: 'anonymous', accessToken: null, user: null, loggedOut, expired: expired && !loggedOut })
   },
 }))

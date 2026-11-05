@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { usePreferencesStore } from '@/stores/preferencesStore'
@@ -57,5 +57,27 @@ describe('IssueChecklist: criterios de aceptación', () => {
     await user.click(await screen.findByRole('button', { name: '+ criterio' }))
     await user.click(screen.getByRole('button', { name: 'Dado / cuando / entonces' }))
     expect(screen.getByRole('group', { name: 'Nuevo criterio de aceptación' })).toBeInTheDocument()
+  })
+})
+
+describe('IssueChecklist: reordenar con el teclado', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    usePreferencesStore.getState().setCriteriaFormat('plain')
+    checklistApi.list.mockResolvedValue([
+      { id: '2f1c0b8e-0000-4000-8000-000000000001', kind: 'CRITERION', text: 'El correo llega', done: false, position: 0 },
+      { id: '2f1c0b8e-0000-4000-8000-000000000002', kind: 'CRITERION', text: 'El enlace vence', done: false, position: 1 },
+    ])
+  })
+
+  it('el lector de pantalla oye el texto del criterio en español, no su id', async () => {
+    renderChecklist()
+    const handle = await screen.findByRole('button', { name: 'Mover «El correo llega»' })
+    handle.focus()
+    fireEvent.keyDown(handle, { key: ' ', code: 'Space' })
+    // Al levantarlo, dnd-kit anuncia enseguida dónde está (reemplaza a «Levantaste…»)
+    expect(await screen.findByText('el criterio «El correo llega» está en la posición 1 de 2.')).toBeInTheDocument()
+    expect(document.body.textContent).not.toMatch(/2f1c0b8e|Picked up/)
+    expect(screen.getAllByText(/pulsa Espacio/).length).toBeGreaterThan(0)
   })
 })

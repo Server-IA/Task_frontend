@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import { StateIcon } from '@/components/common/StateIcon'
 import { useIssueSearch } from '@/features/search/hooks'
+import { exampleCode } from '@/lib/codes'
 import { cn } from '@/lib/utils'
 
 /**
  * «Enlazar tarea» del menú «/»: busca tareas del workspace por código o título y deja su código en el texto
  * («WEB-12», que se dibuja como pastilla).
- * @param {{ slug: string, style: React.CSSProperties, onSelect: (issue: object) => void, onClose: () => void }} props
+ * `projectIdentifier`: el del proyecto actual, para el ejemplo del código («PORT-12»).
+ * @param {{ slug: string, style: React.CSSProperties, projectIdentifier?: string, onSelect: (issue: object) => void, onClose: () => void }} props
  */
-export function TaskSearchPopover({ slug, style, onSelect, onClose }) {
+export function TaskSearchPopover({ slug, style, projectIdentifier, onSelect, onClose }) {
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
   const { data: results = [], isFetching } = useIssueSearch(slug, query)
@@ -65,7 +67,7 @@ export function TaskSearchPopover({ slug, style, onSelect, onClose }) {
           </li>
         ))}
         {query.trim() && !isFetching && shown.length === 0 && <li className="px-2 py-1.5 text-[13px] text-muted-foreground">Sin resultados</li>}
-        {!query.trim() && <li className="px-2 py-1.5 text-[13px] text-muted-foreground">Escribe un código («WEB-12») o parte del título</li>}
+        {!query.trim() && <li className="px-2 py-1.5 text-[13px] text-muted-foreground">Escribe un código («{exampleCode(projectIdentifier)}») o parte del título</li>}
       </ul>
       <p className="flex gap-3 border-t px-3.5 py-2 font-mono text-[11px] text-muted-foreground">
         <span>

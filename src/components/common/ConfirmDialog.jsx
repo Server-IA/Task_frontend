@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,6 +16,11 @@ import { Spinner } from '@/components/common/Loaders'
  * Confirmación para acciones irreversibles (eliminar, quitar, salir…).
  * `onConfirm` puede devolver una promesa: el diálogo se queda abierto mientras se resuelve.
  * Mientras se cierra conserva el último texto (quien lo usa suele limpiar el elemento al cerrarlo).
+ *
+ * Se abre sin un disparador propio (lo abre el estado de quien lo usa), así que Radix no sabría a dónde devolver el
+ * foco al cerrarse y quedaba en el `body`: se recuerda lo que tenía el foco al abrirse (si era una opción de un menú,
+ * el botón que abrió el menú) y se vuelve ahí. Si ya no está (la acción lo quitó), se usa `returnFocusRef`.
+ * `focusAfterConfirmRef`: a dónde va el foco si se confirmó (por ejemplo, el campo en el que se sigue escribiendo).
  */
 export function ConfirmDialog({
   open,
@@ -26,14 +31,33 @@ export function ConfirmDialog({
   destructive = true,
   loading = false,
   onConfirm,
+  returnFocusRef,
+  focusAfterConfirmRef,
 }) {
+  const returnFocus = useRef(null)
+  const confirmed = useRef(false)
   const [lastText, setLastText] = useState({ title, description })
   if (open && (title !== lastText.title || description !== lastText.description)) setLastText({ title, description })
   const text = open ? { title, description } : lastText
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent
+        onOpenAutoFocus={() => {
+          // Todavía no se movió el foco: es el elemento que abrió la confirmación
+          returnFocus.current = focusOrigin(document.activeElement)
+          confirmed.current = false
+        }}
+        onCloseAutoFocus={(event) => {
+          const afterConfirm = confirmed.current ? focusAfterConfirmRef?.current : null
+          const target = [afterConfirm, returnFocus.current, returnFocusRef?.current].find(isFocusable)
+          returnFocus.current = null
+          confirmed.current = false
+          if (!target) return
+          event.preventDefault()
+          target.focus()
+        }}
+      >
         <AlertDialogHeader>
           <AlertDialogTitle>{text.title}</AlertDialogTitle>
           {text.description && <AlertDialogDescription>{text.description}</AlertDialogDescription>}
@@ -45,6 +69,7 @@ export function ConfirmDialog({
             disabled={loading}
             onClick={(event) => {
               event.preventDefault()
+              confirmed.current = true
               onConfirm?.()
             }}
           >
@@ -55,4 +80,16 @@ export function ConfirmDialog({
       </AlertDialogContent>
     </AlertDialog>
   )
+}
+
+/** A dónde volver: el elemento enfocado o, si es una opción de un menú (que se cierra), el botón del menú. */
+function focusOrigin(element) {
+  if (!element || element === document.body) return null
+  const menu = element.closest('[role="menu"]')
+  const trigger = menu?.getAttribute('aria-labelledby') ? document.getElementById(menu.getAttribute('aria-labelledby')) : null
+  return trigger ?? element
+}
+
+function isFocusable(element) {
+  return Boolean(element?.isConnected) && !element.disabled && element.getAttribute('aria-hidden') !== 'true'
 }

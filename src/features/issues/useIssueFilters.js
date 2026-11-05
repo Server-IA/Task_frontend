@@ -16,6 +16,10 @@ const GROUP_VALUES = new Set([...GROUP_BY_OPTIONS, ...BOARD_GROUP_OPTIONS].map((
  * El tipo (`?type=`) tiene un valor por defecto: sin él se ven las tareas y los bugs (no las historias); `type=all`
  * muestra los tres. `filters.type` son los valores de la URL tal cual, `types` los tipos que se ven y `queryFilters`
  * lo que se manda a la API (con `type` ya resuelto).
+ *
+ * Cada cambio puntual (un filtro, una vista guardada, «Todas», el orden, la agrupación, la página) queda en el
+ * historial: «Atrás» deshace el último en vez de salir de la página. Solo reemplazan la entrada actual lo que no es una
+ * decisión aparte: lo que se va escribiendo en la búsqueda (`{ replace: true }`) y abrir o cerrar el panel de una tarea.
  */
 export function useIssueFilters() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -49,7 +53,7 @@ export function useIssueFilters() {
   const activeViewId = searchParams.get(SAVED_VIEW_PARAM)
 
   const update = useCallback(
-    (mutate, { resetPage = true } = {}) => {
+    (mutate, { resetPage = true, replace = false } = {}) => {
       setSearchParams(
         (previous) => {
           const next = new URLSearchParams(previous)
@@ -57,14 +61,15 @@ export function useIssueFilters() {
           if (resetPage) next.delete('page')
           return next
         },
-        { replace: true },
+        { replace },
       )
     },
     [setSearchParams],
   )
 
+  /** `options.replace`: reemplaza la entrada del historial (la búsqueda mientras se escribe). */
   const setFilter = useCallback(
-    (key, values) =>
+    (key, values, { replace = false } = {}) =>
       update((params) => {
         params.delete(key)
         if (key === 'blocked') {
@@ -74,7 +79,7 @@ export function useIssueFilters() {
         const list = Array.isArray(values) ? values : [values]
         const stored = key === 'type' ? typesToUrl(list.filter(Boolean)) : list.filter(Boolean)
         stored.forEach((value) => params.append(key, value))
-      }),
+      }, { replace }),
     [update],
   )
 
@@ -87,11 +92,17 @@ export function useIssueFilters() {
   )
 
   // Estables: las tarjetas y filas memorizadas los reciben como prop
-  const openIssue = useCallback((issueId) => update((params) => params.set('issue', issueId), { resetPage: false }), [update])
-  const closeIssue = useCallback(() => update((params) => params.delete('issue'), { resetPage: false }), [update])
+  const openIssue = useCallback((issueId) => update((params) => params.set('issue', issueId), { resetPage: false, replace: true }), [update])
+  const closeIssue = useCallback(() => update((params) => params.delete('issue'), { resetPage: false, replace: true }), [update])
 
-  /** Reemplaza los parámetros por lo que devuelva `build(anteriores)` (lo usan las vistas guardadas). */
-  const replaceParams = useCallback((build) => setSearchParams((previous) => build(previous), { replace: true }), [setSearchParams])
+  /**
+   * Cambia los parámetros por lo que devuelva `build(anteriores)` (lo usan las vistas guardadas, «Todas» y «Bugs»).
+   * Es un paso más del historial salvo con `{ replace: true }` (un ajuste que no eligió la persona).
+   */
+  const applyParams = useCallback(
+    (build, { replace = false } = {}) => setSearchParams((previous) => build(previous), { replace }),
+    [setSearchParams],
+  )
 
   // El tipo por defecto (tareas y bugs) no cuenta como filtro puesto
   const activeCount =
@@ -112,7 +123,7 @@ export function useIssueFilters() {
     page,
     openIssueId,
     activeViewId,
-    replaceParams,
+    applyParams,
     setFilter,
     clearFilters,
     setView: (value) => {

@@ -26,7 +26,7 @@ describe('IssueFiltersBar: buscar o saltar', () => {
   it('Enter con texto que no es un código solo busca', async () => {
     const onJumpToCode = vi.fn()
     renderBar({ onJumpToCode })
-    const input = screen.getByPlaceholderText('buscar o saltar a WEB-12')
+    const input = screen.getByPlaceholderText('buscar o saltar a PROY-12')
     await userEvent.setup().type(input, 'login{Enter}')
     expect(onJumpToCode).not.toHaveBeenCalled()
     expect(input).toHaveValue('login')
@@ -65,3 +65,18 @@ describe('IssueFiltersBar: búsqueda mientras se escribe', () => {
   })
 })
 
+
+describe('IssueFiltersBar: el historial', () => {
+  it('lo escrito en la búsqueda reemplaza la entrada del historial (no un paso por letra)', () => {
+    vi.useFakeTimers()
+    try {
+      const setFilter = vi.fn()
+      renderBar({ setFilter })
+      fireEvent.change(screen.getByPlaceholderText(/buscar o saltar/), { target: { value: 'login' } })
+      act(() => vi.advanceTimersByTime(400))
+      expect(setFilter).toHaveBeenCalledWith('search', 'login', { replace: true })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})

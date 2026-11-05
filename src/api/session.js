@@ -39,7 +39,8 @@ export async function withSessionLock(task) {
 async function doRefresh(retried = false) {
   const refreshToken = tokenStorage.get()
   if (!refreshToken) {
-    useSessionStore.getState().clearSession()
+    // Otra pestaña cerró la sesión (ya lo marcó): se conserva si fue a propósito
+    useSessionStore.getState().clearSession({ loggedOut: useSessionStore.getState().loggedOut })
     throw new Error('No hay sesión')
   }
   let data
@@ -54,7 +55,8 @@ async function doRefresh(retried = false) {
       // Otra pestaña guardó un token nuevo mientras tanto (login, cambio de contraseña): se usa ese
       // en vez de borrarlo.
       if (current && current !== refreshToken && !retried) return doRefresh(true)
-      if (current === refreshToken) useSessionStore.getState().clearSession()
+      // Con la sesión abierta (o al recuperarla) el login avisa que venció; no es un cierre de sesión normal
+      if (current === refreshToken) useSessionStore.getState().clearSession({ expired: true })
     }
     throw error
   }

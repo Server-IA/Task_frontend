@@ -4,9 +4,12 @@ import { toast } from 'sonner'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { Spinner } from '@/components/common/Loaders'
 import { AvatarPhoto, UserAvatar, avatarColor, initials } from '@/components/common/UserAvatar'
 import { AVATAR_ACCEPT } from '@/features/files/fileTypes'
+import { useLastWorkspace } from '@/features/workspaces/hooks'
+import { ROLE_LABELS } from '@/lib/permissions'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { AvatarCropDialog } from './AvatarCropDialog'
@@ -30,9 +33,12 @@ const STATUS = { queued: 'En cola…', confirming: 'Guardando…' }
 
 function PhotoCard({ user }) {
   const inputRef = useRef(null)
+  const uploadButtonRef = useRef(null)
   const [picked, setPicked] = useState(null)
   const [problem, setProblem] = useState(null)
   const [dragging, setDragging] = useState(false)
+  // Quitar la foto la borra: se confirma antes
+  const [confirmingRemove, setConfirmingRemove] = useState(false)
   const upload = useAvatarUpload()
   const remove = useRemoveAvatar()
   const { task, active } = upload
@@ -60,8 +66,14 @@ function PhotoCard({ user }) {
   const removePhoto = () => {
     upload.clear()
     remove.mutate(undefined, {
-      onSuccess: () => toast.success('Foto quitada', { description: 'Se usan tus iniciales y tu color.' }),
-      onError: (error) => notifyError(error, 'No se pudo quitar la foto'),
+      onSuccess: () => {
+        setConfirmingRemove(false)
+        toast.success('Foto quitada', { description: 'Se usan tus iniciales y tu color.' })
+      },
+      onError: (error) => {
+        setConfirmingRemove(false)
+        notifyError(error, 'No se pudo quitar la foto')
+      },
     })
   }
 
@@ -121,12 +133,12 @@ function PhotoCard({ user }) {
           </button>
           <div className="flex min-w-0 flex-1 flex-col gap-2.5">
             <div className="flex flex-wrap gap-2">
-              <Button className="rounded-[11px]" disabled={busy} onClick={pickFile}>
+              <Button ref={uploadButtonRef} className="rounded-[11px]" disabled={busy} onClick={pickFile}>
                 <Upload className="size-[15px]" strokeWidth={2.2} />
                 {actionLabel}
               </Button>
               {hasPhoto && (
-                <Button variant="outline" className="rounded-[11px] font-medium text-late hover:text-late" disabled={busy} onClick={removePhoto}>
+                <Button variant="outline" className="rounded-[11px] font-medium text-late hover:text-late" disabled={busy} onClick={() => setConfirmingRemove(true)}>
                   {remove.isPending && <Spinner />}
                   Quitar foto
                 </Button>
@@ -149,6 +161,17 @@ function PhotoCard({ user }) {
         </div>
         <PhotoStatus task={task} problem={problem} hasPhoto={hasPhoto} onCancel={upload.clear} onRetry={upload.retry} />
       </CardContent>
+      <ConfirmDialog
+        open={confirmingRemove}
+        onOpenChange={(open) => !remove.isPending && setConfirmingRemove(open)}
+        title="¿Quitar tu foto de perfil?"
+        description="Se borra la foto que subiste y en su lugar se ven tus iniciales sobre tu color. Para volver a tenerla, tendrás que subirla de nuevo."
+        confirmLabel="Quitar foto"
+        loading={remove.isPending}
+        onConfirm={removePhoto}
+        // Quitada la foto, «Quitar foto» desaparece: el foco pasa a «Subir foto»
+        returnFocusRef={uploadButtonRef}
+      />
       <AvatarCropDialog
         file={picked}
         onCancel={() => setPicked(null)}
@@ -229,9 +252,14 @@ function PhotoStatus({ task, problem, hasPhoto, onCancel, onRetry }) {
   )
 }
 
-/** «Así te ven»: la foto (o las iniciales) en los tamaños de miembros, comentarios y tarjetas. */
+/**
+ * «Así te ven»: la foto (o las iniciales) en los tamaños de miembros, comentarios y tarjetas. En la fila de miembros
+ * va su rol en el workspace en el que estaba (sin workspace, sin rol).
+ */
 function SeenCard({ user }) {
   const hasPhoto = Boolean(user.avatarUrl)
+  const workspace = useLastWorkspace()
+  const role = workspace ? ROLE_LABELS[workspace.myRole] : null
   const row = 'flex items-center gap-2.5 rounded-xl border px-2.5 py-2'
   const caption = 'w-[70px] shrink-0 font-mono text-[11px] text-muted-foreground'
   return (
@@ -248,7 +276,11 @@ function SeenCard({ user }) {
             <span className="truncate font-semibold">
               {user.fullName} <span className="font-normal text-muted-foreground">(tú)</span>
             </span>
-            <span className="font-mono text-[11.5px] text-muted-foreground">Miembro</span>
+            {role && (
+              <span className="truncate font-mono text-[11.5px] text-muted-foreground" title={`Tu rol en ${workspace.name}`}>
+                {role} · {workspace.name}
+              </span>
+            )}
           </span>
         </div>
         <div className={cn(row, 'items-start')}>

@@ -17,12 +17,24 @@ import {
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { ChevronDown, ChevronRight, Plus, TriangleAlert } from 'lucide-react'
+import { toast } from 'sonner'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AvatarStack } from '@/components/common/AvatarStack'
 import { ErrorState } from '@/components/common/States'
 import { StateIcon } from '@/components/common/StateIcon'
 import { useStories } from '@/features/stories/hooks'
-import { findColumn, getNeighbors, groupByState, sortOrderBetween } from '@/lib/kanban'
+import { DND_INSTRUCTIONS, dndAnnouncements, quoted } from '@/lib/dndAnnouncements'
+import {
+  columnKey,
+  findColumn,
+  getNeighbors,
+  groupByLaneAndState,
+  groupByState,
+  laneKeyOf,
+  laneOfColumn,
+  sortOrderBetween,
+  stateOfColumn,
+} from '@/lib/kanban'
 import { cn } from '@/lib/utils'
 import { BOARD_GROUP_STORY, BOARD_PAGE_SIZE } from '../constants'
 import { useIssues, useMoveIssue } from '../hooks'
@@ -38,7 +50,9 @@ import { AssigneesPicker, DatePicker, LabelsPicker, PriorityPicker } from './Pro
 /**
  * Kanban: una columna por estado; las tarjetas se arrastran entre columnas y dentro de ellas. Con
  * `groupBy="story"` hay un carril por historia (con su progreso, personas y bugs abiertos) y «Sin historia» al
- * final; las historias listas para revisar empiezan plegadas. Se arrastra dentro de cada carril.
+ * final; las historias listas para revisar empiezan plegadas. Soltar una tarjeta en el carril de otra historia la
+ * pasa a esa historia (un bug queda como bug de la historia; una tarea cuenta en su avance) y en «Sin historia» la
+ * saca de la suya.
  */
 export function IssueBoardView({ slug, project, meta, filters, openIssue, onCreateInState, extraParams, groupBy }) {
   const params = { ...filters, ...extraParams, sort: 'sortOrder,asc', page: 0, size: BOARD_PAGE_SIZE }
@@ -48,7 +62,7 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
   const issues = useMemo(() => data?.content ?? [], [data])
   // Memorizados: si cada render armara carriles nuevos, sus columnas se recalcularían y una tarjeta recién soltada
   // volvería un instante a su lugar
-  const lanes = useMemo(() => (laned ? storyLanes(issues, stories ?? []) : []), [laned, issues, stories])
+  const lanes = useMemo(() => (laned ? storyLanes(issues, stories ?? []) : null), [laned, issues, stories])
   // Mover una tarea de una historia cerrada a un estado abierto: 409 STORY_CLOSED → la tarjeta vuelve y se pregunta
   const { onStoryClosed, dialog: storyClosedDialog } = useStoryClosedGuard(slug)
 
@@ -107,7 +121,9 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
               </div>
             ))}
           </div>
-          {lanes.map((lane) => (lane.story || lane.issues.length > 0 ? <StoryLane key={lane.key} lane={lane} {...common} /> : null))}
+          {/* Un solo arrastre para todos los carriles: soltar en el de otra historia (o en «Sin historia») cambia la
+              historia de la tarea. «Sin historia» se ve aunque esté vacío: es donde se suelta para sacarla */}
+          <BoardColumns issues={issues} lanes={lanes} {...common} />
         </div>
       </div>
       {storyClosedDialog}
@@ -115,8 +131,8 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
   )
 }
 
-/** Un carril del tablero agrupado por historia: su encabezado (plegable) y sus columnas. */
-function StoryLane({ lane, slug, project, meta, openIssue, onStoryClosed }) {
+/** Un carril del tablero agrupado por historia: su encabezado (plegable) y sus columnas (`children`). */
+function StoryLane({ lane, openIssue, children }) {
   const { story } = lane
   const flags = story ? storyFlags(story) : null
   // Las historias listas para revisar (y las cerradas) empiezan plegadas en una línea
@@ -167,31 +183,24 @@ function StoryLane({ lane, slug, project, meta, openIssue, onStoryClosed }) {
           </>
         )}
       </header>
-      {open && (
-        <div className="mt-1.5">
-          <BoardColumns
-            issues={lane.issues}
-            slug={slug}
-            project={project}
-            meta={meta}
-            openIssue={openIssue}
-            onStoryClosed={onStoryClosed}
-            inLane
-          />
-        </div>
-      )}
+      {open && <div className="mt-1.5">{children}</div>}
     </section>
   )
 }
 
 /**
- * Las columnas (una por estado) con sus tarjetas y el arrastre. En un carril (`inLane`) no llevan encabezado (va
- * arriba, una sola vez) y una columna vacía se ve como un hueco punteado.
+ * Las columnas (una por estado) con sus tarjetas y el arrastre. Con `lanes` (tablero agrupado por historia) hay un
+ * solo arrastre para todos los carriles: cada columna es «carril|estado» y soltar en otro carril cambia la historia
+ * de la tarea. En un carril las columnas no llevan encabezado (va arriba, una sola vez) y una vacía se ve como un
+ * hueco punteado.
  */
-function BoardColumns({ issues, slug, project, meta, openIssue, onStoryClosed, onCreateInState, inLane = false }) {
+function BoardColumns({ issues, lanes = null, slug, project, meta, openIssue, onStoryClosed, onCreateInState }) {
   const move = useMoveIssue(slug, project.id)
   const issuesById = useMemo(() => Object.fromEntries(issues.map((issue) => [issue.id, issue])), [issues])
-  const serverColumns = useMemo(() => groupByState(issues, meta.states), [issues, meta.states])
+  const serverColumns = useMemo(
+    () => (lanes ? groupByLaneAndState(lanes, meta.states) : groupByState(issues, meta.states)),
+    [lanes, issues, meta.states],
+  )
 
   // Mientras se arrastra se trabaja sobre una copia local de las columnas (vista previa de la posición)
   const [dragColumns, setDragColumns] = useState(null)
@@ -258,6 +267,35 @@ function BoardColumns({ issues, slug, project, meta, openIssue, onStoryClosed, o
 
   const columnOf = (id, source = columns) =>
     id?.toString().startsWith('column:') ? id.slice('column:'.length) : findColumn(source, id)
+  const laneByKey = useMemo(() => new Map((lanes ?? []).map((lane) => [lane.key, lane])), [lanes])
+
+  // Lo que oye un lector de pantalla: el código y el título de la tarjeta, la columna (y la historia) donde quedaría
+  const accessibility = useMemo(() => {
+    const columnName = (key) => {
+      const state = meta.states.find((item) => item.id === stateOfColumn(key))
+      const name = `la columna ${quoted(state?.name ?? 'sin nombre')}`
+      if (!lanes) return name
+      const story = laneByKey.get(laneOfColumn(key))?.story
+      return story ? `${name} de la historia ${story.code}` : `${name} de «Sin historia»`
+    }
+    return {
+      screenReaderInstructions: DND_INSTRUCTIONS,
+      announcements: dndAnnouncements({
+        itemLabel: (id) => {
+          const issue = issuesById[id]
+          return issue ? `${issue.code} ${quoted(issue.title)}` : 'la tarjeta'
+        },
+        placeLabel: (overId) => {
+          const source = columns
+          const key = String(overId).startsWith('column:') ? String(overId).slice('column:'.length) : findColumn(source, overId)
+          if (!key) return null
+          const ids = source[key] ?? []
+          const index = ids.indexOf(overId)
+          return index >= 0 ? `${columnName(key)}, posición ${index + 1} de ${ids.length}` : columnName(key)
+        },
+      }),
+    }
+  }, [issuesById, meta.states, lanes, laneByKey, columns])
 
   const handleDragStart = ({ active }) => {
     setActiveId(active.id)
@@ -288,8 +326,8 @@ function BoardColumns({ issues, slug, project, meta, openIssue, onStoryClosed, o
       return
     }
 
-    const targetState = columnOf(active.id, current)
-    let targetIds = current[targetState]
+    const targetColumn = columnOf(active.id, current)
+    let targetIds = current[targetColumn]
     const overIndex = targetIds.indexOf(over.id)
     const activeIndex = targetIds.indexOf(active.id)
     if (overIndex >= 0 && overIndex !== activeIndex) {
@@ -297,15 +335,19 @@ function BoardColumns({ issues, slug, project, meta, openIssue, onStoryClosed, o
     }
 
     const issue = issuesById[active.id]
-    const originalIds = serverColumns[issue.state.id]
+    const targetState = stateOfColumn(targetColumn)
+    const fromLane = lanes ? laneKeyOf(issue) : null
+    const targetLane = laneOfColumn(targetColumn)
+    const laneChanged = Boolean(lanes) && targetLane !== fromLane
+    const originalIds = serverColumns[columnKey(fromLane, issue.state.id)] ?? []
     const unchanged =
-      issue.state.id === targetState && originalIds.indexOf(active.id) === targetIds.indexOf(active.id)
+      !laneChanged && issue.state.id === targetState && originalIds.indexOf(active.id) === targetIds.indexOf(active.id)
     if (unchanged) {
       setDragColumns(null)
       return
     }
     // La posición final se queda en pantalla hasta que llegue la actualización optimista
-    setDragColumns({ ...current, [targetState]: targetIds })
+    setDragColumns({ ...current, [targetColumn]: targetIds })
     setSettlingFrom(serverColumns)
 
     const { afterIssueId, beforeIssueId } = getNeighbors(targetIds, active.id)
@@ -316,12 +358,17 @@ function BoardColumns({ issues, slug, project, meta, openIssue, onStoryClosed, o
       others.length ? Math.max(...others) : null,
     )
     const state = meta.states.find((item) => item.id === targetState)
+    // Otro carril: la historia de ese carril pasa a ser su padre; «Sin historia» se lo quita
+    const story = laneChanged ? (laneByKey.get(targetLane)?.story ?? null) : null
+    const parentMove = laneChanged ? laneParentChange(story, laneByKey.get(targetLane)) : null
     const commit = (extra) => {
       setAwaitingConfirm(false)
       // Lo que haya en caché ahora (pudo recargarse mientras se confirmaba): el cambio optimista lo reemplaza
       setSettlingFrom(serverColumnsRef.current)
-      // Si falla, useMoveIssue devuelve la tarjeta a su columna; si fue por una historia cerrada, se pregunta si
-      // se reabre y se reintenta (el `onError` va en las variables: sobrevive a otro arrastre hecho enseguida)
+      // Si falla, useMoveIssue devuelve la tarjeta a su columna (y a su historia); si fue por una historia cerrada,
+      // se pregunta si se reabre y se reintenta (el `onError` va en las variables: sobrevive a otro arrastre hecho
+      // enseguida)
+      const action = story ? closedStoryActions.parent(issue) : closedStoryActions.move(issue, state)
       move.mutate({
         issueId: active.id,
         stateId: targetState,
@@ -329,8 +376,15 @@ function BoardColumns({ issues, slug, project, meta, openIssue, onStoryClosed, o
         beforeIssueId,
         state,
         sortOrder,
+        ...parentMove,
         ...extra,
-        onError: onStoryClosed(issue, closedStoryActions.move(issue, state), () => commit({ reopenParent: true }), 'No se pudo mover la tarea'),
+        onMoved: laneChanged ? () => announceLaneChange(issue, story) : undefined,
+        onError: onStoryClosed(
+          issue,
+          action,
+          () => commit({ reopenParent: true }),
+          laneChanged ? 'No se pudo cambiar la historia de la tarea' : 'No se pudo mover la tarea',
+        ),
       })
     }
     if (issue.state.id !== targetState && needsCriteriaConfirm(issue, state)) {
@@ -347,13 +401,35 @@ function BoardColumns({ issues, slug, project, meta, openIssue, onStoryClosed, o
   }
 
   const activeIssue = activeId ? issuesById[activeId] : null
+  const inLane = Boolean(lanes)
+
+  const renderColumns = (laneKey) => (
+    <div className={cn('flex min-h-0 flex-1 gap-3', inLane ? 'items-stretch' : 'items-start overflow-x-auto pb-2')}>
+      {meta.states.map((state) => (
+        <BoardColumn
+          key={state.id}
+          state={state}
+          columnId={columnKey(laneKey, state.id)}
+          ids={columns[columnKey(laneKey, state.id)] ?? []}
+          issuesById={issuesById}
+          slug={slug}
+          project={project}
+          meta={meta}
+          openIssue={openIssue}
+          onCreate={() => onCreateInState?.(state.id)}
+          inLane={inLane}
+        />
+      ))}
+    </div>
+  )
 
   return (
-    <div className={cn('flex min-h-0 flex-col', !inLane && 'h-full')}>
+    <div className={cn('flex min-h-0 flex-col', inLane ? 'gap-3' : 'h-full')}>
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}
         measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+        accessibility={accessibility}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
@@ -362,22 +438,13 @@ function BoardColumns({ issues, slug, project, meta, openIssue, onStoryClosed, o
           setDragColumns(null)
         }}
       >
-        <div className={cn('flex min-h-0 flex-1 gap-3', inLane ? 'items-stretch' : 'items-start overflow-x-auto pb-2')}>
-          {meta.states.map((state) => (
-            <BoardColumn
-              key={state.id}
-              state={state}
-              ids={columns[state.id] ?? []}
-              issuesById={issuesById}
-              slug={slug}
-              project={project}
-              meta={meta}
-              openIssue={openIssue}
-              onCreate={() => onCreateInState?.(state.id)}
-              inLane={inLane}
-            />
-          ))}
-        </div>
+        {lanes
+          ? lanes.map((lane) => (
+              <StoryLane key={lane.key} lane={lane} openIssue={openIssue}>
+                {renderColumns(lane.key)}
+              </StoryLane>
+            ))
+          : renderColumns(null)}
         {/* En un portal: así la tarjeta sigue al cursor aunque algún contenedor tenga transform */}
         {createPortal(
           <DragOverlay>
@@ -389,6 +456,32 @@ function BoardColumns({ issues, slug, project, meta, openIssue, onStoryClosed, o
       {criteriaDialog}
     </div>
   )
+}
+
+/**
+ * Lo que cambia el padre de una tarjeta soltada en otro carril: `parentChange` va al backend (junto con el estado, en
+ * una sola edición) y `parent` se pinta al instante. Con la historia del carril, el resumen que ya traen sus tareas.
+ */
+function laneParentChange(story, lane) {
+  if (!story) return { parentChange: { clearParent: true }, parent: null }
+  const parent = lane?.issues.find((item) => item.parent?.id === story.id)?.parent ?? {
+    id: story.id,
+    code: story.code,
+    title: story.title,
+    type: 'STORY',
+  }
+  return { parentChange: { parentId: story.id }, parent }
+}
+
+/** Aviso al cambiar de historia arrastrando: un bug queda como bug de la historia; una tarea cuenta en su avance. */
+function announceLaneChange(issue, story) {
+  if (!story) {
+    toast.success(`${issue.code} quedó sin historia`, { description: issue.title })
+    return
+  }
+  toast.success(`${issue.code} ahora es de ${story.code}`, {
+    description: issue.type === 'BUG' ? `Queda como bug de «${story.title}».` : `Cuenta en el avance de «${story.title}».`,
+  })
 }
 
 /** Las teclas del arrastre con teclado: sin Enter para empezar (abre la tarea); Enter o Espacio la sueltan. */
@@ -403,8 +496,8 @@ function useStableIds(ids) {
   return useMemo(() => (key ? key.split('|') : []), [key])
 }
 
-function BoardColumn({ state, ids: currentIds, issuesById, slug, project, meta, openIssue, onCreate, inLane }) {
-  const { setNodeRef, isOver } = useDroppable({ id: `column:${state.id}` })
+function BoardColumn({ state, columnId, ids: currentIds, issuesById, slug, project, meta, openIssue, onCreate, inLane }) {
+  const { setNodeRef, isOver } = useDroppable({ id: `column:${columnId}` })
   const ids = useStableIds(currentIds)
 
   if (inLane) {

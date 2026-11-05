@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { queryKeys } from '@/api/queryKeys'
 import { checklistApi } from '@/features/checklist/api'
+import { ApiError, SESSION_EXPIRED, SESSION_EXPIRED_MESSAGE } from '@/lib/errors'
 import { useSessionStore } from '@/stores/sessionStore'
 import { issuesApi } from '../api'
 import { IssueDescription } from './IssueDescription'
@@ -44,7 +45,7 @@ function renderDescription(description, { strict = false } = {}) {
       </MemoryRouter>
     </QueryClientProvider>
   )
-  render(strict ? <StrictMode>{tree}</StrictMode> : tree)
+  return render(strict ? <StrictMode>{tree}</StrictMode> : tree)
 }
 
 beforeEach(() => {
@@ -125,5 +126,25 @@ describe('Guardado automático con un comando a medias', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+})
+
+describe('La sesión vence con cambios sin guardar', () => {
+  it('al salir ofrece «Copiar mi texto» diciendo que la sesión expiró, sin el toast de error genérico', async () => {
+    const user = userEvent.setup()
+    const { unmount } = renderDescription('Hola')
+    await user.click(screen.getByRole('button', { name: 'Editar descripción' }))
+    await waitFor(() => expect(editor.props).not.toBeNull())
+    issuesApi.update.mockRejectedValue(new ApiError({ status: 401, code: SESSION_EXPIRED, message: SESSION_EXPIRED_MESSAGE }))
+
+    act(() => editor.props.onChange('Hola, texto que no quiero perder'))
+    unmount()
+
+    await waitFor(() => expect(toast.warning).toHaveBeenCalled())
+    const [title, options] = toast.warning.mock.calls[0]
+    expect(title).toBe('Tu cambio en la descripción no se guardó')
+    expect(options.description).toBe('Tu sesión expiró. Copia tu texto para no perderlo.')
+    expect(options.action.label).toBe('Copiar mi texto')
+    expect(toast.error).not.toHaveBeenCalled()
   })
 })

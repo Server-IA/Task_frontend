@@ -8,6 +8,7 @@ import { StateIcon } from '@/components/common/StateIcon'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { useHotkey } from '@/hooks/useHotkey'
+import { exampleCode } from '@/lib/codes'
 import { cn } from '@/lib/utils'
 import { PRIORITIES } from '../constants'
 import { FILTER_KINDS, splitFilters } from '../filterMenu'
@@ -40,7 +41,7 @@ export function IssueFiltersBar({
   compact = false,
   changed = [],
   onJumpToCode,
-  codeExample = 'WEB-12',
+  codeExample = exampleCode(),
   storiesUrl,
   hideType = false,
   fixedChips,
@@ -110,7 +111,7 @@ export function IssueFiltersBar({
 
   return (
     <div className="flex flex-wrap items-center gap-2 px-1">
-      <SearchBox value={filters.search} onChange={(value) => setFilter('search', value)} onJump={onJumpToCode} codeExample={codeExample} />
+      <SearchBox value={filters.search} onChange={(value) => setFilter('search', value, { replace: true })} onJump={onJumpToCode} codeExample={codeExample} />
       {fixedChips}
       {pills.map((key) =>
         key === 'type' ? (

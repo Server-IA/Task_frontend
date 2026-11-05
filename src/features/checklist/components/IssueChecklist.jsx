@@ -16,6 +16,7 @@ import { PropertyRow } from '@/features/issues/components/IssueDetail'
 import { checklistProgress } from '@/features/issues/issueFlags'
 import { useLocalEscape } from '@/hooks/useLocalEscape'
 import { formatDateTime, formatRelative } from '@/lib/dates'
+import { DND_INSTRUCTIONS, quoted, sortableAnnouncements } from '@/lib/dndAnnouncements'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { usePreferencesStore } from '@/stores/preferencesStore'
@@ -283,10 +284,21 @@ function SortableItems({ items, visible, onMove, children }) {
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
+  const ids = visible.map((item) => item.id)
+  // En español y con el texto del criterio o del paso (dnd-kit los anuncia en inglés y por su id)
+  const accessibility = {
+    screenReaderInstructions: DND_INSTRUCTIONS,
+    announcements: sortableAnnouncements(ids, (id) => {
+      const item = items.find((candidate) => candidate.id === id)
+      if (!item) return 'el elemento'
+      return `${item.kind === 'CRITERION' ? 'el criterio' : 'el paso'} ${quoted(item.text)}`
+    }),
+  }
   return (
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
+      accessibility={accessibility}
       onDragEnd={({ active, over }) => {
         if (!over || active.id === over.id) return
         const index = dropIndex(items, active.id, over.id)
@@ -294,7 +306,7 @@ function SortableItems({ items, visible, onMove, children }) {
         if (item && index != null) onMove(item, index)
       }}
     >
-      <SortableContext items={visible.map((item) => item.id)} strategy={verticalListSortingStrategy}>
+      <SortableContext items={ids} strategy={verticalListSortingStrategy}>
         {children}
       </SortableContext>
     </DndContext>

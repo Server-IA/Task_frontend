@@ -63,9 +63,9 @@ describe('Tablero', () => {
     const card = screen.getByText('Tarea web-1').closest('[aria-roledescription="sortable"]')
     card.focus()
     fireEvent.keyDown(card, { key: ' ', code: 'Space' })
-    await screen.findByText(/Picked up draggable item web-1/)
+    await screen.findByText('Levantaste WEB-1 «Tarea web-1».')
     fireEvent.keyDown(card, { key: 'Enter', code: 'Enter' })
-    await screen.findByText(/was dropped/)
+    await screen.findByText(/^Soltaste WEB-1 «Tarea web-1»/)
     expect(openIssue).not.toHaveBeenCalled()
   })
 

@@ -53,6 +53,14 @@
   --chart-series: #9a7428;
   --chart-ref: #9e978c;
   --chart-grid: #efebe4;
+  /* Roadmap: relleno del avance de cada barra (sólido) y el texto que va encima (contraste ≥ 4,5:1 en los dos temas) */
+  --roadmap-current: #1f7a52;
+  --roadmap-upcoming: #2563eb;
+  --roadmap-draft: #9e978c;
+  --roadmap-completed: #67615a;
+  --roadmap-module: #86651f;
+  --roadmap-on-fill: #ffffff;
+  --roadmap-on-draft: #23201b;
   /* Editor de descripciones: marco en lectura, selección, casilla marcada, tarjeta de historia y colores del código */
   --md-frame: #fbfaf7;
   --sel: #ebddb8;
@@ -129,6 +137,13 @@
   --chart-series: #b08a3a;
   --chart-ref: #6e685f;
   --chart-grid: #24211d;
+  --roadmap-current: #7ee2a8;
+  --roadmap-upcoming: #8ccbff;
+  --roadmap-draft: #a59e93;
+  --roadmap-completed: #a39b8f;
+  --roadmap-module: #d0aa55;
+  --roadmap-on-fill: #0c0b0a;
+  --roadmap-on-draft: #0c0b0a;
   --md-frame: #201e1b;
   --sel: #4a3f27;
   --ok-box: #2e9e6a;
@@ -208,6 +223,13 @@
   --color-chart-series: var(--chart-series);
   --color-chart-ref: var(--chart-ref);
   --color-chart-grid: var(--chart-grid);
+  --color-roadmap-current: var(--roadmap-current);
+  --color-roadmap-upcoming: var(--roadmap-upcoming);
+  --color-roadmap-draft: var(--roadmap-draft);
+  --color-roadmap-completed: var(--roadmap-completed);
+  --color-roadmap-module: var(--roadmap-module);
+  --color-roadmap-on-fill: var(--roadmap-on-fill);
+  --color-roadmap-on-draft: var(--roadmap-on-draft);
   --color-md-frame: var(--md-frame);
   --color-sel: var(--sel);
   --color-ok-box: var(--ok-box);

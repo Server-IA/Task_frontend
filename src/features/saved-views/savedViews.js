@@ -205,3 +205,25 @@ export function moveView(views, viewId, toIndex) {
     body: moving.shared ? { shared: ids } : { personal: ids },
   }
 }
+
+/** Nombre como lo compara el backend: sin espacios de más y sin importar mayúsculas. */
+const nameKey = (name) => String(name ?? '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('es')
+
+/**
+ * Si el nombre ya lo usa otra vista del mismo grupo (las compartidas del proyecto o mis personales), el mensaje que
+ * daría el backend (409); si está libre, null. `excludeId`: la vista que se renombra.
+ * @param {SavedView[]} views las que ve el usuario (compartidas y suyas)
+ * @param {string} name
+ * @param {{ shared: boolean, excludeId?: string }} scope
+ */
+export function duplicateViewName(views, name, { shared, excludeId } = {}) {
+  const key = nameKey(name)
+  const clean = String(name ?? '').trim().replace(/\s+/g, ' ')
+  const taken = views.some(
+    (view) => view.id !== excludeId && Boolean(view.shared) === Boolean(shared) && (shared || view.mine) && nameKey(view.name) === key,
+  )
+  if (!taken) return null
+  return shared
+    ? `Ya hay una vista compartida llamada «${clean}» en este proyecto`
+    : `Ya tienes una vista personal llamada «${clean}» en este proyecto`
+}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Bookmark, ChevronDown, Lock, Pencil, RefreshCcw, Share2, Trash2, Users, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -19,10 +19,11 @@ import { TypeIcon } from '@/features/issues/components/IssueTypeBits'
 import { SAVED_VIEW_PARAM } from '@/features/issues/constants'
 import { useIssues } from '@/features/issues/hooks'
 import { useIsManager } from '@/features/workspaces/hooks'
+import { toApiError } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { useActiveSavedView, useCreateSavedView, useDeleteSavedView, useUpdateSavedView } from '../hooks'
-import { applyViewToParams, canEditView, clearViewParams, reorderableGroups, summarizeViewFilters } from '../savedViews'
+import { applyViewToParams, canEditView, clearViewParams, duplicateViewName, reorderableGroups, summarizeViewFilters } from '../savedViews'
 import { ReorderViewsDialog } from './ReorderViewsDialog'
 
 /** @typedef {import('@/api/types').SavedView} SavedView */
@@ -55,13 +56,13 @@ export function SavedViewsBar({ slug, project, meta, issueFilters }) {
     { enabled: meta.states.length > 0 },
   )
   const openBugsView = () =>
-    issueFilters.replaceParams((previous) => {
+    issueFilters.applyParams((previous) => {
       const next = clearViewParams(previous)
       next.set(SAVED_VIEW_PARAM, BUGS_VIEW_ID)
       return next
     })
 
-  const apply = (view) => issueFilters.replaceParams((previous) => applyViewToParams(previous, view))
+  const apply = (view) => issueFilters.applyParams((previous) => applyViewToParams(previous, view))
   const saveChanges = (view) =>
     update.mutate(
       { viewId: view.id, filters: current },
@@ -85,7 +86,7 @@ export function SavedViewsBar({ slug, project, meta, issueFilters }) {
         type="button"
         aria-current={!active && !bugsActive ? 'page' : undefined}
         title="Todas las tareas y bugs del proyecto"
-        onClick={() => issueFilters.replaceParams(clearViewParams)}
+        onClick={() => issueFilters.applyParams(clearViewParams)}
         className={pillClass(!active && !bugsActive)}
       >
         Todas
@@ -160,6 +161,7 @@ export function SavedViewsBar({ slug, project, meta, issueFilters }) {
             slug={slug}
             project={project}
             meta={meta}
+            views={views}
             current={current}
             active={active}
             canEditActive={canEditActive}
@@ -170,7 +172,7 @@ export function SavedViewsBar({ slug, project, meta, issueFilters }) {
         )}
       </span>
 
-      <RenameDialog slug={slug} projectId={project.id} view={renaming} onClose={() => setRenaming(null)} />
+      <RenameDialog slug={slug} projectId={project.id} views={views} view={renaming} onClose={() => setRenaming(null)} />
       <ReorderViewsDialog
         slug={slug}
         projectId={project.id}
@@ -184,7 +186,7 @@ export function SavedViewsBar({ slug, project, meta, issueFilters }) {
         projectId={project.id}
         view={deleting}
         onClose={() => setDeleting(null)}
-        onDeleted={(view) => view.id === active?.id && issueFilters.replaceParams(clearViewParams)}
+        onDeleted={(view) => view.id === active?.id && issueFilters.applyParams(clearViewParams, { replace: true })}
       />
     </nav>
   )
@@ -278,11 +280,14 @@ function ViewPill({ view, active, changed, canEdit, canShare, onApply, onSaveCha
  * «Guardar vista»: nombre, quién la ve (compartida solo para el project manager) y el resumen de lo que se guarda.
  * Si hay una vista activa que se puede editar, también ofrece actualizarla.
  */
-function SaveViewPopover({ slug, project, meta, current, active, canEditActive, isManager, onCreated, onUpdateActive }) {
+function SaveViewPopover({ slug, project, meta, views, current, active, canEditActive, isManager, onCreated, onUpdateActive }) {
   const create = useCreateSavedView(slug, project.id)
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [shared, setShared] = useState(false)
+  // Un nombre que ya usa otra vista del mismo grupo se dice en el campo (también lo revisa el backend: 409)
+  const [nameError, setNameError] = useState(null)
+  const errorId = useId()
   const summary = summarizeViewFilters(current, meta)
 
   const onOpenChange = (next) => {
@@ -290,22 +295,38 @@ function SaveViewPopover({ slug, project, meta, current, active, canEditActive, 
     if (next) {
       setName('')
       setShared(false)
+      setNameError(null)
     }
+  }
+
+  const chooseShared = (value) => {
+    setShared(value)
+    setNameError(null)
   }
 
   const save = (event) => {
     event.preventDefault()
     const value = name.trim()
     if (!value) return
+    const asShared = isManager && shared
+    const duplicate = duplicateViewName(views, value, { shared: asShared })
+    if (duplicate) {
+      setNameError(duplicate)
+      return
+    }
     create.mutate(
-      { name: value, shared: isManager && shared, filters: current },
+      { name: value, shared: asShared, filters: current },
       {
         onSuccess: (view) => {
           toast.success(`Vista «${view.name}» guardada`)
           setOpen(false)
           onCreated(view)
         },
-        onError: (error) => notifyError(error, 'No se pudo guardar la vista'),
+        onError: (error) => {
+          const apiError = toApiError(error)
+          if (apiError.status === 409) setNameError(apiError.message)
+          else notifyError(error, 'No se pudo guardar la vista')
+        },
       },
     )
   }
@@ -336,16 +357,22 @@ function SaveViewPopover({ slug, project, meta, current, active, canEditActive, 
               autoFocus
               value={name}
               maxLength={NAME_MAX}
-              onChange={(event) => setName(event.target.value)}
+              onChange={(event) => {
+                setName(event.target.value)
+                setNameError(null)
+              }}
               placeholder="Para la daily"
+              aria-invalid={nameError ? true : undefined}
+              aria-describedby={nameError ? errorId : undefined}
               className="text-sm font-normal"
             />
+            <NameError id={errorId} message={nameError} />
           </label>
           <fieldset className="flex flex-col gap-1.5">
             <legend className="mb-1.5 text-xs font-medium text-muted-foreground">Quién la ve</legend>
             <VisibilityOption
               checked={!shared}
-              onChange={() => setShared(false)}
+              onChange={() => chooseShared(false)}
               icon={Lock}
               title="Personal"
               description="Solo tú la ves en tu barra de vistas."
@@ -353,7 +380,7 @@ function SaveViewPopover({ slug, project, meta, current, active, canEditActive, 
             <VisibilityOption
               checked={shared}
               disabled={!isManager}
-              onChange={() => setShared(true)}
+              onChange={() => chooseShared(true)}
               icon={Users}
               title="Compartida"
               description="Aparece en la barra de todo el proyecto. Los miembros la usan pero no la cambian."
@@ -431,13 +458,16 @@ function VisibilityOption({ checked, disabled = false, onChange, icon: Icon, tit
   )
 }
 
-function RenameDialog({ slug, projectId, view, onClose }) {
+function RenameDialog({ slug, projectId, views, view, onClose }) {
   const update = useUpdateSavedView(slug, projectId)
   const [name, setName] = useState('')
+  const [nameError, setNameError] = useState(null)
+  const errorId = useId()
   const [lastView, setLastView] = useState(null)
   if (view && view !== lastView) {
     setLastView(view)
     setName(view.name)
+    setNameError(null)
   }
 
   const save = (event) => {
@@ -447,6 +477,11 @@ function RenameDialog({ slug, projectId, view, onClose }) {
       onClose()
       return
     }
+    const duplicate = duplicateViewName(views, value, { shared: view.shared, excludeId: view.id })
+    if (duplicate) {
+      setNameError(duplicate)
+      return
+    }
     update.mutate(
       { viewId: view.id, name: value },
       {
@@ -454,7 +489,11 @@ function RenameDialog({ slug, projectId, view, onClose }) {
           toast.success('Nombre actualizado')
           onClose()
         },
-        onError: (error) => notifyError(error),
+        onError: (error) => {
+          const apiError = toApiError(error)
+          if (apiError.status === 409) setNameError(apiError.message)
+          else notifyError(error)
+        },
       },
     )
   }
@@ -467,7 +506,21 @@ function RenameDialog({ slug, projectId, view, onClose }) {
           <DialogDescription className="sr-only">Escribe el nombre nuevo</DialogDescription>
         </DialogHeader>
         <form onSubmit={save} className="flex flex-col gap-4">
-          <Input autoFocus value={name} maxLength={NAME_MAX} onChange={(event) => setName(event.target.value)} aria-label="Nombre" />
+          <div className="flex flex-col gap-1.5">
+            <Input
+              autoFocus
+              value={name}
+              maxLength={NAME_MAX}
+              onChange={(event) => {
+                setName(event.target.value)
+                setNameError(null)
+              }}
+              aria-label="Nombre"
+              aria-invalid={nameError ? true : undefined}
+              aria-describedby={nameError ? errorId : undefined}
+            />
+            <NameError id={errorId} message={nameError} />
+          </div>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={onClose}>
               Cancelar
@@ -480,6 +533,16 @@ function RenameDialog({ slug, projectId, view, onClose }) {
         </form>
       </DialogContent>
     </Dialog>
+  )
+}
+
+/** El error del nombre, debajo del campo (el lector de pantalla lo lee al aparecer). */
+function NameError({ id, message }) {
+  if (!message) return null
+  return (
+    <span id={id} role="alert" className="text-xs font-normal text-destructive">
+      {message}
+    </span>
   )
 }
 

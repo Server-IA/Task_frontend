@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { toApiError } from '@/lib/errors'
+import { ApiError, SESSION_EXPIRED, SESSION_EXPIRED_MESSAGE, toApiError } from '@/lib/errors'
 import { useSessionStore } from '@/stores/sessionStore'
 
 export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api/v1'
@@ -44,6 +44,10 @@ api.interceptors.response.use(
         original.headers.Authorization = `Bearer ${accessToken}`
         return api(original)
       } catch {
+        // El refresh no sirvió y se cerró la sesión: la app va al login y lo avisa ahí; sin toast «error inesperado»
+        if (useSessionStore.getState().status !== 'authenticated') {
+          return Promise.reject(new ApiError({ status: 401, message: SESSION_EXPIRED_MESSAGE, code: SESSION_EXPIRED }))
+        }
         return Promise.reject(toApiError(error))
       }
     }

@@ -16,6 +16,7 @@ import { docToMarkdown, escapeText } from '@/features/editor/markdown/serialize'
 import { removeMovedTaskItems, setTaskChecked, takeTaskItems } from '@/features/editor/markdown/taskItems'
 import { useMentionPeople } from '@/features/mentions/hooks'
 import { formatRelative } from '@/lib/dates'
+import { isSessionExpired } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { useSessionStore } from '@/stores/sessionStore'
@@ -267,6 +268,13 @@ function DescriptionReader({ issue, slug, project, variant, description, onOpenI
 
 const SAVE_TEXT = { saved: 'Guardado', pending: 'Guardando…', saving: 'Guardando…', error: 'No se pudo guardar', conflict: 'En pausa' }
 
+/** Por qué no se guardó lo escrito al salir del editor. */
+function unsavedReason(error) {
+  if (descriptionConflict(error)) return 'Alguien más cambió la descripción mientras editabas.'
+  if (isSessionExpired(error)) return 'Tu sesión expiró.'
+  return 'No se pudo guardar.'
+}
+
 /** Aviso persistente con el texto que no se pudo guardar al salir del editor (para no perderlo). */
 function warnUnsaved(body, reason) {
   toast.warning('Tu cambio en la descripción no se guardó', {
@@ -449,7 +457,7 @@ function DescriptionEditor({ slug, project, issue, variant, caret, onMoveTasks, 
           return
         }
         save.mutateAsync({ description: body, base: baseRef.current }).catch((error) => {
-          warnUnsaved(body, descriptionConflict(error) ? 'Alguien más cambió la descripción mientras editabas.' : 'No se pudo guardar.')
+          warnUnsaved(body, unsavedReason(error))
         })
       }
       if (inFlightRef.current) inFlightRef.current.then(saveOnLeave)

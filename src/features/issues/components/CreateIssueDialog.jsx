@@ -405,6 +405,8 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
           chooseTemplate(pendingTemplate)
           setPendingTemplate(undefined)
         }}
+        // Cancelado, el foco vuelve a la pastilla de la plantilla; cambiada, al título (como sin confirmación)
+        focusAfterConfirmRef={titleRef}
       />
     </Form>
   )

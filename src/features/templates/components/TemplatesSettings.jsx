@@ -24,6 +24,7 @@ import { AssigneesPicker, LabelsPicker, PriorityPicker, StatePicker } from '@/fe
 import { PriorityChip } from '@/features/issues/components/PriorityIcon'
 import { useProjectMeta } from '@/features/issues/useIssueHelpers'
 import { useIsManager } from '@/features/workspaces/hooks'
+import { DND_INSTRUCTIONS, quoted, sortableAnnouncements } from '@/lib/dndAnnouncements'
 import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
@@ -575,6 +576,18 @@ function TemplateChecklistEditor({ form, fieldArray, readOnly }) {
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
+      accessibility={{
+        screenReaderInstructions: DND_INSTRUCTIONS,
+        announcements: sortableAnnouncements(
+          fields.map((field) => field.id),
+          (id) => {
+            const index = fields.findIndex((field) => field.id === id)
+            const item = form.getValues(`checklist.${index}`)
+            if (!item) return 'el elemento'
+            return `${item.kind === 'CRITERION' ? 'el criterio' : 'el paso'} ${quoted(item.text || 'sin texto')}`
+          },
+        ),
+      }}
       onDragEnd={({ active, over }) => {
         if (!over || active.id === over.id) return
         const from = fields.findIndex((field) => field.id === active.id)

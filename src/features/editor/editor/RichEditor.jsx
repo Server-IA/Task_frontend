@@ -666,6 +666,7 @@ export default function RichEditor({
         <LinkPopover
           key={link.key}
           initial={link}
+          projectIdentifier={projectIdentifier}
           style={popupPosition(caretRect(editor.view, Math.min(link.from, editor.state.doc.content.size)), root, { width: 380, height: 260, gap: 8 })}
           onApply={applyLink}
           onRemove={removeLink}
@@ -679,6 +680,7 @@ export default function RichEditor({
         <TaskSearchPopover
           key={taskSearch.key}
           slug={slug}
+          projectIdentifier={projectIdentifier}
           style={popupPosition(caretRect(editor.view, Math.min(taskSearch.pos, editor.state.doc.content.size)), root, { width: 360, height: 340 })}
           onSelect={(issue) => {
             setTaskSearch(null)
