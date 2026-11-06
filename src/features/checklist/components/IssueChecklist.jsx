@@ -16,6 +16,7 @@ import { PropertyRow } from '@/features/issues/components/IssueDetail'
 import { checklistProgress } from '@/features/issues/issueFlags'
 import { useLocalEscape } from '@/hooks/useLocalEscape'
 import { formatDateTime, formatRelative } from '@/lib/dates'
+import { DND_INSTRUCTIONS, DRAG_ROLE, quoted, sortableAnnouncements } from '@/lib/dndAnnouncements'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { usePreferencesStore } from '@/stores/preferencesStore'
@@ -121,7 +122,10 @@ function CriteriaBlock({ issueId, items, actions, full }) {
           )}
         </h2>
         {(criteria.length > 0 || adding) && (
-          <Segmented label="Formato" size="sm" className="ml-auto p-0.5" value={format} onChange={setFormat} options={FORMAT_OPTIONS} />
+          // Al hacer clic en el selector el foco no sale del formulario; con teclado, data-keep-adder lo deja abierto
+          <span data-keep-adder className="ml-auto" onMouseDown={(event) => event.preventDefault()}>
+            <Segmented label="Formato" size="sm" className="p-0.5" value={format} onChange={setFormat} options={FORMAT_OPTIONS} />
+          </span>
         )}
       </div>
 
@@ -280,10 +284,21 @@ function SortableItems({ items, visible, onMove, children }) {
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
+  const ids = visible.map((item) => item.id)
+  // En español y con el texto del criterio o del paso (dnd-kit los anuncia en inglés y por su id)
+  const accessibility = {
+    screenReaderInstructions: DND_INSTRUCTIONS,
+    announcements: sortableAnnouncements(ids, (id) => {
+      const item = items.find((candidate) => candidate.id === id)
+      if (!item) return 'el elemento'
+      return `${item.kind === 'CRITERION' ? 'el criterio' : 'el paso'} ${quoted(item.text)}`
+    }),
+  }
   return (
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
+      accessibility={accessibility}
       onDragEnd={({ active, over }) => {
         if (!over || active.id === over.id) return
         const index = dropIndex(items, active.id, over.id)
@@ -291,7 +306,7 @@ function SortableItems({ items, visible, onMove, children }) {
         if (item && index != null) onMove(item, index)
       }}
     >
-      <SortableContext items={visible.map((item) => item.id)} strategy={verticalListSortingStrategy}>
+      <SortableContext items={ids} strategy={verticalListSortingStrategy}>
         {children}
       </SortableContext>
     </DndContext>
@@ -302,6 +317,7 @@ function SortableItems({ items, visible, onMove, children }) {
 function SortableItem({ item, index, count, onMove, children }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
+    attributes: { roleDescription: DRAG_ROLE.item },
   })
   const handle = {
     ref: setActivatorNodeRef,
@@ -505,6 +521,12 @@ function InlineEdit({ initial, label, onSave, onCancel }) {
   )
 }
 
+/**
+ * Si el foco va a un control que no debe cerrar el formulario vacío al salir de él (el selector «Dado / cuando /
+ * entonces · Lista simple»): sin esto, elegir «Lista simple» cerraba el formulario y con él el selector.
+ */
+const keepsAdderOpen = (target) => Boolean(target?.closest?.('[data-keep-adder]'))
+
 /** Fila al final de la lista para escribir un paso nuevo: Enter lo agrega y deja el campo listo para otro. */
 function AddItemRow({ label, placeholder, onAdd, onClose, first }) {
   const ref = useRef(null)
@@ -527,7 +549,7 @@ function AddItemRow({ label, placeholder, onAdd, onClose, first }) {
           maxLength={MAX_TEXT}
           placeholder={placeholder}
           onChange={(event) => setText(event.target.value)}
-          onBlur={() => !text.trim() && onClose()}
+          onBlur={(event) => !text.trim() && !keepsAdderOpen(event.relatedTarget) && onClose()}
           onKeyDown={(event) => {
             if (event.key === 'Enter') {
               event.preventDefault()
@@ -570,7 +592,12 @@ function GherkinAdder({ onAdd, onClose }) {
       aria-label="Nuevo criterio de aceptación"
       className="tf-pop flex flex-col gap-2 rounded-xl border border-ring bg-card p-3 shadow-[0_0_0_3px_var(--accent-soft)]"
       onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget) && !Object.values(parts).some((value) => value.trim())) onClose()
+        if (
+          !event.currentTarget.contains(event.relatedTarget) &&
+          !keepsAdderOpen(event.relatedTarget) &&
+          !Object.values(parts).some((value) => value.trim())
+        )
+          onClose()
       }}
     >
       <div className="grid grid-cols-[64px_minmax(0,1fr)] items-center gap-x-2 gap-y-1.5">

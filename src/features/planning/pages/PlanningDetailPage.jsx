@@ -23,6 +23,7 @@ import { slugify } from '@/lib/slug'
 import { cn } from '@/lib/utils'
 import { canCloseCycle, isCycleClosed } from '../closeCycle'
 import { PLANNING, useDeletePlanning, usePlanningItem, useRemovePlanningIssue } from '../hooks'
+import { planningListCount, progressBreakdown } from '../progressBreakdown'
 import { CloseCycleDialog } from '../components/CloseCycleDialog'
 import {
   AddIssuesDialog,
@@ -70,7 +71,7 @@ export function PlanningDetailPage({ kind }) {
   }
 
   const end = item.endDate ?? item.targetDate
-  // Un ciclo cerrado ya no recibe tareas (409); quitar sí se puede
+  // Un ciclo cerrado ya no recibe ni suelta tareas (409): sus números quedaron fijos al cerrarlo
   const closed = kind === 'cycles' && isCycleClosed(item)
   const showRemaining = kind === 'cycles' && !closed && item.status === 'CURRENT' && end
   // Cerrar el ciclo: el project manager, si ya empezó y sigue abierto
@@ -151,6 +152,7 @@ export function PlanningDetailPage({ kind }) {
           isLoading={issuesLoading}
           onOpenIssue={issueFilters.openIssue}
           onAdd={closed ? undefined : () => setAddOpen(true)}
+          canRemove={!closed}
         />
       </PageBody>
 
@@ -195,7 +197,8 @@ export function PlanningDetailPage({ kind }) {
         projectId={project.id}
         item={item}
         existingIds={new Set(issues.map((issue) => issue.id))}
-        open={addOpen}
+        // Si otra persona cierra el ciclo con el diálogo abierto, se cierra (el ciclo ya no acepta tareas)
+        open={addOpen && !closed}
         onOpenChange={setAddOpen}
       />
     </>
@@ -207,11 +210,13 @@ function usePlanningIssues(kind, slug, projectId, itemId) {
   return useIssues(slug, projectId, params)
 }
 
-/** «50%  4 de 8 completadas», la barra y el desglose «○ 3 por hacer ◐ 1 en curso ● 4 hechas». */
+/**
+ * «50%  4 de 8 completadas», la barra y el desglose «○ 3 por hacer ◐ 1 en curso ● 4 hechas» (sin las historias, como
+ * el avance: las tres partes suman el total).
+ */
 function ProgressBlock({ kind, item, issues }) {
   const { completedIssues, totalIssues, percentage } = item.progress
-  const started = issues.filter((issue) => issue.state?.group === 'STARTED').length
-  const pending = issues.filter((issue) => !isClosed(issue) && issue.state?.group !== 'STARTED').length
+  const { started, pending } = progressBreakdown(issues)
   const bar = kind === 'cycles' ? (CYCLE_STATUS[cycleStatusKey(item)] ?? CYCLE_STATUS.DRAFT).bar : 'bg-accent-text'
 
   return (
@@ -234,9 +239,10 @@ function ProgressBlock({ kind, item, issues }) {
   )
 }
 
-function PlanningIssues({ kind, slug, projectId, item, issues, isLoading, onOpenIssue, onAdd }) {
+export function PlanningIssues({ kind, slug, projectId, item, issues, isLoading, onOpenIssue, onAdd, canRemove = true }) {
   const removeIssue = useRemovePlanningIssue(kind, slug, projectId)
   const singular = PLANNING_TEXT[kind].singular
+  const count = useMemo(() => planningListCount(issues), [issues])
 
   if (isLoading) return <Skeleton className="h-64 w-full rounded-2xl" />
 
@@ -262,7 +268,10 @@ function PlanningIssues({ kind, slug, projectId, item, issues, isLoading, onOpen
     <section aria-label={`Tareas del ${singular}`} className="overflow-hidden rounded-2xl border bg-card">
       <header className="flex items-center gap-2 bg-column px-4 py-2.5 font-mono text-[11px] tracking-[0.08em] uppercase">
         <h2 className="font-semibold">Tareas del {singular}</h2>
-        <span className="text-muted-foreground">{String(issues.length).padStart(2, '0')}</span>
+        {/* Como el avance: tareas y bugs sin cancelar; las historias y canceladas de la lista, aparte */}
+        <span className="text-muted-foreground" title={count.title}>
+          {count.text}
+        </span>
       </header>
       <ul>
         {issues.map((issue) => {
@@ -278,25 +287,27 @@ function PlanningIssues({ kind, slug, projectId, item, issues, isLoading, onOpen
                 {issue.priority !== 'NONE' && <PriorityChip priority={issue.priority} className="hidden sm:inline-flex" />}
                 {issue.assignees?.length > 0 && <AvatarStack users={issue.assignees} size="sm" />}
               </button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-7 text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-                aria-label={`Quitar ${issue.code} del ${singular}`}
-                title={`Quitar del ${singular}`}
-                disabled={removeIssue.isPending}
-                onClick={() =>
-                  removeIssue.mutate(
-                    { id: item.id, issueId: issue.id },
-                    {
-                      onSuccess: () => toast.success(`${issue.code} quitada de «${item.name}»`),
-                      onError: (removeError) => notifyError(removeError),
-                    },
-                  )
-                }
-              >
-                <X />
-              </Button>
+              {canRemove && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7 text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                  aria-label={`Quitar ${issue.code} del ${singular}`}
+                  title={`Quitar del ${singular}`}
+                  disabled={removeIssue.isPending}
+                  onClick={() =>
+                    removeIssue.mutate(
+                      { id: item.id, issueId: issue.id },
+                      {
+                        onSuccess: () => toast.success(`${issue.code} quitada de «${item.name}»`),
+                        onError: (removeError) => notifyError(removeError),
+                      },
+                    )
+                  }
+                >
+                  <X />
+                </Button>
+              )}
             </li>
           )
         })}

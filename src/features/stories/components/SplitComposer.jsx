@@ -14,6 +14,8 @@ import { cn } from '@/lib/utils'
 import { useSplitStory } from '../hooks'
 import { emptyLine, linesToItems, pickerQuery, removeToken } from '../splitLines'
 
+/** Largo máximo del título de una tarea (como en el backend). */
+const TITLE_MAX = 255
 /** Alto máximo del selector de «@» o «!» (seis personas). */
 const PICKER_HEIGHT = 230
 /** Al abrirse, durante cuánto se lo sigue mostrando entero mientras carga lo de arriba. */
@@ -24,10 +26,12 @@ const REVEAL_MS = 1500
  * prioridad, Tab cambia el tipo (Tarea / Bug), Esc cancela y «Crear N tareas» (ctrl ↵) las crea todas juntas. Heredan
  * de la historia su ciclo, sus módulos, sus etiquetas y, si la línea no la trae, su prioridad.
  * Al abrirse (con «Partir en tareas» o solo, en una historia sin partir) el panel se desplaza hasta mostrarlo entero.
+ * `sticky`: se muestra solo (historia sin partir) y sigue a la vista al cancelar: cancelar vacía las líneas y, sin
+ * nada escrito, Escape sigue su camino (cierra el panel de la historia).
  * @param {{ slug: string, project: object, story: import('@/api/types').IssueResponse, members: object[],
- *           onDone: () => void, onCancel: () => void }} props
+ *           onDone: () => void, onCancel: () => void, sticky?: boolean }} props
  */
-export function SplitComposer({ slug, project, story, members, onDone, onCancel }) {
+export function SplitComposer({ slug, project, story, members, onDone, onCancel, sticky = false }) {
   const split = useSplitStory(slug, project.id)
   const [lines, setLines] = useState(() => [emptyLine()])
   // Selector abierto (personas con «@», prioridades con «!») en la línea `lineId`
@@ -36,12 +40,23 @@ export function SplitComposer({ slug, project, story, members, onDone, onCancel 
   const rootRef = useRef(null)
   const items = linesToItems(lines)
 
+  const typed = lines.length > 1 || lines.some((line) => line.title.trim() || line.assignee || line.priority)
+  const cancel = () => {
+    setPicker(null)
+    setLines([emptyLine()])
+    onCancel()
+  }
+
   // Esc cierra el selector abierto o cancela, sin cerrar también el panel de la historia (Radix escucha Escape
-  // antes que el onKeyDown de React)
-  useLocalEscape(rootRef, () => {
-    if (picker) setPicker(null)
-    else onCancel()
-  })
+  // antes que el onKeyDown de React). Si se muestra solo y no hay nada escrito, no hay qué cancelar: cierra el panel
+  useLocalEscape(
+    rootRef,
+    () => {
+      if (picker) setPicker(null)
+      else cancel()
+    },
+    !sticky || Boolean(picker) || typed,
+  )
 
   // Abierto al final del panel quedaba fuera de la vista (el foco solo mostraba la primera línea, y los selectores
   // de «@» y «!» se abrían debajo, fuera de la pantalla). Al abrirse se muestra entero; lo de arriba (criterios,
@@ -192,6 +207,8 @@ export function SplitComposer({ slug, project, story, members, onDone, onCancel 
               onBlur={() => setTimeout(() => setPicker((current) => (current?.lineId === line.id ? null : current)), 150)}
               placeholder={index === 0 ? 'Qué hay que hacer… (@ asignar, ! prioridad)' : ''}
               aria-label={`Tarea ${index + 1}`}
+              // Como el título de una tarea (el backend rechaza más de 255 y no dice qué línea)
+              maxLength={TITLE_MAX}
               className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
             />
             {line.assignee && (
@@ -254,7 +271,7 @@ export function SplitComposer({ slug, project, story, members, onDone, onCancel 
           <kbd className="text-foreground">!</kbd> prioridad · <kbd className="text-foreground">Tab</kbd> tipo ·{' '}
           <kbd className="text-foreground">Esc</kbd> cancelar
         </span>
-        <Button type="button" variant="ghost" size="sm" className="ml-auto" onClick={onCancel}>
+        <Button type="button" variant="ghost" size="sm" className="ml-auto" onClick={cancel}>
           Cancelar
         </Button>
         <Button type="button" size="sm" disabled={items.length === 0 || split.isPending} onClick={submit}>

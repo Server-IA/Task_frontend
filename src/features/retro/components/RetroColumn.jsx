@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { useId, useRef } from 'react'
 import { ArrowRight, Check, TriangleAlert } from 'lucide-react'
 import { LockNote } from '@/components/common/LockNote'
 import { notifyError } from '@/lib/notify'
@@ -27,6 +27,9 @@ export function RetroColumn({ column, notes, retro, open, composing, onCompose, 
   const style = COLUMN_STYLE[column.key]
   const Icon = style.icon
   const pendingActions = column.key === 'ACTION' && notes.some((note) => !note.issue)
+  // Al eliminar una nota su menú desaparece: el foco va a «+ nota» (o al título de la columna)
+  const addRef = useRef(null)
+  const headingRef = useRef(null)
 
   return (
     <section aria-labelledby={headingId} className="flex min-w-0 flex-col gap-2 rounded-[18px] bg-column p-2.5">
@@ -34,7 +37,7 @@ export function RetroColumn({ column, notes, retro, open, composing, onCompose, 
         <span aria-hidden="true" className={cn('flex size-5.5 items-center justify-center rounded-[7px]', style.className)}>
           <Icon className="size-3.5" strokeWidth={2.4} />
         </span>
-        <h2 id={headingId} className="text-sm font-semibold">
+        <h2 ref={headingRef} id={headingId} tabIndex={-1} className="text-sm font-semibold outline-none">
           {column.name}
         </h2>
         <span className="font-mono text-xs text-muted-foreground">{notes.length}</span>
@@ -42,20 +45,22 @@ export function RetroColumn({ column, notes, retro, open, composing, onCompose, 
       </header>
 
       {notes.map((note) => (
-        <RetroNoteCard key={note.id} note={note} retro={retro} ctx={ctx} />
+        <RetroNoteCard key={note.id} note={note} retro={retro} ctx={ctx} focusAfterDelete={[addRef, headingRef]} />
       ))}
 
       {notes.length === 0 && !composing && (
         <p className="px-1 py-2 text-[13px] text-muted-foreground">{open ? 'Todavía no hay notas.' : 'Sin notas.'}</p>
       )}
 
-      {open && composing && (
+      {/* Si la retro termina mientras se escribe, el campo sigue montado un momento para avisar (ver NoteEditor) */}
+      {composing && (
         <div className="tf-pop rounded-xl border border-ring bg-card p-2.5 shadow-[0_0_0_3px_var(--accent-soft)]">
           <NoteEditor
             label={`Nueva nota en ${column.name}`}
             placeholder={column.placeholder}
             submitLabel="Agregar"
             keepOpen
+            closed={!open}
             withOwner={takesOwner(column.key)}
             members={ctx.members}
             pending={create.isPending}
@@ -71,6 +76,7 @@ export function RetroColumn({ column, notes, retro, open, composing, onCompose, 
       )}
       {open && !composing && (
         <button
+          ref={addRef}
           type="button"
           onClick={() => onCompose(true)}
           className="rounded-xl border border-dashed border-dash p-2 text-[13px] text-muted-foreground transition-colors duration-150 hover:border-foreground/30 hover:bg-card/60 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"

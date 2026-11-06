@@ -210,3 +210,52 @@ describe('CreateIssueDialog: foco al abrir', () => {
     expect(title).toHaveValue('Subtarea nueva')
   })
 })
+
+describe('CreateIssueDialog: cerrar con algo escrito', () => {
+  function renderClosable(onOpenChange) {
+    return render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <CreateIssueDialog slug="equipo" project={{ id: 'p1', identifier: 'WEB', name: 'Sitio web' }} open onOpenChange={onOpenChange} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+  }
+
+  it('sin nada escrito, Escape cierra enseguida', async () => {
+    const user = userEvent.setup()
+    const onOpenChange = vi.fn()
+    renderClosable(onOpenChange)
+    await user.keyboard('{Escape}')
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  it('con un título escrito, Escape pregunta antes de descartar; «Cancelar» sigue editando y «Descartar» cierra', async () => {
+    const user = userEvent.setup()
+    const onOpenChange = vi.fn()
+    renderClosable(onOpenChange)
+    await user.type(screen.getByRole('textbox', { name: 'Título' }), 'El login falla en Safari')
+
+    await user.keyboard('{Escape}')
+    expect(onOpenChange).not.toHaveBeenCalled()
+    expect(await screen.findByRole('alertdialog', { name: '¿Descartar la tarea?' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }))
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
+    expect(onOpenChange).not.toHaveBeenCalled()
+    expect(screen.getByRole('textbox', { name: 'Título' })).toHaveValue('El login falla en Safari')
+
+    await user.click(screen.getAllByRole('button', { name: 'Cancelar' })[0])
+    await user.click(await screen.findByRole('button', { name: 'Descartar' }))
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  it('con una plantilla aplicada y sin escribir nada, cierra sin preguntar', async () => {
+    const user = userEvent.setup()
+    const onOpenChange = vi.fn()
+    renderClosable(onOpenChange)
+    await user.click(screen.getByRole('radio', { name: 'Reporte de bug' }))
+    await user.keyboard('{Escape}')
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+})

@@ -10,6 +10,8 @@ import {
   previousClosedCycle,
   removeNote,
   retroPhase,
+  retroRefreshMs,
+  RETRO_LIVE_REFRESH_MS,
   shortName,
   sortByVotes,
   takesOwner,
@@ -54,6 +56,13 @@ describe('fases y permisos', () => {
     expect(retroPhase({ started: false })).toBe('NOT_STARTED')
     expect(retroPhase({ started: true, finishedAt: null })).toBe('OPEN')
     expect(retroPhase({ started: true, finishedAt: '2026-10-28T12:00:00Z' })).toBe('FINISHED')
+  })
+
+  it('se recarga sola mientras no termina: sin empezar también, para ver cuando el project manager la abre', () => {
+    expect(retroRefreshMs({ started: false })).toBe(RETRO_LIVE_REFRESH_MS)
+    expect(retroRefreshMs({ started: true, finishedAt: null })).toBe(RETRO_LIVE_REFRESH_MS)
+    expect(retroRefreshMs({ started: true, finishedAt: '2026-10-28T12:00:00Z' })).toBe(false)
+    expect(retroRefreshMs(undefined)).toBe(false)
   })
 
   it('editar y eliminar: el autor o el project manager, solo en curso', () => {

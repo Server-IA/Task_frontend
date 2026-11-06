@@ -3,6 +3,9 @@
  * prioridad; «@texto» abre el selector de personas y «!texto» el de prioridades.
  */
 
+/** Parámetro de la URL con el que «P» (en Historias) pide abrir la historia con «Partir en tareas» ya abierto. */
+export const SPLIT_PARAM = 'split'
+
 let counter = 0
 
 /** Línea vacía (Tarea por defecto, o el tipo de la línea anterior). */

@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router'
 import { forgetQueries } from '@/api/forgetQueries'
@@ -12,14 +13,53 @@ export function useWorkspaces() {
 }
 
 /**
- * Último workspace abierto, solo si el usuario sigue siendo miembro (fuera de un workspace, como en el
- * perfil o la Bandeja, el menú lateral y la paleta lo usan para sus enlaces).
+ * El último workspace abierto entre los del usuario: por su slug o, si un project manager le cambió la URL, por su
+ * id; si ya no es miembro (o nunca abrió uno), el primero. null sin workspaces.
+ * @param {import('@/api/types').WorkspaceResponse[] | undefined} workspaces
+ * @param {{ slug?: string | null, id?: string | null }} last
  */
-export function useLastWorkspaceSlug() {
+export function resolveLastWorkspace(workspaces, { slug, id } = {}) {
+  if (!workspaces?.length) return null
+  return (
+    workspaces.find((workspace) => workspace.slug === slug) ??
+    (id ? workspaces.find((workspace) => workspace.id === id) : undefined) ??
+    workspaces[0]
+  )
+}
+
+/** Slugs viejos por los que ya se recargó el listado (una vez cada uno: si sigue sin estar, no se insiste). */
+const refreshedForStaleSlug = new Set()
+
+/**
+ * Último workspace abierto (ver resolveLastWorkspace). Fuera de un workspace, como en el perfil o la Bandeja, el menú
+ * lateral y la paleta lo usan para sus enlaces. Si el slug guardado no está en el listado (le cambiaron la URL o el
+ * listado en caché es viejo), recarga el listado una vez y, encontrado por id, guarda su slug nuevo.
+ */
+export function useLastWorkspace() {
   const lastWorkspaceSlug = usePreferencesStore((state) => state.lastWorkspaceSlug)
+  const lastWorkspaceId = usePreferencesStore((state) => state.lastWorkspaceId)
+  const setLastWorkspace = usePreferencesStore((state) => state.setLastWorkspace)
+  const queryClient = useQueryClient()
   const { data: workspaces } = useWorkspaces()
-  if (!lastWorkspaceSlug || !workspaces) return null
-  return workspaces.some((workspace) => workspace.slug === lastWorkspaceSlug) ? lastWorkspaceSlug : null
+  const workspace = resolveLastWorkspace(workspaces, { slug: lastWorkspaceSlug, id: lastWorkspaceId })
+  const stale = Boolean(workspaces && lastWorkspaceSlug) && !workspaces.some((item) => item.slug === lastWorkspaceSlug)
+  const movedTo = stale && lastWorkspaceId && workspace?.id === lastWorkspaceId ? workspace : null
+
+  useEffect(() => {
+    if (!stale || refreshedForStaleSlug.has(lastWorkspaceSlug)) return
+    refreshedForStaleSlug.add(lastWorkspaceSlug)
+    queryClient.invalidateQueries({ queryKey: queryKeys.workspaces })
+  }, [stale, lastWorkspaceSlug, queryClient])
+
+  useEffect(() => {
+    if (movedTo) setLastWorkspace(movedTo)
+  }, [movedTo, setLastWorkspace])
+
+  return workspace
+}
+
+export function useLastWorkspaceSlug() {
+  return useLastWorkspace()?.slug ?? null
 }
 
 /** Consultas propias de un workspace (las del listado de workspaces no). */

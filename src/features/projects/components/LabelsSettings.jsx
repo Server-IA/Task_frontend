@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Pencil, Plus, Tags, Trash2 } from 'lucide-react'
@@ -15,6 +15,7 @@ import { CenteredSpinner, Spinner } from '@/components/common/Loaders'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { useIsManager } from '@/features/workspaces/hooks'
 import { applyFieldErrors } from '@/lib/errors'
+import { useFocusAfterRemoval } from '@/lib/focusReturn'
 import { notifyError } from '@/lib/notify'
 import { useCreateLabel, useDeleteLabel, useLabels, useUpdateLabel } from '../hooks'
 import { labelSchema } from '../schemas'
@@ -30,10 +31,16 @@ export function LabelsSettings({ slug, project }) {
   const [editingId, setEditingId] = useState(null)
   const [toDelete, setToDelete] = useState(null)
   const canManage = useIsManager()
+  // Al eliminar una etiqueta su fila desaparece: el foco va a «Nueva etiqueta» (o al título, si no está)
+  const newRef = useRef(null)
+  const titleRef = useRef(null)
+  const removal = useFocusAfterRemoval(newRef, titleRef)
 
   const handleDelete = () => {
+    removal.start()
     remove.mutate(toDelete.id, {
       onSuccess: () => {
+        removal.done()
         toast.success(`Etiqueta «${toDelete.name}» eliminada`)
         setToDelete(null)
       },
@@ -45,12 +52,14 @@ export function LabelsSettings({ slug, project }) {
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div className="space-y-1.5">
-          <CardTitle>Etiquetas</CardTitle>
+          <CardTitle ref={titleRef} tabIndex={-1} className="outline-none">
+            Etiquetas
+          </CardTitle>
           <CardDescription>Clasifica las tareas (bug, mejora, diseño…).</CardDescription>
           {!canManage && <LockNote>Solo el project manager puede cambiar las etiquetas.</LockNote>}
         </div>
         {canManage && !creating && (
-          <Button size="sm" onClick={() => setCreating(true)}>
+          <Button ref={newRef} size="sm" onClick={() => setCreating(true)}>
             <Plus />
             Nueva etiqueta
           </Button>
@@ -121,7 +130,7 @@ export function LabelsSettings({ slug, project }) {
                         variant="ghost"
                         size="icon"
                         className="size-8 text-muted-foreground"
-                        aria-label="Editar"
+                        aria-label={`Editar la etiqueta «${label.name}»`}
                         onClick={() => setEditingId(label.id)}
                       >
                         <Pencil />
@@ -130,7 +139,7 @@ export function LabelsSettings({ slug, project }) {
                         variant="ghost"
                         size="icon"
                         className="size-8 text-muted-foreground"
-                        aria-label="Eliminar"
+                        aria-label={`Eliminar la etiqueta «${label.name}»`}
                         onClick={() => setToDelete(label)}
                       >
                         <Trash2 />
@@ -151,6 +160,8 @@ export function LabelsSettings({ slug, project }) {
         confirmLabel="Eliminar"
         loading={remove.isPending}
         onConfirm={handleDelete}
+        returnFocusRef={[newRef, titleRef]}
+        focusAfterConfirmRef={removal.ref}
       />
     </Card>
   )

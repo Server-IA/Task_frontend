@@ -272,6 +272,11 @@ export function useSaveDescription(slug, projectId, issueId) {
  * `sortOrder` solo se usan para pintar el cambio al instante (lo que el backend calculará). `reopenParent` reabre la
  * historia cerrada de la tarea (solo el project manager; sin él, 409 STORY_CLOSED). `onError` lo llama la propia
  * mutación (ver useUpdateIssue): soltar dos tarjetas seguidas no pierde el aviso ni el diálogo de la primera.
+ *
+ * Soltada en el carril de otra historia (tablero agrupado por historia) lleva además `parentChange`
+ * (`{ parentId }` o `{ clearParent: true }`) y `parent` (lo que se pinta al instante): el padre y el estado van en una
+ * sola edición, así el backend valida el resultado final (historia cerrada, tipo) y si lo rechaza no cambia nada;
+ * después se ajusta la posición en la columna. `onMoved(tarea)` se llama al terminar bien.
  */
 export function useMoveIssue(slug, projectId) {
   const queryClient = useQueryClient()
@@ -290,16 +295,27 @@ export function useMoveIssue(slug, projectId) {
         : page,
     )
   return useMutation({
-    mutationFn: ({ issueId, stateId, afterIssueId, beforeIssueId, reopenParent }) =>
-      issuesApi.move(slug, projectId, issueId, { stateId, afterIssueId, beforeIssueId, reopenParent: reopenParent || undefined }),
-    onMutate: async ({ issueId, state, sortOrder }) => {
+    mutationFn: async ({ issueId, stateId, afterIssueId, beforeIssueId, reopenParent, parentChange }) => {
+      const position = { stateId, afterIssueId, beforeIssueId }
+      if (!parentChange) return issuesApi.move(slug, projectId, issueId, { ...position, reopenParent: reopenParent || undefined })
+      const updated = await issuesApi.update(slug, projectId, issueId, { stateId, ...parentChange, reopenParent: reopenParent || undefined })
+      // La historia y el estado ya cambiaron: si la posición falla, la tarjeta queda al final de la columna
+      return issuesApi.move(slug, projectId, issueId, position).catch(() => updated)
+    },
+    onMutate: async ({ issueId, state, sortOrder, parentChange, parent }) => {
       await queryClient.cancelQueries({ queryKey: listsKey })
       const previous = queryClient
         .getQueriesData({ queryKey: listsKey })
         .flatMap(([, page]) => page?.content ?? [])
         .find((issue) => issue.id === issueId)
-      setInLists(issueId, { state, sortOrder })
-      return { previous: previous && { state: previous.state, sortOrder: previous.sortOrder } }
+      setInLists(issueId, { state, sortOrder, ...(parentChange && { parent }) })
+      return {
+        previous: previous && {
+          state: previous.state,
+          sortOrder: previous.sortOrder,
+          ...(parentChange && { parent: previous.parent ?? null }),
+        },
+      }
     },
     onError: (error, { issueId, state, sortOrder, onError }, context) => {
       // Solo esta tarjeta vuelve, y solo si sigue donde la dejó este arrastre: devolver las listas enteras desharía
@@ -309,7 +325,11 @@ export function useMoveIssue(slug, projectId) {
       }
       onError?.(error)
     },
-    onSuccess: (issue) => queryClient.setQueryData(queryKeys.issue(issue.id), issue),
+    onSuccess: (issue, { parentChange, onMoved }) => {
+      queryClient.setQueryData(queryKeys.issue(issue.id), issue)
+      if (parentChange) replaceInLists(queryClient, projectId, issue)
+      onMoved?.(issue)
+    },
     onSettled: (_data, _error, { issueId }) => invalidateAfterIssueChange(queryClient, projectId, issueId),
   })
 }

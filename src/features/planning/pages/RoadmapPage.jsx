@@ -17,38 +17,39 @@ import { ROADMAP_SCALES, buildTimeline, itemEnd, itemRange } from '../roadmap'
 
 /**
  * Colores de cada tipo de barra: ciclos según su estado y módulos en el dorado de los gráficos.
- * `onFill` es el color del texto sobre la parte rellena (avance) de la barra.
+ * `swatch` es el relleno del avance (y el cuadrito de la leyenda) y `onFill` el color del texto sobre él: tokens de
+ * globals.css (--roadmap-*), sólidos y con contraste de texto en los dos temas.
  */
 const KINDS = {
   CURRENT: {
     label: 'Ciclo en curso',
-    swatch: 'bg-ok-dot',
-    bar: 'border-ok-dot bg-ok-soft',
-    onFill: 'text-white dark:text-[#0C0B0A]',
+    swatch: 'bg-roadmap-current',
+    bar: 'border-roadmap-current bg-ok-soft',
+    onFill: 'text-roadmap-on-fill',
   },
   UPCOMING: {
     label: 'Ciclo próximo',
-    swatch: 'bg-[#3B82F6] dark:bg-[#8CCBFF]',
-    bar: 'border-[#3B82F6] bg-[#E1F0FF] dark:border-[#8CCBFF] dark:bg-[#132A3D]',
-    onFill: 'text-white dark:text-[#0C0B0A]',
+    swatch: 'bg-roadmap-upcoming',
+    bar: 'border-roadmap-upcoming bg-[#E1F0FF] dark:bg-[#132A3D]',
+    onFill: 'text-roadmap-on-fill',
   },
   DRAFT: {
     label: 'Borrador',
-    swatch: 'bg-[#9E978C] dark:bg-[#A59E93]',
-    bar: 'border-dashed border-[#9E978C] bg-muted dark:border-[#A59E93]',
-    onFill: 'text-[#23201B] dark:text-[#0C0B0A]',
+    swatch: 'bg-roadmap-draft',
+    bar: 'border-dashed border-roadmap-draft bg-muted',
+    onFill: 'text-roadmap-on-draft',
   },
   COMPLETED: {
     label: 'Ciclo terminado',
-    swatch: 'bg-[#67615A] dark:bg-[#8A8378]',
-    bar: 'border-[#67615A] bg-column dark:border-[#8A8378]',
-    onFill: 'text-white dark:text-[#0C0B0A]',
+    swatch: 'bg-roadmap-completed',
+    bar: 'border-roadmap-completed bg-column',
+    onFill: 'text-roadmap-on-fill',
   },
   module: {
     label: 'Módulo',
-    swatch: 'bg-chart-series',
-    bar: 'border-chart-series bg-accent-soft',
-    onFill: 'text-white dark:text-[#12110F]',
+    swatch: 'bg-roadmap-module',
+    bar: 'border-roadmap-module bg-accent-soft',
+    onFill: 'text-roadmap-on-fill',
   },
 }
 
@@ -311,7 +312,8 @@ function TimelineBar({ item, position, to }) {
         )}
         {/* Relleno del avance con una copia del nombre en el color que contrasta con él: cada parte del texto se lee */}
         <span aria-hidden="true" className="absolute inset-y-0 left-0 overflow-hidden" style={{ width: `${percentage}%` }}>
-          <span className={cn('absolute inset-0 opacity-85', item.colors.swatch)} />
+          {/* Sólido: con transparencia el fondo de la barra lo oscurecía y el texto perdía contraste en modo oscuro */}
+          <span className={cn('absolute inset-0', item.colors.swatch)} />
           {labelInside && (
             <span
               className={cn('relative block truncate px-2.25 text-xs leading-[26px] font-semibold', item.colors.onFill)}

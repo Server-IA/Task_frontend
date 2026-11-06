@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/api/queryKeys'
 import { savedViewsApi } from './api'
+import { withoutUnknownViewFilters } from '@/features/issues/unknownFilters'
 import { diffViewFilters, toViewFilters } from './savedViews'
 
 export function useSavedViews(slug, projectId) {
@@ -85,13 +86,16 @@ export function useReorderSavedViews(slug, projectId) {
 
 /**
  * Vista guardada activa (la de `?savedView=` en la URL), lo que hay en pantalla con la forma de una vista
- * y qué partes cambiaron respecto de ella.
+ * y qué partes cambiaron respecto de ella. Con `known` (ver knownFilterIds), los ids de la vista que ya no existen no
+ * cuentan como cambio (la URL ya no los tiene) y `missing` dice qué filtros quedaron vacíos por eso.
  * @param {ReturnType<typeof import('@/features/issues/useIssueFilters').useIssueFilters>} issueFilters
+ * @param {ReturnType<typeof import('@/features/issues/unknownFilters').knownFilterIds>} [known]
  */
-export function useActiveSavedView(slug, projectId, issueFilters) {
+export function useActiveSavedView(slug, projectId, issueFilters, known = {}) {
   const { data: views = [] } = useSavedViews(slug, projectId)
   const active = views.find((view) => view.id === issueFilters.activeViewId) ?? null
   const current = toViewFilters(issueFilters)
-  const changed = active ? diffViewFilters(active.filters, current) : []
-  return { views, active, current, changed }
+  const saved = active ? withoutUnknownViewFilters(active.filters, known) : null
+  const changed = saved ? diffViewFilters(saved.filters, current) : []
+  return { views, active, current, changed, missing: saved?.emptied ?? [] }
 }

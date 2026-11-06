@@ -3,7 +3,9 @@ import {
   GROUP_BY_DEFAULT,
   GROUP_BY_OPTIONS,
   PRIORITY_LABELS,
+  DEFAULT_SORT,
   SAVED_VIEW_PARAM,
+  sanitizeSort,
   SORT_OPTIONS,
 } from '@/features/issues/constants'
 import { effectiveTypes, isDefaultTypes, typesLabel, typesToUrl } from '@/features/issues/issueTypes'
@@ -16,7 +18,7 @@ import { effectiveTypes, isDefaultTypes, typesLabel, typesToUrl } from '@/featur
 /** @typedef {import('@/api/types').SavedViewFilters} SavedViewFilters */
 /** @typedef {import('@/api/types').SavedView} SavedView */
 
-export const DEFAULT_SORT = 'sortOrder,asc'
+export { DEFAULT_SORT }
 export const FILTER_KEYS = ['state', 'priority', 'assignee', 'label']
 /** Filtros de un solo valor y la agrupación: en la URL con el mismo nombre que en la vista. */
 const SINGLE_KEYS = ['cycle', 'module']
@@ -36,7 +38,7 @@ export function toViewFilters({ filters, view, sort, groupBy }) {
     label: [...filters.label],
     search: filters.search?.trim() || null,
     view,
-    sort: sort || DEFAULT_SORT,
+    sort: sanitizeSort(sort),
     cycle: filters.cycle || null,
     module: filters.module || null,
     blocked: filters.blocked ? true : null,
@@ -72,7 +74,7 @@ export function diffViewFilters(saved = {}, current = {}) {
   if (saved.view && current.view && saved.view !== current.view) changed.push('view')
   const view = current.view ?? saved.view
   if (view !== 'board') {
-    if ((saved.sort || DEFAULT_SORT) !== (current.sort || DEFAULT_SORT)) changed.push('sort')
+    if (sanitizeSort(saved.sort) !== sanitizeSort(current.sort)) changed.push('sort')
     if ((saved.groupBy || GROUP_BY_DEFAULT) !== (current.groupBy || GROUP_BY_DEFAULT)) changed.push('groupBy')
   } else if ((saved.groupBy === BOARD_GROUP_STORY) !== (current.groupBy === BOARD_GROUP_STORY)) {
     // En el tablero solo cuenta si va por carriles de historia
@@ -100,7 +102,8 @@ export function applyViewToParams(previous, savedView) {
   if (filters.blocked) next.set('blocked', 'true')
   for (const value of typesToUrl(effectiveTypes(filters.type ?? []))) next.append('type', value)
   if (filters.view === 'list' || filters.view === 'board') next.set('view', filters.view)
-  if (filters.sort && filters.sort !== DEFAULT_SORT) next.set('sort', filters.sort)
+  // Un orden que no está en la lista (una vista vieja) no se pone: el backend respondería 400
+  if (sanitizeSort(filters.sort) !== DEFAULT_SORT) next.set('sort', filters.sort)
   if (filters.groupBy && filters.groupBy !== GROUP_BY_DEFAULT) next.set('groupBy', filters.groupBy)
   next.set(SAVED_VIEW_PARAM, savedView.id)
   return next
@@ -201,4 +204,26 @@ export function moveView(views, viewId, toIndex) {
     views: moving.shared ? [...reordered, ...others] : [...others, ...reordered],
     body: moving.shared ? { shared: ids } : { personal: ids },
   }
+}
+
+/** Nombre como lo compara el backend: sin espacios de más y sin importar mayúsculas. */
+const nameKey = (name) => String(name ?? '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('es')
+
+/**
+ * Si el nombre ya lo usa otra vista del mismo grupo (las compartidas del proyecto o mis personales), el mensaje que
+ * daría el backend (409); si está libre, null. `excludeId`: la vista que se renombra.
+ * @param {SavedView[]} views las que ve el usuario (compartidas y suyas)
+ * @param {string} name
+ * @param {{ shared: boolean, excludeId?: string }} scope
+ */
+export function duplicateViewName(views, name, { shared, excludeId } = {}) {
+  const key = nameKey(name)
+  const clean = String(name ?? '').trim().replace(/\s+/g, ' ')
+  const taken = views.some(
+    (view) => view.id !== excludeId && Boolean(view.shared) === Boolean(shared) && (shared || view.mine) && nameKey(view.name) === key,
+  )
+  if (!taken) return null
+  return shared
+    ? `Ya hay una vista compartida llamada «${clean}» en este proyecto`
+    : `Ya tienes una vista personal llamada «${clean}» en este proyecto`
 }

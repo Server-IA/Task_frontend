@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { CircleCheck, GitBranch, Info, Link2, Lock, LockKeyhole, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -21,6 +22,7 @@ import { isManager as isManagerRole } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { useCloseStory, useReopenStory } from '../hooks'
 import { SplitComposer } from './SplitComposer'
+import { SPLIT_PARAM } from '../splitLines'
 
 /** Si el usuario es project manager del workspace de la tarea (el panel también se abre desde la Bandeja). */
 function useManager(slug) {
@@ -171,11 +173,41 @@ export function StorySections({ slug, project, issue, onOpenIssue, onAdd, onRepo
   const { data: children = [], isLoading } = useSubIssues(slug, project.id, issue.id)
   const flags = storyFlags(issue)
   const progress = storyProgress(issue)
-  const [splitting, setSplitting] = useState(false)
+  // «P» en Historias abre la historia con ?split=1: el compositor se abre aunque ya tenga tareas (el parámetro se
+  // usa una vez y se quita de la URL)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [splitting, setSplitting] = useState(() => searchParams.get(SPLIT_PARAM) === '1')
+  const splitRequested = searchParams.get(SPLIT_PARAM) === '1'
+  useEffect(() => {
+    if (!splitRequested) return
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous)
+        next.delete(SPLIT_PARAM)
+        return next
+      },
+      { replace: true },
+    )
+  }, [splitRequested, setSearchParams])
   const tasks = children.filter((child) => typeOf(child) !== 'BUG')
   const bugs = children.filter((child) => typeOf(child) === 'BUG')
   const canSplit = manager && !flags.closed
   const showComposer = canSplit && (splitting || (flags.unsplit && tasks.length === 0))
+
+  // Al cerrar el compositor (Escape, «Cancelar» o al crear) desaparece con el foco adentro: vuelve a «Partir en tareas»
+  const splitButtonRef = useRef(null)
+  const refocusRef = useRef(false)
+  const closeComposer = () => {
+    refocusRef.current = true
+    setSplitting(false)
+  }
+  useEffect(() => {
+    if (showComposer || !refocusRef.current) return
+    refocusRef.current = false
+    const active = document.activeElement
+    const lost = !active || active === document.body || !active.isConnected || active.getAttribute('role') === 'dialog'
+    if (lost) splitButtonRef.current?.focus({ preventScroll: true })
+  }, [showComposer])
   const closedAt = issue.closedAt ? new Date(issue.closedAt) : null
 
   return (
@@ -195,6 +227,7 @@ export function StorySections({ slug, project, issue, onOpenIssue, onAdd, onRepo
         <span className="ml-auto flex items-center gap-1.5">
           {canSplit && !showComposer && (
             <button
+              ref={splitButtonRef}
               type="button"
               className="flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs hover:bg-accent"
               onClick={() => setSplitting(true)}
@@ -226,8 +259,9 @@ export function StorySections({ slug, project, issue, onOpenIssue, onAdd, onRepo
           project={project}
           story={issue}
           members={meta.users}
-          onDone={() => setSplitting(false)}
-          onCancel={() => setSplitting(false)}
+          onDone={closeComposer}
+          onCancel={closeComposer}
+          sticky={!splitting}
         />
       )}
       {bugs.length > 0 && (

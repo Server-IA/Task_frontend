@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '@/lib/errors'
 import { authApi } from '../api'
+import { useSessionStore } from '@/stores/sessionStore'
 import { LoginPage } from './LoginPage'
 
 vi.mock('../api', () => ({
@@ -12,11 +13,11 @@ vi.mock('../api', () => ({
   userApi: {},
 }))
 
-function renderLogin() {
+function renderLogin(entry = '/login') {
   const queryClient = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/login']}>
+      <MemoryRouter initialEntries={[entry]}>
         <LoginPage />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -61,5 +62,29 @@ describe('LoginPage', () => {
 
     expect(await screen.findByText('Verifica tu correo')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reenviar correo de verificación' })).toBeInTheDocument()
+  })
+})
+
+describe('LoginPage: sesión vencida', () => {
+  afterEach(() => useSessionStore.setState({ expired: false, loggedOut: false }))
+
+  it('si la sesión venció lo dice (una sola vez) y que al entrar vuelve a donde estaba', () => {
+    useSessionStore.getState().clearSession({ expired: true })
+    const { unmount } = renderLogin({ pathname: '/login', state: { from: { pathname: '/acme/my-work' } } })
+
+    expect(screen.getByRole('status')).toHaveTextContent('Tu sesión expiró. Vuelve a iniciar sesión.')
+    expect(screen.getByRole('status')).toHaveTextContent('Al entrar, vuelves a la página en la que estabas.')
+    expect(useSessionStore.getState().expired).toBe(false)
+
+    // Al volver al login más tarde ya no aparece
+    unmount()
+    renderLogin()
+    expect(screen.queryByText(/Tu sesión expiró/)).not.toBeInTheDocument()
+  })
+
+  it('tras cerrar sesión a propósito no aparece', () => {
+    useSessionStore.getState().clearSession({ loggedOut: true })
+    renderLogin()
+    expect(screen.queryByText(/Tu sesión expiró/)).not.toBeInTheDocument()
   })
 })

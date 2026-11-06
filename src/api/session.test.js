@@ -59,6 +59,18 @@ describe('refreshSession', () => {
     expect(tokenStorage.get()).toBeNull()
   })
 
+  it('si el backend rechaza el refresh, la sesión queda marcada como vencida (el login lo avisa)', async () => {
+    axios.post.mockRejectedValue({ response: { status: 401, data: { message: 'Refresh token inválido' } } })
+
+    await expect(refreshSession()).rejects.toBeTruthy()
+    expect(useSessionStore.getState()).toMatchObject({ status: 'anonymous', expired: true, loggedOut: false })
+  })
+
+  it('un cierre de sesión normal no cuenta como vencida', () => {
+    useSessionStore.getState().clearSession({ loggedOut: true })
+    expect(useSessionStore.getState()).toMatchObject({ status: 'anonymous', expired: false, loggedOut: true })
+  })
+
   it('conserva la sesión si el fallo es de red', async () => {
     axios.post.mockRejectedValue(new Error('Network Error'))
 

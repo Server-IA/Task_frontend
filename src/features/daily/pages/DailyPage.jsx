@@ -50,16 +50,14 @@ export function DailyPage() {
   const position = clampIndex(current, people.length)
   const canPresent = people.length > 0
 
+  // Cada día visitado queda en el historial: «Atrás» vuelve al día anterior que se miraba, no sale de la daily
   const setDate = (value) =>
-    setSearchParams(
-      (previous) => {
-        const next = new URLSearchParams(previous)
-        if (value === today) next.delete('date')
-        else next.set('date', value)
-        return next
-      },
-      { replace: true },
-    )
+    setSearchParams((previous) => {
+      const next = new URLSearchParams(previous)
+      if (value === today) next.delete('date')
+      else next.set('date', value)
+      return next
+    })
 
   const togglePresenting = useCallback(() => {
     if (!canPresent) return

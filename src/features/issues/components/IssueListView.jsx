@@ -7,7 +7,8 @@ import { EmptyState, ErrorState } from '@/components/common/States'
 import { StateIcon } from '@/components/common/StateIcon'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { cn } from '@/lib/utils'
-import { BOARD_GROUP_STORY, GROUP_BY_DEFAULT, LIST_PAGE_SIZE } from '../constants'
+import { focusRowMain } from '@/lib/focusReturn'
+import { BOARD_GROUP_STORY, GROUP_BY_DEFAULT, LIST_PAGE_SIZE, ROW_FOCUS } from '../constants'
 import { groupIssues } from '../groupIssues'
 import { useIssues } from '../hooks'
 import { stateOptionsFor, storyStateLocked } from '../issueTypes'
@@ -188,14 +189,19 @@ const IssueRow = memo(function IssueRow({ issue, slug, project, meta, openIssue,
 
   return (
     <li className="border-t">
+      {/* Con el mouse, un clic en la fila la abre; con el teclado, el título es el botón (nombre corto: código y título)
+          y los selectores van aparte, cada uno con su nombre */}
       <div
-        role="button"
-        tabIndex={0}
-        onClick={() => openIssue(issue.id)}
-        onKeyDown={(event) => event.key === 'Enter' && openIssue(issue.id)}
-        className="group flex cursor-pointer flex-wrap items-center gap-x-2.5 gap-y-1.5 px-4 py-2 transition-colors duration-150 outline-none hover:bg-subtle focus-visible:bg-accent"
+        onClick={(event) => {
+          focusRowMain(event.currentTarget)
+          openIssue(issue.id)
+        }}
+        className={cn(
+          'group flex cursor-pointer flex-wrap items-center gap-x-2.5 gap-y-1.5 px-4 py-2 transition-colors duration-150 hover:bg-subtle',
+          ROW_FOCUS,
+        )}
       >
-        <span className="flex items-center gap-1" onClick={stop} onKeyDown={stop}>
+        <span className="flex items-center gap-1" onClick={stop}>
           <StatePicker
             states={stateOptionsFor(issue, meta.states, manager)}
             disabled={storyStateLocked(issue, manager)}
@@ -231,9 +237,17 @@ const IssueRow = memo(function IssueRow({ issue, slug, project, meta, openIssue,
               {issue.parent.code}
             </span>
           )}
-          <span className={cn('truncate text-sm font-medium', issue.state?.group === 'CANCELLED' && 'text-muted-foreground line-through')}>
+          <button
+            type="button"
+            data-row-main=""
+            aria-label={`${issue.code} ${issue.title}`}
+            className={cn(
+              'min-w-0 cursor-pointer truncate text-left text-sm font-medium outline-none',
+              issue.state?.group === 'CANCELLED' && 'text-muted-foreground line-through',
+            )}
+          >
             {issue.title}
-          </span>
+          </button>
           {issue.parent?.type === 'STORY' && <ParentStoryChip parent={issue.parent} onOpen={openIssue} />}
           <BlockedChip issue={issue} codes="inline" />
           <BlockingChip issue={issue} />
@@ -244,7 +258,7 @@ const IssueRow = memo(function IssueRow({ issue, slug, project, meta, openIssue,
           )}
           <ChecklistChip issue={issue} />
         </span>
-        <span className="flex items-center gap-1.5" onClick={stop} onKeyDown={stop}>
+        <span className="flex items-center gap-1.5" onClick={stop}>
           {(meta.labels.length > 0 || issue.labels?.length > 0) && (
             <LabelsPicker
               compact

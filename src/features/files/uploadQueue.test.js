@@ -109,6 +109,42 @@ describe('cola de subidas', () => {
     expect(calls).toHaveLength(3)
   })
 
+  it('si la subida a R2 falla, la pendiente se borra enseguida (no ocupa cuota) y quitarla no la borra otra vez', async () => {
+    const { put, calls } = fakePut()
+    const queue = createUploadQueue({ put })
+    const destination = target()
+    const id = queue.add(file('a.png'), { target: destination })
+    await flush()
+
+    calls[0].fail(new UploadError('network', { progress: 0 }))
+    await flush()
+    await flush()
+    expect(queue.get(id).status).toBe('error')
+    expect(destination.discard).toHaveBeenCalledTimes(1)
+    expect(destination.discard).toHaveBeenCalledWith(expect.objectContaining({ file: { id: 'file-a.png' } }))
+
+    queue.dismiss(id)
+    expect(queue.get(id)).toBeUndefined()
+    expect(destination.discard).toHaveBeenCalledTimes(1)
+  })
+
+  it('si falla la confirmación, también se borra la pendiente; cancelar la que falló no la borra dos veces', async () => {
+    const { put, calls } = fakePut()
+    const queue = createUploadQueue({ put })
+    const destination = { ...target(), confirm: vi.fn(async () => Promise.reject(new ApiError({ status: 500, message: 'Error' }))) }
+    const id = queue.add(file('a.png'), { target: destination })
+    await flush()
+    calls[0].finish()
+    await flush()
+    await flush()
+
+    expect(queue.get(id).status).toBe('error')
+    expect(destination.discard).toHaveBeenCalledTimes(1)
+    queue.cancel(id)
+    expect(queue.get(id)).toBeUndefined()
+    expect(destination.discard).toHaveBeenCalledTimes(1)
+  })
+
   it('cancelar mientras se pide la URL no sube nada', async () => {
     const { put, calls } = fakePut()
     const queue = createUploadQueue({ put })

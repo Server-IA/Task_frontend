@@ -13,7 +13,7 @@ import { CreateIssueDialog } from '@/features/issues/components/CreateIssueDialo
 import { IssuePeekSheet } from '@/features/issues/components/IssuePeekSheet'
 import { BugCountBadge, ReadyBadge, StoryProgress, TypeIcon, UnsplitBadge } from '@/features/issues/components/IssueTypeBits'
 import { PriorityChip, PriorityIcon } from '@/features/issues/components/PriorityIcon'
-import { PRIORITIES } from '@/features/issues/constants'
+import { PRIORITIES, ROW_FOCUS } from '@/features/issues/constants'
 import { inStoryTab, STORY_TABS, storyFlags, storyProgress, storyTabCounts, typeOf } from '@/features/issues/issueTypes'
 import { useProjectMeta } from '@/features/issues/useIssueHelpers'
 import { usePlanningList } from '@/features/planning/hooks'
@@ -24,9 +24,12 @@ import { formatShortDate } from '@/lib/dates'
 import { projectPath } from '@/lib/paths'
 import { cn } from '@/lib/utils'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
+import { focusRowMain } from '@/lib/focusReturn'
 import { useStories } from '../hooks'
 import { filterStories, hasStoryFilters } from '../storyFilters'
 import { storySummary } from '../storySummary'
+import { nextRowIndex } from '../rowNavigation'
+import { SPLIT_PARAM } from '../splitLines'
 
 /** @typedef {import('@/api/types').StoryRow} StoryRow */
 
@@ -77,6 +80,20 @@ export function StoriesPage() {
     [setSearchParams],
   )
   const openIssue = useCallback((issueId) => setParam('issue', issueId), [setParam])
+  // «P»: la historia con «Partir en tareas» abierto (aunque ya tenga tareas; sin tareas se abre solo)
+  const openSplit = useCallback(
+    (issueId) =>
+      setSearchParams(
+        (previous) => {
+          const next = new URLSearchParams(previous)
+          next.set('issue', issueId)
+          next.set(SPLIT_PARAM, '1')
+          return next
+        },
+        { replace: true },
+      ),
+    [setSearchParams],
+  )
 
   const all = useMemo(() => rows ?? [], [rows])
   const stories = all.map((row) => row.story)
@@ -95,7 +112,8 @@ export function StoriesPage() {
   const createStory = useCallback(() => setCreating(true), [setCreating])
   useHotkey('c', createStory, { enabled: manager })
   const move = (step) => {
-    const index = Math.max(0, Math.min(filtered.length - 1, focusIndex + step))
+    const onRow = rowRefs.current.includes(document.activeElement)
+    const index = nextRowIndex({ current: focusIndex, step, count: filtered.length, onRow })
     setFocusIndex(index)
     rowRefs.current[index]?.focus()
   }
@@ -103,7 +121,7 @@ export function StoriesPage() {
   useHotkey('k', () => move(-1))
   useHotkey('p', () => {
     const row = filtered[focusIndex]
-    if (row && manager) openIssue(row.story.id)
+    if (row && manager) openSplit(row.story.id)
   })
 
   const ready = counts.review
@@ -175,7 +193,8 @@ export function StoriesPage() {
               )}
             >
               {option.label}
-              <span className="font-mono text-[11px]">{counts[option.value]}</span>
+              {/* Sin datos (cargando o con error) no hay cuenta: un «0» junto al error diría que no hay ninguna */}
+              {rows && <span className="font-mono text-[11px]">{counts[option.value]}</span>}
             </button>
           ))}
         </div>
@@ -354,20 +373,16 @@ function StoryRowItem({ row, manager, expanded, onToggle, onOpen, active, button
 
   return (
     <li className={cn('border-t first:border-t-0', expanded && 'bg-subtle')}>
+      {/* Un clic en la fila la abre; con el teclado, el título es el botón (nombre corto: código y título; Enter abre,
+          → y ← despliegan) y los demás botones van aparte */}
       <div
-        ref={buttonRef}
-        role="button"
-        tabIndex={0}
-        aria-expanded={expanded}
-        onFocus={onFocus}
-        onClick={() => onOpen(story.id)}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') onOpen(story.id)
-          if (event.key === 'ArrowRight' && !expanded) onToggle()
-          if (event.key === 'ArrowLeft' && expanded) onToggle()
+        onClick={(event) => {
+          focusRowMain(event.currentTarget)
+          onOpen(story.id)
         }}
         className={cn(
-          'grid cursor-pointer items-center gap-3 px-4 py-3 outline-none hover:bg-subtle focus-visible:bg-accent',
+          'grid cursor-pointer items-center gap-3 px-4 py-3 hover:bg-subtle',
+          ROW_FOCUS,
           TABLE_COLUMNS,
           active && 'bg-accent-soft hover:bg-accent-soft',
         )}
@@ -388,9 +403,22 @@ function StoryRowItem({ row, manager, expanded, onToggle, onOpen, active, button
           <TypeIcon type="STORY" className="mt-0.5" />
           <span className="mt-0.5 min-w-14 shrink-0 font-mono text-xs whitespace-nowrap text-muted-foreground">{story.code}</span>
           <div className="flex min-w-0 flex-col gap-1">
-            <span className="truncate text-sm font-semibold" title={story.title}>
+            <button
+              ref={buttonRef}
+              type="button"
+              data-row-main=""
+              aria-label={`${story.code} ${story.title}`}
+              aria-expanded={expanded}
+              title={story.title}
+              onFocus={onFocus}
+              onKeyDown={(event) => {
+                if (event.key === 'ArrowRight' && !expanded) onToggle()
+                if (event.key === 'ArrowLeft' && expanded) onToggle()
+              }}
+              className="min-w-0 cursor-pointer truncate text-left text-sm font-semibold outline-none"
+            >
               {story.title}
-            </span>
+            </button>
             <span className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
               {flags.unsplit && (
                 <>

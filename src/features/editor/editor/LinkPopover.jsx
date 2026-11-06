@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import { ExternalLink } from 'lucide-react'
+import { exampleCode } from '@/lib/codes'
 import { safeHref } from '../markdown/links'
 
 /**
  * Editar un enlace: texto y dirección. Un código como «WEB-12» en el campo «Enlace» deja la referencia a la tarea
  * (texto plano, que se dibuja como pastilla).
- * @param {{ initial: { text: string, href: string, existing: boolean }, style: React.CSSProperties,
+ * `projectIdentifier`: el del proyecto actual, para el ejemplo del código («PORT-12»).
+ * @param {{ initial: { text: string, href: string, existing: boolean }, style: React.CSSProperties, projectIdentifier?: string,
  *           onApply: (values: { text: string, href: string }) => void, onRemove: () => void, onClose: () => void }} props
  */
-export function LinkPopover({ initial, style, onApply, onRemove, onClose }) {
+export function LinkPopover({ initial, style, projectIdentifier, onApply, onRemove, onClose }) {
   const [text, setText] = useState(initial.text)
   const [href, setHref] = useState(initial.href)
   const openable = safeHref(initial.href)
@@ -52,7 +54,7 @@ export function LinkPopover({ initial, style, onApply, onRemove, onClose }) {
         />
       </label>
       <span className="text-xs text-muted-foreground">
-        También puedes pegar un código como <span className="font-mono text-foreground">WEB-12</span> para enlazar una tarea.
+        También puedes pegar un código como <span className="font-mono text-foreground">{exampleCode(projectIdentifier)}</span> para enlazar una tarea.
       </span>
       <span className="flex items-center gap-1.5 border-t pt-2.5">
         {openable && (

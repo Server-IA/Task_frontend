@@ -1,18 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/api/queryKeys'
 import { retroApi } from './api'
-import { applyVote, removeNote, upsertNote } from './retroNotes'
-
-/** Cada cuánto se traen las notas y votos de los demás mientras la retro está abierta. */
-const LIVE_REFRESH_MS = 15_000
+import { applyVote, removeNote, retroRefreshMs, upsertNote } from './retroNotes'
 
 export function useRetro(slug, projectId, cycleId) {
   return useQuery({
     queryKey: queryKeys.retro(cycleId),
     queryFn: () => retroApi.get(slug, projectId, cycleId),
     enabled: Boolean(slug && projectId && cycleId),
-    // Abierta y sin terminar: lo que escriben y votan los demás aparece solo (con la pestaña visible)
-    refetchInterval: (query) => (query.state.data?.started && !query.state.data?.finishedAt ? LIVE_REFRESH_MS : false),
+    // Sin terminar: lo que escriben y votan los demás (o que el project manager la empiece) aparece solo, con la
+    // pestaña visible
+    refetchInterval: (query) => retroRefreshMs(query.state.data),
   })
 }
 

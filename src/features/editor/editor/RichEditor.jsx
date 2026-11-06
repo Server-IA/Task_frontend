@@ -16,6 +16,7 @@ import { removeMovedTaskItems, takeTaskItems } from '../markdown/taskItems'
 import { isTaskCode } from '../markdown/taskRefs'
 import { BubbleBar } from './BubbleBar'
 import { buildExtensions, MENTION_KEY, SLASH_KEY } from './extensions'
+import { wordListsToHtml } from './wordPaste'
 import { codeReplacement, findText } from './findText'
 import { syncUploadingImages } from './imageExtension'
 import { LinkPopover } from './LinkPopover'
@@ -29,15 +30,26 @@ import { currentBlockType, Toolbar } from './Toolbar'
 const looksLikeMarkdown = (text) =>
   /^(#{1,6}\s|[-*+]\s|\d+[.)]\s|>\s?|```|\|.+\|\s*$)/m.test(text) || /\*\*[^*\n]+\*\*|\[[^\]\n]+\]\([^)\s]+\)|`[^`\n]+`|~~[^~\n]+~~/.test(text)
 
-/** Casillas (numeradas en el orden del documento) cuyo primer párrafo toca el rango. */
+/**
+ * Copiado de Word o Google Docs: su HTML trae el formato (negritas, listas, tablas). Su texto plano puede parecer
+ * Markdown («1. Abrir la app» en una lista numerada) y pegarlo como Markdown perdería todo lo demás.
+ */
+const fromOfficeDocument = (html) => /urn:schemas-microsoft-com:office|class="?Mso|mso-list|docs-internal-guid/i.test(html)
+
+/**
+ * Casillas (numeradas en el orden del documento) cuyo primer párrafo toca el rango. Con texto seleccionado, la que
+ * solo roza un borde no cuenta: «Mayús ↓» desde el inicio de una línea termina al inicio de la siguiente.
+ */
 function taskIndexesIn(doc, from, to) {
   const indexes = []
   let index = 0
   doc.descendants((node, pos) => {
     if (node.type.name !== 'taskItem') return true
-    const start = pos + 1
-    const end = start + (node.firstChild?.nodeSize ?? 0)
-    if (start <= to && end >= from) indexes.push(index)
+    // El texto del párrafo va de `start` a `end`
+    const start = pos + 2
+    const end = pos + 1 + (node.firstChild?.nodeSize ?? 2) - 1
+    const touches = from === to ? start <= to && end >= from : start < to && end > from
+    if (touches) indexes.push(index)
     index += 1
     return true
   })
@@ -155,6 +167,8 @@ export default function RichEditor({
           'aria-label': ariaLabel,
         },
         handlePaste: (view, event) => bridge.current.paste?.(event) ?? false,
+        // Las listas de Word llegan como párrafos con la viñeta escrita: se pegan como listas
+        transformPastedHTML: wordListsToHtml,
         handleDrop: (view, event, slice, moved) => bridge.current.drop?.(view, event, moved) ?? false,
         handleClick: (view, pos) => bridge.current.click?.(pos) ?? false,
         // Copiar desde el editor deja Markdown como texto plano
@@ -494,7 +508,7 @@ export default function RichEditor({
         if (files?.length && imageUpload && !text?.trim()) return bridge.current.insertFiles?.(files) ?? false
         if (!text || !editor || editor.isActive('codeBlock') || editor.isActive('code')) return false
         // Copiado de otro editor como este: ProseMirror ya lo pega con su formato
-        if (html.includes('data-pm-slice') || !looksLikeMarkdown(text)) return false
+        if (html.includes('data-pm-slice') || fromOfficeDocument(html) || !looksLikeMarkdown(text)) return false
         editor.chain().focus().insertContent(markdownToDoc(text).content).run()
         return true
       },
@@ -661,6 +675,7 @@ export default function RichEditor({
         <LinkPopover
           key={link.key}
           initial={link}
+          projectIdentifier={projectIdentifier}
           style={popupPosition(caretRect(editor.view, Math.min(link.from, editor.state.doc.content.size)), root, { width: 380, height: 260, gap: 8 })}
           onApply={applyLink}
           onRemove={removeLink}
@@ -674,6 +689,7 @@ export default function RichEditor({
         <TaskSearchPopover
           key={taskSearch.key}
           slug={slug}
+          projectIdentifier={projectIdentifier}
           style={popupPosition(caretRect(editor.view, Math.min(taskSearch.pos, editor.state.doc.content.size)), root, { width: 360, height: 340 })}
           onSelect={(issue) => {
             setTaskSearch(null)

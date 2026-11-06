@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useLocation, useNavigate } from 'react-router'
-import { MailWarning } from 'lucide-react'
+import { Clock, MailWarning } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
@@ -15,6 +15,7 @@ import { useCooldown } from '@/hooks/useCooldown'
 import { applyFieldErrors, toApiError } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { getPostLoginPath } from '@/lib/pendingInvitation'
+import { useSessionStore } from '@/stores/sessionStore'
 import { ResendVerificationButton } from '../components/ResendVerification'
 import { useLogin } from '../hooks'
 import { loginSchema } from '../schemas'
@@ -25,6 +26,11 @@ export function LoginPage() {
   const login = useLogin()
   const cooldown = useCooldown()
   const [unverifiedEmail, setUnverifiedEmail] = useState(null)
+  // La sesión venció (no se cerró a propósito): se avisa una vez, al llegar aquí
+  const [expired] = useState(() => useSessionStore.getState().expired)
+  useEffect(() => {
+    if (useSessionStore.getState().expired) useSessionStore.setState({ expired: false })
+  }, [])
 
   const form = useForm({
     resolver: zodResolver(loginSchema),
@@ -51,6 +57,14 @@ export function LoginPage() {
   return (
     <SplitShell caption="tableros · ciclos · módulos" panel={<MiniBoard />}>
       <AuthHeader path="~/acceso/login" title="Hola de nuevo" description="Entra con tu correo para seguir con tus tareas." />
+
+      {expired && !unverifiedEmail && (
+        <Alert role="status">
+          <Clock />
+          <AlertTitle>Tu sesión expiró. Vuelve a iniciar sesión.</AlertTitle>
+          {location.state?.from && <AlertDescription>Al entrar, vuelves a la página en la que estabas.</AlertDescription>}
+        </Alert>
+      )}
 
       {unverifiedEmail && (
         <Alert>

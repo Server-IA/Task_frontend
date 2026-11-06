@@ -197,3 +197,13 @@ describe('vistas guardadas', () => {
     ])
   })
 })
+
+describe('orden que no está en la lista', () => {
+  it('una vista con un orden desconocido no lo pone en la URL ni lo guarda (el backend respondería 400)', () => {
+    const next = applyViewToParams(new URLSearchParams(), { id: 'v1', filters: { view: 'list', sort: '-createdAt' } })
+    expect(next.get('sort')).toBeNull()
+    expect(toViewFilters({ filters: empty, view: 'list', sort: 'createdAt,drop' }).sort).toBe('sortOrder,asc')
+    // Y no cuenta como «cambiado» frente al orden manual
+    expect(diffViewFilters({ view: 'list', sort: '-createdAt' }, toViewFilters({ filters: empty, view: 'list', sort: 'sortOrder,asc' }))).toEqual([])
+  })
+})

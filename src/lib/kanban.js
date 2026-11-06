@@ -48,3 +48,44 @@ export function groupByState(issues, states) {
 export function findColumn(columns, issueId) {
   return Object.keys(columns).find((stateId) => columns[stateId].includes(issueId)) ?? null
 }
+
+/** Carril de una tarea en el tablero agrupado por historia: el id de su historia o «none» (Sin historia). */
+export const NO_STORY_LANE = 'none'
+
+export function laneKeyOf(issue) {
+  return issue?.parent?.type === 'STORY' ? issue.parent.id : NO_STORY_LANE
+}
+
+/**
+ * Columna de un carril: «carril|estado» (los ids no llevan «|»). Sin carriles (`laneKey` null) es solo el estado.
+ * @param {string | null} laneKey
+ * @param {string} stateId
+ */
+export function columnKey(laneKey, stateId) {
+  return laneKey == null ? stateId : `${laneKey}|${stateId}`
+}
+
+/** Estado de una columna (`columnKey`). */
+export function stateOfColumn(key) {
+  return String(key).split('|').pop()
+}
+
+/** Carril de una columna (`columnKey`); null en el tablero sin carriles. */
+export function laneOfColumn(key) {
+  const parts = String(key).split('|')
+  return parts.length > 1 ? parts[0] : null
+}
+
+/**
+ * Las columnas de todos los carriles en un solo mapa (`columnKey` → ids en orden): así una tarjeta se puede soltar
+ * en el carril de otra historia.
+ * @param {{ key: string, issues: import('@/api/types').IssueResponse[] }[]} lanes
+ * @param {import('@/api/types').StateResponse[]} states
+ */
+export function groupByLaneAndState(lanes, states) {
+  const columns = {}
+  for (const lane of lanes) {
+    for (const [stateId, ids] of Object.entries(groupByState(lane.issues, states))) columns[columnKey(lane.key, stateId)] = ids
+  }
+  return columns
+}

@@ -16,7 +16,9 @@ import { docToMarkdown, escapeText } from '@/features/editor/markdown/serialize'
 import { removeMovedTaskItems, setTaskChecked, takeTaskItems } from '@/features/editor/markdown/taskItems'
 import { useMentionPeople } from '@/features/mentions/hooks'
 import { formatRelative } from '@/lib/dates'
+import { isSessionExpired } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
+import { warnUnsavedText } from '@/lib/unsavedText'
 import { cn } from '@/lib/utils'
 import { useSessionStore } from '@/stores/sessionStore'
 import { issuesApi } from '../api'
@@ -59,6 +61,8 @@ export function IssueDescription({ slug, project, issue, variant = 'page', onOpe
   const moveToChecklist = useMoveToChecklist(slug, project.id, issue.id)
   const me = useSessionStore((state) => state.user?.id)
   const [editing, setEditing] = useState(null)
+  // Al terminar de editar, el foco vuelve a «Editar descripción» (el editor desaparece con el foco adentro)
+  const [refocus, setRefocus] = useState(false)
   // Cambios desde la lectura (casillas, «Pasar al checklist»): van de a uno, cada uno sobre lo que dejó el anterior
   const queueRef = useRef(Promise.resolve())
   const ownVersionRef = useRef(null)
@@ -168,7 +172,10 @@ export function IssueDescription({ slug, project, issue, variant = 'page', onOpe
         variant={variant}
         caret={editing.caret}
         onMoveTasks={moveTasks}
-        onFinish={() => setEditing(null)}
+        onFinish={() => {
+          setEditing(null)
+          setRefocus(true)
+        }}
       />
     )
   }
@@ -182,6 +189,8 @@ export function IssueDescription({ slug, project, issue, variant = 'page', onOpe
       description={description}
       onOpenIssue={onOpenIssue}
       onEdit={(caret) => setEditing({ caret })}
+      refocus={refocus}
+      onRefocused={() => setRefocus(false)}
       onToggleTask={(index, checked) => {
         changeDescription(
           issue.descriptionVersion ?? 0,
@@ -196,10 +205,20 @@ export function IssueDescription({ slug, project, issue, variant = 'page', onOpe
   )
 }
 
-function DescriptionReader({ issue, slug, project, variant, description, onOpenIssue, onEdit, onToggleTask, onMoveTasks }) {
+function DescriptionReader({ issue, slug, project, variant, description, onOpenIssue, onEdit, refocus, onRefocused, onToggleTask, onMoveTasks }) {
   const lastEdit = lastEditOf(issue)
   const textRef = useRef(null)
+  const editRef = useRef(null)
   const page = variant === 'page'
+
+  // Recién terminada la edición (Escape, ctrl ↵ o «Listo»): si el foco se perdió con el editor, vuelve al botón
+  useEffect(() => {
+    if (!refocus) return
+    onRefocused()
+    const active = document.activeElement
+    const lost = !active || active === document.body || !active.isConnected || active.getAttribute('role') === 'dialog'
+    if (lost) editRef.current?.focus({ preventScroll: true })
+  }, [refocus, onRefocused])
 
   const enter = (event) => {
     // Los enlaces, las pastillas y las casillas funcionan sin entrar a editar; seleccionar texto tampoco entra
@@ -226,6 +245,7 @@ function DescriptionReader({ issue, slug, project, variant, description, onOpenI
         )}
       >
         <button
+          ref={editRef}
           type="button"
           onClick={() => onEdit(null)}
           className={cn(
@@ -267,21 +287,16 @@ function DescriptionReader({ issue, slug, project, variant, description, onOpenI
 
 const SAVE_TEXT = { saved: 'Guardado', pending: 'Guardando…', saving: 'Guardando…', error: 'No se pudo guardar', conflict: 'En pausa' }
 
+/** Por qué no se guardó lo escrito al salir del editor. */
+function unsavedReason(error) {
+  if (descriptionConflict(error)) return 'Alguien más cambió la descripción mientras editabas.'
+  if (isSessionExpired(error)) return 'Tu sesión expiró.'
+  return 'No se pudo guardar.'
+}
+
 /** Aviso persistente con el texto que no se pudo guardar al salir del editor (para no perderlo). */
 function warnUnsaved(body, reason) {
-  toast.warning('Tu cambio en la descripción no se guardó', {
-    description: `${reason} Copia tu texto para no perderlo.`,
-    duration: Infinity,
-    action: {
-      label: 'Copiar mi texto',
-      onClick: () => {
-        navigator.clipboard
-          ?.writeText(body)
-          .then(() => toast.success('Tu texto quedó copiado'))
-          .catch(() => {})
-      },
-    },
-  })
+  warnUnsavedText('Tu cambio en la descripción no se guardó', `${reason} Copia tu texto para no perderlo.`, body)
 }
 
 function DescriptionEditor({ slug, project, issue, variant, caret, onMoveTasks, onFinish }) {
@@ -449,7 +464,7 @@ function DescriptionEditor({ slug, project, issue, variant, caret, onMoveTasks, 
           return
         }
         save.mutateAsync({ description: body, base: baseRef.current }).catch((error) => {
-          warnUnsaved(body, descriptionConflict(error) ? 'Alguien más cambió la descripción mientras editabas.' : 'No se pudo guardar.')
+          warnUnsaved(body, unsavedReason(error))
         })
       }
       if (inFlightRef.current) inFlightRef.current.then(saveOnLeave)

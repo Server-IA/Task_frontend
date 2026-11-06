@@ -46,18 +46,16 @@ export function StatsPage() {
   const issueFilters = useIssueFilters()
   const base = `/${workspace.slug}/projects/${project.id}`
 
+  // El rango y las personas quedan en el historial: «Atrás» deshace el último filtro en vez de salir de la página
   const setWeeks = (value) =>
-    setSearchParams(
-      (previous) => {
-        const next = new URLSearchParams(previous)
-        if (Number(value) === DEFAULT_RANGE) next.delete('weeks')
-        else next.set('weeks', value)
-        return next
-      },
-      { replace: true },
-    )
+    setSearchParams((previous) => {
+      const next = new URLSearchParams(previous)
+      if (Number(value) === DEFAULT_RANGE) next.delete('weeks')
+      else next.set('weeks', value)
+      return next
+    })
 
-  const setAssignees = (ids) => setSearchParams((previous) => withAssignees(previous, ids), { replace: true })
+  const setAssignees = (ids) => setSearchParams((previous) => withAssignees(previous, ids))
 
   return (
     <>

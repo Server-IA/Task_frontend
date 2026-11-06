@@ -2331,6 +2331,7 @@ export interface components {
             /** Format: int32 */
             movedToBacklog?: number;
             retroStarted?: boolean;
+            retroStartedNow?: boolean;
         };
         InviteMemberRequest: {
             /** Format: email */

@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { parseISO } from 'date-fns'
-import { es } from 'date-fns/locale'
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -50,7 +49,6 @@ export function DailyDateNav({ date, today, onChange }) {
           <PopoverContent className="w-auto p-0" align="end">
             <Calendar
               mode="single"
-              locale={es}
               selected={parseISO(date)}
               defaultMonth={parseISO(date)}
               disabled={{ after: parseISO(today) }}

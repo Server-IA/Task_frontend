@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { toast } from 'sonner'
+import { isSessionExpired } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { openActionOf } from './attachmentView'
 import { downloadFile, openFileInNewTab } from './fileUrls'
@@ -7,6 +8,7 @@ import { useImageViewer } from './imageViewerContext'
 
 /** Un error al abrir o descargar: los de la API con su mensaje; los demás («ya no existe») tal cual. */
 export function notifyFileError(error) {
+  if (isSessionExpired(error)) return
   if (error?.response || !error?.message) notifyError(error)
   else toast.error(error.message)
 }

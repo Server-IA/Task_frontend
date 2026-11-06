@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUp, GripVertical, Lock, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { LockNote } from '@/components/common/LockNote'
+import { DND_INSTRUCTIONS, DRAG_ROLE, quoted, sortableAnnouncements } from '@/lib/dndAnnouncements'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { useReorderSavedViews } from '../hooks'
@@ -70,6 +71,13 @@ function ViewGroup({ title, icon: Icon, views, canMove, note, onMove }) {
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
+        accessibility={{
+          screenReaderInstructions: DND_INSTRUCTIONS,
+          announcements: sortableAnnouncements(
+            views.map((view) => view.id),
+            (id) => `la vista ${quoted(views.find((view) => view.id === id)?.name ?? '')}`,
+          ),
+        }}
         onDragEnd={({ active, over }) => {
           if (!over || active.id === over.id) return
           const view = views.find((item) => item.id === active.id)
@@ -94,6 +102,7 @@ function SortableRow({ view, index, count, canMove, onMove }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: view.id,
     disabled: !canMove,
+    attributes: { roleDescription: DRAG_ROLE.item },
   })
   const Icon = view.shared ? Users : Lock
 

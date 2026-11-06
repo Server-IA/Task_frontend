@@ -55,17 +55,17 @@ export function ActivityPage() {
   const stateGroups = useStateGroups(slug, feedProjectIds)
   const hasFilters = Boolean(projectId || actorId)
 
-  /** Cambia un parámetro de la URL (null lo quita); así un enlace comparte la misma vista. */
+  /**
+   * Cambia un parámetro de la URL (null lo quita); así un enlace comparte la misma vista. Cada filtro queda en el
+   * historial: «Atrás» lo deshace en vez de salir de la página.
+   */
   const setParam = (key, value) =>
-    setSearchParams(
-      (previous) => {
-        const next = new URLSearchParams(previous)
-        if (value && !(key === 'type' && value === 'all')) next.set(key, value)
-        else next.delete(key)
-        return next
-      },
-      { replace: true },
-    )
+    setSearchParams((previous) => {
+      const next = new URLSearchParams(previous)
+      if (value && !(key === 'type' && value === 'all')) next.set(key, value)
+      else next.delete(key)
+      return next
+    })
 
   return (
     <>
@@ -126,7 +126,7 @@ export function ActivityPage() {
                 }
                 action={
                   hasFilters && (
-                    <Button variant="outline" onClick={() => setSearchParams(type === 'all' ? {} : { type }, { replace: true })}>
+                    <Button variant="outline" onClick={() => setSearchParams(type === 'all' ? {} : { type })}>
                       Quitar filtros
                     </Button>
                   )

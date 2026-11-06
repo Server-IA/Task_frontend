@@ -1,6 +1,5 @@
 import { useId, useState } from 'react'
 import { CalendarDays, Check, Clock3, Tag, UserRound, X } from 'lucide-react'
-import { es } from 'date-fns/locale'
 import { parseISO } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -302,7 +301,6 @@ export function DatePicker({
       <PopoverContent className="w-auto p-0" align="start" onClick={(event) => event.stopPropagation()}>
         <Calendar
           mode="single"
-          locale={es}
           selected={date}
           defaultMonth={date}
           disabled={[

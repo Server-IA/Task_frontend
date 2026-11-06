@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/api/queryKeys'
+import { toApiError } from '@/lib/errors'
 import { cyclesApi, modulesApi } from './api'
 
 /** Configuración de cada tipo: ciclos o módulos comparten pantallas y hooks. */
@@ -62,6 +63,13 @@ function usePlanningMutation(kind, slug, projectId, mutationFn, { touchesIssues 
         queryClient.invalidateQueries({ queryKey: ['activity'] })
         queryClient.invalidateQueries({ queryKey: queryKeys.stories(projectId) })
       }
+    },
+    // 409: el ciclo cambió mientras tanto (otra persona lo cerró): se trae de nuevo para que la página lo muestre
+    // cerrado (y sin «Agregar tareas») en vez de seguir ofreciendo cambios que el backend ya no acepta
+    onError: (error) => {
+      if (toApiError(error).status !== 409) return
+      queryClient.invalidateQueries({ queryKey: listKey(projectId) })
+      queryClient.invalidateQueries({ queryKey: [itemKey('')[0]] })
     },
   })
 }

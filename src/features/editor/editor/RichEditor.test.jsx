@@ -80,6 +80,46 @@ describe('«Pasar al checklist» en el editor, si solo se creó parte', () => {
   })
 })
 
+describe('«Pasar al checklist» con una selección que roza otra casilla', () => {
+  /** Selecciona de `from` a `to` y pulsa «Pasar al checklist»; devuelve las casillas que se pasaron. */
+  async function moveSelection(pick) {
+    const onMoveTasks = vi.fn(() => new Promise(() => {}))
+    render(
+      <TooltipProvider>
+        <RichEditor value={'- [ ] Ver logs\n- [ ] Segundo paso'} toolbar onMoveTasks={onMoveTasks} />
+      </TooltipProvider>,
+    )
+    const editor = await waitFor(() => {
+      const found = document.querySelector('.ProseMirror')?.editor
+      if (!found) throw new Error('sin editor')
+      return found
+    })
+    const text = {}
+    editor.state.doc.descendants((node, pos) => {
+      if (node.isText) text[node.text] = { start: pos, end: pos + node.text.length }
+    })
+    const [from, to] = pick(text)
+    act(() => {
+      editor.view.focus()
+      editor.view.dispatch(editor.state.tr.setSelection(TextSelection.create(editor.state.doc, from, to)))
+    })
+    act(() => screen.getByRole('button', { name: /Pasar al checklist de la tarea/ }).click())
+    return onMoveTasks.mock.calls[0]?.[0].map((item) => item.text)
+  }
+
+  it('«Mayús ↓» desde el inicio de una línea (termina al inicio de la siguiente) pasa solo esa', async () => {
+    expect(await moveSelection((t) => [t['Ver logs'].start, t['Segundo paso'].start])).toEqual(['Ver logs'])
+  })
+
+  it('«Mayús ↑» desde el final de una línea (empieza al final de la anterior) pasa solo esa', async () => {
+    expect(await moveSelection((t) => [t['Ver logs'].end, t['Segundo paso'].end])).toEqual(['Segundo paso'])
+  })
+
+  it('con el cursor (sin selección) pasa la casilla donde está', async () => {
+    expect(await moveSelection((t) => [t['Segundo paso'].start, t['Segundo paso'].start])).toEqual(['Segundo paso'])
+  })
+})
+
 async function mountEditor(props = {}) {
   render(
     <TooltipProvider>
@@ -123,7 +163,7 @@ describe('menú «/»', () => {
     expect(markdownOf(editor)).toBe('/lista dex')
   })
 
-  it('Escape lo cierra, aunque lo escrito siga coincidiendo', async () => {
+  it('Escape lo cierra solo para lo escrito: al seguir escribiendo vuelve a abrirse', async () => {
     const editor = await mountEditor()
 
     act(() => editor.commands.insertContent('/lista'))
@@ -133,6 +173,52 @@ describe('menú «/»', () => {
     })
     expect(slashMenu()).not.toBeInTheDocument()
     act(() => editor.commands.insertContent(' de'))
-    expect(slashMenu()).not.toBeInTheDocument()
+    expect(slashMenu()).toBeInTheDocument()
+  })
+})
+
+const mentionMenu = () => screen.queryByRole('listbox', { name: /Mencionar/ })
+const people = [
+  { id: 'u1', fullName: 'Luis Muñoz', email: 'luis@test.com' },
+  { id: 'u2', fullName: 'Lucía Pérez', email: 'lucia@test.com' },
+]
+const escape = (editor) =>
+  act(() => {
+    editor.view.dom.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+  })
+const pressEnter = (editor) =>
+  act(() => {
+    editor.view.dom.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }))
+  })
+
+describe('menú «@»', () => {
+  it('tras Escape, seguir escribiendo lo vuelve a abrir y Enter elige (no salta de línea)', async () => {
+    const editor = await mountEditor({ people })
+
+    act(() => editor.commands.insertContent('@Lu'))
+    expect(mentionMenu()).toBeInTheDocument()
+    escape(editor)
+    expect(mentionMenu()).not.toBeInTheDocument()
+
+    act(() => editor.commands.insertContent('i'))
+    expect(mentionMenu()).toBeInTheDocument()
+    pressEnter(editor)
+    expect(editor.getJSON().content).toHaveLength(1)
+    expect(JSON.stringify(editor.getJSON())).toContain('"type":"mention"')
+    expect(JSON.stringify(editor.getJSON())).toContain('"id":"u1"')
+  })
+
+  it('tras Escape sin escribir, el menú sigue cerrado; una «@» nueva abre el suyo', async () => {
+    const editor = await mountEditor({ people })
+
+    act(() => editor.commands.insertContent('@Lu'))
+    escape(editor)
+    // Mover el cursor no lo reabre
+    act(() => editor.commands.setTextSelection(2))
+    act(() => editor.commands.setTextSelection(4))
+    expect(mentionMenu()).not.toBeInTheDocument()
+
+    act(() => editor.commands.insertContent(' @'))
+    expect(mentionMenu()).toBeInTheDocument()
   })
 })

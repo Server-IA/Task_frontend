@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useIsFetching } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Segmented } from '@/components/common/Segmented'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { usePlanningList } from '@/features/planning/hooks'
-import { useCurrentProject } from '@/features/projects/hooks'
+import { useCurrentProject, useLabels, useProjectMembers, useStates } from '@/features/projects/hooks'
 import { SavedViewsBar } from '@/features/saved-views/components/SavedViewsBar'
 import { searchApi } from '@/features/search/api'
 import { useActiveSavedView } from '@/features/saved-views/hooks'
@@ -28,6 +28,7 @@ import { IssueListView } from '../components/IssueListView'
 import { IssuePeekSheet } from '../components/IssuePeekSheet'
 import { useIssues } from '../hooks'
 import { bugGroups } from '../issueTypes'
+import { knownFilterIds, withoutUnknownParams } from '../unknownFilters'
 import { useIssueFilters } from '../useIssueFilters'
 import { useProjectMeta } from '../useIssueHelpers'
 
@@ -42,7 +43,8 @@ export function IssuesPage() {
   const meta = useMemo(() => ({ ...projectMeta, cycles: cycles ?? [], modules: modules ?? [] }), [projectMeta, cycles, modules])
   const issueFilters = useIssueFilters()
   const { filters, queryFilters, types, activeCount, view, sort, groupBy, page, openIssueId } = issueFilters
-  const { active: activeView, changed: changedFromView } = useActiveSavedView(workspace.slug, project.id, issueFilters)
+  const known = useKnownFilterIds(workspace.slug, project.id, cycles, modules)
+  const { active: activeView, changed: changedFromView } = useActiveSavedView(workspace.slug, project.id, issueFilters, known)
   // Vista «Bugs»: viene con cada proyecto (no está en la base de datos)
   const bugsView = issueFilters.activeViewId === BUGS_VIEW_ID
   const storiesUrl = `/${workspace.slug}/projects/${project.id}/stories`
@@ -50,6 +52,15 @@ export function IssuesPage() {
   // La paleta de comandos (Ctrl/⌘ K) pide crear una tarea con ?create=1 (y lo que se escribió en ?title=)
   const [searchParams, setSearchParams] = useSearchParams()
   const createFromUrl = searchParams.get('create') === '1'
+
+  // Un enlace (o una vista vieja) con una etiqueta, estado, persona, ciclo o módulo que ya no existe: se quita ese
+  // filtro en vez de mostrar «etiqueta: otro» sin resultados
+  useEffect(() => {
+    const next = withoutUnknownParams(searchParams, known)
+    if (!next) return
+    next.delete('page')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, known, setSearchParams])
 
   const navigate = useNavigate()
 
@@ -147,7 +158,7 @@ export function IssuesPage() {
           )
         }
       />
-      <SavedViewsBar slug={workspace.slug} project={project} meta={meta} issueFilters={issueFilters} />
+      <SavedViewsBar slug={workspace.slug} project={project} meta={meta} issueFilters={issueFilters} known={known} />
       <IssueFiltersBar
         filters={filters}
         activeCount={activeCount}
@@ -300,6 +311,17 @@ export function IssuesPage() {
         }}
       />
     </>
+  )
+}
+
+/** Ids que existen para los filtros (solo de las listas ya cargadas; ver knownFilterIds). */
+function useKnownFilterIds(slug, projectId, cycles, modules) {
+  const { data: states } = useStates(slug, projectId)
+  const { data: labels } = useLabels(slug, projectId)
+  const { data: members } = useProjectMembers(slug, projectId)
+  return useMemo(
+    () => knownFilterIds({ states, labels, users: members?.map((member) => member.user), cycles, modules }),
+    [states, labels, members, cycles, modules],
   )
 }
 

@@ -13,6 +13,7 @@ import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
 import { useProjects } from '@/features/projects/hooks'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { useLocalEscape } from '@/hooks/useLocalEscape'
+import { exampleCode, identifierOf } from '@/lib/codes'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { useAddRelation, useRelations, useRemoveRelation, useWorkspaceIssueSearch } from '../hooks'
@@ -395,7 +396,7 @@ function RelationAdder({ slug, projectId, issue, relatedIds, onClose }) {
             autoFocus
             value={search}
             onValueChange={setSearch}
-            placeholder="buscar por título o WEB-12"
+            placeholder={`buscar por título o ${exampleCode(identifierOf(issue.code))}`}
             className="min-w-0 flex-1 bg-transparent py-0.5 outline-none placeholder:text-muted-foreground"
             onKeyDown={(event) => {
               if (event.key === 'Tab') {

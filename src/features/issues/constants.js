@@ -22,6 +22,16 @@ export const SORT_OPTIONS = [
   { value: 'title,asc', label: 'Título (A-Z)' },
 ]
 
+export const DEFAULT_SORT = 'sortOrder,asc'
+const SORT_VALUES = new Set(SORT_OPTIONS.map((option) => option.value))
+
+/**
+ * El orden de la URL o de una vista guardada, si es uno de los de la lista; si no (un enlace viejo o editado a mano,
+ * «-createdAt»), el manual: el backend responde 400 a un orden que no conoce.
+ * @param {string | null | undefined} value
+ */
+export const sanitizeSort = (value) => (SORT_VALUES.has(value) ? value : DEFAULT_SORT)
+
 /** Cómo se agrupan las filas de la lista. Lo mismo acepta `groupBy` en las vistas guardadas. */
 export const GROUP_BY_OPTIONS = [
   { value: 'state', label: 'Estado' },
@@ -48,3 +58,9 @@ export const BOARD_PAGE_SIZE = 200
 
 /** Parámetro de la URL con la vista guardada que está aplicada en la lista de tareas. */
 export const SAVED_VIEW_PARAM = 'savedView'
+
+/**
+ * Clase de una fila que se abre con un clic en cualquier parte pero cuyo botón (para el teclado) es solo el título
+ * (`data-row-main`): la fila se resalta cuando ese botón tiene el foco.
+ */
+export const ROW_FOCUS = 'has-[[data-row-main]:focus-visible]:bg-accent'

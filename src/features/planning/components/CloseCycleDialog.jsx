@@ -27,6 +27,8 @@ import {
   targetCycleOf,
   tasksLabel,
 } from '../closeCycle'
+import { useRetro } from '@/features/retro/hooks'
+import { retroPhase } from '@/features/retro/retroNotes'
 import { useClosePreview, useCloseCycle, usePlanningList } from '../hooks'
 import { DateRange, SummaryTile } from './PlanningShared'
 
@@ -70,7 +72,11 @@ function CloseCycleForm({ slug, projectId, cycle: initialCycle, onClose }) {
   const [chosenMode, setMode] = useState(null)
   const [otherCycleId, setOtherCycleId] = useState(null)
   const [overrides, setOverrides] = useState({})
-  const [startRetro, setStartRetro] = useState(true)
+  const [wantRetro, setWantRetro] = useState(true)
+  // La retro se puede empezar antes de cerrar (desde su página): entonces ya no se ofrece ni se dice que se abrió
+  const { data: retro } = useRetro(slug, projectId, initialCycle.id)
+  const retroAlready = retro && retroPhase(retro) !== 'NOT_STARTED' ? retroPhase(retro) : null
+  const startRetro = wantRetro && !retroAlready
 
   const nextCycle = preview.data?.nextCycle ?? null
   const mode = chosenMode ?? defaultCloseMode(preview.data)
@@ -95,11 +101,15 @@ function CloseCycleForm({ slug, projectId, cycle: initialCycle, onClose }) {
           if (result.movedToBacklog > 0) parts.push(`${tasksLabel(result.movedToBacklog)} al backlog`)
           const moved = parts.length > 0 ? `Pasaron ${parts.join(' y ')}.` : 'No quedaban tareas sin terminar.'
           toast.success(`${cycle.name} cerrado`, {
-            // Al abrir la retro el backend avisa a los miembros del proyecto (menos a quien cierra)
-            description: result.retroStarted ? `${moved} Se abrió la retro y se avisó al equipo.` : moved,
+            // `retroStartedNow`: este cierre abrió la retro y el backend avisó a los miembros del proyecto (menos a quien
+            // cierra). `retroStarted` también es true si ya estaba abierta (y entonces no se avisó a nadie)
+            description: result.retroStartedNow ? `${moved} Se abrió la retro y se avisó al equipo.` : moved,
           })
           onClose()
-          if (startRetro && result.retroStarted) navigate(`/${slug}/projects/${projectId}/cycles/${cycle.id}/retro`)
+          // A la retro si se abrió ahora o si ya estaba en curso (terminada, no hay nada que escribir)
+          if (result.retroStartedNow || (result.retroStarted && (startRetro || retroAlready === 'OPEN'))) {
+            navigate(`/${slug}/projects/${projectId}/cycles/${cycle.id}/retro`)
+          }
         },
         onError: (error) => {
           notifyError(error, 'No se pudo cerrar el ciclo')
@@ -276,20 +286,26 @@ function CloseCycleForm({ slug, projectId, cycle: initialCycle, onClose }) {
             </fieldset>
           )}
 
-          <label className="flex cursor-pointer items-start gap-2.5">
-            <input
-              type="checkbox"
-              checked={startRetro}
-              onChange={(event) => setStartRetro(event.target.checked)}
-              className="mt-0.5 size-4 shrink-0 accent-[var(--ring)]"
-            />
-            <span>
-              <span className="block text-sm font-semibold">Empezar la retrospectiva</span>
-              <span className="block text-xs text-muted-foreground">
-                Abre la retro con el resumen del ciclo ya cargado y avisa al equipo.
+          {retroAlready ? (
+            <p className="text-xs text-muted-foreground">
+              {retroAlready === 'OPEN' ? 'La retrospectiva ya está abierta: sigue igual al cerrar.' : 'La retrospectiva de este ciclo ya terminó.'}
+            </p>
+          ) : (
+            <label className="flex cursor-pointer items-start gap-2.5">
+              <input
+                type="checkbox"
+                checked={wantRetro}
+                onChange={(event) => setWantRetro(event.target.checked)}
+                className="mt-0.5 size-4 shrink-0 accent-[var(--ring)]"
+              />
+              <span>
+                <span className="block text-sm font-semibold">Empezar la retrospectiva</span>
+                <span className="block text-xs text-muted-foreground">
+                  Abre la retro con el resumen del ciclo ya cargado y avisa al equipo.
+                </span>
               </span>
-            </span>
-          </label>
+            </label>
+          )}
         </>
       )}
 

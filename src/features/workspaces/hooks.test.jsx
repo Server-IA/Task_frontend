@@ -7,7 +7,7 @@ import { ApiError } from '@/lib/errors'
 import { usePreferencesStore } from '@/stores/preferencesStore'
 import { useSessionStore } from '@/stores/sessionStore'
 import { workspacesApi } from './api'
-import { forgetWorkspace, useDeleteWorkspace, useLastWorkspaceSlug, useRemoveMember, useWorkspace } from './hooks'
+import { forgetWorkspace, resolveLastWorkspace, useDeleteWorkspace, useLastWorkspaceSlug, useRemoveMember, useWorkspace } from './hooks'
 import { HomeRedirect } from './pages/HomeRedirect'
 import { WorkspaceLayout } from './pages/WorkspaceLayout'
 
@@ -29,7 +29,7 @@ const wrapperFor = (queryClient) =>
 
 beforeEach(() => {
   vi.resetAllMocks()
-  usePreferencesStore.setState({ lastWorkspaceSlug: null })
+  usePreferencesStore.setState({ lastWorkspaceSlug: null, lastWorkspaceId: null })
   useSessionStore.setState({ status: 'authenticated', user: { id: 'u1' }, accessToken: 'x' })
 })
 
@@ -150,16 +150,54 @@ describe('useRemoveMember', () => {
 })
 
 describe('useLastWorkspaceSlug', () => {
-  it('solo devuelve el último workspace si el usuario sigue siendo miembro', async () => {
+  it('si ya no es miembro del último, usa uno suyo (el primero) en vez de quedarse sin enlaces', async () => {
     const queryClient = client()
     queryClient.setQueryData(queryKeys.workspaces, [beta])
-    usePreferencesStore.setState({ lastWorkspaceSlug: 'acme' })
-    const { result, rerender } = renderHook(() => useLastWorkspaceSlug(), { wrapper: wrapperFor(queryClient) })
-    expect(result.current).toBeNull()
-
-    act(() => usePreferencesStore.setState({ lastWorkspaceSlug: 'beta' }))
-    rerender()
+    workspacesApi.list.mockResolvedValue([beta])
+    usePreferencesStore.setState({ lastWorkspaceSlug: 'gone' })
+    const { result } = renderHook(() => useLastWorkspaceSlug(), { wrapper: wrapperFor(queryClient) })
     expect(result.current).toBe('beta')
+  })
+
+  it('sin workspaces, null', () => {
+    const queryClient = client()
+    queryClient.setQueryData(queryKeys.workspaces, [])
+    usePreferencesStore.setState({ lastWorkspaceSlug: 'acme' })
+    const { result } = renderHook(() => useLastWorkspaceSlug(), { wrapper: wrapperFor(queryClient) })
+    expect(result.current).toBeNull()
+  })
+
+  it('si un project manager le cambió la URL, lo encuentra por su id, recarga el listado y guarda el slug nuevo', async () => {
+    const queryClient = client()
+    const renamed = { id: 'w-acme', slug: 'acme-studio', name: 'Acme' }
+    queryClient.setQueryData(queryKeys.workspaces, [{ id: 'w-beta', ...beta }, renamed])
+    workspacesApi.list.mockResolvedValue([{ id: 'w-beta', ...beta }, renamed])
+    usePreferencesStore.setState({ lastWorkspaceSlug: 'acme-stale', lastWorkspaceId: 'w-acme' })
+    const { result } = renderHook(() => useLastWorkspaceSlug(), { wrapper: wrapperFor(queryClient) })
+
+    expect(result.current).toBe('acme-studio')
+    await waitFor(() => expect(usePreferencesStore.getState().lastWorkspaceSlug).toBe('acme-studio'))
+    expect(workspacesApi.list).toHaveBeenCalledTimes(1)
+  })
+
+  it('con el listado en caché viejo, al no encontrarlo lo recarga y toma el slug nuevo', async () => {
+    const queryClient = client()
+    queryClient.setQueryData(queryKeys.workspaces, [{ id: 'w-beta', ...beta }])
+    workspacesApi.list.mockResolvedValue([{ id: 'w-beta', ...beta }, { id: 'w-acme', slug: 'acme-2', name: 'Acme' }])
+    usePreferencesStore.setState({ lastWorkspaceSlug: 'acme-old', lastWorkspaceId: 'w-acme' })
+    const { result } = renderHook(() => useLastWorkspaceSlug(), { wrapper: wrapperFor(queryClient) })
+
+    await waitFor(() => expect(result.current).toBe('acme-2'))
+  })
+})
+
+describe('resolveLastWorkspace', () => {
+  const list = [{ id: '1', slug: 'uno' }, { id: '2', slug: 'dos' }]
+  it('por slug, por id o el primero', () => {
+    expect(resolveLastWorkspace(list, { slug: 'dos', id: '1' }).slug).toBe('dos')
+    expect(resolveLastWorkspace(list, { slug: 'viejo', id: '2' }).slug).toBe('dos')
+    expect(resolveLastWorkspace(list, { slug: 'viejo', id: null }).slug).toBe('uno')
+    expect(resolveLastWorkspace([], { slug: 'uno' })).toBeNull()
   })
 })
 
@@ -186,5 +224,22 @@ describe('WorkspaceLayout', () => {
     workspacesApi.get.mockRejectedValue(new ApiError({ status: 403, message: 'Sin acceso' }))
     renderLayout(client())
     await waitFor(() => expect(usePreferencesStore.getState().lastWorkspaceSlug).toBeNull())
+  })
+
+  it('con un slug que ya no existe (404) recarga el listado y conserva el id para encontrarlo con su URL nueva', async () => {
+    const queryClient = client()
+    queryClient.setQueryData(queryKeys.workspaces, [acme])
+    usePreferencesStore.setState({ lastWorkspaceSlug: 'acme', lastWorkspaceId: 'w-acme' })
+    workspacesApi.get.mockRejectedValue(new ApiError({ status: 404, message: 'Workspace no encontrado' }))
+    renderLayout(queryClient)
+    await waitFor(() => expect(usePreferencesStore.getState().lastWorkspaceSlug).toBeNull())
+    expect(usePreferencesStore.getState().lastWorkspaceId).toBe('w-acme')
+    expect(queryClient.getQueryState(queryKeys.workspaces).isInvalidated).toBe(true)
+  })
+
+  it('al abrirlo recuerda su slug y su id', async () => {
+    workspacesApi.get.mockResolvedValue({ id: 'w-acme', ...acme })
+    renderLayout(client())
+    await waitFor(() => expect(usePreferencesStore.getState()).toMatchObject({ lastWorkspaceSlug: 'acme', lastWorkspaceId: 'w-acme' }))
   })
 })

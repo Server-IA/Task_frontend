@@ -3,7 +3,8 @@ import { Bug } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { cn } from '@/lib/utils'
-import { BOARD_PAGE_SIZE, PRIORITY_LABELS } from '../constants'
+import { focusRowMain } from '@/lib/focusReturn'
+import { BOARD_PAGE_SIZE, PRIORITY_LABELS, ROW_FOCUS } from '../constants'
 import { useIssues } from '../hooks'
 import { bugGroups } from '../issueTypes'
 import { useCriteriaGuard } from '../useCriteriaGuard'
@@ -111,18 +112,20 @@ const BugRow = memo(function BugRow({ bug, slug, project, meta, triage, first, a
   const noPriority = !bug.priority || bug.priority === 'NONE'
   return (
     <li className={cn(!first && 'border-t', triage && 'border-dashed')}>
+      {/* Como en la lista: un clic en la fila la abre; con el teclado, el título es el botón y los selectores van aparte */}
       <div
-        role="button"
-        tabIndex={0}
-        onClick={() => openIssue(bug.id)}
-        onKeyDown={(event) => event.key === 'Enter' && openIssue(bug.id)}
+        onClick={(event) => {
+          focusRowMain(event.currentTarget)
+          openIssue(bug.id)
+        }}
         className={cn(
-          'group flex cursor-pointer items-center gap-2.5 px-4 py-2.5 outline-none hover:bg-subtle focus-visible:bg-accent',
+          'group flex cursor-pointer items-center gap-2.5 px-4 py-2.5 hover:bg-subtle',
+          ROW_FOCUS,
           active && 'bg-accent-soft hover:bg-accent-soft',
         )}
       >
         <TypeIcon type="BUG" size={14} />
-        <span onClick={stop} onKeyDown={stop}>
+        <span onClick={stop}>
           <StatePicker
             states={meta.states}
             value={bug.state?.id}
@@ -141,10 +144,17 @@ const BugRow = memo(function BugRow({ bug, slug, project, meta, triage, first, a
           />
         </span>
         <span className="min-w-14 shrink-0 font-mono text-xs whitespace-nowrap text-muted-foreground">{bug.code}</span>
-        <span className="min-w-0 flex-1 truncate text-sm font-medium">{bug.title}</span>
+        <button
+          type="button"
+          data-row-main=""
+          aria-label={`${bug.code} ${bug.title}`}
+          className="min-w-0 flex-1 cursor-pointer truncate text-left text-sm font-medium outline-none"
+        >
+          {bug.title}
+        </button>
         <BlockedChip issue={bug} codes="inline" />
         {bug.parent?.type === 'STORY' && <ParentStoryChip parent={bug.parent} label="apareció en" onOpen={openIssue} />}
-        <span className="flex items-center gap-1.5" onClick={stop} onKeyDown={stop}>
+        <span className="flex items-center gap-1.5" onClick={stop}>
           {triage && (
             <PriorityPicker
               chip={!noPriority}

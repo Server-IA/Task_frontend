@@ -30,8 +30,10 @@ function CyclePicker({ slug, projectId, issue }) {
   const add = useAddPlanningIssues('cycles', slug, projectId)
   const remove = useRemovePlanningIssue('cycles', slug, projectId)
   const current = issue.cycle
-  // Un ciclo cerrado ya no recibe tareas: solo aparece si es el de la tarea (para quitarla)
+  // Un ciclo cerrado ya no recibe ni suelta tareas (409): solo aparece si es el de la tarea, y sin «Quitar del ciclo»
+  // (sí se la puede pasar a uno abierto)
   const choices = cycles.filter((cycle) => !cycle.closedAt || cycle.id === current?.id)
+  const currentClosed = Boolean(current && cycles.find((cycle) => cycle.id === current.id)?.closedAt)
 
   const choose = (cycleId) => {
     setOpen(false)
@@ -58,7 +60,7 @@ function CyclePicker({ slug, projectId, issue }) {
           <CommandList>
             <CommandEmpty>No hay ciclos (créalos en la sección Ciclos)</CommandEmpty>
             <CommandGroup>
-              {current && (
+              {current && !currentClosed && (
                 <CommandItem value="__none__ sin ciclo" onSelect={() => choose(null)}>
                   <X />
                   Quitar del ciclo

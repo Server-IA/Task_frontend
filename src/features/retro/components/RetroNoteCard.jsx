@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Check, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -13,12 +13,17 @@ import { Spinner } from '@/components/common/Loaders'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { useLocalEscape } from '@/hooks/useLocalEscape'
 import { formatDateTime } from '@/lib/dates'
+import { useFocusAfterRemoval } from '@/lib/focusReturn'
 import { notifyError } from '@/lib/notify'
+import { warnUnsavedText } from '@/lib/unsavedText'
 import { IS_MAC } from '@/lib/shortcuts'
 import { cn } from '@/lib/utils'
 import { useConvertRetroNote, useDeleteRetroNote, useUpdateRetroNote, useVoteRetroNote } from '../hooks'
 import { buildNoteUpdate, MAX_VOTES, NOTE_MAX_LENGTH, shortName, voteState } from '../retroNotes'
 import { OwnerButton, OwnerPicker } from './OwnerPicker'
+
+/** Aviso cuando la retro termina con una nota a medio escribir. */
+export const RETRO_CLOSED_TITLE = 'La retrospectiva terminó; tu nota no se guardó'
 
 /** Atajo para guardar una nota, como se muestra en la interfaz. */
 export const SAVE_HINT = IS_MAC ? '⌘ ↵' : 'ctrl ↵'
@@ -26,14 +31,17 @@ export const SAVE_HINT = IS_MAC ? '⌘ ↵' : 'ctrl ↵'
 /**
  * Una nota de la retro: texto, autor (o responsable, en las acciones), votos y, en las acciones, su tarea
  * (o «Crear tarea» para el PM, que queda asignada al responsable).
- * @param {{ note: import('@/api/types').RetroNote, retro: import('@/api/types').RetroResponse, ctx: RetroContext }} props
+ * `focusAfterDelete`: a dónde va el foco al eliminarla (su menú desaparece con ella).
+ * @param {{ note: import('@/api/types').RetroNote, retro: import('@/api/types').RetroResponse, ctx: RetroContext,
+ *           focusAfterDelete?: React.RefObject<HTMLElement>[] }} props
  */
-export function RetroNoteCard({ note, retro, ctx }) {
+export function RetroNoteCard({ note, retro, ctx, focusAfterDelete = [] }) {
   const [editing, setEditing] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const update = useUpdateRetroNote(ctx.slug, ctx.projectId, ctx.cycleId)
   const remove = useDeleteRetroNote(ctx.slug, ctx.projectId, ctx.cycleId)
   const convert = useConvertRetroNote(ctx.slug, ctx.projectId, ctx.cycleId)
+  const removal = useFocusAfterRemoval(...focusAfterDelete)
   const isAction = note.column === 'ACTION'
   const editable = ctx.canEdit(note)
 
@@ -66,6 +74,7 @@ export function RetroNoteCard({ note, retro, ctx }) {
           members={ctx.members}
           label="Editar nota"
           submitLabel="Guardar"
+          closed={ctx.open === false}
           pending={update.isPending}
           onCancel={() => setEditing(false)}
           onSubmit={(changes) => save(changes, { onSuccess: () => setEditing(false) })}
@@ -146,15 +155,19 @@ export function RetroNoteCard({ note, retro, ctx }) {
         description={note.votes > 0 ? 'Se pierden también sus votos.' : undefined}
         confirmLabel="Eliminar"
         loading={remove.isPending}
-        onConfirm={() =>
+        returnFocusRef={focusAfterDelete}
+        focusAfterConfirmRef={removal.ref}
+        onConfirm={() => {
+          removal.start()
           remove.mutate(note, {
             onSuccess: () => {
+              removal.done()
               setConfirmDelete(false)
               toast.success('Nota eliminada')
             },
             onError: (error) => notifyError(error),
           })
-        }
+        }}
       />
     </article>
   )
@@ -265,6 +278,8 @@ function VoteButton({ note, retro, ctx }) {
  * (`withOwner`) se elige también el responsable entre los miembros del proyecto.
  * `keepOpen`: al agregar, el campo se vacía y sigue abierto para escribir la siguiente.
  * `onSubmit({ text, ownerId }, reset)`: `ownerId` solo viene con `withOwner` (null = sin responsable).
+ * `closed`: la retro terminó mientras se escribía (la terminó el PM). El campo se cierra y, si había texto sin
+ * guardar, un aviso persistente lo ofrece con «Copiar mi texto» para no perderlo.
  */
 export function NoteEditor({
   initialText = '',
@@ -278,8 +293,22 @@ export function NoteEditor({
   onSubmit,
   onCancel,
   keepOpen = false,
+  closed = false,
 }) {
   const [text, setText] = useState(initialText)
+  const draftRef = useRef({ text, initialText, onCancel })
+  useEffect(() => {
+    draftRef.current = { text, initialText, onCancel }
+  })
+  useEffect(() => {
+    if (!closed) return
+    const draft = draftRef.current
+    const unsaved = draft.text.trim()
+    if (unsaved && unsaved !== draft.initialText.trim()) {
+      warnUnsavedText(RETRO_CLOSED_TITLE, 'Copia tu texto para no perderlo.', unsaved)
+    }
+    draft.onCancel()
+  }, [closed])
   const [ownerId, setOwnerId] = useState(initialOwner?.id ?? null)
   const wrapperRef = useRef(null)
   useLocalEscape(wrapperRef, onCancel)
@@ -347,6 +376,6 @@ export function NoteEditor({
 
 /**
  * @typedef {{ slug: string, projectId: string, cycleId: string, userId?: string, manager: boolean,
- *             members: import('@/api/types').UserSummary[],
+ *             open: boolean, members: import('@/api/types').UserSummary[],
  *             canEdit: (note: import('@/api/types').RetroNote) => boolean, openIssue: (issueId: string) => void }} RetroContext
  */

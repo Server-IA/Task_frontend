@@ -36,6 +36,17 @@ export function retroPhase(retro) {
   return retro.finishedAt ? 'FINISHED' : 'OPEN'
 }
 
+/** Cada cuánto se traen las notas y votos de los demás mientras la retro no termina. */
+export const RETRO_LIVE_REFRESH_MS = 15_000
+
+/**
+ * Se vuelve a pedir la retro mientras no haya terminado: en curso, para ver lo que escriben y votan los demás; sin
+ * empezar, para que quien espera en la página vea cuando el project manager la abre. Terminada, ya no cambia.
+ */
+export function retroRefreshMs(retro) {
+  return retro && retroPhase(retro) !== 'FINISHED' ? RETRO_LIVE_REFRESH_MS : false
+}
+
 /**
  * Más votadas primero; a igual número de votos, la más antigua primero (el orden en que se escribieron).
  * @param {RetroNote[]} notes
