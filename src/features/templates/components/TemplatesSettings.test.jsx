@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { TemplatesSettings } from './TemplatesSettings'
@@ -18,15 +19,17 @@ const template = {
   usageCount: 0,
 }
 const mutation = { mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false }
+const removeTemplate = vi.fn()
 let templates = [template]
 
 vi.mock('../hooks', () => ({
   useTemplates: () => ({ data: templates, isLoading: false, error: null, refetch: vi.fn() }),
   useCreateTemplate: () => mutation,
   useUpdateTemplate: () => mutation,
-  useDeleteTemplate: () => mutation,
+  useDeleteTemplate: () => ({ mutate: removeTemplate, isPending: false }),
 }))
 vi.mock('@/features/workspaces/hooks', () => ({ useIsManager: () => true }))
+vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 vi.mock('@/features/issues/useIssueHelpers', () => ({
   useProjectMeta: () => ({ states: [], users: [], labels: [], isLoading: false }),
 }))
@@ -102,5 +105,28 @@ describe('TemplatesSettings: cambios sin guardar', () => {
     fireEvent.click(listButton(/Tarea técnica/))
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
     expect(screen.getByDisplayValue('Tarea técnica')).toBeInTheDocument()
+  })
+})
+
+describe('TemplatesSettings: eliminar una plantilla', () => {
+  it('el foco va a «Nueva plantilla» (el editor y su botón «Eliminar plantilla» desaparecen)', async () => {
+    const other = { ...template, id: 't3', name: 'Otra' }
+    templates = [template, other]
+    removeTemplate.mockImplementation((_id, { onSuccess }) => {
+      templates = [other]
+      onSuccess()
+    })
+    const user = userEvent.setup()
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <TemplatesSettings slug="equipo" project={{ id: 'p1', identifier: 'WEB' }} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+    await user.click(screen.getByRole('button', { name: 'Eliminar plantilla' }))
+    await user.click(await screen.findByRole('button', { name: 'Eliminar' }))
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole('button', { name: /Nueva plantilla/ })).toHaveFocus())
   })
 })

@@ -100,6 +100,7 @@ export function RetroPage() {
     cycleId,
     userId,
     manager,
+    open: phase === 'OPEN',
     members,
     canEdit: (note) => canEditNote(note, { userId, manager, phase }),
     openIssue: issueFilters.openIssue,
@@ -243,8 +244,8 @@ export function RetroPage() {
         onConfirm={() =>
           finish.mutate(undefined, {
             onSuccess: () => {
+              // El campo de una nota a medio escribir se cierra solo, avisando si había texto (ver NoteEditor)
               setConfirmFinish(false)
-              setComposing(null)
               toast.success('Retrospectiva terminada')
             },
             onError: (finishError) => notifyError(finishError),

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { MailPlus, X } from 'lucide-react'
@@ -82,10 +83,30 @@ function InviteCard({ workspace }) {
 function PendingInvitations({ workspace }) {
   const { data: invitations, isLoading, error, refetch } = useInvitations(workspace.slug)
   const revoke = useRevokeInvitation(workspace.slug)
+  const listRef = useRef(null)
+  const titleRef = useRef(null)
+  // Cancelada una invitación, su fila (con el botón que tenía el foco) se va al recargar la lista: el foco pasa a la
+  // invitación que queda en su lugar (o a la anterior) y, si no queda ninguna, al título
+  const revoked = useRef(null)
 
-  const handleRevoke = (invitation) => {
+  useEffect(() => {
+    const pending = revoked.current
+    if (!pending || !invitations || invitations.some((invitation) => invitation.id === pending.id)) return
+    revoked.current = null
+    // Si mientras tanto la persona fue a otro lado, no se le quita el foco
+    const active = document.activeElement
+    if (active && active !== document.body && !listRef.current?.contains(active)) return
+    const buttons = listRef.current?.querySelectorAll('[data-revoke]') ?? []
+    const next = buttons[Math.min(pending.index, buttons.length - 1)]
+    ;(next ?? titleRef.current)?.focus()
+  }, [invitations])
+
+  const handleRevoke = (invitation, index) => {
     revoke.mutate(invitation.id, {
-      onSuccess: () => toast.success(`Invitación a ${invitation.email} cancelada`),
+      onSuccess: () => {
+        revoked.current = { id: invitation.id, index }
+        toast.success(`Invitación a ${invitation.email} cancelada`)
+      },
       onError: (revokeError) => notifyError(revokeError),
     })
   }
@@ -93,7 +114,9 @@ function PendingInvitations({ workspace }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Invitaciones pendientes</CardTitle>
+        <CardTitle ref={titleRef} tabIndex={-1} className="outline-none">
+          Invitaciones pendientes
+        </CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading && <CenteredSpinner />}
@@ -102,8 +125,8 @@ function PendingInvitations({ workspace }) {
           <EmptyState icon={MailPlus} title="Sin invitaciones pendientes" className="py-6" />
         )}
         {invitations?.length > 0 && (
-          <ul className="divide-y">
-            {invitations.map((invitation) => (
+          <ul ref={listRef} className="divide-y">
+            {invitations.map((invitation, index) => (
               <li key={invitation.id} className="flex items-center gap-3 py-3">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{invitation.email}</p>
@@ -119,7 +142,8 @@ function PendingInvitations({ workspace }) {
                       variant="ghost"
                       size="icon"
                       className="size-8"
-                      onClick={() => handleRevoke(invitation)}
+                      data-revoke=""
+                      onClick={() => handleRevoke(invitation, index)}
                       disabled={revoke.isPending}
                       aria-label={`Cancelar invitación a ${invitation.email}`}
                     >

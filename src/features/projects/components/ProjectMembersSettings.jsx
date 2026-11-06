@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { UserMinus, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -12,6 +12,7 @@ import { ErrorState } from '@/components/common/States'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { useIsManager, useMembers } from '@/features/workspaces/hooks'
 import { formatShortDate } from '@/lib/dates'
+import { useFocusAfterRemoval } from '@/lib/focusReturn'
 import { notifyError } from '@/lib/notify'
 import { useSessionStore } from '@/stores/sessionStore'
 import { useAddProjectMember, useProjectMembers, useRemoveProjectMember } from '../hooks'
@@ -22,10 +23,16 @@ export function ProjectMembersSettings({ slug, project }) {
   const currentUserId = useSessionStore((state) => state.user?.id)
   const [toRemove, setToRemove] = useState(null)
   const canManage = useIsManager()
+  // Al quitar a alguien su fila desaparece: el foco va a «Agregar» (o al título, si no está)
+  const addRef = useRef(null)
+  const titleRef = useRef(null)
+  const removal = useFocusAfterRemoval(addRef, titleRef)
 
   const handleRemove = () => {
+    removal.start()
     remove.mutate(toRemove.user.id, {
       onSuccess: () => {
+        removal.done()
         toast.success(`${toRemove.user.fullName} salió del proyecto`)
         setToRemove(null)
       },
@@ -37,13 +44,15 @@ export function ProjectMembersSettings({ slug, project }) {
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div className="space-y-1.5">
-          <CardTitle>Miembros del proyecto</CardTitle>
+          <CardTitle ref={titleRef} tabIndex={-1} className="outline-none">
+            Miembros del proyecto
+          </CardTitle>
           <CardDescription>
             Pueden ver el proyecto y ser asignados a sus tareas. Los project managers ven todos los proyectos.
           </CardDescription>
           {!canManage && <LockNote>Solo el project manager puede agregar o quitar miembros.</LockNote>}
         </div>
-        {canManage && members && <AddMemberButton slug={slug} project={project} members={members} />}
+        {canManage && members && <AddMemberButton slug={slug} project={project} members={members} buttonRef={addRef} />}
       </CardHeader>
       <CardContent>
         {isLoading && <CenteredSpinner />}
@@ -89,12 +98,14 @@ export function ProjectMembersSettings({ slug, project }) {
         confirmLabel="Quitar"
         loading={remove.isPending}
         onConfirm={handleRemove}
+        returnFocusRef={[addRef, titleRef]}
+        focusAfterConfirmRef={removal.ref}
       />
     </Card>
   )
 }
 
-function AddMemberButton({ slug, project, members }) {
+function AddMemberButton({ slug, project, members, buttonRef }) {
   const [open, setOpen] = useState(false)
   const { data: workspaceMembers = [] } = useMembers(slug)
   const add = useAddProjectMember(slug, project.id)
@@ -112,7 +123,7 @@ function AddMemberButton({ slug, project, members }) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button size="sm">
+        <Button ref={buttonRef} size="sm">
           <UserPlus />
           Agregar
         </Button>

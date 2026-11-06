@@ -23,7 +23,7 @@ import { slugify } from '@/lib/slug'
 import { cn } from '@/lib/utils'
 import { canCloseCycle, isCycleClosed } from '../closeCycle'
 import { PLANNING, useDeletePlanning, usePlanningItem, useRemovePlanningIssue } from '../hooks'
-import { progressBreakdown } from '../progressBreakdown'
+import { planningListCount, progressBreakdown } from '../progressBreakdown'
 import { CloseCycleDialog } from '../components/CloseCycleDialog'
 import {
   AddIssuesDialog,
@@ -241,6 +241,7 @@ function ProgressBlock({ kind, item, issues }) {
 function PlanningIssues({ kind, slug, projectId, item, issues, isLoading, onOpenIssue, onAdd }) {
   const removeIssue = useRemovePlanningIssue(kind, slug, projectId)
   const singular = PLANNING_TEXT[kind].singular
+  const count = useMemo(() => planningListCount(issues), [issues])
 
   if (isLoading) return <Skeleton className="h-64 w-full rounded-2xl" />
 
@@ -266,7 +267,10 @@ function PlanningIssues({ kind, slug, projectId, item, issues, isLoading, onOpen
     <section aria-label={`Tareas del ${singular}`} className="overflow-hidden rounded-2xl border bg-card">
       <header className="flex items-center gap-2 bg-column px-4 py-2.5 font-mono text-[11px] tracking-[0.08em] uppercase">
         <h2 className="font-semibold">Tareas del {singular}</h2>
-        <span className="text-muted-foreground">{String(issues.length).padStart(2, '0')}</span>
+        {/* Como el avance: tareas y bugs sin cancelar; las historias y canceladas de la lista, aparte */}
+        <span className="text-muted-foreground" title={count.title}>
+          {count.text}
+        </span>
       </header>
       <ul>
         {issues.map((issue) => {

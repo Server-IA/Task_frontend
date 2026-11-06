@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -24,8 +24,9 @@ import { AssigneesPicker, LabelsPicker, PriorityPicker, StatePicker } from '@/fe
 import { PriorityChip } from '@/features/issues/components/PriorityIcon'
 import { useProjectMeta } from '@/features/issues/useIssueHelpers'
 import { useIsManager } from '@/features/workspaces/hooks'
-import { DND_INSTRUCTIONS, quoted, sortableAnnouncements } from '@/lib/dndAnnouncements'
+import { DND_INSTRUCTIONS, DRAG_ROLE, quoted, sortableAnnouncements } from '@/lib/dndAnnouncements'
 import { applyFieldErrors } from '@/lib/errors'
+import { useFocusAfterRemoval } from '@/lib/focusReturn'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { TypeIcon } from '@/features/issues/components/IssueTypeBits'
@@ -101,6 +102,11 @@ export function TemplatesSettings({ slug, project }) {
   // El editor tiene cambios sin guardar; elegir otra plantilla los descartaría, así que se pregunta antes
   const [dirty, setDirty] = useState(false)
   const [leavingTo, setLeavingTo] = useState(undefined)
+  // Al eliminar una plantilla su editor se va con el botón «Eliminar plantilla»: el foco va a «Nueva plantilla»
+  // (o al título)
+  const newRef = useRef(null)
+  const titleRef = useRef(null)
+  const removal = useFocusAfterRemoval(newRef, titleRef)
 
   const list = templates ?? []
   const selected = selectedId === NEW ? null : (list.find((template) => template.id === selectedId) ?? list[0] ?? null)
@@ -123,7 +129,9 @@ export function TemplatesSettings({ slug, project }) {
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4">
         <div className="space-y-1.5">
-          <CardTitle>Plantillas de tareas</CardTitle>
+          <CardTitle ref={titleRef} tabIndex={-1} className="outline-none">
+            Plantillas de tareas
+          </CardTitle>
           <CardDescription>
             Rellenan la tarea nueva con título, descripción, estado, prioridad, etiquetas, asignados y checklist. Todo el equipo
             las usa al crear tareas.
@@ -212,6 +220,7 @@ export function TemplatesSettings({ slug, project }) {
               </ul>
               {canManage && (
                 <button
+                  ref={newRef}
                   type="button"
                   onClick={() => select(NEW)}
                   aria-pressed={editingNew}
@@ -234,6 +243,7 @@ export function TemplatesSettings({ slug, project }) {
                 canManage={canManage}
                 onSaved={(saved) => setSelectedId(saved.id)}
                 onDeleted={() => setSelectedId(null)}
+                removal={removal}
                 onCancelNew={() => setSelectedId(null)}
                 onDirtyChange={setDirty}
               />
@@ -317,7 +327,7 @@ function SkeletonField({ value, onChange, readOnly, error }) {
 }
 
 /** Formulario de una plantilla (nueva si `template` es null). Para los miembros, solo lectura. */
-function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted, onCancelNew, onDirtyChange }) {
+function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted, onCancelNew, onDirtyChange, removal }) {
   const { states, labels, users } = useProjectMeta(slug, project.id)
   const create = useCreateTemplate(slug, project.id)
   const update = useUpdateTemplate(slug, project.id)
@@ -356,15 +366,18 @@ function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted
     else update.mutate({ templateId: template.id, ...body }, options)
   }
 
-  const handleDelete = () =>
+  const handleDelete = () => {
+    removal?.start()
     remove.mutate(template.id, {
       onSuccess: () => {
+        removal?.done()
         toast.success(`Plantilla «${template.name}» eliminada`)
         setConfirmDelete(false)
         onDeleted()
       },
       onError: (deleteError) => notifyError(deleteError),
     })
+  }
 
   const chip = (empty) =>
     cn('h-8 rounded-full border px-3 text-[13px]', empty ? 'border-dashed border-dash text-muted-foreground' : 'border-border bg-card')
@@ -557,6 +570,7 @@ function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted
           confirmLabel="Eliminar"
           loading={remove.isPending}
           onConfirm={handleDelete}
+          focusAfterConfirmRef={removal?.ref}
         />
       )}
     </form>
@@ -620,6 +634,7 @@ function TemplateChecklistRow({ id, index, count, form, readOnly, error, onMove,
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id,
     disabled: readOnly,
+    attributes: { roleDescription: DRAG_ROLE.item },
   })
   const kind = useWatch({ control: form.control, name: `checklist.${index}.kind` })
   const text = useWatch({ control: form.control, name: `checklist.${index}.text` })

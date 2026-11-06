@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowDown, ArrowUp, Pencil, Plus, Trash2 } from 'lucide-react'
@@ -17,6 +17,7 @@ import { ErrorState } from '@/components/common/States'
 import { STATE_GROUP_LABELS, StateIcon } from '@/components/common/StateIcon'
 import { useIsManager } from '@/features/workspaces/hooks'
 import { applyFieldErrors } from '@/lib/errors'
+import { useFocusAfterRemoval } from '@/lib/focusReturn'
 import { notifyError } from '@/lib/notify'
 import { useCreateState, useDeleteState, useReorderStates, useStates, useUpdateState } from '../hooks'
 import { STATE_GROUPS, stateSchema } from '../schemas'
@@ -29,6 +30,10 @@ export function StatesSettings({ slug, project }) {
   const [creating, setCreating] = useState(false)
   const [toDelete, setToDelete] = useState(null)
   const canManage = useIsManager()
+  // Al eliminar un estado su fila desaparece: el foco va a «Nuevo estado» (o al título)
+  const newRef = useRef(null)
+  const titleRef = useRef(null)
+  const removal = useFocusAfterRemoval(newRef, titleRef)
   // Un cambio de orden a la vez: el siguiente parte del orden ya guardado (y un fallo no deshace otro)
   const moving = reorder.isPending
 
@@ -42,8 +47,10 @@ export function StatesSettings({ slug, project }) {
   }
 
   const handleDelete = () => {
+    removal.start()
     remove.mutate(toDelete.id, {
       onSuccess: () => {
+        removal.done()
         toast.success(`Estado «${toDelete.name}» eliminado`)
         setToDelete(null)
       },
@@ -58,14 +65,16 @@ export function StatesSettings({ slug, project }) {
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div className="space-y-1.5">
-          <CardTitle>Estados</CardTitle>
+          <CardTitle ref={titleRef} tabIndex={-1} className="outline-none">
+            Estados
+          </CardTitle>
           <CardDescription>
             Son las columnas del tablero, en este orden. El grupo define cuándo una tarea cuenta como completada.
           </CardDescription>
           {!canManage && <LockNote>Solo el project manager puede cambiar los estados.</LockNote>}
         </div>
         {canManage && (
-          <Button size="sm" onClick={() => setCreating(true)}>
+          <Button ref={newRef} size="sm" onClick={() => setCreating(true)}>
             <Plus />
             Nuevo estado
           </Button>
@@ -135,6 +144,9 @@ export function StatesSettings({ slug, project }) {
         confirmLabel="Eliminar"
         loading={remove.isPending}
         onConfirm={handleDelete}
+        // Si no se pudo (tiene tareas) el estado sigue ahí: el foco vuelve a su botón
+        returnFocusRef={[newRef, titleRef]}
+        focusAfterConfirmRef={removal.ref}
       />
     </Card>
   )

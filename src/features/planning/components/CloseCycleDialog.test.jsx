@@ -86,7 +86,7 @@ describe('CloseCycleDialog', () => {
       nextCycle: null,
     })
     // El backend responde retroStarted = «la retro está abierta», aunque la haya abierto antes otra persona
-    cyclesApi.close.mockResolvedValue({ cycle, movedToCycle: 0, movedToBacklog: 0, retroStarted: true })
+    cyclesApi.close.mockResolvedValue({ cycle, movedToCycle: 0, movedToBacklog: 0, retroStarted: true, retroStartedNow: false })
     renderDialog()
     expect(await screen.findByText('La retrospectiva de este ciclo ya terminó.')).toBeInTheDocument()
     expect(screen.queryByText('Empezar la retrospectiva')).not.toBeInTheDocument()
@@ -96,5 +96,36 @@ describe('CloseCycleDialog', () => {
     await waitFor(() => expect(toast.success).toHaveBeenCalled())
     expect(cyclesApi.close.mock.calls[0].at(-1)).toMatchObject({ startRetro: false })
     expect(toast.success.mock.calls[0][1].description).not.toMatch(/Se abrió la retro/)
+  })
+
+  const emptyPreview = { cycle, completed: [], unfinished: [], completedCount: 0, unfinishedCount: 0, cycleTimeDays: null, nextCycle: null }
+
+  it('si este cierre abrió la retro (retroStartedNow), dice que se avisó al equipo', async () => {
+    toast.success.mockClear()
+    retroApi.get.mockResolvedValue({ started: false, finishedAt: null })
+    cyclesApi.list.mockResolvedValue([cycle])
+    cyclesApi.closePreview.mockResolvedValue(emptyPreview)
+    cyclesApi.close.mockResolvedValue({ cycle, movedToCycle: 0, movedToBacklog: 0, retroStarted: true, retroStartedNow: true })
+    renderDialog()
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: /Cerrar Sprint 1/ }))
+    await waitFor(() => expect(toast.success).toHaveBeenCalled())
+    expect(cyclesApi.close.mock.calls.at(-1).at(-1)).toMatchObject({ startRetro: true })
+    expect(toast.success.mock.calls[0][1].description).toMatch(/Se abrió la retro y se avisó al equipo\./)
+  })
+
+  it('si otra persona la abrió mientras tanto (retroStarted sin retroStartedNow), no dice que se avisó', async () => {
+    toast.success.mockClear()
+    // Al abrir el diálogo la retro no había empezado: se pide abrirla al cerrar
+    retroApi.get.mockResolvedValue({ started: false, finishedAt: null })
+    cyclesApi.list.mockResolvedValue([cycle])
+    cyclesApi.closePreview.mockResolvedValue(emptyPreview)
+    cyclesApi.close.mockResolvedValue({ cycle, movedToCycle: 0, movedToBacklog: 0, retroStarted: true, retroStartedNow: false })
+    renderDialog()
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: /Cerrar Sprint 1/ }))
+    await waitFor(() => expect(toast.success).toHaveBeenCalled())
+    expect(cyclesApi.close.mock.calls.at(-1).at(-1)).toMatchObject({ startRetro: true })
+    expect(toast.success.mock.calls[0][1].description).not.toMatch(/avisó/)
   })
 })

@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { knownFilterIds } from '@/features/issues/unknownFilters'
 import { ApiError } from '@/lib/errors'
 import { SavedViewsBar } from './SavedViewsBar'
 
@@ -8,9 +9,10 @@ const create = vi.fn()
 const update = vi.fn()
 let views = []
 let manager = false
+let activeState = { active: null, missing: [] }
 
 vi.mock('../hooks', () => ({
-  useActiveSavedView: () => ({ views, active: null, current: { view: 'list' }, changed: [] }),
+  useActiveSavedView: () => ({ views, current: { view: 'list' }, changed: [], ...activeState }),
   useCreateSavedView: () => ({ mutate: create, isPending: false }),
   useUpdateSavedView: () => ({ mutate: update, isPending: false }),
   useDeleteSavedView: () => ({ mutate: vi.fn(), isPending: false }),
@@ -23,13 +25,14 @@ const view = (id, name, extra) => ({ id, name, shared: false, mine: true, filter
 const meta = { states: [], labels: [], users: [], cycles: [], modules: [] }
 const issueFilters = { activeViewId: null, applyParams: vi.fn() }
 
-function renderBar() {
-  return render(<SavedViewsBar slug="acme" project={{ id: 'p1', issueCount: 3 }} meta={meta} issueFilters={issueFilters} />)
+function renderBar(known) {
+  return render(<SavedViewsBar slug="acme" project={{ id: 'p1', issueCount: 3 }} meta={meta} issueFilters={issueFilters} known={known} />)
 }
 
 beforeEach(() => {
   vi.clearAllMocks()
   manager = false
+  activeState = { active: null, missing: [] }
   views = [view('v1', 'Mis bugs'), view('v2', 'Sprint', { shared: true, mine: false })]
 })
 
@@ -89,5 +92,27 @@ describe('Vistas guardadas: nombre repetido', () => {
 
     expect(update).not.toHaveBeenCalled()
     expect(await screen.findByRole('alert')).toHaveTextContent('Ya tienes una vista personal llamada «mis bugs» en este proyecto')
+  })
+})
+
+describe('Vistas guardadas con una etiqueta que ya no existe', () => {
+  it('al aplicarla, la etiqueta borrada no llega a la URL (las que existen sí)', async () => {
+    const user = userEvent.setup()
+    views = [view('v1', 'Diseño', { filters: { label: ['borrada', 'l1'], priority: ['HIGH'], view: 'list' } })]
+    renderBar(knownFilterIds({ labels: [{ id: 'l1' }] }))
+    await user.click(screen.getByRole('button', { name: /^personal\s?Diseño/ }))
+
+    const build = issueFilters.applyParams.mock.calls[0][0]
+    const next = build(new URLSearchParams('label=vieja'))
+    expect(next.getAll('label')).toEqual(['l1'])
+    expect(next.getAll('priority')).toEqual(['HIGH'])
+    expect(next.get('savedView')).toBe('v1')
+  })
+
+  it('si la vista solo tenía etiquetas borradas, lo dice al lado, sin error', () => {
+    views = [view('v1', 'Diseño', { filters: { label: ['borrada'] } })]
+    activeState = { active: views[0], missing: ['label'] }
+    renderBar(knownFilterIds({ labels: [] }))
+    expect(screen.getByText('Esta vista filtraba por una etiqueta que ya no existe')).toBeInTheDocument()
   })
 })

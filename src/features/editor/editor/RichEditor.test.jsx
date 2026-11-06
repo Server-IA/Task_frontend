@@ -163,7 +163,7 @@ describe('menú «/»', () => {
     expect(markdownOf(editor)).toBe('/lista dex')
   })
 
-  it('Escape lo cierra, aunque lo escrito siga coincidiendo', async () => {
+  it('Escape lo cierra solo para lo escrito: al seguir escribiendo vuelve a abrirse', async () => {
     const editor = await mountEditor()
 
     act(() => editor.commands.insertContent('/lista'))
@@ -173,6 +173,52 @@ describe('menú «/»', () => {
     })
     expect(slashMenu()).not.toBeInTheDocument()
     act(() => editor.commands.insertContent(' de'))
-    expect(slashMenu()).not.toBeInTheDocument()
+    expect(slashMenu()).toBeInTheDocument()
+  })
+})
+
+const mentionMenu = () => screen.queryByRole('listbox', { name: /Mencionar/ })
+const people = [
+  { id: 'u1', fullName: 'Luis Muñoz', email: 'luis@test.com' },
+  { id: 'u2', fullName: 'Lucía Pérez', email: 'lucia@test.com' },
+]
+const escape = (editor) =>
+  act(() => {
+    editor.view.dom.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+  })
+const pressEnter = (editor) =>
+  act(() => {
+    editor.view.dom.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }))
+  })
+
+describe('menú «@»', () => {
+  it('tras Escape, seguir escribiendo lo vuelve a abrir y Enter elige (no salta de línea)', async () => {
+    const editor = await mountEditor({ people })
+
+    act(() => editor.commands.insertContent('@Lu'))
+    expect(mentionMenu()).toBeInTheDocument()
+    escape(editor)
+    expect(mentionMenu()).not.toBeInTheDocument()
+
+    act(() => editor.commands.insertContent('i'))
+    expect(mentionMenu()).toBeInTheDocument()
+    pressEnter(editor)
+    expect(editor.getJSON().content).toHaveLength(1)
+    expect(JSON.stringify(editor.getJSON())).toContain('"type":"mention"')
+    expect(JSON.stringify(editor.getJSON())).toContain('"id":"u1"')
+  })
+
+  it('tras Escape sin escribir, el menú sigue cerrado; una «@» nueva abre el suyo', async () => {
+    const editor = await mountEditor({ people })
+
+    act(() => editor.commands.insertContent('@Lu'))
+    escape(editor)
+    // Mover el cursor no lo reabre
+    act(() => editor.commands.setTextSelection(2))
+    act(() => editor.commands.setTextSelection(4))
+    expect(mentionMenu()).not.toBeInTheDocument()
+
+    act(() => editor.commands.insertContent(' @'))
+    expect(mentionMenu()).toBeInTheDocument()
   })
 })

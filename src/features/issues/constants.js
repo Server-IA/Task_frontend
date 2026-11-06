@@ -58,3 +58,9 @@ export const BOARD_PAGE_SIZE = 200
 
 /** Parámetro de la URL con la vista guardada que está aplicada en la lista de tareas. */
 export const SAVED_VIEW_PARAM = 'savedView'
+
+/**
+ * Clase de una fila que se abre con un clic en cualquier parte pero cuyo botón (para el teclado) es solo el título
+ * (`data-row-main`): la fila se resalta cuando ese botón tiene el foco.
+ */
+export const ROW_FOCUS = 'has-[[data-row-main]:focus-visible]:bg-accent'

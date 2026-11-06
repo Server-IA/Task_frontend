@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { MoreHorizontal, UserMinus } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
@@ -17,6 +17,7 @@ import { CenteredSpinner } from '@/components/common/Loaders'
 import { ErrorState } from '@/components/common/States'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { formatShortDate } from '@/lib/dates'
+import { useFocusAfterRemoval } from '@/lib/focusReturn'
 import { notifyError } from '@/lib/notify'
 import { isManager, ROLE_LABELS } from '@/lib/permissions'
 import { useSessionStore } from '@/stores/sessionStore'
@@ -30,6 +31,9 @@ export function MembersSettings({ workspace }) {
   const currentUserId = useSessionStore((state) => state.user?.id)
   const [toRemove, setToRemove] = useState(null)
   const canManage = isManager(workspace.myRole)
+  // Al quitar a alguien su fila (y su menú) desaparece: el foco va al título de la tarjeta
+  const titleRef = useRef(null)
+  const removal = useFocusAfterRemoval(titleRef)
 
   const handleRoleChange = (member, role) => {
     updateRole.mutate(
@@ -43,8 +47,10 @@ export function MembersSettings({ workspace }) {
   }
 
   const handleRemove = () => {
+    removal.start()
     removeMember.mutate(toRemove.user.id, {
       onSuccess: () => {
+        removal.done()
         toast.success(`${toRemove.user.fullName} ya no es miembro`)
         setToRemove(null)
       },
@@ -55,7 +61,9 @@ export function MembersSettings({ workspace }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Miembros</CardTitle>
+        <CardTitle ref={titleRef} tabIndex={-1} className="outline-none">
+          Miembros
+        </CardTitle>
         <CardDescription>
           {members ? `${members.length} ${members.length === 1 ? 'persona' : 'personas'} en el workspace.` : ' '} El
           project manager gestiona proyectos, ciclos, módulos y miembros; puede haber más de uno.
@@ -145,6 +153,8 @@ export function MembersSettings({ workspace }) {
           confirmLabel="Quitar"
           loading={removeMember.isPending}
           onConfirm={handleRemove}
+          returnFocusRef={titleRef}
+          focusAfterConfirmRef={removal.ref}
         />
       </CardContent>
     </Card>

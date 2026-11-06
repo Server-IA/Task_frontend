@@ -5,7 +5,7 @@ import { ArrowDown, ArrowUp, GripVertical, Lock, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { LockNote } from '@/components/common/LockNote'
-import { DND_INSTRUCTIONS, quoted, sortableAnnouncements } from '@/lib/dndAnnouncements'
+import { DND_INSTRUCTIONS, DRAG_ROLE, quoted, sortableAnnouncements } from '@/lib/dndAnnouncements'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { useReorderSavedViews } from '../hooks'
@@ -102,6 +102,7 @@ function SortableRow({ view, index, count, canMove, onMove }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: view.id,
     disabled: !canMove,
+    attributes: { roleDescription: DRAG_ROLE.item },
   })
   const Icon = view.shared ? Users : Lock
 

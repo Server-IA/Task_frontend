@@ -101,11 +101,13 @@ function CloseCycleForm({ slug, projectId, cycle: initialCycle, onClose }) {
           if (result.movedToBacklog > 0) parts.push(`${tasksLabel(result.movedToBacklog)} al backlog`)
           const moved = parts.length > 0 ? `Pasaron ${parts.join(' y ')}.` : 'No quedaban tareas sin terminar.'
           toast.success(`${cycle.name} cerrado`, {
-            // Al abrir la retro el backend avisa a los miembros del proyecto (menos a quien cierra)
-            description: startRetro && result.retroStarted ? `${moved} Se abrió la retro y se avisó al equipo.` : moved,
+            // `retroStartedNow`: este cierre abrió la retro y el backend avisó a los miembros del proyecto (menos a quien
+            // cierra). `retroStarted` también es true si ya estaba abierta (y entonces no se avisó a nadie)
+            description: result.retroStartedNow ? `${moved} Se abrió la retro y se avisó al equipo.` : moved,
           })
           onClose()
-          if (result.retroStarted && (startRetro || retroAlready === 'OPEN')) {
+          // A la retro si se abrió ahora o si ya estaba en curso (terminada, no hay nada que escribir)
+          if (result.retroStartedNow || (result.retroStarted && (startRetro || retroAlready === 'OPEN'))) {
             navigate(`/${slug}/projects/${projectId}/cycles/${cycle.id}/retro`)
           }
         },

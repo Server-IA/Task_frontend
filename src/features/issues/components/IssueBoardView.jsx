@@ -23,7 +23,7 @@ import { AvatarStack } from '@/components/common/AvatarStack'
 import { ErrorState } from '@/components/common/States'
 import { StateIcon } from '@/components/common/StateIcon'
 import { useStories } from '@/features/stories/hooks'
-import { DND_INSTRUCTIONS, dndAnnouncements, quoted } from '@/lib/dndAnnouncements'
+import { DND_INSTRUCTIONS, DRAG_ROLE, dndAnnouncements, quoted } from '@/lib/dndAnnouncements'
 import {
   columnKey,
   findColumn,
@@ -36,6 +36,7 @@ import {
   stateOfColumn,
 } from '@/lib/kanban'
 import { cn } from '@/lib/utils'
+import { focusRowMain } from '@/lib/focusReturn'
 import { BOARD_GROUP_STORY, BOARD_PAGE_SIZE } from '../constants'
 import { useIssues, useMoveIssue } from '../hooks'
 import { needsCriteriaConfirm } from '../issueFlags'
@@ -562,35 +563,54 @@ function BoardColumn({ state, columnId, ids: currentIds, issuesById, slug, proje
 /**
  * Tarjeta arrastrable. Memorizada (como `IssueCard`): al reemplazarse una tarea en la caché solo se vuelve a pintar
  * su tarjeta. Las historias no se arrastran: su estado sigue a sus tareas y cerrarlas es del project manager.
+ *
+ * Con el mouse, toda la tarjeta: un clic la abre y se arrastra desde cualquier parte. Con el teclado, el título es el
+ * control de la tarjeta (nombre corto: código y título): Enter la abre y Espacio la levanta. Los selectores de adentro
+ * van aparte, cada uno con su nombre (si la tarjeta entera fuera el botón, su nombre sería todo lo que tiene adentro).
  */
 const SortableIssueCard = memo(function SortableIssueCard({ issue, openIssue, ...props }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const story = isStory(issue)
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: issue.id,
-    disabled: isStory(issue),
+    disabled: story,
+    attributes: { roleDescription: DRAG_ROLE.card },
   })
+  const onActivatorKeyDown = useCallback(
+    (event) => {
+      listeners?.onKeyDown?.(event)
+      // Mientras se arrastra con el teclado, Enter suelta la tarjeta (lo maneja dnd-kit en el documento, después
+      // de este manejador): no la abre
+      if (event.key === 'Enter' && !event.defaultPrevented && !isDragging) openIssue(issue.id)
+    },
+    [listeners, isDragging, openIssue, issue.id],
+  )
+  // Una historia no se arrastra: su título es un botón que la abre, sin las instrucciones de arrastre
+  const activatorAttributes = useMemo(
+    () => (story ? { role: 'button', tabIndex: 0 } : { ...attributes, 'aria-disabled': undefined }),
+    [story, attributes],
+  )
   return (
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        'rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        'rounded-xl has-[[data-card-activator]:focus-visible]:ring-2 has-[[data-card-activator]:focus-visible]:ring-ring',
         // Mientras se arrastra queda un hueco punteado del tamaño de la tarjeta
         isDragging && 'bg-card/40 outline-2 -outline-offset-2 outline-dash outline-dashed [&>article]:invisible',
       )}
-      {...attributes}
-      {...listeners}
-      onClick={() => openIssue(issue.id)}
-      onKeyDown={(event) => {
-        // Solo la tarjeta: las teclas de sus selectores (Enter, Espacio) no la abren ni la levantan, y siguen hasta
-        // los atajos de la página («c», «/»)
-        if (event.target !== event.currentTarget) return
-        listeners?.onKeyDown?.(event)
-        // Mientras se arrastra con el teclado, Enter suelta la tarjeta (lo maneja dnd-kit en el documento, después
-        // de este manejador): no la abre
-        if (event.key === 'Enter' && !event.defaultPrevented && !isDragging) openIssue(issue.id)
+      onPointerDown={listeners?.onPointerDown}
+      onClick={(event) => {
+        focusRowMain(event.currentTarget)
+        openIssue(issue.id)
       }}
     >
-      <IssueCard issue={issue} {...props} />
+      <IssueCard
+        issue={issue}
+        {...props}
+        activatorRef={setActivatorNodeRef}
+        activatorAttributes={activatorAttributes}
+        onActivatorKeyDown={onActivatorKeyDown}
+      />
     </div>
   )
 })
@@ -600,7 +620,21 @@ const stop = (event) => event.stopPropagation()
 const revealOnHover =
   'opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100'
 
-const IssueCard = memo(function IssueCard({ issue, slug, project, meta, overlay = false, inLane = false }) {
+/**
+ * `activatorAttributes`, `activatorRef`, `onActivatorKeyDown`: el control de teclado de la tarjeta (ver
+ * SortableIssueCard), en el título. Sin ellos (la copia que sigue al cursor mientras se arrastra) el título es solo texto.
+ */
+const IssueCard = memo(function IssueCard({
+  issue,
+  slug,
+  project,
+  meta,
+  overlay = false,
+  inLane = false,
+  activatorRef,
+  activatorAttributes,
+  onActivatorKeyDown,
+}) {
   const { update } = useIssueUpdater(slug, project.id, issue.id)
   const hasLabels = issue.labels?.length > 0
   // En un carril la historia ya está en el encabezado
@@ -628,7 +662,22 @@ const IssueCard = memo(function IssueCard({ issue, slug, project, meta, overlay 
           />
         </span>
       </div>
-      <h4 className="line-clamp-3 text-[14.5px] leading-snug font-medium">{issue.title}</h4>
+      <h4 className="line-clamp-3 text-[14.5px] leading-snug font-medium">
+        {activatorAttributes ? (
+          <span
+            ref={activatorRef}
+            data-card-activator=""
+            {...activatorAttributes}
+            aria-label={`${issue.code} ${issue.title}`}
+            onKeyDown={onActivatorKeyDown}
+            className="outline-none"
+          >
+            {issue.title}
+          </span>
+        ) : (
+          issue.title
+        )}
+      </h4>
       {storyChip && <ParentStoryChip parent={issue.parent} className="self-start" />}
       <BlockedChip issue={issue} codes="by" className="self-start" />
       <BlockingChip issue={issue} className="self-start" />

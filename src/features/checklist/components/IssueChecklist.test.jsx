@@ -70,6 +70,12 @@ describe('IssueChecklist: reordenar con el teclado', () => {
     ])
   })
 
+  it('el asa se presenta en español («elemento arrastrable»), no como «sortable»', async () => {
+    renderChecklist()
+    const handle = await screen.findByRole('button', { name: 'Mover «El correo llega»' })
+    expect(handle).toHaveAttribute('aria-roledescription', 'elemento arrastrable')
+  })
+
   it('el lector de pantalla oye el texto del criterio en español, no su id', async () => {
     renderChecklist()
     const handle = await screen.findByRole('button', { name: 'Mover «El correo llega»' })

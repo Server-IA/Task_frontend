@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { Bookmark, ChevronDown, Lock, Pencil, RefreshCcw, Share2, Trash2, Users, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -18,8 +18,10 @@ import { BUGS_VIEW_ID, openStateIds } from '@/features/issues/components/BugsVie
 import { TypeIcon } from '@/features/issues/components/IssueTypeBits'
 import { SAVED_VIEW_PARAM } from '@/features/issues/constants'
 import { useIssues } from '@/features/issues/hooks'
+import { missingFiltersText, withoutUnknownViewFilters } from '@/features/issues/unknownFilters'
 import { useIsManager } from '@/features/workspaces/hooks'
 import { toApiError } from '@/lib/errors'
+import { useFocusAfterRemoval } from '@/lib/focusReturn'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { useActiveSavedView, useCreateSavedView, useDeleteSavedView, useUpdateSavedView } from '../hooks'
@@ -35,16 +37,21 @@ const NAME_MAX = 40
  * por prioridad; no se guarda ni se borra) y cada vista como pastilla (compartida o personal)
  * con cuántas tareas muestra, la activa resaltada y marcada «cambiado» si la URL ya no coincide con ella. Desde aquí
  * se guarda la vista actual, se actualiza, se cambia de nombre, se comparte, se elimina y se ordenan (según permisos).
+ * Al aplicar una vista se dejan fuera los ids que ya no existen (`known`); si un filtro de la vista se queda sin
+ * ninguno, se dice al lado, sin error.
  * @param {{ slug: string, project: import('@/api/types').ProjectResponse, meta: object,
- *           issueFilters: ReturnType<typeof import('@/features/issues/useIssueFilters').useIssueFilters> }} props
+ *           issueFilters: ReturnType<typeof import('@/features/issues/useIssueFilters').useIssueFilters>,
+ *           known?: ReturnType<typeof import('@/features/issues/unknownFilters').knownFilterIds> }} props
  */
-export function SavedViewsBar({ slug, project, meta, issueFilters }) {
-  const { views, active, current, changed } = useActiveSavedView(slug, project.id, issueFilters)
+export function SavedViewsBar({ slug, project, meta, issueFilters, known = {} }) {
+  const { views, active, current, changed, missing } = useActiveSavedView(slug, project.id, issueFilters, known)
   const update = useUpdateSavedView(slug, project.id)
   const isManager = useIsManager()
   const [renaming, setRenaming] = useState(null)
   const [deleting, setDeleting] = useState(null)
   const [ordering, setOrdering] = useState(false)
+  // Al eliminar una vista su pastilla (y su menú) desaparece: el foco va a «Todas»
+  const allRef = useRef(null)
   const canEditActive = active ? canEditView(active, isManager) : false
   const { canShared, canPersonal } = reorderableGroups(views, isManager)
   const modified = Boolean(active) && changed.length > 0
@@ -62,7 +69,11 @@ export function SavedViewsBar({ slug, project, meta, issueFilters }) {
       return next
     })
 
-  const apply = (view) => issueFilters.applyParams((previous) => applyViewToParams(previous, view))
+  const apply = (view) =>
+    issueFilters.applyParams((previous) =>
+      applyViewToParams(previous, { ...view, filters: withoutUnknownViewFilters(view.filters, known).filters }),
+    )
+  const missingText = active ? missingFiltersText(missing) : null
   const saveChanges = (view) =>
     update.mutate(
       { viewId: view.id, filters: current },
@@ -83,6 +94,7 @@ export function SavedViewsBar({ slug, project, meta, issueFilters }) {
   return (
     <nav aria-label="Vistas guardadas" className="flex flex-wrap items-center gap-1.5 px-1">
       <button
+        ref={allRef}
         type="button"
         aria-current={!active && !bugsActive ? 'page' : undefined}
         title="Todas las tareas y bugs del proyecto"
@@ -121,6 +133,11 @@ export function SavedViewsBar({ slug, project, meta, issueFilters }) {
 
       <span className="ml-auto flex flex-wrap items-center gap-1.5">
         {bugsActive && <span className="tf-fade mr-1.5 text-xs text-muted-foreground">«Bugs» viene con cada proyecto · no se borra</span>}
+        {missingText && (
+          <span className="tf-fade mr-1.5 text-xs text-muted-foreground" title="Se muestra sin ese filtro">
+            {missingText}
+          </span>
+        )}
         {views.length > 0 && !modified && !bugsActive && (
           <span className="mr-1.5 hidden items-center gap-3 text-xs text-muted-foreground xl:flex">
             <span className="flex items-center gap-1.5">
@@ -185,6 +202,7 @@ export function SavedViewsBar({ slug, project, meta, issueFilters }) {
         slug={slug}
         projectId={project.id}
         view={deleting}
+        fallbackRef={allRef}
         onClose={() => setDeleting(null)}
         onDeleted={(view) => view.id === active?.id && issueFilters.applyParams(clearViewParams, { replace: true })}
       />
@@ -546,8 +564,9 @@ function NameError({ id, message }) {
   )
 }
 
-function DeleteViewDialog({ slug, projectId, view, onClose, onDeleted }) {
+function DeleteViewDialog({ slug, projectId, view, fallbackRef, onClose, onDeleted }) {
   const remove = useDeleteSavedView(slug, projectId)
+  const removal = useFocusAfterRemoval(fallbackRef)
   return (
     <ConfirmDialog
       open={Boolean(view)}
@@ -556,16 +575,20 @@ function DeleteViewDialog({ slug, projectId, view, onClose, onDeleted }) {
       description={view?.shared ? 'Desaparece de la barra de todo el proyecto. Las tareas no cambian.' : 'Las tareas no cambian.'}
       confirmLabel="Eliminar"
       loading={remove.isPending}
-      onConfirm={() =>
+      returnFocusRef={fallbackRef}
+      focusAfterConfirmRef={removal.ref}
+      onConfirm={() => {
+        removal.start()
         remove.mutate(view.id, {
           onSuccess: () => {
+            removal.done()
             toast.success(`Vista «${view.name}» eliminada`)
             onDeleted(view)
             onClose()
           },
           onError: (error) => notifyError(error),
         })
-      }
+      }}
     />
   )
 }

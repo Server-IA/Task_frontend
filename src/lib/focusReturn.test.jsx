@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
+import { focusRowMain } from './focusReturn'
 
 /** Un diálogo abierto por estado, como en la app (sin disparador de Radix): la tarjeta o la tecla «c». */
 function Controlled({ as = 'dialog', onCloseAutoFocus, autoFocus = false }) {
@@ -62,5 +63,40 @@ describe('diálogos y paneles abiertos por estado: el foco al cerrarse', () => {
     await user.keyboard('{Escape}')
     await closed()
     expect(card).not.toHaveFocus()
+  })
+})
+
+describe('focusRowMain', () => {
+  it('un clic en una zona no enfocable de la fila enfoca su título, para que el foco vuelva ahí al cerrar el panel', async () => {
+    function Row() {
+      const [open, setOpen] = useState(false)
+      return (
+        <>
+          <div
+            data-testid="fila"
+            onClick={(event) => {
+              focusRowMain(event.currentTarget)
+              setOpen(true)
+            }}
+          >
+            <span>PORT-9</span>
+            <button type="button" data-row-main="">
+              Logs estructurados
+            </button>
+          </div>
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetContent>
+              <SheetTitle>Detalle</SheetTitle>
+              <SheetDescription>Tarea</SheetDescription>
+            </SheetContent>
+          </Sheet>
+        </>
+      )
+    }
+    render(<Row />)
+    const user = userEvent.setup()
+    await user.click(screen.getByText('PORT-9'))
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Logs estructurados' })).toHaveFocus())
   })
 })

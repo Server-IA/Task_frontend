@@ -8,6 +8,15 @@ export function focusOrigin(element) {
   return trigger ?? element
 }
 
+/**
+ * Antes de abrir una tarea con un clic en su fila o tarjeta: enfoca el control principal (el título), para que al
+ * cerrar el panel el foco vuelva ahí y no al principio de la página (un clic en una zona no enfocable no mueve el foco).
+ * @param {Element | null} container la fila o tarjeta (`event.currentTarget`)
+ */
+export function focusRowMain(container) {
+  container?.querySelector('[data-row-main], [data-card-activator]')?.focus({ preventScroll: true })
+}
+
 export function isFocusable(element) {
   return Boolean(element?.isConnected) && !element.disabled && element.getAttribute('aria-hidden') !== 'true'
 }
@@ -53,6 +62,26 @@ export function useReturnFocus({ onOpenAutoFocus, onCloseAutoFocus, onFocusCaptu
       if (otherOpen) return
       event.preventDefault()
       target.focus()
+    },
+  }
+}
+
+/**
+ * A dónde va el foco después de quitar una fila desde una confirmación (ConfirmDialog): el botón de la fila desaparece
+ * y, sin esto, el foco cae al `body`. `done()` (en el `onSuccess`) elige el primero de `fallbacks` que se pueda enfocar
+ * («Agregar», y si no está, el título); `start()` (al confirmar) lo limpia, así un intento fallido devuelve el foco a la
+ * fila. `ref` va en `focusAfterConfirmRef` del diálogo.
+ * @param {...React.RefObject<HTMLElement>} fallbacks
+ */
+export function useFocusAfterRemoval(...fallbacks) {
+  const target = useRef(null)
+  return {
+    ref: target,
+    start: () => {
+      target.current = null
+    },
+    done: () => {
+      target.current = fallbacks.map((ref) => ref.current).find(isFocusable) ?? null
     },
   }
 }

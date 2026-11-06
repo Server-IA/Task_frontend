@@ -16,7 +16,7 @@ import { PropertyRow } from '@/features/issues/components/IssueDetail'
 import { checklistProgress } from '@/features/issues/issueFlags'
 import { useLocalEscape } from '@/hooks/useLocalEscape'
 import { formatDateTime, formatRelative } from '@/lib/dates'
-import { DND_INSTRUCTIONS, quoted, sortableAnnouncements } from '@/lib/dndAnnouncements'
+import { DND_INSTRUCTIONS, DRAG_ROLE, quoted, sortableAnnouncements } from '@/lib/dndAnnouncements'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { usePreferencesStore } from '@/stores/preferencesStore'
@@ -317,6 +317,7 @@ function SortableItems({ items, visible, onMove, children }) {
 function SortableItem({ item, index, count, onMove, children }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
+    attributes: { roleDescription: DRAG_ROLE.item },
   })
   const handle = {
     ref: setActivatorNodeRef,

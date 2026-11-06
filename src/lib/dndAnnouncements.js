@@ -10,6 +10,15 @@ export const DND_INSTRUCTIONS = {
 }
 
 /**
+ * Cómo se presenta lo que se arrastra (`aria-roledescription`; el de dnd-kit dice «sortable», en inglés). Va en
+ * `useSortable({ attributes: { roleDescription } })`.
+ */
+export const DRAG_ROLE = {
+  card: 'tarjeta arrastrable',
+  item: 'elemento arrastrable',
+}
+
+/**
  * Anuncios del arrastre. `itemLabel(id)` nombra lo que se arrastra («WEB-12 «Arreglar el login»»); `placeLabel(overId)`
  * dice dónde quedaría (««En curso», posición 2 de 4») o null si no se sabe.
  * @param {{ itemLabel: (id: string) => string, placeLabel: (overId: string) => string | null }} labels

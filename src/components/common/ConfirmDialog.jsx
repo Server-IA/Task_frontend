@@ -13,6 +13,9 @@ import { buttonVariants } from '@/components/ui/button'
 import { Spinner } from '@/components/common/Loaders'
 import { focusOrigin, isFocusable } from '@/lib/focusReturn'
 
+/** El primer elemento que se puede enfocar de una ref o una lista de refs. */
+const firstFocusable = (refs) => (Array.isArray(refs) ? refs : [refs]).map((ref) => ref?.current).find(isFocusable)
+
 /**
  * Confirmación para acciones irreversibles (eliminar, quitar, salir…).
  * `onConfirm` puede devolver una promesa: el diálogo se queda abierto mientras se resuelve.
@@ -22,6 +25,9 @@ import { focusOrigin, isFocusable } from '@/lib/focusReturn'
  * foco al cerrarse y quedaba en el `body`: se recuerda lo que tenía el foco al abrirse (si era una opción de un menú,
  * el botón que abrió el menú) y se vuelve ahí. Si ya no está (la acción lo quitó), se usa `returnFocusRef`.
  * `focusAfterConfirmRef`: a dónde va el foco si se confirmó (por ejemplo, el campo en el que se sigue escribiendo).
+ * Al quitar una fila conviene pasarlo también: la lista puede recargarse justo después de cerrar el diálogo y el botón
+ * de la fila desaparecer con el foco adentro.
+ * Los dos aceptan una ref o una lista de refs (va el primero que se pueda enfocar: «Agregar» si está, si no el título).
  */
 export function ConfirmDialog({
   open,
@@ -50,8 +56,8 @@ export function ConfirmDialog({
           confirmed.current = false
         }}
         onCloseAutoFocus={(event) => {
-          const afterConfirm = confirmed.current ? focusAfterConfirmRef?.current : null
-          const target = [afterConfirm, returnFocus.current, returnFocusRef?.current].find(isFocusable)
+          const afterConfirm = confirmed.current ? firstFocusable(focusAfterConfirmRef) : null
+          const target = [afterConfirm, returnFocus.current, firstFocusable(returnFocusRef)].find(isFocusable)
           returnFocus.current = null
           confirmed.current = false
           if (!target) return

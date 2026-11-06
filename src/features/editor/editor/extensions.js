@@ -190,7 +190,11 @@ export function slashQueryAllowed(query, matches) {
   return matches ? matches(query) : true
 }
 
-/** Menú de sugerencias («/» o «@»): el estado y las teclas los maneja el componente. */
+/**
+ * Menú de sugerencias («/» o «@»): el estado y las teclas los maneja el componente. Escape lo cierra solo para lo
+ * escrito hasta ahí: al seguir escribiendo (o borrar) se vuelve a abrir, y Enter elige de nuevo en vez de saltar de
+ * línea. Una «@» o «/» nueva abre su propio menú.
+ */
 function suggestion({ name, key, char, bridge, allow, allowSpaces = false }) {
   return Extension.create({
     // Otro nombre que el nodo (la mención también se llama «mention»)
@@ -208,6 +212,8 @@ function suggestion({ name, key, char, bridge, allow, allowSpaces = false }) {
             if ($from.parent.type.name === 'codeBlock' || $from.marks().some((mark) => mark.type.name === 'code')) return false
             return allow ? allow(props) : true
           },
+          // Sin esto, lo descartado con Escape sigue cerrado mientras se escribe en la misma consulta
+          shouldResetDismissed: ({ transaction }) => transaction.docChanged,
           items: () => [],
           command: ({ editor, range, props }) => bridge.current[name]?.select(editor, range, props),
           render: () => ({

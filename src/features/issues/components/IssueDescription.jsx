@@ -18,6 +18,7 @@ import { useMentionPeople } from '@/features/mentions/hooks'
 import { formatRelative } from '@/lib/dates'
 import { isSessionExpired } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
+import { warnUnsavedText } from '@/lib/unsavedText'
 import { cn } from '@/lib/utils'
 import { useSessionStore } from '@/stores/sessionStore'
 import { issuesApi } from '../api'
@@ -277,19 +278,7 @@ function unsavedReason(error) {
 
 /** Aviso persistente con el texto que no se pudo guardar al salir del editor (para no perderlo). */
 function warnUnsaved(body, reason) {
-  toast.warning('Tu cambio en la descripción no se guardó', {
-    description: `${reason} Copia tu texto para no perderlo.`,
-    duration: Infinity,
-    action: {
-      label: 'Copiar mi texto',
-      onClick: () => {
-        navigator.clipboard
-          ?.writeText(body)
-          .then(() => toast.success('Tu texto quedó copiado'))
-          .catch(() => {})
-      },
-    },
-  })
+  warnUnsavedText('Tu cambio en la descripción no se guardó', `${reason} Copia tu texto para no perderlo.`, body)
 }
 
 function DescriptionEditor({ slug, project, issue, variant, caret, onMoveTasks, onFinish }) {

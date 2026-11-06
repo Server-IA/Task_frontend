@@ -46,11 +46,14 @@ const project = { id: 'p1', identifier: 'WEB', name: 'Web' }
 const common = { slug: 'acme', project, meta, filters: {}, onCreateInState: () => {} }
 
 describe('Tablero', () => {
+  /** El control de teclado de la tarjeta: el título, con nombre corto (código y título). */
+  const cardControl = (code, title) => screen.getByRole('button', { name: `${code} ${title}` })
+
   it('Enter en una tarjeta la abre (Espacio es el que la levanta para arrastrar)', () => {
     issues = [issue('web-1')]
     const openIssue = vi.fn()
     render(<IssueBoardView {...common} openIssue={openIssue} />)
-    const card = screen.getByText('Tarea web-1').closest('[aria-roledescription="sortable"]')
+    const card = cardControl('WEB-1', 'Tarea web-1')
     card.focus()
     fireEvent.keyDown(card, { key: 'Enter', code: 'Enter' })
     expect(openIssue).toHaveBeenCalledWith('web-1')
@@ -60,7 +63,7 @@ describe('Tablero', () => {
     issues = [issue('web-1')]
     const openIssue = vi.fn()
     render(<IssueBoardView {...common} openIssue={openIssue} />)
-    const card = screen.getByText('Tarea web-1').closest('[aria-roledescription="sortable"]')
+    const card = cardControl('WEB-1', 'Tarea web-1')
     card.focus()
     fireEvent.keyDown(card, { key: ' ', code: 'Space' })
     await screen.findByText('Levantaste WEB-1 «Tarea web-1».')
@@ -69,12 +72,30 @@ describe('Tablero', () => {
     expect(openIssue).not.toHaveBeenCalled()
   })
 
+  it('la tarjeta se presenta en español, con un nombre corto, y sus selectores no quedan adentro', () => {
+    issues = [issue('web-1', { priority: 'HIGH' })]
+    const openIssue = vi.fn()
+    const { container } = render(<IssueBoardView {...common} openIssue={openIssue} />)
+    const card = cardControl('WEB-1', 'Tarea web-1')
+    expect(card).toHaveAttribute('aria-roledescription', 'tarjeta arrastrable')
+    expect(container.querySelector('[aria-roledescription="sortable"]')).toBeNull()
+    // Los selectores siguen alcanzables, cada uno por su cuenta (no dentro del control de la tarjeta)
+    const picker = screen.getByRole('button', { name: 'Fecha límite' })
+    expect(card.contains(picker)).toBe(false)
+    expect(card.querySelector('button')).toBeNull()
+    // Con el mouse, un clic en cualquier parte de la tarjeta la abre
+    fireEvent.click(screen.getByText('WEB-1'))
+    expect(openIssue).toHaveBeenCalledWith('web-1')
+  })
+
   it('las historias no se arrastran; las tareas sí', () => {
     issues = [issue('web-1'), issue('web-2', { type: 'STORY', title: 'Historia web-2' })]
     render(<IssueBoardView {...common} openIssue={() => {}} />)
-    const card = (title) => screen.getByText(title).closest('[aria-roledescription="sortable"]')
-    expect(card('Historia web-2')).toHaveAttribute('aria-disabled', 'true')
-    expect(card('Tarea web-1')).toHaveAttribute('aria-disabled', 'false')
+    const story = cardControl('WEB-2', 'Historia web-2')
+    expect(story).not.toHaveAttribute('aria-roledescription')
+    expect(story).not.toHaveAttribute('aria-describedby')
+    expect(story).not.toHaveAttribute('aria-disabled')
+    expect(cardControl('WEB-1', 'Tarea web-1')).toHaveAttribute('aria-roledescription', 'tarjeta arrastrable')
   })
 })
 
@@ -199,5 +220,41 @@ describe('Atajos con el foco en un selector de la fila o la tarjeta', () => {
     expect(shortcut).toHaveBeenCalledTimes(1)
     expect(openIssue).not.toHaveBeenCalled()
     expect(screen.queryByText(/Picked up/)).not.toBeInTheDocument()
+  })
+})
+
+describe('Filas: el título es el botón, con un nombre corto', () => {
+  it('en la lista, Enter en el título abre la tarea y los selectores no quedan dentro de su botón', async () => {
+    const user = userEvent.setup()
+    issues = [issue('web-1', { priority: 'HIGH' })]
+    const openIssue = vi.fn()
+    render(
+      <MemoryRouter>
+        <IssueListView {...common} sort="sortOrder,asc" page={0} setPage={() => {}} openIssue={openIssue} onCreate={() => {}} />
+      </MemoryRouter>,
+    )
+    const row = within(screen.getByRole('list')).getByRole('button', { name: 'WEB-1 Tarea web-1' })
+    expect(row.querySelector('button')).toBeNull()
+    expect(row.closest('[role="button"]')).toBeNull()
+    row.focus()
+    await user.keyboard('{Enter}')
+    expect(openIssue).toHaveBeenCalledTimes(1)
+    expect(openIssue).toHaveBeenCalledWith('web-1')
+  })
+
+  it('en «Bugs», igual', async () => {
+    const user = userEvent.setup()
+    issues = [issue('web-3', { type: 'BUG', priority: 'HIGH' })]
+    const openIssue = vi.fn()
+    render(
+      <MemoryRouter>
+        <BugsView {...common} openIssue={openIssue} />
+      </MemoryRouter>,
+    )
+    const row = screen.getByRole('button', { name: 'WEB-3 Tarea web-3' })
+    expect(row.closest('[role="button"]')).toBeNull()
+    row.focus()
+    await user.keyboard('{Enter}')
+    expect(openIssue).toHaveBeenCalledWith('web-3')
   })
 })
