@@ -90,20 +90,20 @@ export function StatesSettings({ slug, project }) {
                 </span>
                 {canManage && (
                   <div className="ml-auto flex items-center">
-                    <IconButton label="Subir" disabled={index === 0 || moving} onClick={() => move(index, -1)}>
+                    <IconButton label={`Subir «${state.name}»`} disabled={index === 0 || moving} onClick={() => move(index, -1)}>
                       <ArrowUp />
                     </IconButton>
                     <IconButton
-                      label="Bajar"
+                      label={`Bajar «${state.name}»`}
                       disabled={index === states.length - 1 || moving}
                       onClick={() => move(index, 1)}
                     >
                       <ArrowDown />
                     </IconButton>
-                    <IconButton label="Editar" onClick={() => setEditing(state)}>
+                    <IconButton label={`Editar el estado «${state.name}»`} onClick={() => setEditing(state)}>
                       <Pencil />
                     </IconButton>
-                    <IconButton label="Eliminar" disabled={states.length <= 1} onClick={() => setToDelete(state)}>
+                    <IconButton label={`Eliminar el estado «${state.name}»`} disabled={states.length <= 1} onClick={() => setToDelete(state)}>
                       <Trash2 />
                     </IconButton>
                   </div>

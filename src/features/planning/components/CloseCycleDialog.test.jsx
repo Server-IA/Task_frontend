@@ -1,8 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
+import { toast } from 'sonner'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
+import { retroApi } from '@/features/retro/api'
 import { cyclesApi } from '../api'
 import { CloseCycleDialog } from './CloseCycleDialog'
 
@@ -10,6 +12,8 @@ vi.mock('../api', () => ({
   cyclesApi: { list: vi.fn(), closePreview: vi.fn(), close: vi.fn() },
   modulesApi: {},
 }))
+vi.mock('@/features/retro/api', () => ({ retroApi: { get: vi.fn() } }))
+vi.mock('sonner', () => ({ toast: { success: vi.fn() } }))
 
 beforeAll(() => {
   globalThis.ResizeObserver ??= class {
@@ -27,8 +31,19 @@ const related = (id, code, extra = {}) => ({ id, code, title: `Tarea ${code}`, s
 const cycle = { id: 'c1', name: 'Sprint 1', startDate: '2026-10-15', endDate: '2099-10-29', status: 'CURRENT', progress: { totalIssues: 4, completedIssues: 2, percentage: 50 } }
 const next = { id: 'c2', name: 'Sprint 2', startDate: '2099-10-30', endDate: '2099-11-12', progress: { totalIssues: 3 } }
 
+function renderDialog() {
+  render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <MemoryRouter>
+        <CloseCycleDialog slug="equipo" projectId="p1" cycle={cycle} open onOpenChange={() => {}} />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  )
+}
+
 describe('CloseCycleDialog', () => {
   it('muestra la mediana de En curso a Hecho, las bloqueadas y el aviso al equipo', async () => {
+    retroApi.get.mockResolvedValue({ started: false, finishedAt: null })
     cyclesApi.list.mockResolvedValue([cycle, next])
     cyclesApi.closePreview.mockResolvedValue({
       cycle,
@@ -56,5 +71,30 @@ describe('CloseCycleDialog', () => {
     await user.click(screen.getByRole('combobox', { name: 'Destino de WEB-15' }))
     await user.click(await screen.findByRole('option', { name: 'Backlog' }))
     expect(screen.getByText(/WEB-15 va al backlog porque sigue bloqueada\./)).toBeInTheDocument()
+  })
+
+  it('con la retro ya empezada no la ofrece ni dice que se abrió y avisó al equipo', async () => {
+    retroApi.get.mockResolvedValue({ started: true, finishedAt: '2026-11-05T12:00:00Z' })
+    cyclesApi.list.mockResolvedValue([cycle])
+    cyclesApi.closePreview.mockResolvedValue({
+      cycle,
+      completed: [],
+      unfinished: [],
+      completedCount: 0,
+      unfinishedCount: 0,
+      cycleTimeDays: null,
+      nextCycle: null,
+    })
+    // El backend responde retroStarted = «la retro está abierta», aunque la haya abierto antes otra persona
+    cyclesApi.close.mockResolvedValue({ cycle, movedToCycle: 0, movedToBacklog: 0, retroStarted: true })
+    renderDialog()
+    expect(await screen.findByText('La retrospectiva de este ciclo ya terminó.')).toBeInTheDocument()
+    expect(screen.queryByText('Empezar la retrospectiva')).not.toBeInTheDocument()
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /Cerrar Sprint 1/ }))
+    await waitFor(() => expect(toast.success).toHaveBeenCalled())
+    expect(cyclesApi.close.mock.calls[0].at(-1)).toMatchObject({ startRetro: false })
+    expect(toast.success.mock.calls[0][1].description).not.toMatch(/Se abrió la retro/)
   })
 })

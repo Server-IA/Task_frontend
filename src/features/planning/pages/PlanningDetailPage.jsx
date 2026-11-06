@@ -196,7 +196,8 @@ export function PlanningDetailPage({ kind }) {
         projectId={project.id}
         item={item}
         existingIds={new Set(issues.map((issue) => issue.id))}
-        open={addOpen}
+        // Si otra persona cierra el ciclo con el diálogo abierto, se cierra (el ciclo ya no acepta tareas)
+        open={addOpen && !closed}
         onOpenChange={setAddOpen}
       />
     </>

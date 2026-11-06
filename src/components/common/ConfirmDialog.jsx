@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { buttonVariants } from '@/components/ui/button'
 import { Spinner } from '@/components/common/Loaders'
+import { focusOrigin, isFocusable } from '@/lib/focusReturn'
 
 /**
  * Confirmación para acciones irreversibles (eliminar, quitar, salir…).
@@ -80,16 +81,4 @@ export function ConfirmDialog({
       </AlertDialogContent>
     </AlertDialog>
   )
-}
-
-/** A dónde volver: el elemento enfocado o, si es una opción de un menú (que se cierra), el botón del menú. */
-function focusOrigin(element) {
-  if (!element || element === document.body) return null
-  const menu = element.closest('[role="menu"]')
-  const trigger = menu?.getAttribute('aria-labelledby') ? document.getElementById(menu.getAttribute('aria-labelledby')) : null
-  return trigger ?? element
-}
-
-function isFocusable(element) {
-  return Boolean(element?.isConnected) && !element.disabled && element.getAttribute('aria-hidden') !== 'true'
 }

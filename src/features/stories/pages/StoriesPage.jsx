@@ -27,6 +27,7 @@ import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { useStories } from '../hooks'
 import { filterStories, hasStoryFilters } from '../storyFilters'
 import { storySummary } from '../storySummary'
+import { nextRowIndex } from '../rowNavigation'
 
 /** @typedef {import('@/api/types').StoryRow} StoryRow */
 
@@ -95,7 +96,8 @@ export function StoriesPage() {
   const createStory = useCallback(() => setCreating(true), [setCreating])
   useHotkey('c', createStory, { enabled: manager })
   const move = (step) => {
-    const index = Math.max(0, Math.min(filtered.length - 1, focusIndex + step))
+    const onRow = rowRefs.current.includes(document.activeElement)
+    const index = nextRowIndex({ current: focusIndex, step, count: filtered.length, onRow })
     setFocusIndex(index)
     rowRefs.current[index]?.focus()
   }

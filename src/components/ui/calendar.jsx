@@ -8,6 +8,8 @@ import {
   ChevronRightIcon,
 } from "lucide-react"
 import { DayPicker, getDefaultClassNames } from "react-day-picker";
+// Español con los textos del calendario («Ir al mes anterior», «Hoy, …») para lectores de pantalla, no solo las fechas
+import { es } from "react-day-picker/locale";
 
 import { Button, buttonVariants } from "@/components/ui/button"
 
@@ -19,6 +21,7 @@ function Calendar({
   buttonVariant = "ghost",
   formatters,
   components,
+  locale = es,
   ...props
 }) {
   const defaultClassNames = getDefaultClassNames()
@@ -33,6 +36,7 @@ function Calendar({
         className
       )}
       captionLayout={captionLayout}
+      locale={locale}
       formatters={{
         formatMonthDropdown: (date) =>
           date.toLocaleString("default", { month: "short" }),

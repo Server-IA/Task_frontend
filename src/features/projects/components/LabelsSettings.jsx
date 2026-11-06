@@ -121,7 +121,7 @@ export function LabelsSettings({ slug, project }) {
                         variant="ghost"
                         size="icon"
                         className="size-8 text-muted-foreground"
-                        aria-label="Editar"
+                        aria-label={`Editar la etiqueta «${label.name}»`}
                         onClick={() => setEditingId(label.id)}
                       >
                         <Pencil />
@@ -130,7 +130,7 @@ export function LabelsSettings({ slug, project }) {
                         variant="ghost"
                         size="icon"
                         className="size-8 text-muted-foreground"
-                        aria-label="Eliminar"
+                        aria-label={`Eliminar la etiqueta «${label.name}»`}
                         onClick={() => setToDelete(label)}
                       >
                         <Trash2 />

@@ -12,11 +12,13 @@ export function EditableText({ value, onSave, placeholder, singleLine = false, m
   // Escape descarta: el blur que sigue no debe guardar el borrador (el estado aún no se actualizó)
   const cancelled = useRef(false)
 
-  // Si el valor cambia en el servidor (otra edición), se refleja aquí
+  // Si el valor cambia en el servidor (otra edición), se refleja aquí. Mientras escribes un cambio sin guardar se
+  // conserva lo tuyo (una recarga al volver a la pestaña no lo borra); al salir se guarda como siempre
+  const [editing, setEditing] = useState(false)
   const [syncedValue, setSyncedValue] = useState(value)
   if (value !== syncedValue) {
     setSyncedValue(value)
-    setDraft(value ?? '')
+    if (!editing || draft === (syncedValue ?? '')) setDraft(value ?? '')
   }
 
   // Ajusta la altura al contenido
@@ -59,8 +61,12 @@ export function EditableText({ value, onSave, placeholder, singleLine = false, m
       onChange={(event) => setDraft(singleLine ? event.target.value.replace(/\n/g, ' ') : event.target.value)}
       onFocus={() => {
         cancelled.current = false
+        setEditing(true)
       }}
-      onBlur={commit}
+      onBlur={() => {
+        setEditing(false)
+        commit()
+      }}
       onKeyDown={(event) => {
         if (event.key === 'Escape') discard()
         if (singleLine && event.key === 'Enter') {
