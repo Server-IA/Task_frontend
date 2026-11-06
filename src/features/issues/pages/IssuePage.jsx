@@ -14,11 +14,14 @@ export function IssuePage() {
   const navigate = useNavigate()
   const { data: issue } = useIssue(workspace.slug, project.id, issueId)
   const issuesUrl = `/${workspace.slug}/projects/${project.id}/issues`
+  // Una historia no está en la lista de Tareas (sale en Historias): la ruta lleva ahí
+  const story = issue?.type === 'STORY'
+  const listCrumb = story ? { label: 'historias', to: `/${workspace.slug}/projects/${project.id}/stories` } : { label: 'tareas', to: issuesUrl }
 
   return (
     <>
       <PageHeader
-        path={[...projectPath(workspace, project), { label: 'tareas', to: issuesUrl }]}
+        path={[...projectPath(workspace, project), listCrumb]}
         title={issue?.code ?? '…'}
         documentTitle={[issue?.code ?? 'Tarea', project.name]}
       />

@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
+import { OfflineBanner } from '@/components/common/OfflineBanner'
 import { CommandPalette } from '@/features/search/CommandPalette'
 import { cn } from '@/lib/utils'
 import { useLayoutStore } from '@/stores/layoutStore'
@@ -38,7 +39,8 @@ export function AppLayout() {
         </SheetContent>
       </Sheet>
 
-      <main className="flex min-w-0 flex-1 flex-col">
+      <main tabIndex={-1} className="flex min-w-0 flex-1 flex-col outline-none">
+        <OfflineBanner />
         {/* Cada página entra con una transición corta (la clave es la ruta, sin los parámetros de búsqueda) */}
         <div key={location.pathname} className="tf-enter flex min-h-0 flex-1 flex-col gap-3.5">
           <Outlet />

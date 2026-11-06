@@ -16,10 +16,21 @@ export function notifyError(error, fallbackTitle) {
     })
     return seconds
   }
+  const message = validationDetail(apiError) ?? apiError.message
   if (fallbackTitle) {
-    toast.error(fallbackTitle, { description: apiError.message })
+    toast.error(fallbackTitle, { description: message })
   } else {
-    toast.error(apiError.message)
+    toast.error(message)
   }
   return 0
+}
+
+/**
+ * Un 400 de validación trae «Datos inválidos» y el detalle por campo (`errors`). Fuera de un formulario no hay campo
+ * donde mostrarlo: el toast dice qué falló («El título no puede superar 255 caracteres») en vez del mensaje general.
+ */
+function validationDetail(apiError) {
+  if (apiError.status !== 400 || !apiError.errors) return null
+  const messages = [...new Set(Object.values(apiError.errors).filter((value) => typeof value === 'string' && value))]
+  return messages.length ? messages.slice(0, 2).join(' · ') : null
 }

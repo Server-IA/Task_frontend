@@ -14,6 +14,8 @@ import { cn } from '@/lib/utils'
 import { useSplitStory } from '../hooks'
 import { emptyLine, linesToItems, pickerQuery, removeToken } from '../splitLines'
 
+/** Largo máximo del título de una tarea (como en el backend). */
+const TITLE_MAX = 255
 /** Alto máximo del selector de «@» o «!» (seis personas). */
 const PICKER_HEIGHT = 230
 /** Al abrirse, durante cuánto se lo sigue mostrando entero mientras carga lo de arriba. */
@@ -205,6 +207,8 @@ export function SplitComposer({ slug, project, story, members, onDone, onCancel,
               onBlur={() => setTimeout(() => setPicker((current) => (current?.lineId === line.id ? null : current)), 150)}
               placeholder={index === 0 ? 'Qué hay que hacer… (@ asignar, ! prioridad)' : ''}
               aria-label={`Tarea ${index + 1}`}
+              // Como el título de una tarea (el backend rechaza más de 255 y no dice qué línea)
+              maxLength={TITLE_MAX}
               className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
             />
             {line.assignee && (

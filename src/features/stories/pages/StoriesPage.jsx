@@ -29,6 +29,7 @@ import { useStories } from '../hooks'
 import { filterStories, hasStoryFilters } from '../storyFilters'
 import { storySummary } from '../storySummary'
 import { nextRowIndex } from '../rowNavigation'
+import { SPLIT_PARAM } from '../splitLines'
 
 /** @typedef {import('@/api/types').StoryRow} StoryRow */
 
@@ -79,6 +80,20 @@ export function StoriesPage() {
     [setSearchParams],
   )
   const openIssue = useCallback((issueId) => setParam('issue', issueId), [setParam])
+  // «P»: la historia con «Partir en tareas» abierto (aunque ya tenga tareas; sin tareas se abre solo)
+  const openSplit = useCallback(
+    (issueId) =>
+      setSearchParams(
+        (previous) => {
+          const next = new URLSearchParams(previous)
+          next.set('issue', issueId)
+          next.set(SPLIT_PARAM, '1')
+          return next
+        },
+        { replace: true },
+      ),
+    [setSearchParams],
+  )
 
   const all = useMemo(() => rows ?? [], [rows])
   const stories = all.map((row) => row.story)
@@ -106,7 +121,7 @@ export function StoriesPage() {
   useHotkey('k', () => move(-1))
   useHotkey('p', () => {
     const row = filtered[focusIndex]
-    if (row && manager) openIssue(row.story.id)
+    if (row && manager) openSplit(row.story.id)
   })
 
   const ready = counts.review

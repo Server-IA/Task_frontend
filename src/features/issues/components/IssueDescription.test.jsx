@@ -103,6 +103,21 @@ describe('Editor de la descripción con StrictMode (desarrollo)', () => {
   })
 })
 
+describe('Terminar de editar con el teclado', () => {
+  it('Escape devuelve el foco a «Editar descripción» (no queda en el panel ni en el body)', async () => {
+    const user = userEvent.setup()
+    renderDescription('Hola')
+
+    screen.getByRole('button', { name: 'Editar descripción' }).focus()
+    await user.keyboard('{Enter}')
+    await waitFor(() => expect(editor.props).not.toBeNull())
+    // El editor (falso) tenía el foco y desaparece al terminar
+    await act(async () => editor.props.onEscape())
+
+    expect(await screen.findByRole('button', { name: 'Editar descripción' })).toHaveFocus()
+  })
+})
+
 describe('Guardado automático con un comando a medias', () => {
   it('no guarda mientras el menú «/» o «@» está abierto; guarda al cerrarse', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })

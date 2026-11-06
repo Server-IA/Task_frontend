@@ -100,3 +100,63 @@ describe('focusRowMain', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Logs estructurados' })).toHaveFocus())
   })
 })
+
+describe('la fila que abrió el panel ya no está al cerrarlo', () => {
+  /** Lista filtrada: cambiar el estado en el panel saca la fila (como «Sin partir» al partir la historia). */
+  function FilteredList({ initial }) {
+    const [rows, setRows] = useState(initial)
+    const [open, setOpen] = useState(null)
+    return (
+      <main>
+        {rows.length === 0 && <p>Ninguna tarea</p>}
+        <ul>
+          {rows.map((code) => (
+            <li key={code}>
+              <button type="button" data-row-main="" onClick={() => setOpen(code)}>
+                {code}
+              </button>
+            </li>
+          ))}
+        </ul>
+        <Sheet open={Boolean(open)} onOpenChange={(value) => !value && setOpen(null)}>
+          <SheetContent>
+            <SheetTitle>Detalle</SheetTitle>
+            <SheetDescription>Tarea</SheetDescription>
+            <button type="button" onClick={() => setRows((current) => current.filter((code) => code !== open))}>
+              Mover a In Progress
+            </button>
+          </SheetContent>
+        </Sheet>
+      </main>
+    )
+  }
+
+  const openAndRemove = async (user, code) => {
+    screen.getByRole('button', { name: code }).focus()
+    await user.keyboard('{Enter}')
+    await user.click(await screen.findByRole('button', { name: 'Mover a In Progress' }))
+    await user.keyboard('{Escape}')
+    await closed()
+  }
+
+  it('va a la fila siguiente, no al body', async () => {
+    const user = userEvent.setup()
+    render(<FilteredList initial={['PORT-1', 'PORT-2', 'PORT-3']} />)
+    await openAndRemove(user, 'PORT-2')
+    expect(screen.getByRole('button', { name: 'PORT-3' })).toHaveFocus()
+  })
+
+  it('si era la última, a la anterior', async () => {
+    const user = userEvent.setup()
+    render(<FilteredList initial={['PORT-1', 'PORT-2']} />)
+    await openAndRemove(user, 'PORT-2')
+    expect(screen.getByRole('button', { name: 'PORT-1' })).toHaveFocus()
+  })
+
+  it('sin filas, al contenido de la página', async () => {
+    const user = userEvent.setup()
+    render(<FilteredList initial={['PORT-1']} />)
+    await openAndRemove(user, 'PORT-1')
+    expect(screen.getByRole('main')).toHaveFocus()
+  })
+})

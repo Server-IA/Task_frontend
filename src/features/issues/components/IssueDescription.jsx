@@ -61,6 +61,8 @@ export function IssueDescription({ slug, project, issue, variant = 'page', onOpe
   const moveToChecklist = useMoveToChecklist(slug, project.id, issue.id)
   const me = useSessionStore((state) => state.user?.id)
   const [editing, setEditing] = useState(null)
+  // Al terminar de editar, el foco vuelve a «Editar descripción» (el editor desaparece con el foco adentro)
+  const [refocus, setRefocus] = useState(false)
   // Cambios desde la lectura (casillas, «Pasar al checklist»): van de a uno, cada uno sobre lo que dejó el anterior
   const queueRef = useRef(Promise.resolve())
   const ownVersionRef = useRef(null)
@@ -170,7 +172,10 @@ export function IssueDescription({ slug, project, issue, variant = 'page', onOpe
         variant={variant}
         caret={editing.caret}
         onMoveTasks={moveTasks}
-        onFinish={() => setEditing(null)}
+        onFinish={() => {
+          setEditing(null)
+          setRefocus(true)
+        }}
       />
     )
   }
@@ -184,6 +189,8 @@ export function IssueDescription({ slug, project, issue, variant = 'page', onOpe
       description={description}
       onOpenIssue={onOpenIssue}
       onEdit={(caret) => setEditing({ caret })}
+      refocus={refocus}
+      onRefocused={() => setRefocus(false)}
       onToggleTask={(index, checked) => {
         changeDescription(
           issue.descriptionVersion ?? 0,
@@ -198,10 +205,20 @@ export function IssueDescription({ slug, project, issue, variant = 'page', onOpe
   )
 }
 
-function DescriptionReader({ issue, slug, project, variant, description, onOpenIssue, onEdit, onToggleTask, onMoveTasks }) {
+function DescriptionReader({ issue, slug, project, variant, description, onOpenIssue, onEdit, refocus, onRefocused, onToggleTask, onMoveTasks }) {
   const lastEdit = lastEditOf(issue)
   const textRef = useRef(null)
+  const editRef = useRef(null)
   const page = variant === 'page'
+
+  // Recién terminada la edición (Escape, ctrl ↵ o «Listo»): si el foco se perdió con el editor, vuelve al botón
+  useEffect(() => {
+    if (!refocus) return
+    onRefocused()
+    const active = document.activeElement
+    const lost = !active || active === document.body || !active.isConnected || active.getAttribute('role') === 'dialog'
+    if (lost) editRef.current?.focus({ preventScroll: true })
+  }, [refocus, onRefocused])
 
   const enter = (event) => {
     // Los enlaces, las pastillas y las casillas funcionan sin entrar a editar; seleccionar texto tampoco entra
@@ -228,6 +245,7 @@ function DescriptionReader({ issue, slug, project, variant, description, onOpenI
         )}
       >
         <button
+          ref={editRef}
           type="button"
           onClick={() => onEdit(null)}
           className={cn(

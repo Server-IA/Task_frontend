@@ -71,7 +71,7 @@ export function PlanningDetailPage({ kind }) {
   }
 
   const end = item.endDate ?? item.targetDate
-  // Un ciclo cerrado ya no recibe tareas (409); quitar sí se puede
+  // Un ciclo cerrado ya no recibe ni suelta tareas (409): sus números quedaron fijos al cerrarlo
   const closed = kind === 'cycles' && isCycleClosed(item)
   const showRemaining = kind === 'cycles' && !closed && item.status === 'CURRENT' && end
   // Cerrar el ciclo: el project manager, si ya empezó y sigue abierto
@@ -152,6 +152,7 @@ export function PlanningDetailPage({ kind }) {
           isLoading={issuesLoading}
           onOpenIssue={issueFilters.openIssue}
           onAdd={closed ? undefined : () => setAddOpen(true)}
+          canRemove={!closed}
         />
       </PageBody>
 
@@ -238,7 +239,7 @@ function ProgressBlock({ kind, item, issues }) {
   )
 }
 
-function PlanningIssues({ kind, slug, projectId, item, issues, isLoading, onOpenIssue, onAdd }) {
+export function PlanningIssues({ kind, slug, projectId, item, issues, isLoading, onOpenIssue, onAdd, canRemove = true }) {
   const removeIssue = useRemovePlanningIssue(kind, slug, projectId)
   const singular = PLANNING_TEXT[kind].singular
   const count = useMemo(() => planningListCount(issues), [issues])
@@ -286,25 +287,27 @@ function PlanningIssues({ kind, slug, projectId, item, issues, isLoading, onOpen
                 {issue.priority !== 'NONE' && <PriorityChip priority={issue.priority} className="hidden sm:inline-flex" />}
                 {issue.assignees?.length > 0 && <AvatarStack users={issue.assignees} size="sm" />}
               </button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-7 text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-                aria-label={`Quitar ${issue.code} del ${singular}`}
-                title={`Quitar del ${singular}`}
-                disabled={removeIssue.isPending}
-                onClick={() =>
-                  removeIssue.mutate(
-                    { id: item.id, issueId: issue.id },
-                    {
-                      onSuccess: () => toast.success(`${issue.code} quitada de «${item.name}»`),
-                      onError: (removeError) => notifyError(removeError),
-                    },
-                  )
-                }
-              >
-                <X />
-              </Button>
+              {canRemove && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7 text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                  aria-label={`Quitar ${issue.code} del ${singular}`}
+                  title={`Quitar del ${singular}`}
+                  disabled={removeIssue.isPending}
+                  onClick={() =>
+                    removeIssue.mutate(
+                      { id: item.id, issueId: issue.id },
+                      {
+                        onSuccess: () => toast.success(`${issue.code} quitada de «${item.name}»`),
+                        onError: (removeError) => notifyError(removeError),
+                      },
+                    )
+                  }
+                >
+                  <X />
+                </Button>
+              )}
             </li>
           )
         })}

@@ -22,6 +22,39 @@ export function isFocusable(element) {
 }
 
 const OPEN_MODAL = '[role="dialog"][data-state="open"],[role="alertdialog"][data-state="open"]'
+const ROW_MAIN = '[data-row-main], [data-card-activator]'
+
+/**
+ * Filas y tarjetas que había al abrirse un panel, y en qué lugar estaba lo que lo abrió (la última que queda antes
+ * o en ese elemento). Sirve para volver a una vecina si esa fila ya no está al cerrarlo.
+ */
+function rowsAround(origin) {
+  if (!origin) return null
+  const rows = [...document.querySelectorAll(ROW_MAIN)]
+  let index = -1
+  rows.forEach((row, position) => {
+    if (row === origin || row.compareDocumentPosition(origin) & Node.DOCUMENT_POSITION_FOLLOWING) index = position
+  })
+  return { rows, index }
+}
+
+/**
+ * Lo que tenía el foco ya no está (la fila salió de la lista filtrada al cambiarla en el panel, o se partió la
+ * historia de la pestaña «Sin partir»): la fila siguiente que sigue en pantalla, si no la anterior y, sin filas, el
+ * contenido de la página. Nunca el `body`, donde con teclado se pierde el sitio.
+ */
+function fallbackTarget(around) {
+  if (around && around.index >= 0) {
+    const { rows, index } = around
+    const next = rows.slice(index + 1).find(isFocusable) ?? rows.slice(0, index).reverse().find(isFocusable)
+    if (next) return next
+  }
+  const main = document.querySelector('main')
+  if (main && !main.hasAttribute('tabindex')) main.setAttribute('tabindex', '-1')
+  return main
+}
+
+const focusLost = () => !document.activeElement || document.activeElement === document.body || !document.activeElement.isConnected
 
 /**
  * Diálogos y paneles de la app se abren por estado (sin `Trigger` de Radix), así que al cerrarse Radix no sabe a
@@ -34,13 +67,18 @@ const OPEN_MODAL = '[role="dialog"][data-state="open"],[role="alertdialog"][data
  */
 export function useReturnFocus({ onOpenAutoFocus, onCloseAutoFocus, onFocusCapture } = {}) {
   const origin = useRef(null)
+  const around = useRef(null)
   const entered = useRef(false)
+  const remember = (element) => {
+    origin.current = element
+    around.current = rowsAround(element)
+  }
   return {
     onOpenAutoFocus: (event) => {
       if (!entered.current) {
         entered.current = true
         // Todavía no se movió el foco: es el elemento que abrió el diálogo
-        origin.current = focusOrigin(document.activeElement)
+        remember(focusOrigin(document.activeElement))
       }
       onOpenAutoFocus?.(event)
     },
@@ -48,20 +86,25 @@ export function useReturnFocus({ onOpenAutoFocus, onCloseAutoFocus, onFocusCaptu
       if (!entered.current) {
         entered.current = true
         const from = event.relatedTarget
-        origin.current = from instanceof Element && !event.currentTarget.contains(from) ? focusOrigin(from) : null
+        remember(from instanceof Element && !event.currentTarget.contains(from) ? focusOrigin(from) : null)
       }
       onFocusCapture?.(event)
     },
     onCloseAutoFocus: (event) => {
-      const target = origin.current
+      const recorded = origin.current
+      const rows = around.current
       origin.current = null
+      around.current = null
       entered.current = false
       onCloseAutoFocus?.(event)
-      if (event.defaultPrevented || !isFocusable(target)) return
+      if (event.defaultPrevented || !recorded) return
+      // Si lo que lo abrió desapareció mientras estaba abierto, una fila vecina (solo si el foco no fue a otra parte)
+      const target = isFocusable(recorded) ? recorded : !recorded.isConnected && focusLost() ? fallbackTarget(rows) : null
+      if (!isFocusable(target)) return
       const otherOpen = [...document.querySelectorAll(OPEN_MODAL)].some((modal) => !modal.contains(target))
       if (otherOpen) return
       event.preventDefault()
-      target.focus()
+      target.focus({ preventScroll: target.tagName === 'MAIN' })
     },
   }
 }

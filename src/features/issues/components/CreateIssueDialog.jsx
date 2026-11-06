@@ -104,8 +104,15 @@ export function CreateIssueDialog({ slug, project, open, onOpenChange, defaults 
   // Con una plantilla pedida («Nueva historia», «Reportar bug») el formulario espera a las plantillas para nacer con ella
   const { isLoading: templatesLoading } = useTemplates(slug, project.id)
   const waitTemplates = Boolean(defaults.templateType) && templatesLoading
+  // Cerrar (Escape, clic afuera, la X o «Cancelar») con un título o una descripción escritos pregunta antes: el
+  // formulario decide (closeGuardRef devuelve true si abrió la confirmación)
+  const closeGuardRef = useRef(null)
+  const requestOpenChange = (next) => {
+    if (!next && closeGuardRef.current?.()) return
+    onOpenChange(next)
+  }
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={requestOpenChange}>
       {/* Arriba y con scroll propio: con una plantilla (descripción y checklist) puede ser más alto que la pantalla */}
       <DialogContent
         className="top-[min(18%,6rem)] max-h-[calc(100dvh_-_min(18%,6rem)_-_1rem)] translate-y-0 gap-3.5 overflow-y-auto px-5 pt-4.5 pb-4 sm:max-w-[680px]"
@@ -135,7 +142,9 @@ export function CreateIssueDialog({ slug, project, open, onOpenChange, defaults 
           defaults={defaults}
           type={type}
           onTypeChange={setType}
-          onCancel={() => onOpenChange(false)}
+          onCancel={() => requestOpenChange(false)}
+          onDiscard={() => onOpenChange(false)}
+          closeGuardRef={closeGuardRef}
           onCreated={(issue, keepOpen) => {
             onCreated?.(issue)
             if (!keepOpen) onOpenChange(false)
@@ -147,7 +156,7 @@ export function CreateIssueDialog({ slug, project, open, onOpenChange, defaults 
   )
 }
 
-function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel, onCreated }) {
+function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel, onDiscard, closeGuardRef, onCreated }) {
   const meta = useProjectMeta(slug, project.id)
   const create = useCreateIssue(slug, project.id)
   const { data: allTemplates = [] } = useTemplates(slug, project.id)
@@ -217,6 +226,24 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
     caretToEnd()
   }
   const fromTemplate = fromTemplateFlags(template, values)
+
+  // Lo escrito que se perdería al cerrar: el título (más allá del prefijo de la plantilla o del que vino escrito) o la
+  // descripción (más allá de la de la plantilla)
+  const [confirmDiscard, setConfirmDiscard] = useState(false)
+  useEffect(() => {
+    if (!closeGuardRef) return undefined
+    closeGuardRef.current = () => {
+      const { title = '', description = '' } = form.getValues()
+      const startTitle = template?.titlePrefix ?? defaults.title ?? ''
+      const startDescription = template ? (template.description ?? base?.description ?? '') : ''
+      const typed = title.trim() !== startTitle.trim() || description.trim() !== startDescription.trim()
+      if (typed) setConfirmDiscard(true)
+      return typed
+    }
+    return () => {
+      closeGuardRef.current = null
+    }
+  })
 
   // ctrl ↵ dos veces (o con la tecla repitiendo) no crea dos tareas: el botón se deshabilita, el atajo no
   const submitting = useRef(false)
@@ -288,7 +315,7 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
             active={template}
             onChoose={requestTemplate}
             settingsUrl={isManager ? `/${slug}/projects/${project.id}/settings?tab=templates` : null}
-            onLeave={onCancel}
+            onLeave={onDiscard}
           />
         )}
         <FormField
@@ -407,6 +434,17 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
         }}
         // Cancelado, el foco vuelve a la pastilla de la plantilla; cambiada, al título (como sin confirmación)
         focusAfterConfirmRef={titleRef}
+      />
+      <ConfirmDialog
+        open={confirmDiscard}
+        onOpenChange={setConfirmDiscard}
+        title={`¿Descartar ${type === 'STORY' ? 'la historia' : type === 'BUG' ? 'el bug' : 'la tarea'}?`}
+        description="Se pierde lo que escribiste en el título y la descripción."
+        confirmLabel="Descartar"
+        onConfirm={() => {
+          setConfirmDiscard(false)
+          onDiscard()
+        }}
       />
     </Form>
   )

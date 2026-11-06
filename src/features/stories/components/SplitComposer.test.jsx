@@ -99,3 +99,10 @@ describe('SplitComposer: a la vista', () => {
     expect(screen.getByRole('listbox', { name: 'Prioridad' })).toHaveClass('top-full')
   })
 })
+
+describe('SplitComposer: largo de las líneas', () => {
+  it('cada línea acepta hasta 255 caracteres, como el título de una tarea (el backend rechaza más)', () => {
+    renderComposer()
+    expect(screen.getByRole('textbox', { name: 'Tarea 1' })).toHaveAttribute('maxLength', '255')
+  })
+})

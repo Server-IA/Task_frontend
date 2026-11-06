@@ -54,6 +54,18 @@ export function IssueActivity({ slug, projectId, issueId, issueCode, projectIden
 
   const isLoading = comments.isLoading || activity.isLoading
 
+  // Al eliminar un comentario su tarjeta desaparece con el foco adentro (el botón de acciones): el foco pasa a la
+  // caja para comentar. Se busca al cerrar la confirmación (antes de enfocarla es solo un recuadro, luego el editor)
+  const sectionRef = useRef(null)
+  const composerFocusRef = useMemo(
+    () => ({
+      get current() {
+        return sectionRef.current?.querySelector('[aria-label="Escribe un comentario"]') ?? null
+      },
+    }),
+    [],
+  )
+
   // Abierta desde un aviso de la Bandeja: la vista baja hasta ese comentario
   useEffect(() => {
     if (!focusCommentId || isLoading) return
@@ -61,7 +73,7 @@ export function IssueActivity({ slug, projectId, issueId, issueCode, projectIden
   }, [focusCommentId, isLoading])
 
   return (
-    <section className="flex flex-col gap-3">
+    <section ref={sectionRef} className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-semibold">Actividad</h2>
         <Segmented label="Filtrar actividad" size="sm" className="p-0.5" value={filter} onChange={setFilter} options={FILTERS} />
@@ -82,6 +94,7 @@ export function IssueActivity({ slug, projectId, issueId, issueCode, projectIden
                   people={people}
                   projectIdentifier={projectIdentifier}
                   onOpenIssue={onOpenIssue}
+                  focusAfterDeleteRef={composerFocusRef}
                 />
               </li>
             ) : (
@@ -167,7 +180,7 @@ function AttachedFileText({ file }) {
   )
 }
 
-function CommentCard({ slug, projectId, issueId, comment, people, projectIdentifier, onOpenIssue }) {
+function CommentCard({ slug, projectId, issueId, comment, people, projectIdentifier, onOpenIssue, focusAfterDeleteRef }) {
   // Del workspace de la tarea (no de la URL): la actividad también se ve desde la Bandeja
   const { data: workspace } = useWorkspace(slug)
   const currentUserId = useSessionStore((state) => state.user?.id)
@@ -295,6 +308,7 @@ function CommentCard({ slug, projectId, issueId, comment, people, projectIdentif
         title="¿Eliminar el comentario?"
         confirmLabel="Eliminar"
         loading={remove.isPending}
+        focusAfterConfirmRef={focusAfterDeleteRef}
         onConfirm={() =>
           remove.mutate(comment.id, {
             onSuccess: () => {
