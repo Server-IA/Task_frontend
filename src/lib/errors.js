@@ -56,15 +56,25 @@ export function getErrorMessage(error) {
 
 /**
  * Pinta en los campos del formulario los errores de validación del backend.
- * Devuelve true si había errores por campo.
+ * Devuelve true si había errores por campo y todos se pudieron mostrar.
+ * @param {{ aliases?: Record<string, string>, fields?: string[] }} [options] `aliases`: nombre del campo en la API →
+ *   en el formulario; `fields`: los campos que tiene el formulario (los demás errores se avisan aparte).
  */
-export function applyFieldErrors(error, setError) {
+export function applyFieldErrors(error, setError, { aliases = {}, fields } = {}) {
   const { errors } = toApiError(error)
   if (!errors) return false
-  Object.entries(errors).forEach(([field, message]) => {
+  let unshown = false
+  Object.entries(errors).forEach(([apiField, message]) => {
+    // El backend puede nombrar el campo distinto que el formulario (un módulo manda targetDate; el form usa endDate)
+    const field = aliases[apiField] ?? apiField
+    if (fields && !fields.includes(field)) {
+      unshown = true
+      return
+    }
     setError(field, { type: 'server', message })
   })
-  return true
+  // Con `fields`, un error de un campo que el formulario no tiene se avisa aparte (si no, el guardado fallaba en silencio)
+  return !unshown
 }
 
 /**

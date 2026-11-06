@@ -266,7 +266,11 @@ function PlanningForm({ kind, slug, projectId, item, onCancel, onSaved }) {
         onSaved(saved)
       },
       onError: (error) => {
-        if (!applyFieldErrors(error, form.setError)) notifyError(error)
+        const mapped = applyFieldErrors(error, form.setError, {
+          aliases: { [text.endField]: 'endDate' },
+          fields: ['name', 'description', 'startDate', 'endDate'],
+        })
+        if (!mapped) notifyError(error)
       },
     }
     if (closed) {
