@@ -113,13 +113,14 @@ export function CreateIssueDialog({ slug, project, open, onOpenChange, defaults 
   }
   return (
     <Dialog open={open} onOpenChange={requestOpenChange}>
-      {/* Arriba y con scroll propio: con una plantilla (descripción y checklist) puede ser más alto que la pantalla */}
+      {/* Ancho y alto: casi toda la pantalla de un escritorio, para escribir la descripción con espacio. Arriba y con
+          scroll propio: con una plantilla (descripción y checklist) puede ser más alto que la pantalla */}
       <DialogContent
-        className="top-[min(18%,6rem)] max-h-[calc(100dvh_-_min(18%,6rem)_-_1rem)] translate-y-0 gap-3.5 overflow-y-auto px-5 pt-4.5 pb-4 sm:max-w-[680px]"
+        className="top-[min(7%,3.5rem)] max-h-[calc(100dvh_-_min(7%,3.5rem)_-_1.5rem)] translate-y-0 gap-4 overflow-y-auto px-7 pt-5.5 pb-5 sm:max-w-[min(980px,calc(100%_-_3rem))]"
         onOpenAutoFocus={focusTitle}
       >
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-sm font-semibold">
+          <DialogTitle className="flex items-center gap-2 text-[15px] font-semibold">
             <ProjectIcon project={project} className="rounded-md px-2 text-[11px]" />
             <TypeIcon type={type} size={14} />
             {dialogTitle(type, defaults)}
@@ -295,7 +296,7 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
   const setField = (name) => (value) => form.setValue(name, value, { shouldDirty: true })
   // Pastillas de propiedades: punteadas mientras están vacías
   const chip = (empty) =>
-    cn('h-8 rounded-full border px-3 text-[13px]', empty ? 'border-dashed border-dash text-muted-foreground' : 'border-border bg-card')
+    cn('h-9 rounded-full border px-3.5 text-sm', empty ? 'border-dashed border-dash text-muted-foreground' : 'border-border bg-card')
 
   return (
     <Form {...form}>
@@ -306,7 +307,7 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
           event.preventDefault()
           if (!event.repeat && !submitting.current) form.handleSubmit(onSubmit)(event)
         }}
-        className="space-y-3.5"
+        className="space-y-4"
         noValidate
       >
         {templates.length > 0 && (
@@ -333,7 +334,7 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
                   autoFocus
                   placeholder="Título"
                   aria-label="Título"
-                  className="w-full bg-transparent text-[21px] font-semibold outline-none placeholder:text-muted-foreground"
+                  className="w-full bg-transparent text-[26px] leading-tight font-semibold outline-none placeholder:text-muted-foreground"
                 />
               </FormControl>
               <FormMessage />
@@ -358,7 +359,7 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
             </FormItem>
           )}
         />
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-2">
           <FromTemplate active={Boolean(template)}>
             <TypeSelect value={type} onChange={onTypeChange} canStory={canStory} className={chip(false)} />
           </FromTemplate>
@@ -463,7 +464,6 @@ function DescriptionField({ value, onChange, people, slug, projectIdentifier, im
         <LazyRichEditor
           value={value}
           onChange={onChange}
-          size="sm"
           toolbar={showFormat ? 'compact' : false}
           people={people}
           slug={slug}
@@ -471,7 +471,7 @@ function DescriptionField({ value, onChange, people, slug, projectIdentifier, im
           ariaLabel="Descripción"
           imageUpload={imageUpload}
           onUploadsChange={onUploadsChange}
-          contentClassName={cn('max-h-[360px] min-h-20 overflow-y-auto', showFormat ? 'px-3 py-2' : 'py-0.5')}
+          contentClassName={cn('max-h-[min(52dvh,560px)] min-h-[min(30dvh,260px)] overflow-y-auto', showFormat ? 'px-3 py-2' : 'py-0.5')}
         />
       </div>
       <div className="mt-2.5 flex flex-wrap items-center gap-3 border-t border-dashed pt-2 font-mono text-[11px] text-muted-foreground">
