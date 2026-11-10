@@ -141,12 +141,6 @@ export function PlanningListPage({ kind }) {
                             : undefined
                         }
                       />
-                      <span
-                        aria-hidden="true"
-                        className="text-muted-foreground group-hover:text-foreground hidden sm:inline"
-                      >
-                        →
-                      </span>
                     </Link>
                     {(canManage || closed) && (
                       <DropdownMenu>
