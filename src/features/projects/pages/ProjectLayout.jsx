@@ -8,14 +8,15 @@ import { useProject } from '../hooks'
 
 /**
  * Carga el proyecto de la URL antes de mostrar sus páginas (tareas, ciclos, daily, módulos, hoja de ruta,
- * estadísticas, ajustes).
+ * estadísticas, reportes, ajustes).
  */
 export function ProjectLayout() {
   const { slug, projectId } = useParams()
   const { data: project, isLoading, error, refetch } = useProject(slug, projectId)
   const navigate = useNavigate()
 
-  // Atajos de la sidebar: I tareas, H historias, Y ciclos, D daily, M módulos, R hoja de ruta, S estadísticas, «,» ajustes
+  // Atajos de la sidebar: I tareas, H historias, Y ciclos, D daily, M módulos, R hoja de ruta, S estadísticas,
+  // E reportes (exportar), «,» ajustes
   const base = `/${slug}/projects/${projectId}`
   useHotkey('i', useCallback(() => navigate(`${base}/issues`), [navigate, base]))
   useHotkey('h', useCallback(() => navigate(`${base}/stories`), [navigate, base]))
@@ -24,6 +25,7 @@ export function ProjectLayout() {
   useHotkey('m', useCallback(() => navigate(`${base}/modules`), [navigate, base]))
   useHotkey('r', useCallback(() => navigate(`${base}/roadmap`), [navigate, base]))
   useHotkey('s', useCallback(() => navigate(`${base}/stats`), [navigate, base]))
+  useHotkey('e', useCallback(() => navigate(`${base}/reports`), [navigate, base]))
   useHotkey(',', useCallback(() => navigate(`${base}/settings`), [navigate, base]))
 
   if (isLoading) return <CenteredSpinner className="flex-1" />

@@ -21,6 +21,7 @@ export const PROJECT_SECTIONS = [
   { path: 'modules', label: 'Módulos', hint: 'M' },
   { path: 'roadmap', label: 'Hoja de ruta', hint: 'R' },
   { path: 'stats', label: 'Estadísticas', hint: 'S' },
+  { path: 'reports', label: 'Reportes', hint: 'E' },
   { path: 'settings', label: 'Ajustes', hint: ',' },
 ]
 

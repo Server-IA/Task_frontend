@@ -47,6 +47,7 @@ export const queryKeys = {
   dailySettings: (projectId) => ['dailySettings', projectId],
 
   stats: (projectId, weeks) => ['stats', projectId, weeks],
+  reportPreview: (projectId, params) => ['reportPreview', projectId, params],
 
   myWork: (slug, view) => ['myWork', slug, view],
   /** Prefijo del feed y del resumen de actividad del workspace (con cualquier filtro). */

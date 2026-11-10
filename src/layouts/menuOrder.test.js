@@ -18,6 +18,7 @@ describe('orden del menú lateral', () => {
       'Historias',
       'Hoja de ruta',
       'Módulos',
+      'Reportes',
       'Tareas',
     ])
   })

@@ -27,6 +27,7 @@ import { InvitationPage } from '@/features/workspaces/pages/InvitationPage'
 import { OnboardingPage } from '@/features/workspaces/pages/OnboardingPage'
 import { WorkspaceHomePage } from '@/features/workspaces/pages/WorkspaceHomePage'
 import { WorkspaceLayout } from '@/features/workspaces/pages/WorkspaceLayout'
+import { ReportsPage } from '@/features/reports/pages/ReportsPage'
 import { WorkspaceSettingsPage } from '@/features/workspaces/pages/WorkspaceSettingsPage'
 import { AppLayout } from '@/layouts/AppLayout'
 import { AuthLayout } from '@/layouts/AuthLayout'
@@ -88,6 +89,7 @@ export const router = createBrowserRouter([
                       { path: 'modules/:itemId', element: <PlanningDetailPage kind="modules" key="module" /> },
                       { path: 'roadmap', element: <RoadmapPage /> },
                       { path: 'stats', element: <StatsPage /> },
+                      { path: 'reports', element: <ReportsPage /> },
                       { path: 'settings', element: <ProjectSettingsPage /> },
                       { path: '*', element: <NotFoundPage /> },
                     ],

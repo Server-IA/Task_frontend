@@ -88,6 +88,13 @@
 /** @typedef {Schemas['DailySummary']} DailySummary */
 /** @typedef {Schemas['DailyCycle']} DailyCycle */
 /**
+ * Vista previa de un reporte de tareas.
+ * @typedef {{ totalMatching: number, truncated: boolean, maxIssues: number,
+ *             totals: { total: number, open: number, completed: number, cancelled: number, overdue: number },
+ *             byState: { name: string, count: number }[], byPriority: { name: string, count: number }[],
+ *             byAssignee: { name: string, count: number }[], byType: { name: string, count: number }[] }} IssuesReportPreview
+ */
+/**
  * Ajustes de la daily de un proyecto.
  * @typedef {{ secondsPerPerson: number, personTimes: { userId: string, seconds: number }[],
  *             sections: { summary: boolean, yesterday: boolean, today: boolean, blockers: boolean, note: boolean },

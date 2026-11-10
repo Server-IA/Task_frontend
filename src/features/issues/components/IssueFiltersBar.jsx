@@ -31,6 +31,7 @@ const BLOCKED_HINT = 'Solo las tareas que esperan a otra tarea abierta'
  * bloqueadas); con una vista guardada aplicada (`compact`) solo se ven los filtros con valor y todo lo demás se
  * agrega desde ahí. Los valores viven en la URL (useIssueFilters). `changed` marca los filtros que ya no coinciden
  * con la vista guardada activa. Ciclo y módulo solo se ofrecen si el proyecto tiene (`meta.cycles`, `meta.modules`).
+ * `searchPlaceholder` cambia el texto de la búsqueda donde Enter no salta a una tarea (los reportes).
  */
 export function IssueFiltersBar({
   filters,
@@ -46,6 +47,7 @@ export function IssueFiltersBar({
   storiesUrl,
   hideType = false,
   fixedChips,
+  searchPlaceholder,
   children,
 }) {
   const cycles = meta.cycles ?? []
@@ -116,7 +118,12 @@ export function IssueFiltersBar({
     // se caían debajo de los filtros
     <div className="flex items-start gap-2 px-1">
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-      <SearchBox value={filters.search} onChange={(value) => setFilter('search', value, { replace: true })} onJump={onJumpToCode} codeExample={codeExample} />
+      <SearchBox
+        value={filters.search}
+        onChange={(value) => setFilter('search', value, { replace: true })}
+        onJump={onJumpToCode}
+        placeholder={searchPlaceholder ?? `buscar o saltar a ${codeExample}`}
+      />
       {fixedChips}
       {pills.map((key) =>
         key === 'type' ? (
@@ -173,7 +180,7 @@ export function IssueFiltersBar({
 /** Código de tarea («WEB-12», «web-12»): Enter salta a esa tarea en vez de solo filtrar. */
 const ISSUE_CODE_PATTERN = /^[A-Za-z][A-Za-z0-9]*-\d+$/
 
-function SearchBox({ value, onChange, onJump, codeExample }) {
+function SearchBox({ value, onChange, onJump, placeholder }) {
   const [draft, setDraft] = useState(value)
   const debounced = useDebouncedValue(draft, 350)
   const inputRef = useRef(null)
@@ -215,7 +222,7 @@ function SearchBox({ value, onChange, onJump, codeExample }) {
             onJump(code.toUpperCase())
           }
         }}
-        placeholder={`buscar o saltar a ${codeExample}`}
+        placeholder={placeholder}
         className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
       />
       <kbd className="text-[11px] text-muted-foreground">/</kbd>
