@@ -67,6 +67,11 @@ export function IssueDetail({
   // Estado, tipo o padre que reabrirían una historia cerrada: 409 STORY_CLOSED → preguntar
   const { onStoryClosed, dialog: storyClosedDialog, manager } = useStoryClosedGuard(slug)
   const [subIssueOpen, setSubIssueOpen] = useState(false)
+  // Del workspace de la tarea (no de la URL): el panel también se abre desde la Bandeja. Sin el permiso de editar
+  // tareas las propiedades quedan apagadas; sin el de crear, no se ofrecen subtareas
+  const { data: workspace } = useWorkspace(slug)
+  const canEdit = can(workspace, 'ISSUE_EDIT')
+  const canCreate = can(workspace, 'ISSUE_CREATE')
   // «Ver Markdown» del menú ⋯: la descripción tal como se guarda
   const [showMarkdown, setShowMarkdown] = useState(false)
 
@@ -95,6 +100,7 @@ export function IssueDetail({
         onClose={onClose}
         showMarkdown={showMarkdown}
         onToggleMarkdown={() => setShowMarkdown((current) => !current)}
+        canEdit={canEdit}
         onChangeType={(type) => updateReopening({ type }, closedStoryActions.type(issue))}
       />
 
@@ -117,6 +123,7 @@ export function IssueDetail({
               singleLine
               value={issue.title}
               maxLength={255}
+              disabled={!canEdit}
               onSave={(title) => update({ title })}
               className="-mx-2 text-2xl leading-tight font-semibold tracking-[-0.01em]"
               placeholder="Título de la tarea"
@@ -137,7 +144,7 @@ export function IssueDetail({
               projectId={project.id}
               issueId={issue.id}
               onOpenIssue={onOpenIssue}
-              onAdd={() => setSubIssueOpen(true)}
+              onAdd={canCreate ? () => setSubIssueOpen(true) : undefined}
             />
           )}
 
@@ -155,7 +162,7 @@ export function IssueDetail({
             <span className="flex min-w-0 flex-col items-start">
             <StatePicker
               states={stateOptions}
-              disabled={storyStateLocked(issue, manager)}
+              disabled={!canEdit || storyStateLocked(issue, manager)}
               value={issue.state?.id}
               onChange={(stateId) => {
                 const state = meta.states.find((item) => item.id === stateId)
@@ -182,10 +189,11 @@ export function IssueDetail({
             </PropertyRow>
           )}
           <PropertyRow label="Prioridad">
-            <PriorityPicker value={issue.priority} onChange={(priority) => update({ priority })} />
+            <PriorityPicker disabled={!canEdit} value={issue.priority} onChange={(priority) => update({ priority })} />
           </PropertyRow>
           <PropertyRow label="Asignados">
             <AssigneesPicker
+              disabled={!canEdit}
               members={meta.users}
               value={issue.assignees?.map((user) => user.id) ?? []}
               onChange={(assigneeIds) => update({ assigneeIds })}
@@ -193,6 +201,7 @@ export function IssueDetail({
           </PropertyRow>
           <PropertyRow label="Etiquetas">
             <LabelsPicker
+              disabled={!canEdit}
               labels={meta.labels}
               value={issue.labels?.map((label) => label.id) ?? []}
               onChange={(labelIds) => update({ labelIds })}
@@ -200,6 +209,7 @@ export function IssueDetail({
           </PropertyRow>
           <PropertyRow label="Inicio">
             <DatePicker
+              disabled={!canEdit}
               value={issue.startDate}
               placeholder="Sin fecha"
               maxDate={issue.dueDate}
@@ -208,6 +218,7 @@ export function IssueDetail({
           </PropertyRow>
           <PropertyRow label="Fecha límite">
             <DatePicker
+              disabled={!canEdit}
               value={issue.dueDate}
               placeholder="Sin fecha"
               minDate={issue.startDate}
@@ -217,6 +228,7 @@ export function IssueDetail({
           </PropertyRow>
           <PropertyRow label={issue.parent?.type === 'STORY' ? 'Historia' : 'Padre'}>
             <ParentPicker
+              disabled={!canEdit}
               slug={slug}
               projectId={project.id}
               issue={issue}
@@ -266,7 +278,7 @@ export function PropertyRow({ label, children }) {
   )
 }
 
-function IssueTopBar({ slug, project, issue, variant, pageUrl, onClose, showMarkdown, onToggleMarkdown, onChangeType }) {
+function IssueTopBar({ slug, project, issue, variant, pageUrl, onClose, showMarkdown, onToggleMarkdown, canEdit, onChangeType }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const remove = useDeleteIssue(slug, project.id)
   const navigate = useNavigate()
@@ -301,7 +313,7 @@ function IssueTopBar({ slug, project, issue, variant, pageUrl, onClose, showMark
 
   return (
     <div className="flex shrink-0 items-center gap-2.5 border-b px-4 py-3">
-      <TypePicker issue={issue} isManager={can(workspace, 'STORY_MANAGE')} onChange={onChangeType} />
+      <TypePicker issue={issue} isManager={can(workspace, 'STORY_MANAGE')} disabled={!canEdit} onChange={onChangeType} />
       {/* El código no se parte (en el panel quedaba «QAVISUALLONG-» / «1»); un estado de nombre largo se corta */}
       <span className="shrink-0 font-mono text-[13px] whitespace-nowrap text-muted-foreground">{issue.code}</span>
       <span className="hidden truncate font-mono text-xs text-muted-foreground sm:inline">· {project.name.toLowerCase()}</span>
@@ -381,9 +393,11 @@ function SubIssues({ slug, projectId, issueId, onOpenIssue, onAdd }) {
             </span>
           )}
         </h2>
-        <button type="button" className="rounded-full border px-2.5 py-1 text-xs hover:bg-accent" onClick={onAdd}>
-          + agregar
-        </button>
+        {onAdd && (
+          <button type="button" className="rounded-full border px-2.5 py-1 text-xs hover:bg-accent" onClick={onAdd}>
+            + agregar
+          </button>
+        )}
       </div>
       {isLoading ? (
         <CenteredSpinner className="p-4" />

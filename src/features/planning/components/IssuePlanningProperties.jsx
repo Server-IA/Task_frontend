@@ -5,6 +5,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { PropertyRow } from '@/features/issues/components/IssueDetail'
 import { PropertyButton } from '@/features/issues/components/PropertyPickers'
 import { notifyError } from '@/lib/notify'
+import { can } from '@/lib/permissions'
+import { useWorkspace } from '@/features/workspaces/hooks'
 import { useAddPlanningIssues, usePlanningList, useRemovePlanningIssue } from '../hooks'
 
 /**
@@ -30,6 +32,8 @@ function CyclePicker({ slug, projectId, issue }) {
   const add = useAddPlanningIssues('cycles', slug, projectId)
   const remove = useRemovePlanningIssue('cycles', slug, projectId)
   const current = issue.cycle
+  // Mover tareas entre ciclos va por permiso
+  const canAssign = can(useWorkspace(slug).data, 'CYCLE_ASSIGN')
   // Un ciclo cerrado ya no recibe ni suelta tareas (409): solo aparece si es el de la tarea, y sin «Quitar del ciclo»
   // (sí se la puede pasar a uno abierto)
   const choices = cycles.filter((cycle) => !cycle.closedAt || cycle.id === current?.id)
@@ -49,7 +53,7 @@ function CyclePicker({ slug, projectId, issue }) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <PropertyButton aria-label="Ciclo" disabled={add.isPending || remove.isPending}>
+        <PropertyButton aria-label="Ciclo" disabled={!canAssign || add.isPending || remove.isPending}>
           <RefreshCcw className="size-3.5 text-muted-foreground" />
           <span className={current ? 'truncate' : 'text-muted-foreground'}>{current?.name ?? 'Sin ciclo'}</span>
         </PropertyButton>
@@ -87,6 +91,8 @@ function ModulesPicker({ slug, projectId, issue }) {
   const add = useAddPlanningIssues('modules', slug, projectId)
   const remove = useRemovePlanningIssue('modules', slug, projectId)
   const selected = new Set((issue.modules ?? []).map((module) => module.id))
+  // Mover tareas entre módulos va por permiso
+  const canAssign = can(useWorkspace(slug).data, 'MODULE_ASSIGN')
 
   const toggle = (moduleId) => {
     const options = { onError: (error) => notifyError(error) }
@@ -97,7 +103,7 @@ function ModulesPicker({ slug, projectId, issue }) {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <PropertyButton className="h-auto min-h-7 py-1" aria-label="Módulos">
+        <PropertyButton className="h-auto min-h-7 py-1" aria-label="Módulos" disabled={!canAssign}>
           <Layers className="size-3.5 text-muted-foreground" />
           {issue.modules?.length ? (
             <span className="truncate">{issue.modules.map((module) => module.name).join(', ')}</span>

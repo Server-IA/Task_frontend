@@ -18,6 +18,7 @@ import { closedStoryActions, useStoryClosedGuard } from '../useStoryClosedGuard'
 import { AttachmentsChip, BlockedChip, BlockingChip, ChecklistChip } from './IssueBadges'
 import { IssueTypeIcon, ParentStoryChip, TypeIcon } from './IssueTypeBits'
 import { PriorityIcon } from './PriorityIcon'
+import { useCanEditIssues } from '../editPermission'
 import { AssigneesPicker, DatePicker, LabelsPicker, PriorityPicker, StatePicker } from './PropertyPickers'
 
 /**
@@ -185,6 +186,7 @@ const stop = (event) => event.stopPropagation()
  * esa tarea en la lista y solo su fila vuelve a pintarse.
  */
 const IssueRow = memo(function IssueRow({ issue, slug, project, meta, openIssue, guard, onStoryClosed, manager }) {
+  const locked = !useCanEditIssues()
   const { update } = useIssueUpdater(slug, project.id, issue.id)
 
   return (
@@ -204,7 +206,7 @@ const IssueRow = memo(function IssueRow({ issue, slug, project, meta, openIssue,
         <span className="flex items-center gap-1" onClick={stop}>
           <StatePicker
             states={stateOptionsFor(issue, meta.states, manager)}
-            disabled={storyStateLocked(issue, manager)}
+            disabled={locked || storyStateLocked(issue, manager)}
             value={issue.state?.id}
             onChange={(stateId) => {
               const state = meta.states.find((item) => item.id === stateId)
@@ -220,7 +222,7 @@ const IssueRow = memo(function IssueRow({ issue, slug, project, meta, openIssue,
           />
           <IssueTypeIcon issue={issue} size={14} className="mx-0.5" />
           <span className="w-24">
-            <PriorityPicker
+            <PriorityPicker disabled={locked}
               chip
               iconOnlyWhenEmpty
               value={issue.priority}
@@ -260,7 +262,7 @@ const IssueRow = memo(function IssueRow({ issue, slug, project, meta, openIssue,
         </span>
         <span className="flex items-center gap-1.5" onClick={stop}>
           {(meta.labels.length > 0 || issue.labels?.length > 0) && (
-            <LabelsPicker
+            <LabelsPicker disabled={locked}
               compact
               labels={meta.labels}
               value={issue.labels?.map((label) => label.id) ?? []}
@@ -268,7 +270,7 @@ const IssueRow = memo(function IssueRow({ issue, slug, project, meta, openIssue,
               className={cn(!issue.labels?.length && revealOnHover)}
             />
           )}
-          <DatePicker
+          <DatePicker disabled={locked}
             value={issue.dueDate}
             placeholder="Fecha límite"
             due={{ closed: isClosed(issue) }}
@@ -278,7 +280,7 @@ const IssueRow = memo(function IssueRow({ issue, slug, project, meta, openIssue,
           />
           {/* Columna fija: el clip con el número de adjuntos (vacía si no hay) */}
           <AttachmentsChip issue={issue} reserve className="w-8.5 justify-end" />
-          <AssigneesPicker
+          <AssigneesPicker disabled={locked}
             members={meta.users}
             value={issue.assignees?.map((user) => user.id) ?? []}
             onChange={(assigneeIds) => update({ assigneeIds })}

@@ -2,8 +2,11 @@ import { useCallback } from 'react'
 import { Outlet, useNavigate, useParams } from 'react-router'
 import { CenteredSpinner } from '@/components/common/Loaders'
 import { ErrorState } from '@/components/common/States'
+import { CanEditIssuesContext } from '@/features/issues/editPermission'
+import { useWorkspace } from '@/features/workspaces/hooks'
 import { useHotkey } from '@/hooks/useHotkey'
 import { PageHeader } from '@/layouts/PageHeader'
+import { can } from '@/lib/permissions'
 import { useProject } from '../hooks'
 
 /**
@@ -14,6 +17,8 @@ export function ProjectLayout() {
   const { slug, projectId } = useParams()
   const { data: project, isLoading, error, refetch } = useProject(slug, projectId)
   const navigate = useNavigate()
+  // Sin el permiso de editar tareas, las tarjetas y las filas apagan sus selectores y el arrastre
+  const { data: workspace } = useWorkspace(slug)
 
   // Atajos de la sidebar: I tareas, H historias, Y ciclos, D daily, M módulos, R hoja de ruta, S estadísticas,
   // E reportes (exportar), «,» ajustes
@@ -37,5 +42,9 @@ export function ProjectLayout() {
       </>
     )
   }
-  return <Outlet />
+  return (
+    <CanEditIssuesContext.Provider value={can(workspace, 'ISSUE_EDIT')}>
+      <Outlet />
+    </CanEditIssuesContext.Provider>
+  )
 }

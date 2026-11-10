@@ -19,7 +19,9 @@ import { formatDateTime, formatRelative } from '@/lib/dates'
 import { DND_INSTRUCTIONS, DRAG_ROLE, quoted, sortableAnnouncements } from '@/lib/dndAnnouncements'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
+import { can } from '@/lib/permissions'
 import { usePreferencesStore } from '@/stores/preferencesStore'
+import { useWorkspace } from '@/features/workspaces/hooks'
 import { checkedByName, dropIndex, formatCriterion, itemsOfKind, moveChecklistItem, parseCriterion } from '../checklistMath'
 import {
   CHECKLIST_LIMIT,
@@ -46,6 +48,8 @@ export function IssueChecklist({ slug, projectId, issue }) {
   const update = useUpdateChecklistItem(slug, projectId, issue.id)
   const move = useMoveChecklistItem(slug, projectId, issue.id)
   const remove = useDeleteChecklistItem(slug, projectId, issue.id)
+  // Sin el permiso del checklist se ve, pero no se marca, edita ni agrega
+  const readOnly = !can(useWorkspace(slug).data, 'ISSUE_CHECKLIST')
 
   // Al soltar se muestra el orden nuevo enseguida, hasta que la caché lo tenga (si no, el elemento salta atrás un instante)
   const [pending, setPending] = useState(null)
@@ -76,10 +80,11 @@ export function IssueChecklist({ slug, projectId, issue }) {
   }
 
   return (
-    <>
-      <CriteriaBlock issueId={issue.id} items={items} actions={actions} full={full} />
-      <StepsBlock issueId={issue.id} items={items} actions={actions} full={full} />
-    </>
+    // `inert`: nada de lo de adentro recibe clics ni foco (casillas, menús, arrastre); los botones de agregar no se pintan
+    <div inert={readOnly} className="contents">
+      <CriteriaBlock issueId={issue.id} items={items} actions={actions} full={full} readOnly={readOnly} />
+      <StepsBlock issueId={issue.id} items={items} actions={actions} full={full} readOnly={readOnly} />
+    </div>
   )
 }
 
@@ -102,7 +107,7 @@ const FORMAT_OPTIONS = [
   { value: 'plain', label: 'Lista simple' },
 ]
 
-function CriteriaBlock({ issueId, items, actions, full }) {
+function CriteriaBlock({ issueId, items, actions, full, readOnly = false }) {
   const format = usePreferencesStore((state) => state.criteriaFormat)
   const setFormat = usePreferencesStore((state) => state.setCriteriaFormat)
   const [adding, setAdding] = useState(false)
@@ -164,6 +169,8 @@ function CriteriaBlock({ issueId, items, actions, full }) {
             />
           </ul>
         )
+      ) : readOnly ? (
+        criteria.length === 0 && <p className="text-xs text-muted-foreground">Sin criterios de aceptación.</p>
       ) : (
         <div className="flex flex-wrap items-center gap-2.5">
           <AddButton disabled={full} onClick={() => setAdding(true)}>
@@ -180,7 +187,7 @@ function CriteriaBlock({ issueId, items, actions, full }) {
   )
 }
 
-function StepsBlock({ issueId, items, actions, full }) {
+function StepsBlock({ issueId, items, actions, full, readOnly = false }) {
   const [adding, setAdding] = useState(false)
   const [hideDone, setHideDone] = useState(false)
   const steps = itemsOfKind(items, 'CHECK')
@@ -254,7 +261,8 @@ function StepsBlock({ issueId, items, actions, full }) {
         <p className="text-xs text-muted-foreground">Todos los pasos están hechos.</p>
       )}
 
-      {!adding && (
+      {readOnly && steps.length === 0 && <p className="text-xs text-muted-foreground">Sin pasos.</p>}
+      {!adding && !readOnly && (
         <AddButton disabled={full} onClick={() => setAdding(true)} className="self-start">
           + paso
         </AddButton>

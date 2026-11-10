@@ -11,11 +11,13 @@ import { useIssues } from '@/features/issues/hooks'
 import { blockedCount, joinCodes } from '@/features/issues/issueFlags'
 import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
 import { useProjects } from '@/features/projects/hooks'
+import { useWorkspace } from '@/features/workspaces/hooks'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { useLocalEscape } from '@/hooks/useLocalEscape'
 import { exampleCode, identifierOf } from '@/lib/codes'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
+import { can } from '@/lib/permissions'
 import { useAddRelation, useRelations, useRemoveRelation, useWorkspaceIssueSearch } from '../hooks'
 import { mergeCandidates, projectOf, relationTarget } from '../relationCandidates'
 
@@ -140,6 +142,8 @@ export function IssueRelations({ slug, projectId, issue, onOpenIssue }) {
   const remove = useRemoveRelation(slug, projectId, issue.id)
   const [adding, setAdding] = useState(false)
   const toggleRef = useRef(null)
+  // Sin el permiso de dependencias las relaciones se ven, pero no se agregan ni se quitan
+  const canEdit = can(useWorkspace(slug).data, 'ISSUE_RELATIONS')
 
   const groups = GROUPS.map((group) => ({ ...group, items: relations?.[group.key] ?? [] })).filter(
     (group) => group.items.length > 0,
@@ -163,6 +167,7 @@ export function IssueRelations({ slug, projectId, issue, onOpenIssue }) {
         <button
           ref={toggleRef}
           type="button"
+          hidden={!canEdit}
           aria-expanded={adding}
           onClick={() => setAdding((current) => !current)}
           className={cn(
@@ -200,7 +205,7 @@ export function IssueRelations({ slug, projectId, issue, onOpenIssue }) {
                     slug={slug}
                     projectId={projectId}
                     onOpenIssue={onOpenIssue}
-                    onRemove={() => handleRemove(relation)}
+                    onRemove={canEdit ? () => handleRemove(relation) : undefined}
                   />
                 ))}
               </ul>
@@ -285,15 +290,17 @@ function RelationRow({ relation, first, slug, projectId, onOpenIssue, onRemove }
         ) : (
           <span title="Sin asignar" aria-label="Sin asignar" className="size-5.5 shrink-0 rounded-full border border-dashed border-dash" />
         ))}
-      <button
-        type="button"
-        onClick={onRemove}
-        aria-label={`Quitar relación con ${other.code}`}
-        title="Quitar relación"
-        className="flex size-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
-      >
-        <X className="size-3.5" />
-      </button>
+      {onRemove && (
+        <button
+          type="button"
+          onClick={onRemove}
+          aria-label={`Quitar relación con ${other.code}`}
+          title="Quitar relación"
+          className="flex size-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
+        >
+          <X className="size-3.5" />
+        </button>
+      )}
     </li>
   )
 }

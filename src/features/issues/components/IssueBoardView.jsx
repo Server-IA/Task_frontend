@@ -42,6 +42,7 @@ import { useIssues, useMoveIssue } from '../hooks'
 import { needsCriteriaConfirm } from '../issueFlags'
 import { isStory, storyFlags, storyLanes, storyProgress } from '../issueTypes'
 import { useCriteriaGuard } from '../useCriteriaGuard'
+import { useCanEditIssues } from '../editPermission'
 import { isClosed, useIssueUpdater } from '../useIssueHelpers'
 import { closedStoryActions, useStoryClosedGuard } from '../useStoryClosedGuard'
 import { AttachmentsChip, BlockedChip, BlockingChip, ChecklistChip } from './IssueBadges'
@@ -593,9 +594,11 @@ function BoardColumn({ state, columnId, ids: currentIds, issuesById, slug, proje
  */
 const SortableIssueCard = memo(function SortableIssueCard({ issue, openIssue, ...props }) {
   const story = isStory(issue)
+  const canEdit = useCanEditIssues()
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: issue.id,
-    disabled: story,
+    // Una historia no se arrastra; las demás, solo con el permiso de editar tareas
+    disabled: story || !canEdit,
     attributes: { roleDescription: DRAG_ROLE.card },
   })
   const onActivatorKeyDown = useCallback(
@@ -659,6 +662,7 @@ const IssueCard = memo(function IssueCard({
   onActivatorKeyDown,
 }) {
   const { update } = useIssueUpdater(slug, project.id, issue.id)
+  const locked = !useCanEditIssues()
   const hasLabels = issue.labels?.length > 0
   // En un carril la historia ya está en el encabezado
   const storyChip = !inLane && issue.parent?.type === 'STORY'
@@ -667,7 +671,7 @@ const IssueCard = memo(function IssueCard({
     <article
       className={cn(
         'group flex flex-col gap-2.5 rounded-xl border bg-card p-3 shadow-card transition-[box-shadow,border-color] duration-200 hover:border-dash hover:shadow-md',
-        isStory(issue) ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing',
+        isStory(issue) || locked ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing',
         overlay && 'cursor-grabbing shadow-xl ring-1 ring-foreground/10',
       )}
     >
@@ -675,7 +679,7 @@ const IssueCard = memo(function IssueCard({
         <IssueTypeIcon issue={issue} size={14} />
         <span className="shrink-0 whitespace-nowrap text-muted-foreground">{issue.code}</span>
         <span className="ml-auto" onPointerDown={stop} onClick={stop}>
-          <PriorityPicker
+          <PriorityPicker disabled={locked}
             chip
             // «sin prioridad» (oculto hasta pasar el mouse) ocupaba 126 px y empujaba el código a dos líneas
             iconOnlyWhenEmpty
@@ -706,7 +710,7 @@ const IssueCard = memo(function IssueCard({
       <BlockingChip issue={issue} className="self-start" />
       {hasLabels && (
         <div onPointerDown={stop} onClick={stop}>
-          <LabelsPicker
+          <LabelsPicker disabled={locked}
             compact
             labels={meta.labels}
             value={issue.labels.map((label) => label.id)}
@@ -716,7 +720,7 @@ const IssueCard = memo(function IssueCard({
         </div>
       )}
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs" onPointerDown={stop} onClick={stop}>
-        <DatePicker
+        <DatePicker disabled={locked}
           value={issue.dueDate}
           placeholder="Fecha límite"
           due={{ closed: isClosed(issue) }}
@@ -732,9 +736,9 @@ const IssueCard = memo(function IssueCard({
         <AttachmentsChip issue={issue} />
         <ChecklistChip issue={issue} />
         {!hasLabels && meta.labels.length > 0 && (
-          <LabelsPicker compact labels={meta.labels} value={[]} onChange={(labelIds) => update({ labelIds })} className={revealOnHover} />
+          <LabelsPicker disabled={locked} compact labels={meta.labels} value={[]} onChange={(labelIds) => update({ labelIds })} className={revealOnHover} />
         )}
-        <AssigneesPicker
+        <AssigneesPicker disabled={locked}
           members={meta.users}
           value={issue.assignees?.map((user) => user.id) ?? []}
           onChange={(assigneeIds) => update({ assigneeIds })}

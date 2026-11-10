@@ -15,11 +15,13 @@ import { markdownToDoc } from '@/features/editor/markdown/parse'
 import { docToMarkdown, escapeText } from '@/features/editor/markdown/serialize'
 import { removeMovedTaskItems, setTaskChecked, takeTaskItems } from '@/features/editor/markdown/taskItems'
 import { useMentionPeople } from '@/features/mentions/hooks'
+import { useWorkspace } from '@/features/workspaces/hooks'
 import { formatRelative } from '@/lib/dates'
 import { isSessionExpired } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { warnUnsavedText } from '@/lib/unsavedText'
 import { cn } from '@/lib/utils'
+import { can } from '@/lib/permissions'
 import { useSessionStore } from '@/stores/sessionStore'
 import { issuesApi } from '../api'
 import { descriptionConflict, useCreateIssue, useDeleteIssue, useSaveDescription } from '../hooks'
@@ -61,6 +63,8 @@ export function IssueDescription({ slug, project, issue, variant = 'page', onOpe
   const moveToChecklist = useMoveToChecklist(slug, project.id, issue.id)
   const me = useSessionStore((state) => state.user?.id)
   const [editing, setEditing] = useState(null)
+  // Sin el permiso de editar tareas la descripción solo se lee
+  const canEdit = can(useWorkspace(slug).data, 'ISSUE_EDIT')
   // Al terminar de editar, el foco vuelve a «Editar descripción» (el editor desaparece con el foco adentro)
   const [refocus, setRefocus] = useState(false)
   // Cambios desde la lectura (casillas, «Pasar al checklist»): van de a uno, cada uno sobre lo que dejó el anterior
@@ -189,6 +193,7 @@ export function IssueDescription({ slug, project, issue, variant = 'page', onOpe
       description={description}
       onOpenIssue={onOpenIssue}
       onEdit={(caret) => setEditing({ caret })}
+      canEdit={canEdit}
       refocus={refocus}
       onRefocused={() => setRefocus(false)}
       onToggleTask={(index, checked) => {
@@ -205,7 +210,7 @@ export function IssueDescription({ slug, project, issue, variant = 'page', onOpe
   )
 }
 
-function DescriptionReader({ issue, slug, project, variant, description, onOpenIssue, onEdit, refocus, onRefocused, onToggleTask, onMoveTasks }) {
+function DescriptionReader({ issue, slug, project, variant, description, onOpenIssue, onEdit, canEdit, refocus, onRefocused, onToggleTask, onMoveTasks }) {
   const lastEdit = lastEditOf(issue)
   const textRef = useRef(null)
   const editRef = useRef(null)
@@ -221,6 +226,7 @@ function DescriptionReader({ issue, slug, project, variant, description, onOpenI
   }, [refocus, onRefocused])
 
   const enter = (event) => {
+    if (!canEdit) return
     // Los enlaces, las pastillas y las casillas funcionan sin entrar a editar; seleccionar texto tampoco entra
     if (event.target.closest('a, button, input, label, [role="checkbox"]')) return
     if (window.getSelection()?.toString()) return
@@ -240,13 +246,15 @@ function DescriptionReader({ issue, slug, project, variant, description, onOpenI
         onClick={enter}
         onPointerEnter={preloadRichEditor}
         className={cn(
-          'group/desc relative cursor-text rounded-[14px] transition-colors duration-150',
+          'group/desc relative rounded-[14px] transition-colors duration-150',
+          canEdit && 'cursor-text',
           page ? 'border bg-md-frame px-5 pt-4 pb-4.5' : '-mx-2 border border-transparent px-2 py-1.5 hover:bg-md-frame',
         )}
       >
         <button
           ref={editRef}
           type="button"
+          hidden={!canEdit}
           onClick={() => onEdit(null)}
           className={cn(
             'z-[2] flex items-center gap-1.5 rounded-full border bg-card px-2.5 py-1 text-xs font-medium shadow-card',

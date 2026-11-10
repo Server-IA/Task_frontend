@@ -17,7 +17,7 @@ const PILL = {
  * del project manager).
  * @param {{ issue: import('@/api/types').IssueResponse, isManager: boolean, onChange: (type: string) => void }} props
  */
-export function TypePicker({ issue, isManager, onChange }) {
+export function TypePicker({ issue, isManager, onChange, disabled = false }) {
   const [open, setOpen] = useState(false)
   const current = typeOf(issue)
   const context = { isManager, hasChildren: (issue.subIssueCount ?? 0) > 0 }
@@ -27,7 +27,9 @@ export function TypePicker({ issue, isManager, onChange }) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
-        aria-label={`Tipo: ${TYPE_LABELS[current]}. Cambiar tipo`}
+        // Sin el permiso de editar tareas, la pastilla solo dice el tipo
+        disabled={disabled}
+        aria-label={disabled ? `Tipo: ${TYPE_LABELS[current]}` : `Tipo: ${TYPE_LABELS[current]}. Cambiar tipo`}
         className={cn(
           'flex shrink-0 items-center gap-1.5 rounded-lg py-1 pr-2 pl-1 text-[13px] font-semibold outline-none hover:brightness-95 focus-visible:ring-2 focus-visible:ring-ring',
           PILL[current],
@@ -35,7 +37,7 @@ export function TypePicker({ issue, isManager, onChange }) {
       >
         <TypeIcon type={current} />
         {TYPE_LABELS[current]}
-        <ChevronDown className="size-3.5" strokeWidth={2.5} />
+        {!disabled && <ChevronDown className="size-3.5" strokeWidth={2.5} />}
       </PopoverTrigger>
       <PopoverContent className="w-80 p-1.5" align="start">
         <p className="px-2 pt-1 pb-1.5 font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase">Cambiar tipo</p>

@@ -177,7 +177,9 @@ export function IssueAttachments({ slug, projectId, issue, variant = 'panel' }) 
         </ul>
       )}
 
-      {isLoading ? null : empty || !page ? (
+      {isLoading ? null : !canAttach ? (
+        empty && <p className="text-xs text-muted-foreground">Sin adjuntos.</p>
+      ) : empty || !page ? (
         <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 rounded-xl border border-dashed border-dash px-3 py-2.25 text-xs text-muted-foreground">
           <Upload className="size-3.5" aria-hidden="true" />
           <span>

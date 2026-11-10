@@ -8,6 +8,8 @@ import { useAttachFiles, useStorageUsage } from '@/features/files/hooks'
 import { IssuePlanningProperties } from '@/features/planning/components/IssuePlanningProperties'
 import { BlockedBanner, IssueRelations } from '@/features/relations/components/IssueRelations'
 import { StoryBanner, StoryParentCard, StorySections, useAddToStory } from '@/features/stories/components/StoryPanel'
+import { useWorkspace } from '@/features/workspaces/hooks'
+import { can } from '@/lib/permissions'
 import { useIssue } from '../hooks'
 import { isStory } from '../issueTypes'
 import { IssueDescription } from './IssueDescription'
@@ -30,10 +32,12 @@ export function IssueDetailWithExtras({ focusCommentId, ...props }) {
   const { addTask, reportBug, dialogs } = useAddToStory({ slug, project, story })
   const attachFiles = useAttachFiles(slug, project.id, issueId)
   const { data: storage } = useStorageUsage(slug)
+  // Sin el permiso de subir adjuntos, soltar archivos sobre la tarea no hace nada (sin tarea, la zona no se activa)
+  const canAttach = can(useWorkspace(slug).data, 'ISSUE_ATTACH')
   return (
     <TaskImagesProvider slug={slug} projectId={project.id} issue={issue}>
       <TaskFileDropZone
-        issue={issue}
+        issue={canAttach ? issue : null}
         storageFull={Boolean(storage?.full)}
         quotaLabel={storage ? formatSize(storage.quotaBytes) : undefined}
         onFiles={attachFiles}

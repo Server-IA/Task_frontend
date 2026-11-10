@@ -5,6 +5,8 @@ import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { cyclesApi } from '../api'
 import { IssuePlanningProperties } from './IssuePlanningProperties'
 
+// Quien mira tiene todos los permisos (project manager)
+vi.mock('@/features/workspaces/hooks', () => ({ useWorkspace: () => ({ data: { myRole: 'OWNER' } }) }))
 vi.mock('../api', () => ({
   cyclesApi: { list: vi.fn(), addIssues: vi.fn(), removeIssue: vi.fn() },
   modulesApi: { list: vi.fn().mockResolvedValue([]) },
