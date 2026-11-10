@@ -1,10 +1,11 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { Check, ChevronDown, ChevronRight, Lock, Plus } from 'lucide-react'
+import { ChevronDown, ChevronRight, Lock, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Skeleton } from '@/components/ui/skeleton'
+import { CheckMark } from '@/components/common/CheckMark'
 import { AvatarStack } from '@/components/common/AvatarStack'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { StateIcon } from '@/components/common/StateIcon'
@@ -559,14 +560,7 @@ function PillFilter({ title, values, onChange, options }) {
             <CommandGroup>
               {options.map((option) => (
                 <CommandItem key={option.value} value={`${option.label} ${option.value}`} onSelect={() => toggle(option.value)}>
-                  <span
-                    className={cn(
-                      'flex size-4 items-center justify-center rounded-sm border',
-                      selected.has(option.value) && 'border-foreground bg-foreground text-background',
-                    )}
-                  >
-                    {selected.has(option.value) && <Check className="size-3" />}
-                  </span>
+                  <CheckMark checked={selected.has(option.value)} />
                   {option.icon}
                   <span className="min-w-0 flex-1 truncate">{option.label}</span>
                 </CommandItem>

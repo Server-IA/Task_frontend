@@ -1,8 +1,8 @@
-import { Check, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { CheckMark } from '@/components/common/CheckMark'
 import { UserAvatar } from '@/components/common/UserAvatar'
-import { cn } from '@/lib/utils'
 import { toggleAssignee } from '../personFilter'
 
 /**
@@ -52,15 +52,7 @@ export function PersonFilter({ users, selected, onChange }) {
                     value={`${user.fullName} ${user.email ?? ''} ${user.id}`}
                     onSelect={() => onChange(toggleAssignee(ids, user.id))}
                   >
-                    <span
-                      aria-hidden="true"
-                      className={cn(
-                        'flex size-4 items-center justify-center rounded-sm border',
-                        chosen.has(user.id) && 'border-foreground bg-foreground text-background',
-                      )}
-                    >
-                      {chosen.has(user.id) && <Check className="size-3" />}
-                    </span>
+                    <CheckMark checked={chosen.has(user.id)} />
                     <UserAvatar user={user} size="xs" />
                     <span className="min-w-0 flex-1 truncate">{user.fullName}</span>
                   </CommandItem>

@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { ArrowLeft, Ban, Check, CircleDot, Flag, Layers, RefreshCw, Shapes, Tag, UserRound, X } from 'lucide-react'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { CheckMark } from '@/components/common/CheckMark'
 import { ColorDot } from '@/components/common/LabelChip'
 import { StateIcon } from '@/components/common/StateIcon'
 import { UserAvatar } from '@/components/common/UserAvatar'
@@ -255,14 +256,7 @@ function FilterOptions({ title, options, values, onChange, single = false, onDon
           {options.map((option) => (
             <CommandItem key={option.value} value={`${option.label} ${option.keywords ?? ''} ${option.value}`} onSelect={() => toggle(option.value)}>
               {!single && (
-                <span
-                  className={cn(
-                    'flex size-4 items-center justify-center rounded-sm border',
-                    selected.has(option.value) && 'border-foreground bg-foreground text-background',
-                  )}
-                >
-                  {selected.has(option.value) && <Check className="size-3" />}
-                </span>
+                <CheckMark checked={selected.has(option.value)} />
               )}
               {option.icon}
               <span className="min-w-0 flex-1 truncate">{option.label}</span>
@@ -472,14 +466,7 @@ function TypeOptions({ types, onChange }) {
             onClick={() => toggle(type.value)}
             className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm outline-none hover:bg-accent focus-visible:bg-accent"
           >
-            <span
-              className={cn(
-                'flex size-4 shrink-0 items-center justify-center rounded-sm border',
-                checked && 'border-foreground bg-foreground text-background',
-              )}
-            >
-              {checked && <Check className="size-3" />}
-            </span>
+            <CheckMark checked={checked} />
             <TypeIcon type={type.value} />
             <span className="flex min-w-0 flex-1 flex-col">
               <span>{type.label}</span>

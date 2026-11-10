@@ -2,7 +2,7 @@ import { useId, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Check, Lock } from 'lucide-react'
+import { Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { CheckMark } from '@/components/common/CheckMark'
 import { LockNote } from '@/components/common/LockNote'
 import { Spinner } from '@/components/common/Loaders'
 import { StateIcon } from '@/components/common/StateIcon'
@@ -428,14 +429,7 @@ export function AddIssuesDialog({ kind, slug, projectId, item, existingIds, open
             <CommandGroup>
               {candidates.map((issue) => (
                 <CommandItem key={issue.id} value={issue.id} onSelect={() => toggle(issue.id)}>
-                  <span
-                    className={cn(
-                      'flex size-4 items-center justify-center rounded-sm border',
-                      selected.has(issue.id) && 'border-foreground bg-foreground text-background',
-                    )}
-                  >
-                    {selected.has(issue.id) && <Check className="size-3" />}
-                  </span>
+                  <CheckMark checked={selected.has(issue.id)} />
                   <StateIcon group={issue.state?.group} color={issue.state?.color} />
                   <span className="min-w-14 shrink-0 font-mono text-xs whitespace-nowrap text-muted-foreground">{issue.code}</span>
                   <span className="min-w-0 flex-1 truncate">{issue.title}</span>
