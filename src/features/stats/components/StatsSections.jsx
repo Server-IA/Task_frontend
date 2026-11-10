@@ -405,35 +405,80 @@ export function WorkloadCard({ workload, className }) {
 }
 
 /**
- * Abiertas sin cambios hace más de 14 días (como mucho 5, la más antigua primero).
+ * Abiertas sin cambios hace más de 14 días (como mucho 5, la más antigua primero): una barra por tarea con los días
+ * que lleva quieta y, con «Ver tabla», los mismos datos en una tabla. Cada tarea abre su panel.
  * @param {{ stale: import('@/api/types').StaleIssue[], onOpenIssue: (issueId: string) => void, className?: string }} props
  */
 export function StaleCard({ stale, onOpenIssue, className }) {
+  const max = Math.max(1, ...stale.map((issue) => issue.daysWithoutChanges))
+  const days = (count) => `${count} ${count === 1 ? 'día' : 'días'}`
+  const codeButton = (issue) => (
+    <button
+      type="button"
+      title={`Abrir ${issue.code}`}
+      onClick={() => onOpenIssue(issue.id)}
+      className="rounded font-mono text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+    >
+      {issue.code}
+    </button>
+  )
+
   return (
-    <ChartCard className={className} title="Sin movimiento" meta="abiertas y sin cambios hace más de 14 días">
+    <ChartCard
+      className={className}
+      title="Sin movimiento"
+      meta="abiertas y sin cambios hace más de 14 días"
+      table={
+        stale.length > 0
+          ? {
+              caption: 'Tareas abiertas sin cambios hace más de 14 días',
+              columns: [
+                { key: 'code', label: 'Tarea' },
+                { key: 'title', label: 'Título' },
+                { key: 'days', label: 'Días sin cambios', numeric: true },
+              ],
+              rows: stale.map((issue) => ({ code: codeButton(issue), title: issue.title, days: issue.daysWithoutChanges })),
+            }
+          : undefined
+      }
+      footer={
+        stale.length > 0 && (
+          <p className="text-xs text-muted-foreground">Revísalas en la próxima reunión: quizá sobran o necesitan responsable.</p>
+        )
+      }
+    >
       {stale.length === 0 ? (
         <p className="rounded-xl border border-dashed border-dash px-3 py-4 text-center text-sm text-muted-foreground">
           Todas las tareas abiertas tuvieron cambios en las últimas dos semanas.
         </p>
       ) : (
-        <>
-          <ul className="overflow-hidden rounded-xl border">
-            {stale.map((issue, index) => (
-              <li key={issue.id} className={cn(index > 0 && 'border-t')}>
-                <button
-                  type="button"
-                  onClick={() => onOpenIssue(issue.id)}
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-subtle"
-                >
-                  <span className="shrink-0 font-mono text-xs text-muted-foreground">{issue.code}</span>
-                  <span className="min-w-0 flex-1 truncate">{issue.title}</span>
-                  <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{issue.daysWithoutChanges} días</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-          <p className="text-xs text-muted-foreground">Revísalas en la próxima reunión: quizá sobran o necesitan responsable.</p>
-        </>
+        <ul className="flex flex-col gap-1">
+          {stale.map((issue) => (
+            <li key={issue.id}>
+              <button
+                type="button"
+                onClick={() => onOpenIssue(issue.id)}
+                title={`${issue.code} · ${days(issue.daysWithoutChanges)} sin cambios`}
+                className="grid w-full grid-cols-[minmax(0,1fr)_4rem] items-center gap-x-3 rounded-[10px] px-2 py-1.5 text-left outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span className="flex min-w-0 flex-col gap-1">
+                  <span className="flex min-w-0 items-baseline gap-2 text-[13px]">
+                    <span className="shrink-0 font-mono text-xs text-muted-foreground">{issue.code}</span>
+                    <span className="min-w-0 truncate">{issue.title}</span>
+                  </span>
+                  {/* El largo de la barra es proporcional a la tarea que lleva más tiempo quieta */}
+                  <span aria-hidden="true" className="block h-2.5 rounded-[4px] bg-column">
+                    <span
+                      className="block h-full rounded-[4px] bg-chart-series transition-[width] duration-300"
+                      style={{ width: `${Math.max(4, (issue.daysWithoutChanges / max) * 100)}%` }}
+                    />
+                  </span>
+                </span>
+                <span className="self-end text-right font-mono text-xs tabular-nums">{days(issue.daysWithoutChanges)}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
     </ChartCard>
   )
