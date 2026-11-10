@@ -37,7 +37,7 @@ import {
 } from '@/lib/kanban'
 import { cn } from '@/lib/utils'
 import { focusRowMain } from '@/lib/focusReturn'
-import { BOARD_GROUP_STORY, BOARD_PAGE_SIZE } from '../constants'
+import { BOARD_GROUP_STORY, BOARD_PAGE_SIZE, DEFAULT_SORT, SORT_OPTIONS } from '../constants'
 import { useIssues, useMoveIssue } from '../hooks'
 import { needsCriteriaConfirm } from '../issueFlags'
 import { isStory, storyFlags, storyLanes, storyProgress } from '../issueTypes'
@@ -54,9 +54,14 @@ import { AssigneesPicker, DatePicker, LabelsPicker, PriorityPicker } from './Pro
  * final; las historias listas para revisar empiezan plegadas. Soltar una tarjeta en el carril de otra historia la
  * pasa a esa historia (un bug queda como bug de la historia; una tarea cuenta en su avance) y en «Sin historia» la
  * saca de la suya.
+ *
+ * `sort` es el mismo orden de la lista. Con «manual» las tarjetas se acomodan a mano dentro de cada columna; con
+ * cualquier otro (prioridad, más recientes…) cada columna sigue ese orden: arrastrar todavía cambia el estado o la
+ * historia, pero la posición dentro de la columna la decide el orden elegido.
  */
-export function IssueBoardView({ slug, project, meta, filters, openIssue, onCreateInState, extraParams, groupBy }) {
-  const params = { ...filters, ...extraParams, sort: 'sortOrder,asc', page: 0, size: BOARD_PAGE_SIZE }
+export function IssueBoardView({ slug, project, meta, filters, openIssue, onCreateInState, extraParams, groupBy, sort = DEFAULT_SORT }) {
+  const manual = sort === DEFAULT_SORT
+  const params = { ...filters, ...extraParams, sort, page: 0, size: BOARD_PAGE_SIZE }
   const { data, isLoading, error, refetch } = useIssues(slug, project.id, params)
   const laned = groupBy === BOARD_GROUP_STORY
   const { data: stories } = useStories(slug, project.id, { enabled: laned })
@@ -84,7 +89,7 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
       Se muestran {BOARD_PAGE_SIZE} de {data.totalElements} tareas. Usa los filtros o la vista de lista para ver el resto.
     </div>
   )
-  const common = { slug, project, meta, openIssue, onStoryClosed }
+  const common = { slug, project, meta, openIssue, onStoryClosed, sort: manual ? null : sort }
 
   if (!laned) {
     return (
@@ -195,12 +200,14 @@ function StoryLane({ lane, openIssue, children }) {
  * de la tarea. En un carril las columnas no llevan encabezado (va arriba, una sola vez) y una vacía se ve como un
  * hueco punteado.
  */
-function BoardColumns({ issues, lanes = null, slug, project, meta, openIssue, onStoryClosed, onCreateInState }) {
+function BoardColumns({ issues, lanes = null, slug, project, meta, openIssue, onStoryClosed, onCreateInState, sort = null }) {
   const move = useMoveIssue(slug, project.id)
   const issuesById = useMemo(() => Object.fromEntries(issues.map((issue) => [issue.id, issue])), [issues])
+  // Con un orden elegido (`sort`), las tareas ya llegan en ese orden y cada columna lo conserva
+  const sorted = Boolean(sort)
   const serverColumns = useMemo(
-    () => (lanes ? groupByLaneAndState(lanes, meta.states) : groupByState(issues, meta.states)),
-    [lanes, issues, meta.states],
+    () => (lanes ? groupByLaneAndState(lanes, meta.states, { keepOrder: sorted }) : groupByState(issues, meta.states, { keepOrder: sorted })),
+    [lanes, issues, meta.states, sorted],
   )
 
   // Mientras se arrastra se trabaja sobre una copia local de las columnas (vista previa de la posición)
@@ -341,17 +348,25 @@ function BoardColumns({ issues, lanes = null, slug, project, meta, openIssue, on
     const targetLane = laneOfColumn(targetColumn)
     const laneChanged = Boolean(lanes) && targetLane !== fromLane
     const originalIds = serverColumns[columnKey(fromLane, issue.state.id)] ?? []
-    const unchanged =
-      !laneChanged && issue.state.id === targetState && originalIds.indexOf(active.id) === targetIds.indexOf(active.id)
-    if (unchanged) {
+    const sameColumn = !laneChanged && issue.state.id === targetState
+    const unchanged = sameColumn && originalIds.indexOf(active.id) === targetIds.indexOf(active.id)
+    if (unchanged || (sorted && sameColumn)) {
       setDragColumns(null)
+      // Ordenado por prioridad, fecha…: dentro de la columna manda ese orden, no dónde se suelte
+      if (!unchanged) {
+        toast.info(`El tablero está ordenado por ${sortLabel(sort)}`, {
+          id: 'board-sorted',
+          description: 'Para acomodar las tarjetas a mano, cambia el orden a «manual».',
+        })
+      }
       return
     }
     // La posición final se queda en pantalla hasta que llegue la actualización optimista
     setDragColumns({ ...current, [targetColumn]: targetIds })
     setSettlingFrom(serverColumns)
 
-    const { afterIssueId, beforeIssueId } = getNeighbors(targetIds, active.id)
+    // Con un orden elegido no hay vecinas: el backend la deja al final del orden manual de la columna
+    const { afterIssueId, beforeIssueId } = sorted ? { afterIssueId: null, beforeIssueId: null } : getNeighbors(targetIds, active.id)
     const others = targetIds.filter((id) => id !== active.id).map((id) => issuesById[id].sortOrder)
     const sortOrder = sortOrderBetween(
       issuesById[afterIssueId]?.sortOrder,
@@ -484,6 +499,9 @@ function announceLaneChange(issue, story) {
     description: issue.type === 'BUG' ? `Queda como bug de «${story.title}».` : `Cuenta en el avance de «${story.title}».`,
   })
 }
+
+/** «prioridad», «más recientes»…: el nombre del orden como se lee en el selector. */
+const sortLabel = (sort) => SORT_OPTIONS.find((option) => option.value === sort)?.label.toLowerCase() ?? 'otro criterio'
 
 /** Las teclas del arrastre con teclado: sin Enter para empezar (abre la tarea); Enter o Espacio la sueltan. */
 const KEYBOARD_CODES = { start: ['Space'], cancel: ['Escape'], end: ['Space', 'Enter'] }

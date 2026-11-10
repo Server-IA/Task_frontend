@@ -26,9 +26,10 @@ describe('vistas guardadas', () => {
   it('marca qué cambió', () => {
     const saved = { state: ['a'], priority: [], assignee: [], label: [], search: null, view: 'list', sort: null }
     const current = toViewFilters({ filters: { ...empty, state: ['a', 'c'], label: ['x'] }, view: 'board', sort: 'title,asc' })
-    expect(diffViewFilters(saved, current)).toEqual(['state', 'label', 'view'])
-    // En lista sí cuenta el orden (sin orden guardado = manual)
+    // El orden cuenta en la lista y en el tablero (sin orden guardado = manual)
+    expect(diffViewFilters(saved, current)).toEqual(['state', 'label', 'view', 'sort'])
     expect(diffViewFilters(saved, { ...current, state: ['a'], label: [], view: 'list' })).toEqual(['sort'])
+    expect(diffViewFilters({ ...saved, view: 'board' }, { ...current, state: ['a'], label: [], sort: 'sortOrder,asc' })).toEqual([])
   })
 
   it('una vista sin «view» guardada no se marca como cambiada por la vista', () => {
@@ -76,7 +77,10 @@ describe('vistas guardadas', () => {
     expect(summarizeViewFilters({ view: 'board' }, meta)).toEqual([
       { key: 'filtros', value: 'ninguno (todas las tareas)' },
       { key: 'vista', value: 'tablero' },
+      { key: 'orden', value: 'manual' },
     ])
+    // El tablero también guarda su orden
+    expect(summarizeViewFilters({ view: 'board', sort: 'sequenceId,desc' }, meta).at(-1)).toEqual({ key: 'orden', value: 'más recientes' })
     // Por prioridad, el backend desempata por fecha límite
     expect(summarizeViewFilters({ view: 'list', sort: 'priorityRank,asc' }, meta).at(-1)).toEqual({
       key: 'orden',
@@ -194,6 +198,7 @@ describe('vistas guardadas', () => {
       { key: 'tipo', value: 'bug' },
       { key: 'vista', value: 'tablero' },
       { key: 'agrupar', value: 'carriles por historia' },
+      { key: 'orden', value: 'manual' },
     ])
   })
 })

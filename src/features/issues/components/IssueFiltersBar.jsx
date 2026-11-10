@@ -111,7 +111,11 @@ export function IssueFiltersBar({
   const setValues = (key, values) => setFilter(key, KINDS[key].type === 'single' ? (values[0] ?? null) : values)
 
   return (
-    <div className="flex flex-wrap items-center gap-2 px-1">
+    // Dos zonas: los filtros (que pasan a otra línea si no caben) y, a la derecha, «agrupar» y «orden», que no se
+    // mueven de su sitio. Antes iba todo en una sola fila y, al elegir una agrupación de nombre largo, los selectores
+    // se caían debajo de los filtros
+    <div className="flex items-start gap-2 px-1">
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
       <SearchBox value={filters.search} onChange={(value) => setFilter('search', value, { replace: true })} onJump={onJumpToCode} codeExample={codeExample} />
       {fixedChips}
       {pills.map((key) =>
@@ -160,7 +164,8 @@ export function IssueFiltersBar({
           limpiar todo
         </button>
       )}
-      <div className="ml-auto flex items-center gap-2">{children}</div>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">{children}</div>
     </div>
   )
 }

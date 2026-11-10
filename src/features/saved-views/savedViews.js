@@ -54,8 +54,8 @@ function savedTypes(urlValues) {
 }
 
 /**
- * Qué partes cambiaron respecto de la vista guardada (vacío si coinciden). El orden y la agrupación solo cuentan
- * en la lista: el tablero siempre usa el orden manual y va por estado.
+ * Qué partes cambiaron respecto de la vista guardada (vacío si coinciden). El orden cuenta en la lista y en el
+ * tablero; la agrupación de la lista (prioridad, asignado…) solo en la lista: el tablero va por estado.
  * @param {SavedViewFilters} saved
  * @param {SavedViewFilters} current
  * @returns {('state' | 'priority' | 'assignee' | 'label' | 'search' | 'cycle' | 'module' | 'blocked' | 'view' | 'sort' | 'groupBy')[]}
@@ -73,8 +73,8 @@ export function diffViewFilters(saved = {}, current = {}) {
   if (!sameSet(effectiveTypes(saved.type ?? []), effectiveTypes(current.type ?? []))) changed.push('type')
   if (saved.view && current.view && saved.view !== current.view) changed.push('view')
   const view = current.view ?? saved.view
+  if (sanitizeSort(saved.sort) !== sanitizeSort(current.sort)) changed.push('sort')
   if (view !== 'board') {
-    if (sanitizeSort(saved.sort) !== sanitizeSort(current.sort)) changed.push('sort')
     if ((saved.groupBy || GROUP_BY_DEFAULT) !== (current.groupBy || GROUP_BY_DEFAULT)) changed.push('groupBy')
   } else if ((saved.groupBy === BOARD_GROUP_STORY) !== (current.groupBy === BOARD_GROUP_STORY)) {
     // En el tablero solo cuenta si va por carriles de historia
@@ -152,9 +152,9 @@ export function summarizeViewFilters(filters, meta) {
   if (filters.view !== 'board') {
     const group = GROUP_BY_OPTIONS.find((option) => option.value === (filters.groupBy || GROUP_BY_DEFAULT))
     rows.push({ key: 'agrupar', value: `por ${(group?.label ?? filters.groupBy).toLowerCase()}` })
-    const sort = SORT_OPTIONS.find((option) => option.value === (filters.sort || DEFAULT_SORT))
-    rows.push({ key: 'orden', value: sort?.summary ?? (sort?.label ?? filters.sort).toLowerCase() })
   }
+  const sort = SORT_OPTIONS.find((option) => option.value === (filters.sort || DEFAULT_SORT))
+  rows.push({ key: 'orden', value: sort?.summary ?? (sort?.label ?? filters.sort).toLowerCase() })
   return rows
 }
 

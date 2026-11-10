@@ -53,3 +53,17 @@ describe('groupByState', () => {
     expect(findColumn(columns, 'nope')).toBeNull()
   })
 })
+
+describe('groupByState con un orden elegido', () => {
+  it('keepOrder respeta el orden en que llegan las tareas dentro de cada columna', () => {
+    const states = [{ id: 'todo' }, { id: 'done' }]
+    // Llegan por prioridad; el sortOrder manual diría otra cosa
+    const issues = [
+      { id: 'urgente', state: { id: 'todo' }, sortOrder: 900, sequenceId: 3 },
+      { id: 'hecha', state: { id: 'done' }, sortOrder: 50, sequenceId: 2 },
+      { id: 'baja', state: { id: 'todo' }, sortOrder: 100, sequenceId: 1 },
+    ]
+    expect(groupByState(issues, states, { keepOrder: true })).toEqual({ todo: ['urgente', 'baja'], done: ['hecha'] })
+    expect(groupByState(issues, states)).toEqual({ todo: ['baja', 'urgente'], done: ['hecha'] })
+  })
+})

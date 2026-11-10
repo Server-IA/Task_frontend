@@ -234,7 +234,8 @@ export function IssuesPage() {
             </SelectContent>
           </Select>
         )}
-        {bugsView ? null : view === 'list' ? (
+        {/* El mismo orden en la lista y en el tablero (ahí cada columna lo sigue; «manual» deja acomodar a mano) */}
+        {!bugsView && (
           <Select value={sort} onValueChange={issueFilters.setSort}>
             <SelectTrigger size="sm" className="h-8 rounded-full bg-card font-mono text-xs" aria-label="Ordenar">
               <span className="text-muted-foreground">orden:</span>
@@ -248,8 +249,6 @@ export function IssuesPage() {
               ))}
             </SelectContent>
           </Select>
-        ) : (
-          <span className="font-mono text-xs text-muted-foreground">orden: manual</span>
         )}
       </IssueFiltersBar>
 
@@ -272,6 +271,7 @@ export function IssuesPage() {
             openIssue={issueFilters.openIssue}
             onCreateInState={openCreate}
             groupBy={groupBy}
+            sort={sort}
           />
         ) : (
           <IssueListView
