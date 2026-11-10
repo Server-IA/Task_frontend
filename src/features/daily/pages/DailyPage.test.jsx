@@ -4,9 +4,12 @@ import { createMemoryRouter, RouterProvider } from 'react-router'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { DailyPage } from './DailyPage'
 
-vi.mock('@/features/workspaces/hooks', () => ({ useCurrentWorkspace: () => ({ slug: 'acme', name: 'Acme' }) }))
+vi.mock('@/features/workspaces/hooks', () => ({ useCurrentWorkspace: () => ({ slug: 'acme', name: 'Acme' }), useIsManager: () => false }))
 vi.mock('@/features/projects/hooks', () => ({ useCurrentProject: () => ({ id: 'p1', name: 'Portal', identifier: 'PORT' }) }))
-vi.mock('../hooks', () => ({ useDaily: () => ({ data: { people: [], cycle: null, date: null }, isLoading: false }) }))
+vi.mock('../hooks', () => ({
+  useDaily: () => ({ data: { people: [], cycle: null, date: null }, isLoading: false }),
+  useDailySettings: () => ({ data: undefined }),
+}))
 vi.mock('../components/DailyNoteEditor', () => ({ DailyNoteEditor: () => null }))
 vi.mock('@/features/issues/components/IssuePeekSheet', () => ({ IssuePeekSheet: () => null }))
 

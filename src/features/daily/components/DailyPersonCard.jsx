@@ -8,11 +8,12 @@ import { DailyBlock, personBlocks } from './DailyBlocks'
  * y sus bloques Ayer, Hoy y Bloqueos.
  * @param {{ person: import('@/api/types').DailyPerson, cycle: import('@/api/types').DailyCycle | null,
  *           date: string, previousDate?: string, projectId: string,
- *           blocking?: { code: string, blockedCode: string, ownerName: string }[], onOpenIssue: (issueId: string) => void }} props
+ *           blocking?: { code: string, blockedCode: string, ownerName: string }[], onOpenIssue: (issueId: string) => void,
+ *           sections?: { yesterday?: boolean, today?: boolean, blockers?: boolean } }} props
  */
-export function DailyPersonCard({ person, cycle, date, previousDate, projectId, blocking, onOpenIssue }) {
+export function DailyPersonCard({ person, cycle, date, previousDate, projectId, blocking, onOpenIssue, sections }) {
   const me = useSessionStore((state) => state.user?.id) === person.user?.id
-  const blocks = personBlocks({ person, date, previousDate, projectId, blocking, onOpenIssue })
+  const blocks = personBlocks({ person, date, previousDate, projectId, blocking, onOpenIssue, sections })
   const open = person.openCount ?? 0
   return (
     <article aria-label={person.user?.fullName} className="tf-enter flex min-w-0 flex-col gap-3 rounded-[18px] border bg-card px-4 py-3.5">

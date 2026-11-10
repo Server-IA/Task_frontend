@@ -44,6 +44,7 @@ export const queryKeys = {
   /** Prefijo de la daily de un proyecto (cualquier fecha). */
   dailyOf: (projectId) => ['daily', projectId],
   daily: (projectId, date) => ['daily', projectId, date],
+  dailySettings: (projectId) => ['dailySettings', projectId],
 
   stats: (projectId, weeks) => ['stats', projectId, weeks],
 

@@ -1,34 +1,41 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { Ban, Users } from 'lucide-react'
+import { Ban, Settings2, Users } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { IssuePeekSheet } from '@/features/issues/components/IssuePeekSheet'
 import { useIssueFilters } from '@/features/issues/useIssueFilters'
 import { useCurrentProject } from '@/features/projects/hooks'
-import { useCurrentWorkspace } from '@/features/workspaces/hooks'
+import { useCurrentWorkspace, useIsManager } from '@/features/workspaces/hooks'
 import { useHotkey } from '@/hooks/useHotkey'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { projectPath } from '@/lib/paths'
 import { cn } from '@/lib/utils'
+import { DailyAgenda } from '../components/DailyAgenda'
 import { DailyDateNav } from '../components/DailyDateNav'
 import { DailyNoteEditor } from '../components/DailyNoteEditor'
 import { DailyPersonCard } from '../components/DailyPersonCard'
 import { DailyPresenter } from '../components/DailyPresenter'
+import { DailySettingsDialog } from '../components/DailySettingsDialog'
 import {
   blockingByPerson,
   clampIndex,
   cycleProgress,
+  DEFAULT_DAILY_SETTINGS,
   parseDateParam,
   previousDayLabel,
   summaryItems,
   toIsoDay,
 } from '../daily'
-import { useDaily } from '../hooks'
+import { useDaily, useDailySettings } from '../hooks'
 
 /**
  * Daily del proyecto: por persona, lo que hizo «ayer» (el último día con actividad, que elige el backend), lo de
  * hoy y sus bloqueos, más la nota del día. «Presentar» muestra una persona a la vez con un tiempo sugerido. La fecha va en `?date=`.
+ * Los ajustes del proyecto (el engranaje, solo para el project manager) deciden el tiempo por persona, qué bloques
+ * se exponen y los puntos fijos a tratar.
  */
 export function DailyPage() {
   const workspace = useCurrentWorkspace()
@@ -38,6 +45,12 @@ export function DailyPage() {
   const date = parseDateParam(searchParams.get('date')) ?? today
   const fixedDate = date > today ? today : date
   const { data: daily, isLoading, isPlaceholderData, error, refetch } = useDaily(workspace.slug, project.id, fixedDate)
+  // Mientras llegan los ajustes se usan los de por defecto (todo visible, 2 minutos)
+  const { data: savedSettings } = useDailySettings(workspace.slug, project.id)
+  const settings = savedSettings ?? DEFAULT_DAILY_SETTINGS
+  const { sections } = settings
+  const canConfigure = useIsManager()
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const issueFilters = useIssueFilters()
   const [presenting, setPresenting] = useState(false)
   const [current, setCurrent] = useState(0)
@@ -91,6 +104,22 @@ export function DailyPage() {
           <>
             <DailyDateNav date={fixedDate} today={today} onChange={setDate} />
             <PresentSwitch checked={presenting} disabled={!canPresent} onToggle={togglePresenting} />
+            {canConfigure && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon-lg"
+                    className="rounded-xl bg-card"
+                    onClick={() => setSettingsOpen(true)}
+                    aria-label="Ajustes de la daily"
+                  >
+                    <Settings2 />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Ajustes de la daily: tiempos, bloques y puntos a tratar</TooltipContent>
+              </Tooltip>
+            )}
           </>
         }
       />
@@ -107,6 +136,7 @@ export function DailyPage() {
 
         {daily && people.length > 0 && presenting && (
           <DailyPresenter
+            settings={settings}
             people={people}
             current={position}
             onSelect={(value) => setCurrent(clampIndex(value, people.length))}
@@ -125,7 +155,8 @@ export function DailyPage() {
             aria-busy={isPlaceholderData}
             className={cn('flex flex-col gap-3.5 transition-opacity duration-200', isPlaceholderData && 'opacity-60')}
           >
-            <DailySummaryStrip daily={daily} />
+            {sections.summary && <DailySummaryStrip daily={daily} />}
+            <DailyAgenda agenda={settings.agenda} />
             <div className="grid grid-cols-[repeat(auto-fit,minmax(270px,1fr))] items-start gap-3.5">
               {people.map((person) => (
                 <DailyPersonCard
@@ -137,11 +168,12 @@ export function DailyPage() {
                   projectId={project.id}
                   blocking={blocking.get(person.user?.id)}
                   onOpenIssue={issueFilters.openIssue}
+                  sections={sections}
                 />
               ))}
             </div>
             {/* Una nota por día: al cambiar de fecha el editor empieza de nuevo (y guarda lo pendiente) */}
-            {!isPlaceholderData && (
+            {!isPlaceholderData && sections.note && (
               <DailyNoteEditor
                 key={daily.date}
                 slug={workspace.slug}
@@ -162,6 +194,16 @@ export function DailyPage() {
         onClose={issueFilters.closeIssue}
         onOpenIssue={issueFilters.openIssue}
       />
+      {canConfigure && (
+        <DailySettingsDialog
+          slug={workspace.slug}
+          projectId={project.id}
+          settings={settings}
+          people={people.map((person) => person.user).filter(Boolean)}
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+        />
+      )}
     </>
   )
 }

@@ -3,21 +3,24 @@ import { ChevronLeft, ChevronRight, Timer } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { cn } from '@/lib/utils'
-import { firstName, formatTimer, personMeta, PRESENT_SECONDS, stepStatus } from '../daily'
+import { firstName, formatTimer, personMeta, secondsFor, stepStatus } from '../daily'
+import { DailyAgenda } from './DailyAgenda'
 import { DailyBlock, personBlocks } from './DailyBlocks'
 
 const STEP_LABEL = { done: 'lista', current: 'ahora', next: 'sigue', later: '' }
 
 /**
  * Modo «Presentar»: una persona a la vez, con quién ya habló y quién sigue, y un tiempo sugerido por
- * persona (solo visual). ← → cambian de persona y Esc sale (los atajos los pone la página).
+ * persona (solo visual): el general del proyecto o el propio de esa persona (`settings`). Solo se ven los bloques
+ * que el proyecto expone y, debajo, los puntos a tratar. ← → cambian de persona y Esc sale (los atajos los pone la página).
  * @param {{ people: import('@/api/types').DailyPerson[], current: number, onSelect: (index: number) => void,
  *           onExit: () => void, cycle: import('@/api/types').DailyCycle | null, date: string, previousDate?: string,
  *           projectId: string,
  *           blocking: Map<string, { code: string, blockedCode: string, ownerName: string }[]>,
- *           onOpenIssue: (issueId: string) => void }} props
+ *           onOpenIssue: (issueId: string) => void, settings?: import('@/api/types').DailySettings }} props
  */
 export function DailyPresenter({
+  settings,
   people,
   current,
   onSelect,
@@ -41,7 +44,9 @@ export function DailyPresenter({
     blocking: blocking.get(person.user?.id),
     onOpenIssue,
     size: 'focus',
+    sections: settings?.sections,
   })
+  const time = secondsFor(settings, person.user?.id)
 
   return (
     <div className="tf-fade flex min-h-0 flex-1 flex-col gap-3.5">
@@ -69,8 +74,9 @@ export function DailyPresenter({
           )
         })}
         {/* La clave reinicia el tiempo al cambiar de persona */}
-        <PresenterTimer key={current} />
+        <PresenterTimer key={current} seconds={time.seconds} ownerName={time.own ? firstName(person.user) : null} />
       </nav>
+      <DailyAgenda agenda={settings?.agenda} />
 
       <article
         key={person.user?.id ?? current}
@@ -113,14 +119,17 @@ export function DailyPresenter({
   )
 }
 
-/** Cuenta regresiva por persona («1:24 / 2:00 por persona»); pasado el tiempo sigue contando en rojo. */
-function PresenterTimer() {
+/**
+ * Cuenta regresiva por persona («1:24 / 2:00 por persona», o «/ 5:00 de Luis» si tiene un tiempo propio); pasado el
+ * tiempo sigue contando en rojo.
+ */
+function PresenterTimer({ seconds, ownerName }) {
   const [elapsed, setElapsed] = useState(0)
   useEffect(() => {
     const timer = setInterval(() => setElapsed((value) => value + 1), 1000)
     return () => clearInterval(timer)
   }, [])
-  const remaining = PRESENT_SECONDS - elapsed
+  const remaining = seconds - elapsed
   const over = remaining < 0
 
   return (
@@ -135,7 +144,9 @@ function PresenterTimer() {
     >
       <Timer className="size-3.5" aria-hidden="true" />
       {formatTimer(remaining)}
-      <span className={cn('text-muted-foreground', over && 'text-late')}>/ {formatTimer(PRESENT_SECONDS)} por persona</span>
+      <span className={cn('text-muted-foreground', over && 'text-late')}>
+        / {formatTimer(seconds)} {ownerName ? `de ${ownerName}` : 'por persona'}
+      </span>
     </span>
   )
 }

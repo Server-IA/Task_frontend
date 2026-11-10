@@ -87,6 +87,12 @@
 /** @typedef {Schemas['DailyNoteResponse']} DailyNote */
 /** @typedef {Schemas['DailySummary']} DailySummary */
 /** @typedef {Schemas['DailyCycle']} DailyCycle */
+/**
+ * Ajustes de la daily de un proyecto.
+ * @typedef {{ secondsPerPerson: number, personTimes: { userId: string, seconds: number }[],
+ *             sections: { summary: boolean, yesterday: boolean, today: boolean, blockers: boolean, note: boolean },
+ *             agenda: string[] }} DailySettings
+ */
 
 /** @typedef {'OWNER' | 'MEMBER'} WorkspaceRole */
 

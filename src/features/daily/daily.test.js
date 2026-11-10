@@ -7,8 +7,14 @@ import {
   changeNote,
   clampIndex,
   cycleProgress,
+  DEFAULT_DAILY_SETTINGS,
   dueNote,
+  durationError,
   formatTimer,
+  joinSeconds,
+  secondsFor,
+  splitSeconds,
+  toSettingsBody,
   parseDateParam,
   personMeta,
   previousDayLabel,
@@ -202,5 +208,48 @@ describe('modo Presentar', () => {
     expect(formatTimer(84)).toBe('1:24')
     expect(formatTimer(0)).toBe('0:00')
     expect(formatTimer(-12)).toBe('+0:12')
+  })
+})
+
+describe('ajustes de la daily', () => {
+  it('el tiempo de una persona es el propio si lo tiene; si no, el general', () => {
+    const settings = { ...DEFAULT_DAILY_SETTINGS, secondsPerPerson: 180, personTimes: [{ userId: 'luis', seconds: 300 }] }
+    expect(secondsFor(settings, 'luis')).toEqual({ seconds: 300, own: true })
+    expect(secondsFor(settings, 'ana')).toEqual({ seconds: 180, own: false })
+    // Sin ajustes cargados todavía: 2 minutos
+    expect(secondsFor(undefined, 'ana')).toEqual({ seconds: 120, own: false })
+  })
+
+  it('parte y junta minutos y segundos', () => {
+    expect(splitSeconds(150)).toEqual({ minutes: 2, seconds: 30 })
+    expect(joinSeconds('2', '30')).toBe(150)
+    expect(joinSeconds('', '45')).toBe(45)
+    expect(joinSeconds('1.5', '0')).toBeNaN()
+  })
+
+  it('valida los límites de un tiempo', () => {
+    expect(durationError(120)).toBeNull()
+    expect(durationError(10)).toBe('El mínimo es 15 segundos')
+    expect(durationError(3601)).toBe('El máximo es 60 minutos')
+    expect(durationError(Number.NaN)).toMatch(/números enteros/)
+  })
+
+  it('el cuerpo no lleva tiempos iguales al general ni puntos vacíos', () => {
+    expect(
+      toSettingsBody({
+        secondsPerPerson: 120,
+        personTimes: [
+          { userId: 'ana', seconds: 120 },
+          { userId: 'luis', seconds: 60 },
+        ],
+        sections: DEFAULT_DAILY_SETTINGS.sections,
+        agenda: ['  Demo ', '', '   '],
+      }),
+    ).toEqual({
+      secondsPerPerson: 120,
+      personTimes: [{ userId: 'luis', seconds: 60 }],
+      sections: DEFAULT_DAILY_SETTINGS.sections,
+      agenda: ['Demo'],
+    })
   })
 })

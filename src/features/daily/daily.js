@@ -9,8 +9,77 @@ import { es } from 'date-fns/locale'
 /** @typedef {import('@/api/types').DailyPerson} DailyPerson */
 /** @typedef {import('@/api/types').IssueRef} IssueRef */
 
-/** Tiempo sugerido por persona en el modo «Presentar» (solo visual). */
-export const PRESENT_SECONDS = 120
+/** Tiempo sugerido por persona en el modo «Presentar» cuando el proyecto no lo ha cambiado (solo visual). */
+export const DEFAULT_SECONDS = 120
+/** Límites de un tiempo por persona (los mismos del backend). */
+export const MIN_SECONDS = 15
+export const MAX_SECONDS = 3600
+/** Puntos a tratar: cuántos y de qué largo. */
+export const AGENDA_MAX = 12
+export const AGENDA_ITEM_MAX = 120
+
+/** Bloques que se pueden exponer u ocultar, en el orden de los ajustes. */
+export const DAILY_SECTIONS = [
+  { key: 'summary', label: 'Resumen «desde ayer»', hint: 'La franja con tareas movidas, completadas, comentarios y bloqueos.' },
+  { key: 'yesterday', label: 'Ayer', hint: 'Lo que hizo cada persona el último día con actividad.' },
+  { key: 'today', label: 'Hoy', hint: 'Lo que tiene en curso o con fecha para hoy.' },
+  { key: 'blockers', label: 'Bloqueos', hint: 'Sus tareas que esperan a otra tarea abierta.' },
+  { key: 'note', label: 'Notas del día', hint: 'El cuadro de acuerdos y temas para después.' },
+]
+
+/** Lo que vale un proyecto que nunca cambió los ajustes de su daily (igual que el backend). */
+export const DEFAULT_DAILY_SETTINGS = {
+  secondsPerPerson: DEFAULT_SECONDS,
+  personTimes: [],
+  sections: { summary: true, yesterday: true, today: true, blockers: true, note: true },
+  agenda: [],
+}
+
+/**
+ * Tiempo de una persona en «Presentar»: el suyo si tiene uno propio; si no, el general.
+ * @param {import('@/api/types').DailySettings | null | undefined} settings
+ * @param {string | undefined} userId
+ * @returns {{ seconds: number, own: boolean }}
+ */
+export function secondsFor(settings, userId) {
+  const own = userId ? settings?.personTimes?.find((time) => time.userId === userId) : null
+  if (own) return { seconds: own.seconds, own: true }
+  return { seconds: settings?.secondsPerPerson ?? DEFAULT_SECONDS, own: false }
+}
+
+/** 150 → { minutes: 2, seconds: 30 }. */
+export const splitSeconds = (total) => ({ minutes: Math.floor((total ?? 0) / 60), seconds: (total ?? 0) % 60 })
+
+/** Minutos y segundos escritos a mano (vacío = 0) → segundos totales; NaN si alguno no es un entero ≥ 0. */
+export function joinSeconds(minutes, seconds) {
+  const parse = (value) => (value === '' || value == null ? 0 : Number(value))
+  const [m, s] = [parse(minutes), parse(seconds)]
+  if (!Number.isInteger(m) || !Number.isInteger(s) || m < 0 || s < 0) return Number.NaN
+  return m * 60 + s
+}
+
+/** Por qué no vale un tiempo por persona, o null si vale. */
+export function durationError(total) {
+  if (Number.isNaN(total)) return 'Escribe minutos y segundos en números enteros'
+  if (total < MIN_SECONDS) return `El mínimo es ${MIN_SECONDS} segundos`
+  if (total > MAX_SECONDS) return `El máximo es ${MAX_SECONDS / 60} minutos`
+  return null
+}
+
+/**
+ * Ajustes del formulario → cuerpo de PUT /daily/settings: sin los tiempos propios iguales al general ni los puntos
+ * vacíos (los espacios de los extremos se quitan).
+ * @param {{ secondsPerPerson: number, personTimes: { userId: string, seconds: number }[],
+ *           sections: Record<string, boolean>, agenda: string[] }} draft
+ */
+export function toSettingsBody(draft) {
+  return {
+    secondsPerPerson: draft.secondsPerPerson,
+    personTimes: draft.personTimes.filter((time) => time.seconds !== draft.secondsPerPerson),
+    sections: draft.sections,
+    agenda: draft.agenda.map((item) => item.trim()).filter(Boolean),
+  }
+}
 
 /** Largo máximo de la nota del día. */
 export const NOTE_MAX_LENGTH = 5000

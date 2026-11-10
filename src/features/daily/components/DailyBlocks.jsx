@@ -18,9 +18,11 @@ const TONES = {
  * bloquean y de quién son). Cada tarea del proyecto abre el panel lateral.
  * @param {{ person: import('@/api/types').DailyPerson, date: string, previousDate?: string, projectId: string,
  *           blocking?: { code: string, blockedCode: string, ownerName: string }[],
- *           onOpenIssue: (issueId: string) => void, size?: 'card' | 'focus' }} props
+ *           onOpenIssue: (issueId: string) => void, size?: 'card' | 'focus',
+ *           sections?: { yesterday?: boolean, today?: boolean, blockers?: boolean } }} props
+ *   `sections`: los bloques que el proyecto decidió exponer (ajustes de la daily); sin él van los tres.
  */
-export function personBlocks({ person, date, previousDate, projectId, blocking = [], onOpenIssue, size = 'card' }) {
+export function personBlocks({ person, date, previousDate, projectId, blocking = [], onOpenIssue, size = 'card', sections }) {
   const userId = person.user?.id
   const yesterday = (person.yesterday ?? []).map((entry) => ({
     key: `y-${entry.issue?.id}`,
@@ -64,7 +66,9 @@ export function personBlocks({ person, date, previousDate, projectId, blocking =
       empty: blocking.length > 0 ? `Nada lo bloquea.${blockingText}` : 'Sin bloqueos.',
       late: blockers.length > 0,
     },
-  ].map((block) => ({ ...block, size, onOpenIssue }))
+  ]
+    .filter((block) => sections?.[block.key] !== false)
+    .map((block) => ({ ...block, size, onOpenIssue }))
 }
 
 /** Un bloque («Ayer», «Hoy», «Bloqueos») con sus tareas o el texto de vacío. */
