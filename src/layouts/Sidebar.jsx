@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { NavLink } from 'react-router'
 import { Activity, FolderClosed, PanelLeftClose, PanelLeftOpen, Search, SlidersHorizontal, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -11,6 +12,7 @@ import { COMMAND_SHORTCUT } from '@/lib/shortcuts'
 import { cn } from '@/lib/utils'
 import { useLayoutStore } from '@/stores/layoutStore'
 import { usePreferencesStore } from '@/stores/preferencesStore'
+import { MAIN_MENU, orderItems } from './menuOrder'
 import { SidebarProjects } from './SidebarProjects'
 import { UserMenu } from './UserMenu'
 
@@ -20,6 +22,16 @@ export function Sidebar({ collapsed }) {
   const { slug: routeSlug, projectId } = useRouteParams()
   // Fuera de un workspace (perfil, notificaciones) se usa el último abierto
   const slug = routeSlug ?? lastWorkspaceSlug
+  // El orden lo elige cada persona («Personalizar menú», en el menú de usuario); «Buscar» siempre va primero
+  const menuOrder = usePreferencesStore((state) => state.menuOrder)
+  const entries = {
+    inbox: <NotificationsLink collapsed={collapsed} />,
+    // Fuera de un workspace (sin ninguno todavía) solo queda la bandeja
+    'my-work': slug && <MyWorkLink slug={slug} collapsed={collapsed} />,
+    activity: slug && <SidebarLink to={`/${slug}/activity`} icon={Activity} label="Actividad" collapsed={collapsed} />,
+    projects: slug && <SidebarLink to={`/${slug}`} end icon={FolderClosed} label="Proyectos" collapsed={collapsed} />,
+    settings: slug && <SidebarLink to={`/${slug}/settings`} icon={SlidersHorizontal} label="Ajustes" collapsed={collapsed} />,
+  }
 
   return (
     <div className={cn('flex h-full flex-col gap-4.5 py-3.5', collapsed ? 'px-2' : 'px-3')}>
@@ -48,14 +60,8 @@ export function Sidebar({ collapsed }) {
       <nav className="flex min-h-0 flex-1 flex-col gap-4.5 overflow-x-hidden overflow-y-auto" aria-label="Principal">
         <div className="flex flex-col gap-0.5">
           <SearchButton collapsed={collapsed} />
-          <NotificationsLink collapsed={collapsed} />
-          {slug && (
-            <>
-              <MyWorkLink slug={slug} collapsed={collapsed} />
-              <SidebarLink to={`/${slug}/activity`} icon={Activity} label="Actividad" collapsed={collapsed} />
-              <SidebarLink to={`/${slug}`} end icon={FolderClosed} label="Proyectos" collapsed={collapsed} />
-              <SidebarLink to={`/${slug}/settings`} icon={SlidersHorizontal} label="Ajustes" collapsed={collapsed} />
-            </>
+          {orderItems(MAIN_MENU, menuOrder.mode, menuOrder.main).map((item) =>
+            entries[item.key] ? <Fragment key={item.key}>{entries[item.key]}</Fragment> : null,
           )}
         </div>
         {slug && <SidebarProjects slug={slug} currentProjectId={projectId} collapsed={collapsed} />}

@@ -9,19 +9,9 @@ import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
 import { useProjects } from '@/features/projects/hooks'
 import { useWorkspace } from '@/features/workspaces/hooks'
 import { isManager } from '@/lib/permissions'
+import { usePreferencesStore } from '@/stores/preferencesStore'
+import { orderItems, PROJECT_SECTIONS } from './menuOrder'
 import { SidebarLink } from './Sidebar'
-
-/** Secciones de un proyecto con su atajo de teclado (ver ProjectLayout). */
-export const PROJECT_SECTIONS = [
-  { path: 'issues', label: 'Tareas', hint: 'I' },
-  { path: 'stories', label: 'Historias', hint: 'H' },
-  { path: 'cycles', label: 'Ciclos', hint: 'Y' },
-  { path: 'daily', label: 'Daily', hint: 'D' },
-  { path: 'modules', label: 'Módulos', hint: 'M' },
-  { path: 'roadmap', label: 'Hoja de ruta', hint: 'R' },
-  { path: 'stats', label: 'Estadísticas', hint: 'S' },
-  { path: 'settings', label: 'Ajustes', hint: ',' },
-]
 
 /** «12 abiertas» / «1 abierta». */
 const openLabel = (count = 0) => `${count} ${count === 1 ? 'abierta' : 'abiertas'}`
@@ -91,6 +81,9 @@ function CurrentProject({ slug, project, base }) {
   const { data: modules } = usePlanningList('modules', slug, project.id)
   const currentCycle = cycles?.find((cycle) => cycle.status === 'CURRENT' && !cycle.closedAt)
   const activeModules = modules?.filter((module) => module.progress.percentage < 100).length ?? 0
+  // El orden de las secciones lo elige cada persona («Personalizar menú»)
+  const menuOrder = usePreferencesStore((state) => state.menuOrder)
+  const sections = orderItems(PROJECT_SECTIONS, menuOrder.mode, menuOrder.sections, (section) => section.path)
 
   const meta = {
     issues: openLabel(project.openIssueCount),
@@ -113,7 +106,7 @@ function CurrentProject({ slug, project, base }) {
         <span className="min-w-0 flex-1 truncate">{project.name}</span>
       </NavLink>
       <div className="mt-0.5 flex flex-col gap-0.5">
-        {PROJECT_SECTIONS.map((section) => (
+        {sections.map((section) => (
           <SidebarLink
             key={section.path}
             to={`${base}/${section.path}`}

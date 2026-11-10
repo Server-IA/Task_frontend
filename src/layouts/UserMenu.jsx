@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
-import { ChevronsUpDown, LogOut, Palette, UserRound } from 'lucide-react'
+import { ChevronsUpDown, ListOrdered, LogOut, Palette, UserRound } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,14 +17,17 @@ import { UserAvatar } from '@/components/common/UserAvatar'
 import { useLogout } from '@/features/auth/hooks'
 import { cn } from '@/lib/utils'
 import { useSessionStore } from '@/stores/sessionStore'
+import { MenuOrderDialog } from './MenuOrderDialog'
 
 export function UserMenu({ collapsed = false }) {
   const user = useSessionStore((state) => state.user)
   const logout = useLogout()
   const navigate = useNavigate()
   const onProfile = useLocation().pathname === '/profile'
+  const [menuOrderOpen, setMenuOrderOpen] = useState(false)
 
   return (
+    <>
     <DropdownMenu>
       <DropdownMenuTrigger
         className={cn(
@@ -62,6 +66,10 @@ export function UserMenu({ collapsed = false }) {
             <ThemeRadioItems />
           </DropdownMenuSubContent>
         </DropdownMenuSub>
+        <DropdownMenuItem onSelect={() => setMenuOrderOpen(true)}>
+          <ListOrdered />
+          Personalizar menú
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           variant="destructive"
@@ -72,5 +80,7 @@ export function UserMenu({ collapsed = false }) {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    <MenuOrderDialog open={menuOrderOpen} onOpenChange={setMenuOrderOpen} />
+    </>
   )
 }
