@@ -32,9 +32,12 @@ export function DailyPersonCard({ person, cycle, date, previousDate, projectId, 
           </span>
         </span>
       </header>
-      {blocks.map((block) => (
-        <DailyBlock key={block.key} block={block} />
-      ))}
+      {/* Con pocas personas la tarjeta es ancha: los bloques van lado a lado en vez de dejar media tarjeta vacía */}
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,250px),1fr))] items-start gap-x-5 gap-y-3">
+        {blocks.map((block) => (
+          <DailyBlock key={block.key} block={block} />
+        ))}
+      </div>
     </article>
   )
 }

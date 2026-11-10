@@ -7,6 +7,7 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { LockNote } from '@/components/common/LockNote'
 import { isManager } from '@/lib/permissions'
 import { notifyError } from '@/lib/notify'
+import { cn } from '@/lib/utils'
 import { useDeleteProject, useUpdateProject } from '../hooks'
 import { ProjectForm } from './ProjectForm'
 
@@ -22,7 +23,8 @@ export function ProjectGeneralSettings({ workspace, project }) {
   }
 
   return (
-    <div className="space-y-6">
+    // En pantallas anchas, el formulario a la izquierda y eliminar a la derecha
+    <div className={cn('grid items-start gap-3.5', canManage && 'xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]')}>
       <Card>
         <CardHeader>
           <CardTitle>General</CardTitle>

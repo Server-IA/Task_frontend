@@ -65,6 +65,14 @@ describe('MyWorkPage', () => {
     expect(week).toHaveTextContent('4cerradas')
     expect(week).toHaveTextContent('2en curso')
     expect(week).toHaveTextContent('1en revisión')
-    expect(screen.getByRole('link', { name: 'WEB-19' })).toHaveAttribute('href', '/equipo/projects/p1/issues?issue=19')
+    // La próxima fecha está en la franja (ventanas angostas) y en el panel lateral (anchas): el CSS muestra una sola
+    for (const link of screen.getAllByRole('link', { name: 'WEB-19' })) {
+      expect(link).toHaveAttribute('href', '/equipo/projects/p1/issues?issue=19')
+    }
+    // Panel lateral: la semana y el reparto de la lista por proyecto y prioridad
+    const aside = screen.getByRole('complementary', { name: 'Resumen' })
+    expect(aside).toHaveTextContent('Tu semana')
+    expect(aside).toHaveTextContent('Por proyecto')
+    expect(aside).toHaveTextContent('Por prioridad')
   })
 })

@@ -8,12 +8,13 @@ import { EmptyState, ErrorState } from '@/components/common/States'
 import { StateIcon } from '@/components/common/StateIcon'
 import { IssueTypeIcon } from '@/features/issues/components/IssueTypeBits'
 import { BlockedChip } from '@/features/issues/components/IssueBadges'
-import { PriorityChip } from '@/features/issues/components/PriorityIcon'
+import { PriorityChip, PriorityIcon } from '@/features/issues/components/PriorityIcon'
 import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
 import { useProjects } from '@/features/projects/hooks'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { describeDueDate } from '@/lib/dates'
 import { cn } from '@/lib/utils'
+import { countByPriority, countByProject } from '../breakdown'
 import { groupByDue } from '../groupByDue'
 import { useMyWork } from '../hooks'
 import { startedCounts } from '../weekSummary'
@@ -47,7 +48,11 @@ const VIEWS = {
   },
 }
 
-/** Tareas abiertas del usuario en todos sus proyectos, agrupadas por fecha límite. */
+/**
+ * Tareas abiertas del usuario en todos sus proyectos, agrupadas por fecha límite. En pantallas anchas (desde 1440 px) la lista ocupa
+ * todo el ancho y a la derecha va un panel con la semana y el reparto por proyecto y prioridad; en una ventana
+ * angosta, la semana va como una franja arriba.
+ */
 export function MyWorkPage() {
   const { slug } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -67,7 +72,7 @@ export function MyWorkPage() {
   const config = VIEWS[view]
 
   return (
-    <div className="mx-auto flex min-h-0 w-full max-w-[980px] flex-1 flex-col gap-3.5">
+    <>
       <PageHeader
         path={[{ label: '~' }, { label: 'mi-trabajo' }]}
         title="Mi trabajo"
@@ -117,8 +122,9 @@ export function MyWorkPage() {
         {isLoading && <MyWorkSkeleton />}
         {error && !data && <ErrorState error={error} onRetry={refetch} homeLink={`/${slug}`} />}
         {data && (
-          <>
-            <WeekStrip slug={slug} data={data} />
+          <div className="flex flex-col gap-3.5 min-[1440px]:flex-row min-[1440px]:items-start">
+          <div className="flex min-w-0 flex-1 flex-col gap-3.5">
+            <WeekStrip slug={slug} data={data} className="min-[1440px]:hidden" />
             {issues.length === 0 && (
               <EmptyState icon={CircleCheck} title={config.emptyTitle} description={config.emptyDescription} />
             )}
@@ -151,10 +157,131 @@ export function MyWorkPage() {
                 </section>
               ))}
             </div>
-          </>
+          </div>
+          <MyWorkAside slug={slug} data={data} issues={issues} projectsById={projectsById} listLabel={config.label} />
+          </div>
         )}
       </PageBody>
-    </div>
+    </>
+  )
+}
+
+/**
+ * Panel lateral (pantallas anchas): «Tu semana» con los contadores de las tareas asignadas y la próxima fecha, y el
+ * reparto de la lista que se ve por proyecto y por prioridad.
+ */
+function MyWorkAside({ slug, data, issues, projectsById, listLabel }) {
+  const completed = data.completedThisWeek ?? 0
+  const numbers = [{ key: 'completed', count: completed, label: completed === 1 ? 'cerrada' : 'cerradas' }, ...startedCounts(data.byState)]
+  const byProject = countByProject(issues, projectsById)
+  const byPriority = countByPriority(issues)
+  const next = data.nextDue
+
+  return (
+    <aside aria-label="Resumen" className="hidden w-[340px] shrink-0 flex-col gap-3.5 min-[1440px]:flex min-[1680px]:w-[380px]">
+      <section className="tf-panel flex flex-col gap-3 px-4.5 py-4">
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 className="text-[15px] font-semibold">Tu semana</h2>
+          <span className="font-mono text-[11px] text-muted-foreground">tareas asignadas</span>
+        </div>
+        <dl className="grid grid-cols-2 gap-3">
+          {numbers.map((item) => (
+            <div key={item.key} className="min-w-0">
+              <dt className="truncate font-mono text-[11px] text-muted-foreground" title={item.label}>
+                {item.label}
+              </dt>
+              <dd className="mt-0.5 font-display text-[26px] leading-tight font-extrabold">{item.count}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="border-t border-dashed pt-3 text-[13px] text-muted-foreground">
+          Próxima fecha:{' '}
+          {next?.dueDate ? (
+            <>
+              <strong className="font-semibold text-foreground">{describeDueDate(next.dueDate).text}</strong> ·{' '}
+              <Link
+                to={`/${slug}/projects/${next.project?.id}/issues?issue=${next.id}`}
+                className="font-mono hover:text-foreground hover:underline"
+                title={next.title}
+              >
+                {next.code}
+              </Link>
+            </>
+          ) : (
+            <strong className="font-semibold text-foreground">ninguna</strong>
+          )}
+        </p>
+      </section>
+
+      {byProject.length > 0 && (
+        <BreakdownPanel
+          title="Por proyecto"
+          meta={listLabel.toLowerCase()}
+          rows={byProject.map((row) => ({
+            key: row.projectId,
+            count: row.count,
+            label: (
+              <>
+                {row.project && <ProjectIcon project={row.project} />}
+                <span className="truncate">{row.name}</span>
+              </>
+            ),
+            to: `/${slug}/projects/${row.projectId}/issues`,
+          }))}
+        />
+      )}
+      {byPriority.length > 0 && (
+        <BreakdownPanel
+          title="Por prioridad"
+          meta={listLabel.toLowerCase()}
+          rows={byPriority.map((row) => ({
+            key: row.priority,
+            count: row.count,
+            label: (
+              <>
+                <PriorityIcon priority={row.priority} />
+                <span className="truncate">{row.label}</span>
+              </>
+            ),
+          }))}
+        />
+      )}
+    </aside>
+  )
+}
+
+/** Tarjeta con una barra por fila («Por proyecto», «Por prioridad»); con `to`, la fila lleva a ese sitio. */
+function BreakdownPanel({ title, meta, rows }) {
+  const max = Math.max(1, ...rows.map((row) => row.count))
+  return (
+    <section className="tf-panel flex flex-col gap-2.5 px-4.5 py-4">
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 className="text-[15px] font-semibold">{title}</h2>
+        <span className="font-mono text-[11px] text-muted-foreground">{meta}</span>
+      </div>
+      {rows.map((row) => {
+        const content = (
+          <>
+            <span className="flex w-full items-center justify-between gap-2 text-[13px]">
+              <span className="flex min-w-0 items-center gap-2">{row.label}</span>
+              <span className="shrink-0 font-mono text-muted-foreground">{row.count}</span>
+            </span>
+            <span className="block h-2 w-full rounded-[4px] bg-column">
+              <span className="block h-full rounded-[4px] bg-chart-series" style={{ width: `${(row.count / max) * 100}%` }} />
+            </span>
+          </>
+        )
+        return row.to ? (
+          <Link key={row.key} to={row.to} className="-mx-1.5 flex flex-col gap-1 rounded-lg px-1.5 py-1 transition-colors hover:bg-subtle">
+            {content}
+          </Link>
+        ) : (
+          <div key={row.key} className="flex flex-col gap-1 py-1">
+            {content}
+          </div>
+        )
+      })}
+    </section>
   )
 }
 
@@ -162,7 +289,7 @@ export function MyWorkPage() {
  * «// tu semana  4 cerradas  2 en curso  1 en revisión · Próxima fecha: mañana · WEB-19». Habla siempre de las
  * tareas asignadas, sea cual sea la vista; cada estado «en curso» lleva su propio nombre.
  */
-function WeekStrip({ slug, data }) {
+function WeekStrip({ slug, data, className }) {
   const next = data.nextDue
   const completed = data.completedThisWeek ?? 0
   const stats = [
@@ -173,7 +300,7 @@ function WeekStrip({ slug, data }) {
   return (
     <section
       aria-label="Tu semana"
-      className="flex flex-wrap items-center gap-x-5.5 gap-y-2 rounded-2xl border border-dashed border-dash px-4.5 py-3"
+      className={cn('flex flex-wrap items-center gap-x-5.5 gap-y-2 rounded-2xl border border-dashed border-dash px-4.5 py-3', className)}
     >
       <span className="font-mono text-[11px] text-muted-foreground">// tu semana</span>
       {stats.map((item) => (

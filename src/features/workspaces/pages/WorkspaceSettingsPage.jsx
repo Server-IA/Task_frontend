@@ -47,7 +47,7 @@ export function WorkspaceSettingsPage() {
         </TabsList>
       </PageHeader>
       <PageBody>
-        <div className="mx-auto max-w-[920px]">
+        <div className="mx-auto max-w-[1320px]">
           <TabsContent value="general">
             <GeneralSettings workspace={workspace} />
           </TabsContent>

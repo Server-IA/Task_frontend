@@ -30,7 +30,8 @@ export function GeneralSettings({ workspace }) {
   }
 
   return (
-    <div className="space-y-6">
+    // En pantallas anchas, el formulario a la izquierda y salir / eliminar a la derecha
+    <div className="grid items-start gap-3.5 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
       <Card>
         <CardHeader>
           <CardTitle>General</CardTitle>
@@ -52,8 +53,10 @@ export function GeneralSettings({ workspace }) {
         </CardContent>
       </Card>
 
-      <LeaveWorkspaceCard workspace={workspace} isManager={canManage} />
-      {canManage && <DeleteWorkspaceCard workspace={workspace} />}
+      <div className="flex flex-col gap-3.5">
+        <LeaveWorkspaceCard workspace={workspace} isManager={canManage} />
+        {canManage && <DeleteWorkspaceCard workspace={workspace} />}
+      </div>
     </div>
   )
 }

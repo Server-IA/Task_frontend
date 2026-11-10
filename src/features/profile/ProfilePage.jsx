@@ -33,7 +33,7 @@ export function ProfilePage() {
   if (isLoading || !user) return <CenteredSpinner className="flex-1" />
 
   return (
-    <div className="mx-auto flex w-full max-w-[920px] min-h-0 flex-1 flex-col gap-3.5">
+    <div className="mx-auto flex w-full max-w-[1320px] min-h-0 flex-1 flex-col gap-3.5">
       <ProfileHeader user={user} />
       <PageBody className="flex flex-col gap-3.5">
         <ProfilePhotoSection user={user} />

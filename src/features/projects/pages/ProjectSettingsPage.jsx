@@ -45,7 +45,7 @@ export function ProjectSettingsPage() {
         </TabsList>
       </PageHeader>
       <PageBody>
-        <div className="mx-auto max-w-[920px]">
+        <div className="mx-auto max-w-[1320px]">
           <TabsContent value="general">
             <ProjectGeneralSettings workspace={workspace} project={project} />
           </TabsContent>

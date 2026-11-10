@@ -68,9 +68,9 @@ export function PlanningListPage({ kind }) {
       <PageBody>
         <div>
           {isLoading && (
-            <div className="space-y-3">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,380px),1fr))] gap-3.5">
               {Array.from({ length: 3 }, (_, index) => (
-                <Skeleton key={index} className="h-24 w-full rounded-2xl" />
+                <Skeleton key={index} className="h-32 w-full rounded-2xl" />
               ))}
             </div>
           )}
@@ -91,7 +91,9 @@ export function PlanningListPage({ kind }) {
             />
           )}
           {items?.length > 0 && (
-            <div className="space-y-3">
+            // Cuadrícula de tarjetas: antes cada ciclo era una fila de todo el ancho, con un hueco grande entre el
+            // nombre y el avance y media pantalla vacía debajo
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,380px),1fr))] items-start gap-3.5">
               {(kind === 'cycles' ? sortCycles(items) : items).map((item) => {
                 const end = item.endDate ?? item.targetDate
                 const closed = kind === 'cycles' && isCycleClosed(item)
@@ -101,15 +103,13 @@ export function PlanningListPage({ kind }) {
                   <div
                     key={item.id}
                     className={cn(
-                      'bg-card hover:shadow-card flex items-center gap-4 rounded-2xl border p-4 transition-shadow sm:px-5',
+                      'bg-card hover:shadow-card relative flex rounded-2xl border p-4 transition-shadow sm:px-5',
                       current && 'border-ok-dot',
                     )}
                   >
-                    <Link
-                      to={`${base}/${item.id}`}
-                      className="group flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:gap-6"
-                    >
-                      <div className="flex min-w-0 flex-1 items-start gap-3">
+                    <Link to={`${base}/${item.id}`} className="group flex min-w-0 flex-1 flex-col gap-3.5">
+                      {/* A la derecha queda el hueco del menú de acciones (va encima, en la esquina) */}
+                      <div className={cn('flex min-w-0 flex-1 items-start gap-3', (canManage || closed) && 'pr-9')}>
                         {kind === 'modules' && (
                           <span className="bg-accent-soft text-accent-text flex size-9 shrink-0 items-center justify-center rounded-xl">
                             <Layers className="size-4" />
@@ -121,7 +121,7 @@ export function PlanningListPage({ kind }) {
                             {kind === 'cycles' && <CycleStatusBadge cycle={item} />}
                           </div>
                           {kind === 'modules' && item.description && (
-                            <p className="text-muted-foreground line-clamp-1 text-sm">{item.description}</p>
+                            <p className="text-muted-foreground line-clamp-2 text-sm">{item.description}</p>
                           )}
                           <p className="text-muted-foreground font-mono text-xs">
                             <DateRange start={item.startDate} end={end} />
@@ -134,7 +134,7 @@ export function PlanningListPage({ kind }) {
                       </div>
                       <ProgressSummary
                         progress={item.progress}
-                        className="w-full sm:w-60"
+                        className="w-full"
                         barClassName={
                           kind === 'cycles'
                             ? (CYCLE_STATUS[cycleStatusKey(item)] ?? CYCLE_STATUS.DRAFT).bar
@@ -145,7 +145,12 @@ export function PlanningListPage({ kind }) {
                     {(canManage || closed) && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="size-8 shrink-0" aria-label={`Acciones de ${item.name}`}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-3 right-3 size-8"
+                            aria-label={`Acciones de ${item.name}`}
+                          >
                             <MoreHorizontal />
                           </Button>
                         </DropdownMenuTrigger>
