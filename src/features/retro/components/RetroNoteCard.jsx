@@ -106,7 +106,7 @@ export function RetroNoteCard({ note, retro, ctx, focusAfterDelete = [] }) {
               <span className="font-mono text-[11px]">{note.issue.code}</span> creada
             </button>
           )}
-          {isAction && !note.issue && ctx.manager && (
+          {isAction && !note.issue && ctx.manager && ctx.canCreateIssues !== false && (
             <Button
               variant="outline"
               size="xs"
@@ -257,8 +257,16 @@ function VoteButton({ note, retro, ctx }) {
       type="button"
       aria-pressed={Boolean(note.votedByMe)}
       aria-label={`${note.votedByMe ? 'Quitar tu voto' : 'Votar'} · ${label}`}
-      title={state.reason === 'noVotes' ? `Ya usaste tus ${MAX_VOTES} votos` : note.votedByMe ? 'Quitar tu voto' : 'Votar'}
-      disabled={!state.enabled || vote.isPending}
+      title={
+        ctx.canParticipate === false
+          ? 'Tu rol no permite votar'
+          : state.reason === 'noVotes'
+            ? `Ya usaste tus ${MAX_VOTES} votos`
+            : note.votedByMe
+              ? 'Quitar tu voto'
+              : 'Votar'
+      }
+      disabled={!state.enabled || ctx.canParticipate === false || vote.isPending}
       onClick={() =>
         vote.mutate({ note, vote: !note.votedByMe }, { onError: (error) => notifyError(error, 'No se pudo votar') })
       }

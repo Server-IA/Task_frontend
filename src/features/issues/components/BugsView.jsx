@@ -10,6 +10,7 @@ import { bugGroups } from '../issueTypes'
 import { useCriteriaGuard } from '../useCriteriaGuard'
 import { useIssueUpdater } from '../useIssueHelpers'
 import { closedStoryActions, useStoryClosedGuard } from '../useStoryClosedGuard'
+import { useCanEditIssues } from '../editPermission'
 import { BlockedChip } from './IssueBadges'
 import { ParentStoryChip, TypeIcon } from './IssueTypeBits'
 import { PriorityIcon } from './PriorityIcon'
@@ -108,6 +109,7 @@ const stop = (event) => event.stopPropagation()
 
 const BugRow = memo(function BugRow({ bug, slug, project, meta, triage, first, active, openIssue, guard, onStoryClosed }) {
   const { update } = useIssueUpdater(slug, project.id, bug.id)
+  const locked = !useCanEditIssues()
   const unassigned = !bug.assignees?.length
   const noPriority = !bug.priority || bug.priority === 'NONE'
   return (
@@ -156,7 +158,7 @@ const BugRow = memo(function BugRow({ bug, slug, project, meta, triage, first, a
         {bug.parent?.type === 'STORY' && <ParentStoryChip parent={bug.parent} label="apareció en" onOpen={openIssue} />}
         <span className="flex items-center gap-1.5" onClick={stop}>
           {triage && (
-            <PriorityPicker
+            <PriorityPicker disabled={locked}
               chip={!noPriority}
               value={bug.priority ?? 'NONE'}
               onChange={(priority) => update({ priority })}
@@ -164,7 +166,7 @@ const BugRow = memo(function BugRow({ bug, slug, project, meta, triage, first, a
             />
           )}
           {unassigned && !triage && <span className="text-xs text-muted-foreground">sin asignar</span>}
-          <AssigneesPicker
+          <AssigneesPicker disabled={locked}
             members={meta.users}
             value={bug.assignees?.map((user) => user.id) ?? []}
             onChange={(assigneeIds) => update({ assigneeIds })}

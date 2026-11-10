@@ -372,11 +372,15 @@ function BoardColumns({ issues, lanes = null, slug, project, meta, openIssue, on
     // Con un orden elegido no hay vecinas: el backend la deja al final del orden manual de la columna
     const { afterIssueId, beforeIssueId } = sorted ? { afterIssueId: null, beforeIssueId: null } : getNeighbors(targetIds, active.id)
     const others = targetIds.filter((id) => id !== active.id).map((id) => issuesById[id].sortOrder)
-    const sortOrder = sortOrderBetween(
-      issuesById[afterIssueId]?.sortOrder,
-      issuesById[beforeIssueId]?.sortOrder,
-      others.length ? Math.max(...others) : null,
-    )
+    // Con un orden elegido, cambiar solo de historia (mismo estado) no mueve la tarjeta en el orden manual
+    const keepPosition = sorted && issue.state.id === targetState
+    const sortOrder = keepPosition
+      ? issue.sortOrder
+      : sortOrderBetween(
+          issuesById[afterIssueId]?.sortOrder,
+          issuesById[beforeIssueId]?.sortOrder,
+          others.length ? Math.max(...others) : null,
+        )
     const state = meta.states.find((item) => item.id === targetState)
     // Otro carril: la historia de ese carril pasa a ser su padre; «Sin historia» se lo quita
     const story = laneChanged ? (laneByKey.get(targetLane)?.story ?? null) : null
@@ -396,6 +400,7 @@ function BoardColumns({ issues, lanes = null, slug, project, meta, openIssue, on
         beforeIssueId,
         state,
         sortOrder,
+        keepPosition,
         ...parentMove,
         ...extra,
         onMoved: laneChanged ? () => announceLaneChange(issue, story) : undefined,

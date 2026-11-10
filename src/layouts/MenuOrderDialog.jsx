@@ -28,10 +28,12 @@ export function MenuOrderDialog({ open, onOpenChange }) {
   const main = orderItems(MAIN_MENU, mode, menuOrder.main)
   const sections = orderItems(PROJECT_SECTIONS, mode, menuOrder.sections, (section) => section.path)
 
-  // Al pasar a «personalizado» se parte del orden que se está viendo (si venía de alfabético, empieza alfabético)
+  // La primera vez que se pasa a «personalizado» se parte del orden que se está viendo (si venía de alfabético, empieza
+  // alfabético); si ya había un orden propio guardado, se recupera ese
+  const hasCustom = menuOrder.main.length > 0 || menuOrder.sections.length > 0
   const setMode = (next) =>
     setMenuOrder(
-      next === 'custom'
+      next === 'custom' && !hasCustom
         ? { mode: next, main: main.map((item) => item.key), sections: sections.map((section) => section.path) }
         : { ...menuOrder, mode: next },
     )

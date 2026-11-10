@@ -113,6 +113,8 @@ export function DailyPage() {
                     size="icon-lg"
                     className="rounded-xl bg-card"
                     onClick={() => setSettingsOpen(true)}
+                    // Hasta tener los ajustes guardados y las personas: abrirlo antes guardaría los de por defecto
+                    disabled={!savedSettings || !daily}
                     aria-label="Ajustes de la daily"
                   >
                     <Settings2 />

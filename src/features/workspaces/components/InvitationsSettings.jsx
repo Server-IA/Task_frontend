@@ -37,7 +37,9 @@ function InviteCard({ workspace }) {
   const form = useForm({ resolver: zodResolver(inviteSchema), defaultValues: { email: '' } })
   // El rol con el que entra: «Miembro» o uno de los roles creados (nunca project manager: eso se da después)
   const { data: roles = [] } = useRoles(workspace.slug)
-  const options = assignableRoles(roles, workspace, { includeManager: false }).filter((role) => role.kind !== 'MANAGER')
+  // «Miembro» siempre se puede elegir (es el rol de entrada); un rol creado, solo si no tiene más permisos que el propio
+  const assignable = assignableRoles(roles, workspace, { includeManager: false })
+  const options = roles.filter((role) => role.kind === 'MEMBER' || (role.kind === 'CUSTOM' && assignable.includes(role)))
   const [roleKey, setRoleKey] = useState(MEMBER_KEY)
   // Si el rol elegido se eliminó (o ya no se puede asignar), vuelve a «Miembro»
   const selectedKey = options.some((role) => role.key === roleKey) ? roleKey : MEMBER_KEY

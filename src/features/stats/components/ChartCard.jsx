@@ -29,7 +29,8 @@ export function ChartCard({ title, meta, table, footer, children, className }) {
           </button>
         )}
       </div>
-      {showTable ? <DataTable {...table} /> : children}
+      {/* Si la tabla deja de existir (la lista quedó vacía con «Ver tabla» puesto), vuelve el contenido normal */}
+      {showTable && table ? <DataTable {...table} /> : children}
       {footer}
     </section>
   )

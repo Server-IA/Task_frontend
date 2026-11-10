@@ -56,6 +56,7 @@ export function RetroPage() {
   // «manager»: quien dirige la retro (la empieza, la termina y modera las notas)
   const manager = useCan('RETRO_MANAGE')
   const canParticipate = useCan('RETRO_PARTICIPATE')
+  const canCreateIssues = useCan('ISSUE_CREATE')
   const userId = useSessionStore((state) => state.user?.id)
   const issueFilters = useIssueFilters()
   const cycle = usePlanningItem('cycles', workspace.slug, project.id, cycleId)
@@ -102,8 +103,10 @@ export function RetroPage() {
     cycleId,
     userId,
     manager,
-    // Escribir y votar pide el permiso de participar
-    open: phase === 'OPEN' && canParticipate,
+    open: phase === 'OPEN',
+    // Escribir notas nuevas y votar pide el permiso de participar; crear tareas desde las acciones, el de crear tareas
+    canParticipate,
+    canCreateIssues,
     members,
     canEdit: (note) => canEditNote(note, { userId, manager, phase }),
     openIssue: issueFilters.openIssue,

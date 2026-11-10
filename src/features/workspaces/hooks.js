@@ -289,7 +289,17 @@ export function useSaveRole(slug) {
       const body = { name, description, permissions }
       return role.id ? rolesApi.update(slug, role.id, body) : rolesApi.create(slug, body)
     },
-    onSuccess: () => invalidateRoles(queryClient, slug),
+    onSuccess: (saved) => {
+      // El rol guardado entra a la lista enseguida: la pantalla lo selecciona sin esperar a la recarga
+      queryClient.setQueryData(queryKeys.roles(slug), (roles) =>
+        roles
+          ? roles.some((role) => role.key === saved.key)
+            ? roles.map((role) => (role.key === saved.key ? saved : role))
+            : [...roles, saved]
+          : roles,
+      )
+      invalidateRoles(queryClient, slug)
+    },
   })
 }
 

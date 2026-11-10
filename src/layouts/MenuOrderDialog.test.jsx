@@ -46,6 +46,18 @@ describe('MenuOrderDialog', () => {
     expect(within(screen.getByRole('region', { name: 'Menú principal' })).getByRole('button', { name: 'Bajar «Ajustes»' })).toBeDisabled()
   })
 
+  it('volver a «Personalizado» recupera el orden propio en vez de pisarlo', async () => {
+    render(<MenuOrderDialog open onOpenChange={() => {}} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Personalizado' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Subir «Proyectos»' }))
+    const custom = usePreferencesStore.getState().menuOrder.main
+
+    await userEvent.click(screen.getByRole('button', { name: 'Alfabético' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Personalizado' }))
+
+    expect(usePreferencesStore.getState().menuOrder.main).toEqual(custom)
+  })
+
   it('por defecto no deja mover nada', () => {
     render(<MenuOrderDialog open onOpenChange={() => {}} />)
     expect(screen.queryByRole('button', { name: /Subir/ })).not.toBeInTheDocument()

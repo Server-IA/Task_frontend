@@ -169,7 +169,7 @@ export const storyStateLocked = (issue, manager) => isStory(issue) && !manager &
 export function typeChangeBlock(issue, target, { isManager, hasChildren }) {
   const current = typeOf(issue)
   if (target === current) return null
-  if ((current === 'STORY' || target === 'STORY') && !isManager) return 'Solo el project manager convierte en historia o deja de serlo.'
+  if ((current === 'STORY' || target === 'STORY') && !isManager) return 'Tu rol no permite convertir en historia ni dejar de serlo.'
   if (current === 'STORY' && hasChildren) return 'Una historia con tareas no puede cambiar de tipo hasta mover sus tareas.'
   if (target === 'STORY' && issue?.parent) return 'Una tarea de una historia no puede ser historia: quítale el padre antes.'
   return null

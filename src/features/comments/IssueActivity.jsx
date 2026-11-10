@@ -281,7 +281,8 @@ function CommentCard({ slug, projectId, issueId, comment, people, projectIdentif
                 autoFocus
                 onSubmit={save}
                 onEscape={() => setEditing(false)}
-                imageUpload={imageUpload}
+                // Las imágenes nuevas piden el permiso de subir imágenes en comentarios
+                imageUpload={can(workspace, 'COMMENT_IMAGES') ? imageUpload : undefined}
                 onUploadsChange={setUploading}
                 contentClassName="min-h-16 px-3 py-2"
               />

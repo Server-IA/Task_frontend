@@ -142,7 +142,7 @@ export function MentionMenu({ people, active, onSelect, onHover, style }) {
           >
             <UserAvatar user={person} size="sm" />
             <span className={cn('min-w-0 flex-1 truncate', index === active ? 'font-semibold' : 'font-medium')}>{person.fullName}</span>
-            {person.role && <span className="shrink-0 text-xs text-muted-foreground">{ROLE_LABELS[person.role]}</span>}
+            {person.role && <span className="shrink-0 text-xs text-muted-foreground">{person.roleName ?? ROLE_LABELS[person.role]}</span>}
           </li>
         ))}
       </ul>

@@ -105,4 +105,8 @@ describe('roles: quién puede asignar qué', () => {
   it('un rol nuevo empieza con los permisos de «Miembro»', () => {
     expect(blankRole(roles)).toMatchObject({ key: 'new', id: null, kind: 'CUSTOM', name: '', permissions: member.permissions })
   })
+
+  it('…sin los que quien lo crea no puede dar (quedarían marcados sin poder quitarse)', () => {
+    expect(blankRole(roles, (permission) => permission !== 'ISSUE_CREATE').permissions).toEqual(['ISSUE_EDIT'])
+  })
 })

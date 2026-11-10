@@ -62,6 +62,8 @@ function SettingsForm({ slug, projectId, settings, people, onClose }) {
   const [personSeconds, setPersonSeconds] = useState(() =>
     Object.fromEntries(settings.personTimes.filter((time) => people.some((user) => user.id === time.userId)).map((time) => [time.userId, time.seconds])),
   )
+  // Los tiempos propios de quienes no salen en la daily de hoy se conservan al guardar (el PUT reemplaza todo)
+  const hiddenTimes = settings.personTimes.filter((time) => !people.some((user) => user.id === time.userId))
   const [sections, setSections] = useState(settings.sections)
   const [agenda, setAgenda] = useState(settings.agenda)
 
@@ -83,7 +85,7 @@ function SettingsForm({ slug, projectId, settings, people, onClose }) {
     if (invalid) return
     const body = toSettingsBody({
       secondsPerPerson,
-      personTimes: Object.entries(personSeconds).map(([userId, seconds]) => ({ userId, seconds })),
+      personTimes: [...Object.entries(personSeconds).map(([userId, seconds]) => ({ userId, seconds })), ...hiddenTimes],
       sections,
       agenda,
     })

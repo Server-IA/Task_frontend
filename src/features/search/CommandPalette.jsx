@@ -10,8 +10,9 @@ import { isStory, storyProgress } from '@/features/issues/issueTypes'
 import { usePlanningList } from '@/features/planning/hooks'
 import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
 import { useProjects } from '@/features/projects/hooks'
-import { useLastWorkspaceSlug } from '@/features/workspaces/hooks'
-import { PROJECT_SECTIONS } from '@/layouts/menuOrder'
+import { useLastWorkspaceSlug, useWorkspace } from '@/features/workspaces/hooks'
+import { PROJECT_SECTIONS, SECTION_PERMISSIONS } from '@/layouts/menuOrder'
+import { can } from '@/lib/permissions'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { useRouteParams } from '@/hooks/useRouteParams'
 import { useTheme } from '@/hooks/useTheme'
@@ -77,6 +78,8 @@ function PaletteContent({ onClose }) {
   const debounced = useDebouncedValue(text, 200)
   const search = useIssueSearch(slug, debounced)
   const { data: projects = [] } = useProjects(slug)
+  // Lo que el rol no permite no se ofrece (las secciones con permiso y «Crear tarea»)
+  const { data: workspace } = useWorkspace(slug)
   const project = projects.find((item) => item.id === projectId)
   const { data: cycles = [] } = usePlanningList('cycles', slug, project?.id)
   const { data: modules = [] } = usePlanningList('modules', slug, project?.id)
@@ -95,6 +98,7 @@ function PaletteContent({ onClose }) {
   if (project) {
     const base = `/${slug}/projects/${project.id}`
     for (const section of PROJECT_SECTIONS) {
+      if (SECTION_PERMISSIONS[section.path] && !can(workspace, SECTION_PERMISSIONS[section.path])) continue
       goItems.push({
         id: `section-${section.path}`,
         icon: section.hint,
@@ -122,10 +126,10 @@ function PaletteContent({ onClose }) {
     }
   }
   if (slug) {
-    goItems.push(
-      { id: 'my-work', icon: '~', label: 'Mi trabajo', hint: 'tus tareas abiertas', to: `/${slug}/my-work` },
-      { id: 'activity', icon: '~', label: 'Actividad', hint: 'lo que pasó en el workspace', to: `/${slug}/activity` },
-    )
+    goItems.push({ id: 'my-work', icon: '~', label: 'Mi trabajo', hint: 'tus tareas abiertas', to: `/${slug}/my-work` })
+    if (can(workspace, 'ACTIVITY_VIEW')) {
+      goItems.push({ id: 'activity', icon: '~', label: 'Actividad', hint: 'lo que pasó en el workspace', to: `/${slug}/activity` })
+    }
   }
   goItems.push({ id: 'inbox', icon: '~', label: 'Bandeja', hint: 'notificaciones', keywords: 'notificaciones', to: '/notifications' })
   if (slug) {
@@ -147,7 +151,7 @@ function PaletteContent({ onClose }) {
   }
 
   // Acciones: crear tarea (con lo escrito como título) y cambiar el tema
-  const createIn = project ? [project] : projects.slice(0, 3)
+  const createIn = !can(workspace, 'ISSUE_CREATE') ? [] : project ? [project] : projects.slice(0, 3)
   const actions = createIn.map((target) => ({
     id: `create-${target.id}`,
     icon: '+',

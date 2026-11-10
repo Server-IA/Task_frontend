@@ -196,16 +196,24 @@ export function IssueDescription({ slug, project, issue, variant = 'page', onOpe
       canEdit={canEdit}
       refocus={refocus}
       onRefocused={() => setRefocus(false)}
-      onToggleTask={(index, checked) => {
+      onToggleTask={
+        canEdit
+          ? (index, checked) => {
         changeDescription(
           issue.descriptionVersion ?? 0,
           (current) => docToMarkdown(setTaskChecked(markdownToDoc(current), index, checked)),
           checked ? 'La casilla no se marcó.' : 'La casilla no se desmarcó.',
         )
-      }}
-      onMoveTasks={(indexes) => {
+      }
+          : undefined
+      }
+      onMoveTasks={
+        canEdit
+          ? (indexes) => {
         moveTasksFromReader(indexes)
-      }}
+      }
+          : undefined
+      }
     />
   )
 }

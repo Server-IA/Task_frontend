@@ -255,7 +255,7 @@ export function StoriesPage() {
             description={
               manager
                 ? 'Escribe la primera con «Nueva historia»: el qué y el porqué, con sus criterios. Después pártela en tareas.'
-                : 'El project manager escribe las historias y las parte en tareas.'
+                : 'Las escribe y las parte en tareas quien gestiona historias.'
             }
             action={manager ? <Button onClick={() => setCreating(true)}>Nueva historia</Button> : null}
           />
@@ -317,7 +317,7 @@ export function StoriesPage() {
               {tab === 'closed' && (
                 <p className="flex items-center gap-2 border-t bg-subtle px-4 py-3 text-[13px] text-muted-foreground">
                   <Lock className="size-3.5" aria-hidden="true" />
-                  Las tareas y los criterios de una historia cerrada quedan como documentación. Solo el project manager la reabre.
+                  Las tareas y los criterios de una historia cerrada quedan como documentación. La reabre quien puede cerrar historias.
                 </p>
               )}
             </div>
@@ -337,7 +337,7 @@ export function StoriesPage() {
                 <kbd className="text-foreground">Enter</kbd> abrir
               </span>
               <span className="ml-auto font-sans text-xs">
-                Solo el project manager crea historias y las parte en tareas. Los miembros las ven aquí y en el tablero.
+                Tu rol no permite crear historias ni partirlas en tareas: las ves aquí y en el tablero.
               </span>
             </footer>
           </div>
@@ -442,7 +442,7 @@ function StoryRowItem({ row, manager, expanded, onToggle, onOpen, active, button
               {flags.ready && (
                 <>
                   <ReadyBadge />
-                  <span>{manager ? 'revisa los criterios y ciérrala' : 'el project manager la revisa'}</span>
+                  <span>{manager ? 'revisa los criterios y ciérrala' : 'falta revisarla y cerrarla'}</span>
                 </>
               )}
               <BugCountBadge count={flags.openBugs} />

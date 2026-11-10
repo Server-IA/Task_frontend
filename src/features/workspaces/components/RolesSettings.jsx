@@ -48,7 +48,9 @@ export function RolesSettings({ workspace }) {
   if (!roles) return null
 
   const creating = selectedKey === 'new'
-  const selected = creating ? blankRole(roles) : (roles.find((role) => role.key === selectedKey) ?? roles[0])
+  const selected = creating
+    ? blankRole(roles, (permission) => can(workspace, permission))
+    : (roles.find((role) => role.key === selectedKey) ?? roles[0])
 
   return (
     <div className="grid items-start gap-3.5 xl:grid-cols-[340px_minmax(0,1fr)]">
@@ -317,7 +319,10 @@ function RoleEditor({ workspace, role, groups, canManage, onSaved, onDeleted, on
 /** Un módulo con sus permisos y la casilla que marca o desmarca el módulo completo. */
 function PermissionGroupCard({ group, selected, editable, grantable, onToggle, onToggleAll }) {
   const allId = useId()
-  const state = groupState(group, selected)
+  // La casilla del módulo mira solo lo que la persona puede dar: con todo eso marcado está «todo» (y un clic lo quita),
+  // aunque el módulo tenga permisos que no puede tocar
+  const mine = { ...group, permissions: group.permissions.filter((permission) => grantable(permission.key)) }
+  const state = groupState(editable ? mine : group, selected)
   const count = group.permissions.filter((permission) => selected.has(permission.key)).length
 
   return (
@@ -327,8 +332,8 @@ function PermissionGroupCard({ group, selected, editable, grantable, onToggle, o
         <Checkbox
           id={allId}
           checked={state === 'all' ? true : state === 'some' ? 'indeterminate' : false}
-          disabled={!editable}
-          onCheckedChange={(checked) => onToggleAll(checked === true)}
+          disabled={!editable || mine.permissions.length === 0}
+          onCheckedChange={() => onToggleAll(state !== 'all')}
           aria-label={`Todo el módulo ${group.label}`}
           className="bg-card"
         />

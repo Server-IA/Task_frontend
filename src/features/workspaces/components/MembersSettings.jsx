@@ -141,7 +141,8 @@ export function MembersSettings({ workspace }) {
                       {formatShortDate(member.joinedAt)}
                     </TableCell>
                     <TableCell>
-                      {canRemove && !isMe && mayChange(member) && (
+                      {/* A un project manager solo lo saca otro project manager (lo mismo que valida el backend) */}
+                      {canRemove && !isMe && (manager || member.role !== 'OWNER') && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="size-8" aria-label="Acciones">

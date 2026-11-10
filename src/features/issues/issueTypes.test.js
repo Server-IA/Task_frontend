@@ -90,9 +90,9 @@ describe('cambio de tipo', () => {
     expect(typeChangeBlock({ type: 'STORY' }, 'TASK', pm)).toBeNull()
   })
 
-  it('solo el project manager convierte en historia o deja de serlo', () => {
-    expect(typeChangeBlock({ type: 'TASK' }, 'STORY', member)).toMatch(/project manager/)
-    expect(typeChangeBlock({ type: 'STORY' }, 'BUG', member)).toMatch(/project manager/)
+  it('convertir en historia o dejar de serlo pide el permiso de gestionar historias', () => {
+    expect(typeChangeBlock({ type: 'TASK' }, 'STORY', member)).toMatch(/Tu rol no permite/)
+    expect(typeChangeBlock({ type: 'STORY' }, 'BUG', member)).toMatch(/Tu rol no permite/)
     expect(typeChangeBlock({ type: 'TASK' }, 'BUG', member)).toBeNull()
   })
 

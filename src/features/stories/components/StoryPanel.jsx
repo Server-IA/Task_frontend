@@ -41,6 +41,7 @@ const firstName = (user) => user?.fullName?.trim().split(/\s+/)[0] ?? 'alguien'
  */
 export function StoryBanner({ slug, project, issue, onOpenIssue, onAddTask }) {
   const manager = useStoryCan(slug, 'STORY_CLOSE')
+  const canCreate = useStoryCan(slug, 'ISSUE_CREATE')
   const close = useCloseStory(slug, project.id)
   const reopen = useReopenStory(slug, project.id)
   const [confirmClose, setConfirmClose] = useState(false)
@@ -76,13 +77,15 @@ export function StoryBanner({ slug, project, issue, onOpenIssue, onAddTask }) {
               <h2 className="text-[15px] font-semibold text-ok">Lista para revisar</h2>
               <p className="text-sm text-foreground/85">
                 {progress.total === 1 ? 'La tarea está terminada' : `Las ${progress.total} tareas están terminadas`} y no queda ningún bug
-                abierto ligado (uno abierto la bloquea). {manager ? 'Revisa los criterios de aceptación y cierra la historia.' : 'El project manager revisa los criterios.'}
+                abierto ligado (uno abierto la bloquea). {manager ? 'Revisa los criterios de aceptación y cierra la historia.' : 'La revisa quien puede cerrar historias.'}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" size="sm" className="bg-card" onClick={onAddTask}>
-                Agregar tarea
-              </Button>
+              {canCreate && (
+                <Button variant="outline" size="sm" className="bg-card" onClick={onAddTask}>
+                  Agregar tarea
+                </Button>
+              )}
               {manager ? (
                 <Button size="sm" onClick={askClose} disabled={close.isPending}>
                   Cerrar historia
@@ -97,7 +100,7 @@ export function StoryBanner({ slug, project, issue, onOpenIssue, onAddTask }) {
             {!manager && (
               <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Lock className="size-3" aria-hidden="true" />
-                Solo el project manager cierra la historia
+                Tu rol no permite cerrar historias
               </p>
             )}
           </div>
@@ -121,12 +124,12 @@ export function StoryBanner({ slug, project, issue, onOpenIssue, onAddTask }) {
                 <RotateCcw />
                 Reabrir
               </Button>
-              <span className="font-mono text-[10px] text-muted-foreground">solo el PM</span>
+              <span className="font-mono text-[10px] text-muted-foreground">tu rol no la reabre</span>
             </div>
           ) : (
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
               <Lock className="size-3" aria-hidden="true" />
-              solo el PM la reabre
+              tu rol no permite reabrirla
             </span>
           )}
         </section>
@@ -172,6 +175,7 @@ export function StoryBanner({ slug, project, issue, onOpenIssue, onAddTask }) {
  */
 export function StorySections({ slug, project, issue, onOpenIssue, onAdd, onReportBug }) {
   const manager = useStoryCan(slug, 'STORY_MANAGE')
+  const canCreate = useStoryCan(slug, 'ISSUE_CREATE')
   const meta = useProjectMeta(slug, project.id)
   const { data: children = [], isLoading } = useSubIssues(slug, project.id, issue.id)
   const flags = storyFlags(issue)
@@ -239,12 +243,16 @@ export function StorySections({ slug, project, issue, onOpenIssue, onAdd, onRepo
               Partir en tareas
             </button>
           )}
-          <button type="button" className="rounded-full border px-2.5 py-1 text-xs hover:bg-accent" onClick={onReportBug}>
-            + bug
-          </button>
-          <button type="button" className="rounded-full border px-2.5 py-1 text-xs hover:bg-accent" onClick={onAdd}>
-            + agregar
-          </button>
+          {canCreate && (
+            <>
+              <button type="button" className="rounded-full border px-2.5 py-1 text-xs hover:bg-accent" onClick={onReportBug}>
+                + bug
+              </button>
+              <button type="button" className="rounded-full border px-2.5 py-1 text-xs hover:bg-accent" onClick={onAdd}>
+                + agregar
+              </button>
+            </>
+          )}
         </span>
       </div>
       {flags.unsplit && tasks.length === 0 && (
@@ -363,7 +371,7 @@ export function ClosedStoryDialog({ story, open, onOpenChange, manager, onReopen
         {!manager && (
           <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
             <Lock className="mt-0.5 size-3 shrink-0" aria-hidden="true" />
-            Solo el project manager cierra y reabre la historia.
+            Tu rol no permite cerrar ni reabrir historias.
           </p>
         )}
         <div className="flex justify-end">

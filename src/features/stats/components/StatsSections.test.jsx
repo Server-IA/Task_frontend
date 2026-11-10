@@ -40,6 +40,14 @@ describe('StaleCard: sin movimiento', () => {
     expect(screen.getByRole('cell', { name: '40' })).toBeInTheDocument()
   })
 
+  it('si la lista queda vacía con «Ver tabla» puesto, vuelve el aviso en vez de fallar', async () => {
+    const { rerender } = render(<StaleCard stale={stale} onOpenIssue={() => {}} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Ver tabla' }))
+    rerender(<StaleCard stale={[]} onOpenIssue={() => {}} />)
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    expect(screen.getByText(/tuvieron cambios en las últimas dos semanas/)).toBeInTheDocument()
+  })
+
   it('sin tareas quietas no ofrece la tabla', () => {
     render(<StaleCard stale={[]} onOpenIssue={() => {}} />)
     expect(screen.queryByRole('button', { name: 'Ver tabla' })).not.toBeInTheDocument()

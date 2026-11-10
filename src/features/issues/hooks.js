@@ -295,10 +295,12 @@ export function useMoveIssue(slug, projectId) {
         : page,
     )
   return useMutation({
-    mutationFn: async ({ issueId, stateId, afterIssueId, beforeIssueId, reopenParent, parentChange }) => {
+    mutationFn: async ({ issueId, stateId, afterIssueId, beforeIssueId, reopenParent, parentChange, keepPosition }) => {
       const position = { stateId, afterIssueId, beforeIssueId }
       if (!parentChange) return issuesApi.move(slug, projectId, issueId, { ...position, reopenParent: reopenParent || undefined })
       const updated = await issuesApi.update(slug, projectId, issueId, { stateId, ...parentChange, reopenParent: reopenParent || undefined })
+      // Tablero con un orden elegido y la tarjeta en su mismo estado: solo cambió de historia, su posición manual no se toca
+      if (keepPosition) return updated
       // La historia y el estado ya cambiaron: si la posición falla, la tarjeta queda al final de la columna
       return issuesApi.move(slug, projectId, issueId, position).catch(() => updated)
     },

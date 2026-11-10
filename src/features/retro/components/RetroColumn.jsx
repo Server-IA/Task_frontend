@@ -74,7 +74,7 @@ export function RetroColumn({ column, notes, retro, open, composing, onCompose, 
           />
         </div>
       )}
-      {open && !composing && (
+      {open && ctx.canParticipate !== false && !composing && (
         <button
           ref={addRef}
           type="button"
@@ -85,7 +85,7 @@ export function RetroColumn({ column, notes, retro, open, composing, onCompose, 
         </button>
       )}
       {pendingActions && !ctx.manager && (
-        <LockNote className="px-1 pt-0.5">Solo el project manager crea tareas desde las acciones.</LockNote>
+        <LockNote className="px-1 pt-0.5">Solo quien dirige la retro crea tareas desde las acciones.</LockNote>
       )}
     </section>
   )

@@ -98,8 +98,14 @@ export function assignableRoles(roles = [], workspace, { includeManager = true }
   return roles.filter((role) => (role.kind === 'MANAGER' ? includeManager && isManager(workspace?.myRole) : coversRole(workspace, role)))
 }
 
-/** Rol nuevo para el editor: sin nombre y con los permisos de «Miembro» como punto de partida. */
-export function blankRole(roles = []) {
+/**
+ * Rol nuevo para el editor: sin nombre y con los permisos de «Miembro» como punto de partida, sin los que quien lo
+ * crea no puede dar (quedarían marcados sin poder quitarse y el backend rechazaría el rol).
+ * @param {Role[]} roles
+ * @param {(permission: string) => boolean} [grantable]
+ */
+export function blankRole(roles = [], grantable = () => true) {
   const member = roles.find((role) => role.kind === 'MEMBER')
-  return { key: 'new', id: null, kind: 'CUSTOM', name: '', description: '', permissions: member?.permissions ?? [], memberCount: 0 }
+  const permissions = (member?.permissions ?? []).filter(grantable)
+  return { key: 'new', id: null, kind: 'CUSTOM', name: '', description: '', permissions, memberCount: 0 }
 }

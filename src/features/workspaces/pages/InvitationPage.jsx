@@ -98,6 +98,7 @@ export function InvitationPage() {
   const authState = { from: location, email: invitation.email }
   const inviter = invitation.invitedByName ?? 'El project manager'
 
+  const roleLabel = invitation.roleName ?? ROLE_LABELS[invitation.role] ?? ''
   return (
     <CenteredShell meta={meta}>
       <section aria-labelledby="invitacion-titulo" className="w-full max-w-[520px] overflow-hidden rounded-[22px] border bg-card">
@@ -117,7 +118,7 @@ export function InvitationPage() {
         <div className="flex flex-col gap-4.5 px-6 py-6 sm:px-7.5">
           <h1 id="invitacion-titulo" className="text-[17px] font-semibold">
             <span className="font-medium text-muted-foreground">{inviter} te invita como</span>{' '}
-            {ROLE_LABELS[invitation.role]?.toLowerCase()}
+            {roleLabel.toLowerCase()}
           </h1>
           <dl className="grid grid-cols-[auto_1fr] gap-x-3.5 gap-y-1.5 rounded-xl bg-muted px-3.5 py-3 font-mono text-xs">
             <dt className="text-muted-foreground">para</dt>
@@ -125,8 +126,11 @@ export function InvitationPage() {
             <dd className="min-w-0 wrap-anywhere">{invitation.email}</dd>
             <dt className="text-muted-foreground">rol</dt>
             <dd>
-              {/* «Miembro» o «Project manager», nunca el valor de la API («MEMBER») */}
-              {[ROLE_LABELS[invitation.role], ROLE_HINTS[invitation.role]].filter(Boolean).join(' · ')}
+              {/* El nombre del rol («Miembro», «Líder»…), nunca el valor de la API («MEMBER»). La pista de lo que
+                  puede hacer solo vale para los roles de fábrica: los de un rol creado los define el workspace */}
+              {[roleLabel, invitation.roleName && invitation.roleName !== ROLE_LABELS[invitation.role] ? null : ROLE_HINTS[invitation.role]]
+                .filter(Boolean)
+                .join(' · ')}
             </dd>
             <dt className="text-muted-foreground">expira</dt>
             <dd>{formatRelative(invitation.expiresAt)}</dd>
