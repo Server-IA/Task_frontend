@@ -9,7 +9,7 @@ import { Spinner } from '@/components/common/Loaders'
 import { AvatarPhoto, UserAvatar, avatarColor, initials } from '@/components/common/UserAvatar'
 import { AVATAR_ACCEPT } from '@/features/files/fileTypes'
 import { useLastWorkspace } from '@/features/workspaces/hooks'
-import { ROLE_LABELS } from '@/lib/permissions'
+import { myRoleName } from '@/lib/permissions'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { AvatarCropDialog } from './AvatarCropDialog'
@@ -259,7 +259,7 @@ function PhotoStatus({ task, problem, hasPhoto, onCancel, onRetry }) {
 function SeenCard({ user }) {
   const hasPhoto = Boolean(user.avatarUrl)
   const workspace = useLastWorkspace()
-  const role = workspace ? ROLE_LABELS[workspace.myRole] : null
+  const role = workspace ? myRoleName(workspace) : null
   const row = 'flex items-center gap-2.5 rounded-xl border px-2.5 py-2'
   const caption = 'w-[70px] shrink-0 font-mono text-[11px] text-muted-foreground'
   return (

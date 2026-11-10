@@ -15,7 +15,7 @@ import { LockNote } from '@/components/common/LockNote'
 import { CenteredSpinner, Spinner } from '@/components/common/Loaders'
 import { ErrorState } from '@/components/common/States'
 import { STATE_GROUP_LABELS, StateIcon } from '@/components/common/StateIcon'
-import { useIsManager } from '@/features/workspaces/hooks'
+import { useCan } from '@/features/workspaces/hooks'
 import { applyFieldErrors } from '@/lib/errors'
 import { useFocusAfterRemoval } from '@/lib/focusReturn'
 import { notifyError } from '@/lib/notify'
@@ -29,7 +29,7 @@ export function StatesSettings({ slug, project }) {
   const [editing, setEditing] = useState(null)
   const [creating, setCreating] = useState(false)
   const [toDelete, setToDelete] = useState(null)
-  const canManage = useIsManager()
+  const canManage = useCan('PROJECT_STATES')
   // Al eliminar un estado su fila desaparece: el foco va a «Nuevo estado» (o al título)
   const newRef = useRef(null)
   const titleRef = useRef(null)
@@ -71,7 +71,7 @@ export function StatesSettings({ slug, project }) {
           <CardDescription>
             Son las columnas del tablero, en este orden. El grupo define cuándo una tarea cuenta como completada.
           </CardDescription>
-          {!canManage && <LockNote>Solo el project manager puede cambiar los estados.</LockNote>}
+          {!canManage && <LockNote>Tu rol no permite cambiar los estados.</LockNote>}
         </div>
         {canManage && (
           <Button ref={newRef} size="sm" onClick={() => setCreating(true)}>

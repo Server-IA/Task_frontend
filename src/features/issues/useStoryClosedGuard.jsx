@@ -3,7 +3,7 @@ import { isStoryClosedError } from '@/features/stories/hooks'
 import { useWorkspace } from '@/features/workspaces/hooks'
 import { toApiError } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
-import { isManager as isManagerRole } from '@/lib/permissions'
+import { can } from '@/lib/permissions'
 import { StoryClosedDialog } from './components/StoryClosedDialog'
 
 /**
@@ -34,7 +34,8 @@ export const closedStoryActions = {
  */
 export function useStoryClosedGuard(slug) {
   const { data: workspace } = useWorkspace(slug)
-  const manager = isManagerRole(workspace?.myRole)
+  // «manager»: quien puede cerrar y reabrir historias
+  const manager = can(workspace, 'STORY_CLOSE')
   const [pending, setPending] = useState(null)
 
   const onStoryClosed = useCallback(

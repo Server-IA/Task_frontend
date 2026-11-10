@@ -116,14 +116,17 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
                 </span>
                 {/* Sin ceros a la izquierda, como en el tablero normal */}
                 <span className="text-muted-foreground">{countOf(state.id)}</span>
-                <button
-                  type="button"
-                  className="ml-auto flex size-6.5 items-center justify-center rounded-lg border bg-card text-muted-foreground transition-colors hover:border-dash hover:text-foreground"
-                  onClick={() => onCreateInState(state.id)}
-                  aria-label={`Nueva tarea en ${state.name}`}
-                >
-                  <Plus className="size-3" strokeWidth={3} />
-                </button>
+                {/* Sin el permiso de crear tareas no hay «+» */}
+                {onCreateInState && (
+                  <button
+                    type="button"
+                    className="ml-auto flex size-6.5 items-center justify-center rounded-lg border bg-card text-muted-foreground transition-colors hover:border-dash hover:text-foreground"
+                    onClick={() => onCreateInState(state.id)}
+                    aria-label={`Nueva tarea en ${state.name}`}
+                  >
+                    <Plus className="size-3" strokeWidth={3} />
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -432,7 +435,7 @@ function BoardColumns({ issues, lanes = null, slug, project, meta, openIssue, on
           project={project}
           meta={meta}
           openIssue={openIssue}
-          onCreate={() => onCreateInState?.(state.id)}
+          onCreate={onCreateInState ? () => onCreateInState(state.id) : undefined}
           inLane={inLane}
         />
       ))}
@@ -550,14 +553,16 @@ function BoardColumn({ state, columnId, ids: currentIds, issuesById, slug, proje
           {state.name}
         </h3>
         <span className="text-muted-foreground">{ids.length}</span>
-        <button
-          type="button"
-          className="ml-auto flex size-6.5 items-center justify-center rounded-lg border bg-card text-muted-foreground transition-colors hover:border-dash hover:text-foreground"
-          onClick={onCreate}
-          aria-label={`Nueva tarea en ${state.name}`}
-        >
-          <Plus className="size-3" strokeWidth={3} />
-        </button>
+        {onCreate && (
+          <button
+            type="button"
+            className="ml-auto flex size-6.5 items-center justify-center rounded-lg border bg-card text-muted-foreground transition-colors hover:border-dash hover:text-foreground"
+            onClick={onCreate}
+            aria-label={`Nueva tarea en ${state.name}`}
+          >
+            <Plus className="size-3" strokeWidth={3} />
+          </button>
+        )}
       </header>
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
         <div

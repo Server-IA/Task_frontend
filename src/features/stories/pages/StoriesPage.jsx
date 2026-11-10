@@ -19,7 +19,7 @@ import { inStoryTab, STORY_TABS, storyFlags, storyProgress, storyTabCounts, type
 import { useProjectMeta } from '@/features/issues/useIssueHelpers'
 import { usePlanningList } from '@/features/planning/hooks'
 import { useCurrentProject } from '@/features/projects/hooks'
-import { useCurrentWorkspace, useIsManager } from '@/features/workspaces/hooks'
+import { useCan, useCurrentWorkspace } from '@/features/workspaces/hooks'
 import { useHotkey } from '@/hooks/useHotkey'
 import { formatShortDate } from '@/lib/dates'
 import { projectPath } from '@/lib/paths'
@@ -53,7 +53,8 @@ const WIDE_ONLY = 'hidden min-[1360px]:block'
 export function StoriesPage() {
   const workspace = useCurrentWorkspace()
   const project = useCurrentProject()
-  const manager = useIsManager()
+  // «manager»: quien gestiona historias (las crea y las parte en tareas)
+  const manager = useCan('STORY_MANAGE')
   const meta = useProjectMeta(workspace.slug, project.id)
   const { data: cycles = [] } = usePlanningList('cycles', workspace.slug, project.id)
   const { data: modules = [] } = usePlanningList('modules', workspace.slug, project.id)

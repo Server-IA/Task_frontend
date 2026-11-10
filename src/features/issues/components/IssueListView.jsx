@@ -62,8 +62,8 @@ export function IssueListView({
       <EmptyState
         icon={CircleDot}
         title="Todavía no hay tareas"
-        description="Crea la primera con el botón «Nueva tarea» o la tecla C."
-        action={<Button onClick={onCreate}>Crear tarea</Button>}
+        description={onCreate ? 'Crea la primera con el botón «Nueva tarea» o la tecla C.' : 'Cuando alguien cree una, aparecerá aquí.'}
+        action={onCreate && <Button onClick={onCreate}>Crear tarea</Button>}
       />
     )
   }
@@ -161,11 +161,11 @@ function GroupHeader({ group, onCreateInState }) {
       )}
       <h2 className="font-semibold">{group.label}</h2>
       <span className="text-muted-foreground">{count}</span>
-      {group.kind === 'state' && (
+      {group.kind === 'state' && onCreateInState && (
         <button
           type="button"
           className="ml-auto flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-card hover:text-foreground"
-          onClick={() => onCreateInState?.(group.state.id)}
+          onClick={() => onCreateInState(group.state.id)}
           aria-label={`Nueva tarea en ${group.state.name}`}
         >
           <Plus className="size-3.5" />

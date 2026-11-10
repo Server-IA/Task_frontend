@@ -11,7 +11,7 @@ import { useProjects } from '@/features/projects/hooks'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { formatShortDate } from '@/lib/dates'
 import { workspacePath } from '@/lib/paths'
-import { isManager } from '@/lib/permissions'
+import { can } from '@/lib/permissions'
 import { useCurrentWorkspace, useMembers } from '../hooks'
 
 /** Inicio del workspace: sus proyectos como tarjetas. */
@@ -20,8 +20,8 @@ export function WorkspaceHomePage() {
   const { data: projects, isLoading, error, refetch } = useProjects(workspace.slug)
   const { data: members } = useMembers(workspace.slug)
   const [createOpen, setCreateOpen] = useState(false)
-  // Crear proyectos es cosa del project manager
-  const canManage = isManager(workspace.myRole)
+  // Crear proyectos va por permiso
+  const canManage = can(workspace, 'PROJECT_CREATE')
 
   const count = projects?.length ?? 0
   const people = members?.length ?? 0

@@ -15,7 +15,7 @@ import { useIssues } from '@/features/issues/hooks'
 import { isClosed } from '@/features/issues/useIssueHelpers'
 import { useIssueFilters } from '@/features/issues/useIssueFilters'
 import { useCurrentProject } from '@/features/projects/hooks'
-import { useCurrentWorkspace, useIsManager } from '@/features/workspaces/hooks'
+import { useCan, useCurrentWorkspace } from '@/features/workspaces/hooks'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { notifyError } from '@/lib/notify'
 import { projectPath } from '@/lib/paths'
@@ -53,8 +53,11 @@ export function PlanningDetailPage({ kind }) {
   const [addOpen, setAddOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [closeOpen, setCloseOpen] = useState(false)
-  // Editar y eliminar el ciclo/módulo es del project manager; agregar o quitar tareas, de todos
-  const canManage = useIsManager()
+  // Editar, eliminar, cerrar y mover tareas van cada uno por su permiso
+  const canEdit = useCan(kind === 'cycles' ? 'CYCLE_EDIT' : 'MODULE_EDIT')
+  const canDelete = useCan(kind === 'cycles' ? 'CYCLE_DELETE' : 'MODULE_DELETE')
+  const canClose = useCan('CYCLE_CLOSE')
+  const canAssign = useCan(kind === 'cycles' ? 'CYCLE_ASSIGN' : 'MODULE_ASSIGN')
   const listUrl = `/${workspace.slug}/projects/${project.id}/${kind}`
   const listPath = [...projectPath(workspace, project), { label: kind === 'cycles' ? 'ciclos' : 'modulos', to: listUrl }]
 
@@ -75,7 +78,7 @@ export function PlanningDetailPage({ kind }) {
   const closed = kind === 'cycles' && isCycleClosed(item)
   const showRemaining = kind === 'cycles' && !closed && item.status === 'CURRENT' && end
   // Cerrar el ciclo: el project manager, si ya empezó y sigue abierto
-  const showClose = kind === 'cycles' && canManage && canCloseCycle(item)
+  const showClose = kind === 'cycles' && canClose && canCloseCycle(item)
 
   return (
     <>
@@ -97,22 +100,22 @@ export function PlanningDetailPage({ kind }) {
         actions={
           <div className="flex w-full flex-col gap-3 sm:w-auto sm:items-end">
             <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-              {canManage && (
-                <>
-                  <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-                    <Pencil />
-                    Editar
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-8 text-muted-foreground"
-                    onClick={() => setConfirmDelete(true)}
-                    aria-label={`Eliminar ${text.singular}`}
-                  >
-                    <Trash2 />
-                  </Button>
-                </>
+              {canEdit && (
+                <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+                  <Pencil />
+                  Editar
+                </Button>
+              )}
+              {canDelete && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 text-muted-foreground"
+                  onClick={() => setConfirmDelete(true)}
+                  aria-label={`Eliminar ${text.singular}`}
+                >
+                  <Trash2 />
+                </Button>
               )}
               {closed && (
                 <Button size="sm" asChild>
@@ -151,8 +154,8 @@ export function PlanningDetailPage({ kind }) {
           issues={issues}
           isLoading={issuesLoading}
           onOpenIssue={issueFilters.openIssue}
-          onAdd={closed ? undefined : () => setAddOpen(true)}
-          canRemove={!closed}
+          onAdd={closed || !canAssign ? undefined : () => setAddOpen(true)}
+          canRemove={!closed && canAssign}
         />
       </PageBody>
 
@@ -188,7 +191,7 @@ export function PlanningDetailPage({ kind }) {
           })
         }
       />
-      {kind === 'cycles' && canManage && (
+      {kind === 'cycles' && canClose && (
         <CloseCycleDialog slug={workspace.slug} projectId={project.id} cycle={item} open={closeOpen} onOpenChange={setCloseOpen} />
       )}
       <AddIssuesDialog

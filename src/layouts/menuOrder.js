@@ -25,6 +25,12 @@ export const PROJECT_SECTIONS = [
   { path: 'settings', label: 'Ajustes', hint: ',' },
 ]
 
+/** Secciones del proyecto que solo ve quien tiene ese permiso (las demás, cualquiera del proyecto). */
+export const SECTION_PERMISSIONS = {
+  stats: 'STATS_VIEW',
+  reports: 'REPORT_GENERATE',
+}
+
 export const MENU_ORDER_MODES = [
   { value: 'default', label: 'Por defecto' },
   { value: 'alpha', label: 'Alfabético' },

@@ -23,7 +23,7 @@ import { MarkdownView } from '@/features/editor/components/MarkdownView'
 import { AssigneesPicker, LabelsPicker, PriorityPicker, StatePicker } from '@/features/issues/components/PropertyPickers'
 import { PriorityChip } from '@/features/issues/components/PriorityIcon'
 import { useProjectMeta } from '@/features/issues/useIssueHelpers'
-import { useIsManager } from '@/features/workspaces/hooks'
+import { useCan } from '@/features/workspaces/hooks'
 import { DND_INSTRUCTIONS, DRAG_ROLE, quoted, sortableAnnouncements } from '@/lib/dndAnnouncements'
 import { applyFieldErrors } from '@/lib/errors'
 import { useFocusAfterRemoval } from '@/lib/focusReturn'
@@ -97,7 +97,7 @@ const toRequest = ({ stateId, ...values }, isNew) => ({
 export function TemplatesSettings({ slug, project }) {
   const { data: templates, isLoading, error, refetch } = useTemplates(slug, project.id)
   const update = useUpdateTemplate(slug, project.id)
-  const canManage = useIsManager()
+  const canManage = useCan('PROJECT_TEMPLATES')
   const [selectedId, setSelectedId] = useState(null)
   // El editor tiene cambios sin guardar; elegir otra plantilla los descartaría, así que se pregunta antes
   const [dirty, setDirty] = useState(false)
@@ -136,7 +136,7 @@ export function TemplatesSettings({ slug, project }) {
             Rellenan la tarea nueva con título, descripción, estado, prioridad, etiquetas, asignados y checklist. Todo el equipo
             las usa al crear tareas.
           </CardDescription>
-          {!canManage && <LockNote>Solo el project manager puede cambiar las plantillas.</LockNote>}
+          {!canManage && <LockNote>Tu rol no permite cambiar las plantillas.</LockNote>}
         </div>
       </CardHeader>
       <CardContent>

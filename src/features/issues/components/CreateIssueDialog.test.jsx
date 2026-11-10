@@ -35,7 +35,7 @@ const triageTemplate = {
 const mutate = vi.fn()
 
 vi.mock('@/features/templates/hooks', () => ({ useTemplates: () => ({ data: [bugTemplate, triageTemplate] }) }))
-vi.mock('@/features/workspaces/hooks', () => ({ useIsManager: () => false }))
+vi.mock('@/features/workspaces/hooks', () => ({ useCan: () => false }))
 vi.mock('@/features/mentions/hooks', () => ({ useMentionPeople: () => [] }))
 vi.mock('../useIssueHelpers', () => ({
   useProjectMeta: () => ({ states: [backlog, todo], users: [ana], labels: [], isLoading: false }),

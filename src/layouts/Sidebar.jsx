@@ -6,8 +6,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useMyWork } from '@/features/my-work/hooks'
 import { NotificationsLink } from '@/features/notifications/NotificationsLink'
 import { WorkspaceSwitcher } from '@/features/workspaces/components/WorkspaceSwitcher'
-import { useLastWorkspaceSlug } from '@/features/workspaces/hooks'
+import { useLastWorkspaceSlug, useWorkspace } from '@/features/workspaces/hooks'
 import { useRouteParams } from '@/hooks/useRouteParams'
+import { can } from '@/lib/permissions'
 import { COMMAND_SHORTCUT } from '@/lib/shortcuts'
 import { cn } from '@/lib/utils'
 import { useLayoutStore } from '@/stores/layoutStore'
@@ -24,11 +25,15 @@ export function Sidebar({ collapsed }) {
   const slug = routeSlug ?? lastWorkspaceSlug
   // El orden lo elige cada persona («Personalizar menú», en el menú de usuario); «Buscar» siempre va primero
   const menuOrder = usePreferencesStore((state) => state.menuOrder)
+  const { data: workspace } = useWorkspace(slug)
   const entries = {
     inbox: <NotificationsLink collapsed={collapsed} />,
     // Fuera de un workspace (sin ninguno todavía) solo queda la bandeja
     'my-work': slug && <MyWorkLink slug={slug} collapsed={collapsed} />,
-    activity: slug && <SidebarLink to={`/${slug}/activity`} icon={Activity} label="Actividad" collapsed={collapsed} />,
+    // La actividad pide su permiso
+    activity: slug && can(workspace, 'ACTIVITY_VIEW') && (
+      <SidebarLink to={`/${slug}/activity`} icon={Activity} label="Actividad" collapsed={collapsed} />
+    ),
     projects: slug && <SidebarLink to={`/${slug}`} end icon={FolderClosed} label="Proyectos" collapsed={collapsed} />,
     settings: slug && <SidebarLink to={`/${slug}/settings`} icon={SlidersHorizontal} label="Ajustes" collapsed={collapsed} />,
   }

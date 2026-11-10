@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { LockNote } from '@/components/common/LockNote'
-import { isManager } from '@/lib/permissions'
+import { can, isManager } from '@/lib/permissions'
 import { notifyError } from '@/lib/notify'
 import { useSessionStore } from '@/stores/sessionStore'
 import { useDeleteWorkspace, useMembers, useRemoveMember, useUpdateWorkspace } from '../hooks'
@@ -15,7 +15,9 @@ import { WorkspaceForm } from './WorkspaceForm'
 export function GeneralSettings({ workspace }) {
   const navigate = useNavigate()
   const update = useUpdateWorkspace(workspace.slug)
-  const canManage = isManager(workspace.myRole)
+  const canManage = can(workspace, 'WORKSPACE_EDIT')
+  // Eliminar el workspace es solo del project manager
+  const manager = isManager(workspace.myRole)
 
   const handleSubmit = (values, { onError }) => {
     update.mutate(values, {
@@ -38,7 +40,7 @@ export function GeneralSettings({ workspace }) {
           {canManage ? (
             <CardDescription>Cambiar la URL rompe los enlaces que hayas compartido.</CardDescription>
           ) : (
-            <LockNote>Solo el project manager puede editar el workspace.</LockNote>
+            <LockNote>Tu rol no permite editar el workspace.</LockNote>
           )}
         </CardHeader>
         <CardContent>
@@ -54,8 +56,8 @@ export function GeneralSettings({ workspace }) {
       </Card>
 
       <div className="flex flex-col gap-3.5">
-        <LeaveWorkspaceCard workspace={workspace} isManager={canManage} />
-        {canManage && <DeleteWorkspaceCard workspace={workspace} />}
+        <LeaveWorkspaceCard workspace={workspace} isManager={manager} />
+        {manager && <DeleteWorkspaceCard workspace={workspace} />}
       </div>
     </div>
   )

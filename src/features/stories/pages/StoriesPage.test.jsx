@@ -10,7 +10,7 @@ let storiesResult = {}
 vi.mock('../hooks', () => ({ useStories: () => storiesResult }))
 vi.mock('@/features/workspaces/hooks', () => ({
   useCurrentWorkspace: () => ({ slug: 'acme', name: 'Acme' }),
-  useIsManager: () => false,
+  useCan: () => false,
 }))
 vi.mock('@/features/projects/hooks', () => ({ useCurrentProject: () => ({ id: 'p1', name: 'Web', identifier: 'WEB' }) }))
 vi.mock('@/features/planning/hooks', () => ({ usePlanningList: () => ({ data: [] }) }))

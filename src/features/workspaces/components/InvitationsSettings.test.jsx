@@ -13,6 +13,8 @@ vi.mock('../hooks', () => ({
   useInvite: () => ({ mutate: invite, isPending: false }),
   useInvitations: () => ({ data: invitations, isLoading: false }),
   useRevokeInvitation: () => ({ mutate: revoke, isPending: false }),
+  // Sin roles creados: solo «Miembro», así que no hay selector de rol
+  useRoles: () => ({ data: [] }),
 }))
 beforeAll(() => {
   // El tooltip del botón (al tomar el foco) se mide con ResizeObserver, que jsdom no trae

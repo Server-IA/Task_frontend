@@ -20,7 +20,7 @@ vi.mock('../hooks', () => ({
   useDeleteState: () => mutation,
   useReorderStates: () => mutation,
 }))
-vi.mock('@/features/workspaces/hooks', () => ({ useIsManager: () => true }))
+vi.mock('@/features/workspaces/hooks', () => ({ useCan: () => true }))
 
 const project = { id: 'p1', identifier: 'PORT' }
 

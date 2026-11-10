@@ -16,7 +16,7 @@ import { closedText } from '@/features/planning/closeCycle'
 import { usePlanningItem, usePlanningList } from '@/features/planning/hooks'
 import { useCurrentProject, useProjectMembers } from '@/features/projects/hooks'
 import { formatDecimal } from '@/features/stats/chartMath'
-import { useCurrentWorkspace, useIsManager } from '@/features/workspaces/hooks'
+import { useCan, useCurrentWorkspace } from '@/features/workspaces/hooks'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { formatShortDate } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
@@ -53,7 +53,9 @@ export function RetroPage() {
   const workspace = useCurrentWorkspace()
   const project = useCurrentProject()
   const { itemId: cycleId } = useParams()
-  const manager = useIsManager()
+  // «manager»: quien dirige la retro (la empieza, la termina y modera las notas)
+  const manager = useCan('RETRO_MANAGE')
+  const canParticipate = useCan('RETRO_PARTICIPATE')
   const userId = useSessionStore((state) => state.user?.id)
   const issueFilters = useIssueFilters()
   const cycle = usePlanningItem('cycles', workspace.slug, project.id, cycleId)
@@ -100,7 +102,8 @@ export function RetroPage() {
     cycleId,
     userId,
     manager,
-    open: phase === 'OPEN',
+    // Escribir y votar pide el permiso de participar
+    open: phase === 'OPEN' && canParticipate,
     members,
     canEdit: (note) => canEditNote(note, { userId, manager, phase }),
     openIssue: issueFilters.openIssue,
@@ -159,7 +162,7 @@ export function RetroPage() {
                   Terminar retro
                 </Button>
               ) : (
-                <LockNote>Solo el project manager termina la retro</LockNote>
+                <LockNote>Tu rol no permite terminar la retro</LockNote>
               ))}
             {/* Sin empezar, quien no es PM ve el aviso en el cuerpo de la página */}
             {phase === 'NOT_STARTED' && manager && (
@@ -182,7 +185,7 @@ export function RetroPage() {
               description={
                 manager
                   ? 'Ábrela para que el equipo anote qué salió bien, qué mejorar y las acciones para el próximo ciclo.'
-                  : 'El project manager la abre al cerrar el ciclo o desde aquí. Cuando esté abierta podrás escribir y votar notas.'
+                  : 'Se abre al cerrar el ciclo o desde aquí, por quien dirige la retro. Cuando esté abierta podrás escribir y votar notas.'
               }
               action={
                 manager ? (
@@ -191,7 +194,7 @@ export function RetroPage() {
                     Empezar retrospectiva
                   </Button>
                 ) : (
-                  <LockNote>Solo el project manager empieza la retro</LockNote>
+                  <LockNote>Tu rol no permite empezar la retro</LockNote>
                 )
               }
             />

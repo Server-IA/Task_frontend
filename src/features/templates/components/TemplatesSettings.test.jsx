@@ -28,7 +28,7 @@ vi.mock('../hooks', () => ({
   useUpdateTemplate: () => mutation,
   useDeleteTemplate: () => ({ mutate: removeTemplate, isPending: false }),
 }))
-vi.mock('@/features/workspaces/hooks', () => ({ useIsManager: () => true }))
+vi.mock('@/features/workspaces/hooks', () => ({ useCan: () => true }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 vi.mock('@/features/issues/useIssueHelpers', () => ({
   useProjectMeta: () => ({ states: [], users: [], labels: [], isLoading: false }),

@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { useCurrentProject } from '@/features/projects/hooks'
-import { useCurrentWorkspace, useIsManager } from '@/features/workspaces/hooks'
+import { useCan, useCurrentWorkspace } from '@/features/workspaces/hooks'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { projectPath } from '@/lib/paths'
 import { cn } from '@/lib/utils'
@@ -44,8 +44,11 @@ export function PlanningListPage({ kind }) {
   const [formState, setFormState] = useState({ open: false, item: null })
   const [toDelete, setToDelete] = useState(null)
   const [toClose, setToClose] = useState(null)
-  // Crear, editar y eliminar ciclos/módulos es del project manager; los miembros sí mueven tareas dentro
-  const canManage = useIsManager()
+  // Crear, editar, eliminar y cerrar van cada uno por su permiso
+  const canCreate = useCan(kind === 'cycles' ? 'CYCLE_CREATE' : 'MODULE_CREATE')
+  const canEdit = useCan(kind === 'cycles' ? 'CYCLE_EDIT' : 'MODULE_EDIT')
+  const canDelete = useCan(kind === 'cycles' ? 'CYCLE_DELETE' : 'MODULE_DELETE')
+  const canClose = useCan('CYCLE_CLOSE')
   const Icon = kind === 'cycles' ? RefreshCcw : Layers
   const base = `/${workspace.slug}/projects/${project.id}/${kind}`
 
@@ -57,7 +60,7 @@ export function PlanningListPage({ kind }) {
         documentTitle={[text.title, project.name]}
         description={text.headerDescription}
         actions={
-          canManage && (
+          canCreate && (
             <Button className="h-10 rounded-xl px-3.5" onClick={() => setFormState({ open: true, item: null })}>
               <Plus strokeWidth={3} />
               {text.newLabel}
@@ -79,9 +82,9 @@ export function PlanningListPage({ kind }) {
             <EmptyState
               icon={Icon}
               title={`Todavía no hay ${text.title.toLowerCase()}`}
-              description={canManage ? text.emptyDescription : text.memberEmptyDescription}
+              description={canCreate ? text.emptyDescription : text.memberEmptyDescription}
               action={
-                canManage && (
+                canCreate && (
                   <Button onClick={() => setFormState({ open: true, item: null })}>
                     <Plus />
                     {text.newLabel}
@@ -98,7 +101,8 @@ export function PlanningListPage({ kind }) {
                 const end = item.endDate ?? item.targetDate
                 const closed = kind === 'cycles' && isCycleClosed(item)
                 const current = kind === 'cycles' && !closed && item.status === 'CURRENT'
-                const closable = kind === 'cycles' && canManage && canCloseCycle(item)
+                const closable = kind === 'cycles' && canClose && canCloseCycle(item)
+                const hasMenu = canEdit || canDelete || closable || closed
                 return (
                   <div
                     key={item.id}
@@ -109,7 +113,7 @@ export function PlanningListPage({ kind }) {
                   >
                     <Link to={`${base}/${item.id}`} className="group flex min-w-0 flex-1 flex-col gap-3.5">
                       {/* A la derecha queda el hueco del menú de acciones (va encima, en la esquina) */}
-                      <div className={cn('flex min-w-0 flex-1 items-start gap-3', (canManage || closed) && 'pr-9')}>
+                      <div className={cn('flex min-w-0 flex-1 items-start gap-3', hasMenu && 'pr-9')}>
                         {kind === 'modules' && (
                           <span className="bg-accent-soft text-accent-text flex size-9 shrink-0 items-center justify-center rounded-xl">
                             <Layers className="size-4" />
@@ -142,7 +146,7 @@ export function PlanningListPage({ kind }) {
                         }
                       />
                     </Link>
-                    {(canManage || closed) && (
+                    {hasMenu && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -169,17 +173,17 @@ export function PlanningListPage({ kind }) {
                               Cerrar ciclo
                             </DropdownMenuItem>
                           )}
-                          {canManage && (
-                            <>
-                              <DropdownMenuItem onSelect={() => setFormState({ open: true, item })}>
-                                <Pencil />
-                                Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem variant="destructive" onSelect={() => setToDelete(item)}>
-                                <Trash2 />
-                                Eliminar
-                              </DropdownMenuItem>
-                            </>
+                          {canEdit && (
+                            <DropdownMenuItem onSelect={() => setFormState({ open: true, item })}>
+                              <Pencil />
+                              Editar
+                            </DropdownMenuItem>
+                          )}
+                          {canDelete && (
+                            <DropdownMenuItem variant="destructive" onSelect={() => setToDelete(item)}>
+                              <Trash2 />
+                              Eliminar
+                            </DropdownMenuItem>
                           )}
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -199,7 +203,7 @@ export function PlanningListPage({ kind }) {
         open={formState.open}
         onOpenChange={(open) => setFormState((current) => ({ ...current, open }))}
       />
-      {kind === 'cycles' && canManage && (
+      {kind === 'cycles' && canClose && (
         <CloseCycleDialog
           slug={workspace.slug}
           projectId={project.id}

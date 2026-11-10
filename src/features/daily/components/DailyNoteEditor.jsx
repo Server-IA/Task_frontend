@@ -14,9 +14,10 @@ const AUTOSAVE_MS = 900
  * Nota del día (acuerdos, temas para después): la edita cualquier persona del proyecto y se guarda sola.
  * Si llega una versión nueva del servidor y no hay cambios sin guardar, se muestra esa. Va con `key={date}`.
  * @param {{ slug: string, projectId: string, date: string, isToday: boolean,
- *           note: import('@/api/types').DailyNote | null | undefined }} props
+ *           note: import('@/api/types').DailyNote | null | undefined, readOnly?: boolean }} props
+ *   `readOnly`: quien no tiene el permiso de escribir la nota solo la lee.
  */
-export function DailyNoteEditor({ slug, projectId, date, isToday, note }) {
+export function DailyNoteEditor({ slug, projectId, date, isToday, note, readOnly = false }) {
   const titleId = useId()
   const userId = useSessionStore((state) => state.user?.id)
   const save = useSaveDailyNote(slug, projectId, date)
@@ -29,7 +30,8 @@ export function DailyNoteEditor({ slug, projectId, date, isToday, note }) {
     setBase(serverText)
     if (draft.trim() === base.trim()) setDraft(serverText)
   }
-  const dirty = draft.trim() !== serverText.trim()
+  // Sin el permiso de escribir la nota solo se lee (y nunca se guarda)
+  const dirty = !readOnly && draft.trim() !== serverText.trim()
 
   useEffect(() => {
     if (!dirty) return undefined
@@ -65,6 +67,7 @@ export function DailyNoteEditor({ slug, projectId, date, isToday, note }) {
         placeholder="Acuerdos o temas para después de la reunión…"
         value={draft}
         maxLength={NOTE_MAX_LENGTH}
+        readOnly={readOnly}
         rows={2}
         onChange={(event) => setDraft(event.target.value)}
         // Escape suelta el campo: así vuelven a funcionar los atajos de la página (P presentar)

@@ -13,7 +13,7 @@ import { Spinner } from '@/components/common/Loaders'
 import { useWorkspace } from '@/features/workspaces/hooks'
 import { formatDateTime, formatRelative } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
-import { canDeleteFile } from '@/lib/permissions'
+import { can, canDeleteFile } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { useSessionStore } from '@/stores/sessionStore'
 import { useFileActions } from '../attachmentHooks'
@@ -60,7 +60,7 @@ export function IssueAttachments({ slug, projectId, issue, variant = 'panel' }) 
   const fileProps = (file) => ({
     file,
     actions,
-    canDelete: canDeleteFile(workspace?.myRole, file, userId),
+    canDelete: canDeleteFile(workspace, file, userId),
     onAskDelete: () => setConfirmingId(file.id),
   })
   const confirmProps = (file) => ({
@@ -77,6 +77,8 @@ export function IssueAttachments({ slug, projectId, issue, variant = 'panel' }) 
       }),
   })
   const pick = () => inputRef.current?.click()
+  // Sin el permiso de subir adjuntos, la sección solo muestra lo que hay
+  const canAttach = can(workspace, 'ISSUE_ATTACH')
 
   return (
     <section aria-labelledby={headingId} className={cn('flex flex-col', page ? 'gap-3' : 'gap-2.5')}>
@@ -92,6 +94,7 @@ export function IssueAttachments({ slug, projectId, issue, variant = 'panel' }) 
           type="button"
           onClick={pick}
           disabled={full}
+          hidden={!canAttach}
           title={full ? `El workspace llegó a su límite de ${quota}` : 'Adjuntar archivos · también puedes arrastrarlos a la tarea'}
           className={cn(
             'ml-auto flex items-center gap-1.5 border transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-50',

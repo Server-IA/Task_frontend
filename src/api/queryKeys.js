@@ -45,6 +45,8 @@ export const queryKeys = {
   dailyOf: (projectId) => ['daily', projectId],
   daily: (projectId, date) => ['daily', projectId, date],
   dailySettings: (projectId) => ['dailySettings', projectId],
+  roles: (slug) => ['roles', slug],
+  permissionCatalog: ['permissionCatalog'],
 
   stats: (projectId, weeks) => ['stats', projectId, weeks],
   reportPreview: (projectId, params) => ['reportPreview', projectId, params],

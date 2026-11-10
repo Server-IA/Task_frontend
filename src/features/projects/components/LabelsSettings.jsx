@@ -13,7 +13,7 @@ import { ColorDot } from '@/components/common/LabelChip'
 import { LockNote } from '@/components/common/LockNote'
 import { CenteredSpinner, Spinner } from '@/components/common/Loaders'
 import { EmptyState, ErrorState } from '@/components/common/States'
-import { useIsManager } from '@/features/workspaces/hooks'
+import { useCan } from '@/features/workspaces/hooks'
 import { applyFieldErrors } from '@/lib/errors'
 import { useFocusAfterRemoval } from '@/lib/focusReturn'
 import { notifyError } from '@/lib/notify'
@@ -30,7 +30,7 @@ export function LabelsSettings({ slug, project }) {
   const [creating, setCreating] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [toDelete, setToDelete] = useState(null)
-  const canManage = useIsManager()
+  const canManage = useCan('PROJECT_LABELS')
   // Al eliminar una etiqueta su fila desaparece: el foco va a «Nueva etiqueta» (o al título, si no está)
   const newRef = useRef(null)
   const titleRef = useRef(null)
@@ -56,7 +56,7 @@ export function LabelsSettings({ slug, project }) {
             Etiquetas
           </CardTitle>
           <CardDescription>Clasifica las tareas (bug, mejora, diseño…).</CardDescription>
-          {!canManage && <LockNote>Solo el project manager puede cambiar las etiquetas.</LockNote>}
+          {!canManage && <LockNote>Tu rol no permite cambiar las etiquetas.</LockNote>}
         </div>
         {canManage && !creating && (
           <Button ref={newRef} size="sm" onClick={() => setCreating(true)}>

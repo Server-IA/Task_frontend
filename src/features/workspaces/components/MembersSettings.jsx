@@ -19,9 +19,10 @@ import { UserAvatar } from '@/components/common/UserAvatar'
 import { formatShortDate } from '@/lib/dates'
 import { useFocusAfterRemoval } from '@/lib/focusReturn'
 import { notifyError } from '@/lib/notify'
-import { isManager, ROLE_LABELS } from '@/lib/permissions'
+import { can, isManager, roleNameOf } from '@/lib/permissions'
 import { useSessionStore } from '@/stores/sessionStore'
-import { useMembers, useRemoveMember, useUpdateMemberRole } from '../hooks'
+import { useMembers, useRemoveMember, useRoles, useUpdateMemberRole } from '../hooks'
+import { assignableRoles, coversRole, memberRoleBody, roleKeyOf } from '../roles'
 
 /** @param {{ workspace: import('@/api/types').WorkspaceResponse }} props */
 export function MembersSettings({ workspace }) {
@@ -30,16 +31,26 @@ export function MembersSettings({ workspace }) {
   const removeMember = useRemoveMember(workspace.slug)
   const currentUserId = useSessionStore((state) => state.user?.id)
   const [toRemove, setToRemove] = useState(null)
-  const canManage = isManager(workspace.myRole)
+  // Cambiar roles y quitar miembros van cada uno por su permiso
+  const canChangeRoles = can(workspace, 'MEMBER_ROLE')
+  const canRemove = can(workspace, 'MEMBER_REMOVE')
+  const manager = isManager(workspace.myRole)
+  const { data: roles = [] } = useRoles(workspace.slug)
+  // Quien no es project manager solo asigna roles que no tengan más permisos que el suyo
+  const options = assignableRoles(roles, workspace)
+  const roleOf = (member) => roles.find((role) => role.key === roleKeyOf(member))
+  // …y tampoco le cambia el rol (ni saca) a un project manager o a alguien con más permisos
+  const mayChange = (member) => manager || (member.role !== 'OWNER' && coversRole(workspace, roleOf(member)))
   // Al quitar a alguien su fila (y su menú) desaparece: el foco va al título de la tarjeta
   const titleRef = useRef(null)
   const removal = useFocusAfterRemoval(titleRef)
 
-  const handleRoleChange = (member, role) => {
+  const handleRoleChange = (member, key) => {
+    const role = roles.find((item) => item.key === key)
     updateRole.mutate(
-      { userId: member.user.id, role },
+      { userId: member.user.id, ...memberRoleBody(key) },
       {
-        onSuccess: () => toast.success(`${member.user.fullName} ahora es ${ROLE_LABELS[role].toLowerCase()}`),
+        onSuccess: () => toast.success(`${member.user.fullName} ahora tiene el rol ${role?.name ?? ''}`.trim()),
         // 409 si el workspace se quedaría sin project manager: se muestra el mensaje del backend
         onError: (error) => notifyError(error, 'No se pudo cambiar el rol'),
       },
@@ -66,7 +77,8 @@ export function MembersSettings({ workspace }) {
         </CardTitle>
         <CardDescription>
           {members ? `${members.length} ${members.length === 1 ? 'persona' : 'personas'} en el workspace.` : ' '} El
-          project manager gestiona proyectos, ciclos, módulos y miembros; puede haber más de uno.
+          project manager tiene todos los permisos y puede haber más de uno; lo que pueden hacer los demás lo decide su
+          rol (pestaña Roles).
         </CardDescription>
       </CardHeader>
       <CardContent className="px-0 sm:px-6">
@@ -77,7 +89,7 @@ export function MembersSettings({ workspace }) {
             <TableHeader>
               <TableRow>
                 <TableHead>Persona</TableHead>
-                <TableHead className="w-44">Rol</TableHead>
+                <TableHead className="w-48">Rol</TableHead>
                 <TableHead className="hidden w-28 sm:table-cell">Desde</TableHead>
                 <TableHead className="w-10" />
               </TableRow>
@@ -101,29 +113,35 @@ export function MembersSettings({ workspace }) {
                     </TableCell>
                     <TableCell>
                       {/* El rol propio no se cambia desde aquí: así nadie se quita los permisos sin querer */}
-                      {canManage && !isMe ? (
+                      {canChangeRoles && !isMe && roles.length > 0 && mayChange(member) ? (
                         <Select
-                          value={member.role}
-                          onValueChange={(role) => handleRoleChange(member, role)}
+                          value={roleKeyOf(member)}
+                          onValueChange={(key) => handleRoleChange(member, key)}
                           disabled={updateRole.isPending}
                         >
-                          <SelectTrigger size="sm" className="w-40" aria-label={`Rol de ${member.user.fullName}`}>
+                          <SelectTrigger size="sm" className="w-44" aria-label={`Rol de ${member.user.fullName}`}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="OWNER">{ROLE_LABELS.OWNER}</SelectItem>
-                            <SelectItem value="MEMBER">{ROLE_LABELS.MEMBER}</SelectItem>
+                            {/* Su rol actual siempre aparece, aunque quien mira no lo pueda asignar */}
+                            {roles
+                              .filter((role) => options.includes(role) || role.key === roleKeyOf(member))
+                              .map((role) => (
+                                <SelectItem key={role.key} value={role.key}>
+                                  {role.name}
+                                </SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
                       ) : (
-                        <Badge variant={isManager(member.role) ? 'default' : 'secondary'}>{ROLE_LABELS[member.role]}</Badge>
+                        <Badge variant={isManager(member.role) ? 'default' : 'secondary'}>{roleNameOf(member)}</Badge>
                       )}
                     </TableCell>
                     <TableCell className="hidden text-sm text-muted-foreground sm:table-cell">
                       {formatShortDate(member.joinedAt)}
                     </TableCell>
                     <TableCell>
-                      {canManage && !isMe && (
+                      {canRemove && !isMe && mayChange(member) && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="size-8" aria-label="Acciones">

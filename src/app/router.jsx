@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router'
 import { RequireAuth } from '@/app/guards/RequireAuth'
+import { RequirePermission } from '@/app/guards/RequirePermission'
 import { PublicOnlyRoute } from '@/app/guards/PublicOnlyRoute'
 import { SessionGate } from '@/app/SessionGate'
 import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage'
@@ -72,7 +73,14 @@ export const router = createBrowserRouter([
                   { index: true, element: <WorkspaceHomePage /> },
                   { path: 'settings', element: <WorkspaceSettingsPage /> },
                   { path: 'my-work', element: <MyWorkPage /> },
-                  { path: 'activity', element: <ActivityPage /> },
+                  {
+                    path: 'activity',
+                    element: (
+                      <RequirePermission permission="ACTIVITY_VIEW" title="Actividad">
+                        <ActivityPage />
+                      </RequirePermission>
+                    ),
+                  },
                   {
                     path: 'projects/:projectId',
                     element: <ProjectLayout />,
@@ -88,8 +96,22 @@ export const router = createBrowserRouter([
                       { path: 'modules', element: <PlanningListPage kind="modules" key="modules" /> },
                       { path: 'modules/:itemId', element: <PlanningDetailPage kind="modules" key="module" /> },
                       { path: 'roadmap', element: <RoadmapPage /> },
-                      { path: 'stats', element: <StatsPage /> },
-                      { path: 'reports', element: <ReportsPage /> },
+                      {
+                        path: 'stats',
+                        element: (
+                          <RequirePermission permission="STATS_VIEW" title="Estadísticas">
+                            <StatsPage />
+                          </RequirePermission>
+                        ),
+                      },
+                      {
+                        path: 'reports',
+                        element: (
+                          <RequirePermission permission="REPORT_GENERATE" title="Reportes">
+                            <ReportsPage />
+                          </RequirePermission>
+                        ),
+                      },
                       { path: 'settings', element: <ProjectSettingsPage /> },
                       { path: '*', element: <NotFoundPage /> },
                     ],

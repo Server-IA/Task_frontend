@@ -10,7 +10,7 @@ import { CenteredSpinner } from '@/components/common/Loaders'
 import { LockNote } from '@/components/common/LockNote'
 import { ErrorState } from '@/components/common/States'
 import { UserAvatar } from '@/components/common/UserAvatar'
-import { useIsManager, useMembers } from '@/features/workspaces/hooks'
+import { useCan, useMembers } from '@/features/workspaces/hooks'
 import { formatShortDate } from '@/lib/dates'
 import { useFocusAfterRemoval } from '@/lib/focusReturn'
 import { notifyError } from '@/lib/notify'
@@ -22,7 +22,7 @@ export function ProjectMembersSettings({ slug, project }) {
   const remove = useRemoveProjectMember(slug, project.id)
   const currentUserId = useSessionStore((state) => state.user?.id)
   const [toRemove, setToRemove] = useState(null)
-  const canManage = useIsManager()
+  const canManage = useCan('PROJECT_MEMBERS')
   // Al quitar a alguien su fila desaparece: el foco va a «Agregar» (o al título, si no está)
   const addRef = useRef(null)
   const titleRef = useRef(null)
@@ -50,7 +50,7 @@ export function ProjectMembersSettings({ slug, project }) {
           <CardDescription>
             Pueden ver el proyecto y ser asignados a sus tareas. Los project managers ven todos los proyectos.
           </CardDescription>
-          {!canManage && <LockNote>Solo el project manager puede agregar o quitar miembros.</LockNote>}
+          {!canManage && <LockNote>Tu rol no permite agregar ni quitar miembros.</LockNote>}
         </div>
         {canManage && members && <AddMemberButton slug={slug} project={project} members={members} buttonRef={addRef} />}
       </CardHeader>

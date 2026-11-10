@@ -8,9 +8,9 @@ import { CreateProjectDialog } from '@/features/projects/components/CreateProjec
 import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
 import { useProjects } from '@/features/projects/hooks'
 import { useWorkspace } from '@/features/workspaces/hooks'
-import { isManager } from '@/lib/permissions'
+import { can } from '@/lib/permissions'
 import { usePreferencesStore } from '@/stores/preferencesStore'
-import { orderItems, PROJECT_SECTIONS } from './menuOrder'
+import { orderItems, PROJECT_SECTIONS, SECTION_PERMISSIONS } from './menuOrder'
 import { SidebarLink } from './Sidebar'
 
 /** «12 abiertas» / «1 abierta». */
@@ -20,8 +20,9 @@ const openLabel = (count = 0) => `${count} ${count === 1 ? 'abierta' : 'abiertas
 export function SidebarProjects({ slug, currentProjectId, collapsed }) {
   const { data: projects = [] } = useProjects(slug)
   const [createOpen, setCreateOpen] = useState(false)
-  // Solo el project manager crea proyectos
-  const canCreate = isManager(useWorkspace(slug).data?.myRole)
+  // Crear proyectos va por permiso
+  const workspace = useWorkspace(slug).data
+  const canCreate = can(workspace, 'PROJECT_CREATE')
 
   return (
     <div className="flex flex-col gap-0.5">
@@ -65,7 +66,7 @@ export function SidebarProjects({ slug, currentProjectId, collapsed }) {
             />
           )
         }
-        return <CurrentProject key={project.id} slug={slug} project={project} base={base} />
+        return <CurrentProject key={project.id} slug={slug} project={project} base={base} workspace={workspace} />
       })}
       {canCreate && <CreateProjectDialog slug={slug} open={createOpen} onOpenChange={setCreateOpen} />}
     </div>
@@ -76,14 +77,16 @@ export function SidebarProjects({ slug, currentProjectId, collapsed }) {
  * Proyecto abierto con sus secciones. A la derecha de cada una va un dato útil:
  * tareas abiertas, el ciclo en curso, la daily de hoy y los módulos sin terminar.
  */
-function CurrentProject({ slug, project, base }) {
+function CurrentProject({ slug, project, base, workspace }) {
   const { data: cycles } = usePlanningList('cycles', slug, project.id)
   const { data: modules } = usePlanningList('modules', slug, project.id)
   const currentCycle = cycles?.find((cycle) => cycle.status === 'CURRENT' && !cycle.closedAt)
   const activeModules = modules?.filter((module) => module.progress.percentage < 100).length ?? 0
   // El orden de las secciones lo elige cada persona («Personalizar menú»)
   const menuOrder = usePreferencesStore((state) => state.menuOrder)
-  const sections = orderItems(PROJECT_SECTIONS, menuOrder.mode, menuOrder.sections, (section) => section.path)
+  // Las secciones que piden un permiso (estadísticas, reportes) no se ofrecen a quien no lo tiene
+  const allowed = PROJECT_SECTIONS.filter((section) => !SECTION_PERMISSIONS[section.path] || can(workspace, SECTION_PERMISSIONS[section.path]))
+  const sections = orderItems(allowed, menuOrder.mode, menuOrder.sections, (section) => section.path)
 
   const meta = {
     issues: openLabel(project.openIssueCount),

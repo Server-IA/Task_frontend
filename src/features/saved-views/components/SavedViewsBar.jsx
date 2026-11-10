@@ -19,7 +19,7 @@ import { TypeIcon } from '@/features/issues/components/IssueTypeBits'
 import { SAVED_VIEW_PARAM } from '@/features/issues/constants'
 import { useIssues } from '@/features/issues/hooks'
 import { missingFiltersText, withoutUnknownViewFilters } from '@/features/issues/unknownFilters'
-import { useIsManager } from '@/features/workspaces/hooks'
+import { useCan } from '@/features/workspaces/hooks'
 import { toApiError } from '@/lib/errors'
 import { useFocusAfterRemoval } from '@/lib/focusReturn'
 import { notifyError } from '@/lib/notify'
@@ -46,7 +46,8 @@ const NAME_MAX = 40
 export function SavedViewsBar({ slug, project, meta, issueFilters, known = {} }) {
   const { views, active, current, changed, missing } = useActiveSavedView(slug, project.id, issueFilters, known)
   const update = useUpdateSavedView(slug, project.id)
-  const isManager = useIsManager()
+  // «isManager» aquí es poder gestionar las vistas compartidas del proyecto
+  const isManager = useCan('VIEW_SHARED')
   const [renaming, setRenaming] = useState(null)
   const [deleting, setDeleting] = useState(null)
   const [ordering, setOrdering] = useState(false)

@@ -8,7 +8,7 @@ import { EmptyState, ErrorState } from '@/components/common/States'
 import { IssuePeekSheet } from '@/features/issues/components/IssuePeekSheet'
 import { useIssueFilters } from '@/features/issues/useIssueFilters'
 import { useCurrentProject } from '@/features/projects/hooks'
-import { useCurrentWorkspace, useIsManager } from '@/features/workspaces/hooks'
+import { useCan, useCurrentWorkspace } from '@/features/workspaces/hooks'
 import { useHotkey } from '@/hooks/useHotkey'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { projectPath } from '@/lib/paths'
@@ -34,7 +34,7 @@ import { useDaily, useDailySettings } from '../hooks'
 /**
  * Daily del proyecto: por persona, lo que hizo «ayer» (el último día con actividad, que elige el backend), lo de
  * hoy y sus bloqueos, más la nota del día. «Presentar» muestra una persona a la vez con un tiempo sugerido. La fecha va en `?date=`.
- * Los ajustes del proyecto (el engranaje, solo para el project manager) deciden el tiempo por persona, qué bloques
+ * Los ajustes del proyecto (el engranaje, para quien puede configurar la daily) deciden el tiempo por persona, qué bloques
  * se exponen y los puntos fijos a tratar.
  */
 export function DailyPage() {
@@ -49,7 +49,8 @@ export function DailyPage() {
   const { data: savedSettings } = useDailySettings(workspace.slug, project.id)
   const settings = savedSettings ?? DEFAULT_DAILY_SETTINGS
   const { sections } = settings
-  const canConfigure = useIsManager()
+  const canConfigure = useCan('DAILY_SETTINGS')
+  const canWriteNote = useCan('DAILY_NOTE')
   const [settingsOpen, setSettingsOpen] = useState(false)
   const issueFilters = useIssueFilters()
   const [presenting, setPresenting] = useState(false)
@@ -173,7 +174,7 @@ export function DailyPage() {
               ))}
             </div>
             {/* Una nota por día: al cambiar de fecha el editor empieza de nuevo (y guarda lo pendiente) */}
-            {!isPlaceholderData && sections.note && (
+            {!isPlaceholderData && sections.note && (canWriteNote || daily.note) && (
               <DailyNoteEditor
                 key={daily.date}
                 slug={workspace.slug}
@@ -181,6 +182,7 @@ export function DailyPage() {
                 date={daily.date}
                 isToday={daily.date === today}
                 note={daily.note}
+                readOnly={!canWriteNote}
               />
             )}
           </div>

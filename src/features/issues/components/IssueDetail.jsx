@@ -19,7 +19,7 @@ import { MarkdownView } from '@/features/editor/components/MarkdownView'
 import { useWorkspace } from '@/features/workspaces/hooks'
 import { formatDateTime, formatRelative, formatShortDate } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
-import { canDeleteIssue } from '@/lib/permissions'
+import { can, canDeleteIssue } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { useSessionStore } from '@/stores/sessionStore'
 import { useDeleteIssue, useIssue, useSubIssues } from '../hooks'
@@ -95,7 +95,6 @@ export function IssueDetail({
         onClose={onClose}
         showMarkdown={showMarkdown}
         onToggleMarkdown={() => setShowMarkdown((current) => !current)}
-        manager={manager}
         onChangeType={(type) => updateReopening({ type }, closedStoryActions.type(issue))}
       />
 
@@ -267,15 +266,15 @@ export function PropertyRow({ label, children }) {
   )
 }
 
-function IssueTopBar({ slug, project, issue, variant, pageUrl, onClose, showMarkdown, onToggleMarkdown, manager, onChangeType }) {
+function IssueTopBar({ slug, project, issue, variant, pageUrl, onClose, showMarkdown, onToggleMarkdown, onChangeType }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const remove = useDeleteIssue(slug, project.id)
   const navigate = useNavigate()
   // Del workspace de la tarea (no de la URL): el panel también se abre desde la Bandeja
   const { data: workspace } = useWorkspace(slug)
   const currentUserId = useSessionStore((state) => state.user?.id)
-  // Eliminar: el project manager o quien creó la tarea (el backend responde 403 a los demás)
-  const canDelete = canDeleteIssue(workspace?.myRole, issue, currentUserId)
+  // Eliminar: las propias y las de otros van por permisos distintos (el backend responde 403 a los demás)
+  const canDelete = canDeleteIssue(workspace, issue, currentUserId)
 
   const copyLink = async () => {
     try {
@@ -302,7 +301,7 @@ function IssueTopBar({ slug, project, issue, variant, pageUrl, onClose, showMark
 
   return (
     <div className="flex shrink-0 items-center gap-2.5 border-b px-4 py-3">
-      <TypePicker issue={issue} isManager={manager} onChange={onChangeType} />
+      <TypePicker issue={issue} isManager={can(workspace, 'STORY_MANAGE')} onChange={onChangeType} />
       {/* El código no se parte (en el panel quedaba «QAVISUALLONG-» / «1»); un estado de nombre largo se corta */}
       <span className="shrink-0 font-mono text-[13px] whitespace-nowrap text-muted-foreground">{issue.code}</span>
       <span className="hidden truncate font-mono text-xs text-muted-foreground sm:inline">· {project.name.toLowerCase()}</span>

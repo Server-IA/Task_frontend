@@ -23,7 +23,7 @@ import { joinNames, mentionedIds } from '@/features/mentions/mentions'
 import { useWorkspace } from '@/features/workspaces/hooks'
 import { formatDateTime, formatRelative } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
-import { canDeleteComment } from '@/lib/permissions'
+import { can, canDeleteComment } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { useSessionStore } from '@/stores/sessionStore'
 import { activityActorName, describeActivity } from './describeActivity'
@@ -41,6 +41,8 @@ export function IssueActivity({ slug, projectId, issueId, issueCode, projectIden
   const comments = useComments(slug, projectId, issueId)
   const activity = useActivity(slug, projectId, issueId)
   const people = useMentionPeople(slug, projectId)
+  // Del workspace de la tarea (no de la URL): la actividad también se ve desde la Bandeja
+  const { data: workspace } = useWorkspace(slug)
 
   const timeline = useMemo(() => {
     const commentItems = (comments.data ?? []).map((comment) => ({ type: 'comment', at: comment.createdAt, comment }))
@@ -111,14 +113,18 @@ export function IssueActivity({ slug, projectId, issueId, issueCode, projectIden
         </ol>
       )}
 
-      <CommentComposer
-        slug={slug}
-        projectId={projectId}
-        issueId={issueId}
-        issueCode={issueCode}
-        projectIdentifier={projectIdentifier}
-        people={people}
-      />
+      {/* Comentar y subir imágenes en comentarios van cada uno por su permiso */}
+      {can(workspace, 'COMMENT_CREATE') && (
+        <CommentComposer
+          slug={slug}
+          projectId={projectId}
+          issueId={issueId}
+          issueCode={issueCode}
+          projectIdentifier={projectIdentifier}
+          people={people}
+          allowImages={can(workspace, 'COMMENT_IMAGES')}
+        />
+      )}
     </section>
   )
 }
@@ -194,7 +200,7 @@ function CommentCard({ slug, projectId, issueId, comment, people, projectIdentif
   const [uploading, setUploading] = useState(0)
 
   const isAuthor = comment.author?.id === currentUserId
-  const canDelete = canDeleteComment(workspace?.myRole, comment, currentUserId)
+  const canDelete = canDeleteComment(workspace, comment, currentUserId)
   const edited = comment.updatedAt !== comment.createdAt
   // Un comentario de otra persona que me menciona se resalta
   const mentionsMe = !isAuthor && Boolean(currentUserId) && mentionedIds(comment.body).includes(currentUserId)
@@ -323,7 +329,7 @@ function CommentCard({ slug, projectId, issueId, comment, people, projectIdentif
   )
 }
 
-function CommentComposer({ slug, projectId, issueId, issueCode, projectIdentifier, people }) {
+function CommentComposer({ slug, projectId, issueId, issueCode, projectIdentifier, people, allowImages = true }) {
   const user = useSessionStore((state) => state.user)
   const create = useCreateComment(slug, projectId, issueId)
   const [body, setBody] = useState('')
@@ -397,7 +403,8 @@ function CommentComposer({ slug, projectId, issueId, issueCode, projectIdentifie
               // Con texto, Escape suelta el campo en vez de cerrar el panel (y perder el comentario sin enviar)
               onEscape={body.trim() ? blurComposer : undefined}
               apiRef={apiRef}
-              imageUpload={imageUpload}
+              // Sin el permiso de subir imágenes en comentarios, el editor no las recibe (ni pegadas ni soltadas)
+              imageUpload={allowImages ? imageUpload : undefined}
               onUploadsChange={setUploading}
               contentClassName="min-h-11 px-3 pt-2.5 pb-1"
             />
@@ -414,15 +421,17 @@ function CommentComposer({ slug, projectId, issueId, issueCode, projectIdentifie
             </div>
           )}
           <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 pr-2 pb-2 pl-1.5">
-            <button
-              type="button"
-              aria-label="Adjuntar imagen"
-              title="Adjuntar imagen · también puedes pegar o soltar"
-              className="-mr-1 rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Paperclip className="size-3.5" aria-hidden="true" />
-            </button>
+            {allowImages && (
+              <button
+                type="button"
+                aria-label="Adjuntar imagen"
+                title="Adjuntar imagen · también puedes pegar o soltar"
+                className="-mr-1 rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Paperclip className="size-3.5" aria-hidden="true" />
+              </button>
+            )}
             <input
               ref={fileInputRef}
               type="file"
@@ -437,7 +446,8 @@ function CommentComposer({ slug, projectId, issueId, issueCode, projectIdentifie
               }}
             />
             <span className="mr-auto font-mono text-[11px] text-muted-foreground">
-              <kbd className="text-foreground">/</kbd> insertar · <kbd className="text-foreground">@</kbd> mencionar · pega o arrastra una imagen
+              <kbd className="text-foreground">/</kbd> insertar · <kbd className="text-foreground">@</kbd> mencionar
+              {allowImages && ' · pega o arrastra una imagen'}
             </span>
             <span className="ml-auto flex items-center gap-2.5">
               <span className="font-mono text-[11px] text-muted-foreground">ctrl ↵ enviar</span>

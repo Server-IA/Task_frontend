@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Segmented } from '@/components/common/Segmented'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { useCurrentProject } from '@/features/projects/hooks'
-import { useCurrentWorkspace, useIsManager } from '@/features/workspaces/hooks'
+import { useCan, useCurrentWorkspace } from '@/features/workspaces/hooks'
 import { useElementWidth } from '@/hooks/useElementWidth'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { formatShortDate } from '@/lib/dates'
@@ -67,7 +67,10 @@ const planColumnWidth = (element) =>
 export function RoadmapPage() {
   const workspace = useCurrentWorkspace()
   const project = useCurrentProject()
-  const canManage = useIsManager()
+  // Quien puede crear ciclos o módulos ve las pistas para ponerles fechas
+  const canCreateCycles = useCan('CYCLE_CREATE')
+  const canCreateModules = useCan('MODULE_CREATE')
+  const canManage = canCreateCycles || canCreateModules
   const [searchParams, setSearchParams] = useSearchParams()
   const scale = ROADMAP_SCALES[searchParams.get('scale')] ? searchParams.get('scale') : 'weeks'
   const cycles = usePlanningList('cycles', workspace.slug, project.id)
@@ -143,7 +146,7 @@ export function RoadmapPage() {
             description={
               canManage
                 ? 'Crea ciclos o módulos con fechas y aparecerán aquí, en el tiempo.'
-                : 'Cuando el project manager cree ciclos o módulos con fechas, aparecerán aquí.'
+                : 'Cuando haya ciclos o módulos con fechas, aparecerán aquí.'
             }
             action={
               <div className="flex gap-2">

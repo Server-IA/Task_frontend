@@ -18,15 +18,18 @@ import { useRelations } from '@/features/relations/hooks'
 import { useWorkspace } from '@/features/workspaces/hooks'
 import { formatShortDate } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
-import { isManager as isManagerRole } from '@/lib/permissions'
+import { can } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { useCloseStory, useReopenStory } from '../hooks'
 import { SplitComposer } from './SplitComposer'
 import { SPLIT_PARAM } from '../splitLines'
 
-/** Si el usuario es project manager del workspace de la tarea (el panel también se abre desde la Bandeja). */
-function useManager(slug) {
-  return isManagerRole(useWorkspace(slug).data?.myRole)
+/**
+ * Si quien usa la app tiene ese permiso en el workspace de la tarea (el panel también se abre desde la Bandeja, fuera
+ * del workspace de la URL): cerrar y reabrir historias (STORY_CLOSE) o partirlas (STORY_MANAGE).
+ */
+function useStoryCan(slug, permission) {
+  return can(useWorkspace(slug).data, permission)
 }
 
 const firstName = (user) => user?.fullName?.trim().split(/\s+/)[0] ?? 'alguien'
@@ -37,7 +40,7 @@ const firstName = (user) => user?.fullName?.trim().split(/\s+/)[0] ?? 'alguien'
  * historias relacionadas.
  */
 export function StoryBanner({ slug, project, issue, onOpenIssue, onAddTask }) {
-  const manager = useManager(slug)
+  const manager = useStoryCan(slug, 'STORY_CLOSE')
   const close = useCloseStory(slug, project.id)
   const reopen = useReopenStory(slug, project.id)
   const [confirmClose, setConfirmClose] = useState(false)
@@ -168,7 +171,7 @@ export function StoryBanner({ slug, project, issue, onOpenIssue, onAddTask }) {
  * el compositor se abre solo. `onAdd` agrega una tarea (en una historia cerrada, pregunta antes).
  */
 export function StorySections({ slug, project, issue, onOpenIssue, onAdd, onReportBug }) {
-  const manager = useManager(slug)
+  const manager = useStoryCan(slug, 'STORY_MANAGE')
   const meta = useProjectMeta(slug, project.id)
   const { data: children = [], isLoading } = useSubIssues(slug, project.id, issue.id)
   const flags = storyFlags(issue)
@@ -379,7 +382,7 @@ export function ClosedStoryDialog({ story, open, onOpenChange, manager, onReopen
  * Devuelve `addTask()`, `reportBug()` y los diálogos para pintar.
  */
 export function useAddToStory({ slug, project, story }) {
-  const manager = useManager(slug)
+  const manager = useStoryCan(slug, 'STORY_CLOSE')
   const [asking, setAsking] = useState(false)
   const [create, setCreate] = useState(null)
   const closed = story ? storyFlags(story).closed : false

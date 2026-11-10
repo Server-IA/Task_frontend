@@ -27,7 +27,7 @@ vi.mock('../hooks', () => ({
   useDeleteState: () => ({ mutate: removeState, isPending: false }),
   useReorderStates: () => mutation,
 }))
-vi.mock('@/features/workspaces/hooks', () => ({ useIsManager: () => true, useMembers: () => ({ data: [] }) }))
+vi.mock('@/features/workspaces/hooks', () => ({ useCan: () => true, useMembers: () => ({ data: [] }) }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 
 const project = { id: 'p1', identifier: 'WEB' }

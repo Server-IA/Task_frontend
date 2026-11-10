@@ -11,7 +11,7 @@ import { useCurrentProject, useLabels, useProjectMembers, useStates } from '@/fe
 import { SavedViewsBar } from '@/features/saved-views/components/SavedViewsBar'
 import { searchApi } from '@/features/search/api'
 import { useActiveSavedView } from '@/features/saved-views/hooks'
-import { useCurrentWorkspace } from '@/features/workspaces/hooks'
+import { useCan, useCurrentWorkspace } from '@/features/workspaces/hooks'
 import { useHotkey } from '@/hooks/useHotkey'
 import { notifyError } from '@/lib/notify'
 import { projectPath } from '@/lib/paths'
@@ -49,6 +49,8 @@ export function IssuesPage() {
   const bugsView = issueFilters.activeViewId === BUGS_VIEW_ID
   const storiesUrl = `/${workspace.slug}/projects/${project.id}/stories`
   const [createState, setCreateState] = useState({ open: false, stateId: undefined })
+  // Sin el permiso de crear tareas no se ofrecen el botón, la tecla C ni los «+» de las columnas
+  const canCreate = useCan('ISSUE_CREATE')
   // La paleta de comandos (Ctrl/⌘ K) pide crear una tarea con ?create=1 (y lo que se escribió en ?title=)
   const [searchParams, setSearchParams] = useSearchParams()
   const createFromUrl = searchParams.get('create') === '1'
@@ -95,7 +97,7 @@ export function IssuesPage() {
 
   const openCreate = useCallback((stateId) => setCreateState({ open: true, stateId }), [])
   const reportBug = useCallback(() => setCreateState({ open: true, templateType: 'BUG' }), [])
-  useHotkey('c', bugsView ? reportBug : openCreate)
+  useHotkey('c', bugsView ? reportBug : openCreate, { enabled: canCreate })
 
   const onCreateOpenChange = (open) => {
     setCreateState((current) => ({ ...current, open }))
@@ -141,19 +143,23 @@ export function IssuesPage() {
         }
         actions={
           bugsView ? (
-            <Button className="h-10 rounded-xl px-3.5" onClick={reportBug}>
-              <Plus strokeWidth={3} />
-              Reportar bug
-              <kbd className="rounded-[5px] bg-foreground/10 px-1.5 text-[11px] font-normal">C</kbd>
-            </Button>
+            canCreate && (
+              <Button className="h-10 rounded-xl px-3.5" onClick={reportBug}>
+                <Plus strokeWidth={3} />
+                Reportar bug
+                <kbd className="rounded-[5px] bg-foreground/10 px-1.5 text-[11px] font-normal">C</kbd>
+              </Button>
+            )
           ) : (
             <>
               <ViewSwitch value={view} onChange={issueFilters.setView} />
-              <Button className="h-10 rounded-xl px-3.5" onClick={() => openCreate()}>
-                <Plus strokeWidth={3} />
-                Nueva tarea
-                <kbd className="rounded-[5px] bg-foreground/10 px-1.5 text-[11px] font-normal">C</kbd>
-              </Button>
+              {canCreate && (
+                <Button className="h-10 rounded-xl px-3.5" onClick={() => openCreate()}>
+                  <Plus strokeWidth={3} />
+                  Nueva tarea
+                  <kbd className="rounded-[5px] bg-foreground/10 px-1.5 text-[11px] font-normal">C</kbd>
+                </Button>
+              )}
             </>
           )
         }
@@ -269,7 +275,7 @@ export function IssuesPage() {
             meta={meta}
             filters={queryFilters}
             openIssue={issueFilters.openIssue}
-            onCreateInState={openCreate}
+            onCreateInState={canCreate ? openCreate : undefined}
             groupBy={groupBy}
             sort={sort}
           />
@@ -283,8 +289,8 @@ export function IssuesPage() {
             page={page}
             setPage={issueFilters.setPage}
             openIssue={issueFilters.openIssue}
-            onCreate={() => openCreate()}
-            onCreateInState={openCreate}
+            onCreate={canCreate ? () => openCreate() : undefined}
+            onCreateInState={canCreate ? openCreate : undefined}
             hasFilters={activeCount > 0}
             groupBy={groupBy}
           />
@@ -302,7 +308,7 @@ export function IssuesPage() {
       <CreateIssueDialog
         slug={workspace.slug}
         project={project}
-        open={createState.open || createFromUrl}
+        open={canCreate && (createState.open || createFromUrl)}
         onOpenChange={onCreateOpenChange}
         defaults={{
           stateId: createState.stateId,

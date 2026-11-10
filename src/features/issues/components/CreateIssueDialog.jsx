@@ -25,7 +25,7 @@ import {
   fromTemplateFlags,
 } from '@/features/templates/applyTemplate'
 import { useTemplates } from '@/features/templates/hooks'
-import { useIsManager } from '@/features/workspaces/hooks'
+import { useCan } from '@/features/workspaces/hooks'
 import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
@@ -161,9 +161,10 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
   const meta = useProjectMeta(slug, project.id)
   const create = useCreateIssue(slug, project.id)
   const { data: allTemplates = [] } = useTemplates(slug, project.id)
-  const isManager = useIsManager()
-  // Solo el project manager crea historias, y la tarea de una historia (o una subtarea) no puede ser historia
-  const canStory = isManager && !defaults.parentId
+  const canManageStories = useCan('STORY_MANAGE')
+  const canEditTemplates = useCan('PROJECT_TEMPLATES')
+  // Las historias las crea quien las gestiona, y la tarea de una historia (o una subtarea) no puede ser historia
+  const canStory = canManageStories && !defaults.parentId
   const templates = canStory ? allTemplates : allTemplates.filter((item) => templateType(item) !== 'STORY')
   const people = useMentionPeople(slug, project.id)
   usePreloadRichEditor()
@@ -315,7 +316,7 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
             templates={templates}
             active={template}
             onChoose={requestTemplate}
-            settingsUrl={isManager ? `/${slug}/projects/${project.id}/settings?tab=templates` : null}
+            settingsUrl={canEditTemplates ? `/${slug}/projects/${project.id}/settings?tab=templates` : null}
             onLeave={onDiscard}
           />
         )}

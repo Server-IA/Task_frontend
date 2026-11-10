@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { ROLE_LABELS } from '@/lib/permissions'
+import { myRoleName } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { useWorkspaces } from '../hooks'
 import { CreateWorkspaceDialog } from './CreateWorkspaceDialog'
@@ -70,7 +70,7 @@ export function WorkspaceSwitcher({ currentSlug, collapsed }) {
               <WorkspaceLogo name={workspace.name} className="size-7 rounded-lg text-xs" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate">{workspace.name}</span>
-                <span className="block text-xs text-muted-foreground">{ROLE_LABELS[workspace.myRole]}</span>
+                <span className="block text-xs text-muted-foreground">{myRoleName(workspace)}</span>
               </span>
               {workspace.slug === currentSlug && <Check className="size-4" />}
             </DropdownMenuItem>

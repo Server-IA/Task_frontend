@@ -2,24 +2,27 @@ import { useSearchParams } from 'react-router'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { workspacePath } from '@/lib/paths'
-import { isManager } from '@/lib/permissions'
+import { can } from '@/lib/permissions'
 import { GeneralSettings } from '../components/GeneralSettings'
 import { InvitationsSettings } from '../components/InvitationsSettings'
 import { MembersSettings } from '../components/MembersSettings'
+import { RolesSettings } from '../components/RolesSettings'
 import { StorageSettings } from '../components/StorageSettings'
 import { useCurrentWorkspace, useMembers } from '../hooks'
 
-const TABS = ['general', 'members', 'invitations', 'storage']
-/** Pestañas que solo ve el project manager (con otro rol, la URL lleva a «General»). */
-const MANAGER_TABS = ['invitations', 'storage']
+const TABS = ['general', 'members', 'roles', 'invitations', 'storage']
+/** Pestañas que piden un permiso (sin él, la URL lleva a «General»). Los roles los ve cualquiera. */
+const TAB_PERMISSIONS = { invitations: 'MEMBER_INVITE', storage: 'STORAGE_VIEW' }
 
 export function WorkspaceSettingsPage() {
   const workspace = useCurrentWorkspace()
   const { data: members } = useMembers(workspace.slug)
   const [searchParams, setSearchParams] = useSearchParams()
-  const canManage = isManager(workspace.myRole)
+  const canInvite = can(workspace, 'MEMBER_INVITE')
+  const canSeeStorage = can(workspace, 'STORAGE_VIEW')
   const requested = searchParams.get('tab')
-  const tab = TABS.includes(requested) && (!MANAGER_TABS.includes(requested) || canManage) ? requested : 'general'
+  const allowed = TABS.includes(requested) && (!TAB_PERMISSIONS[requested] || can(workspace, TAB_PERMISSIONS[requested]))
+  const tab = allowed ? requested : 'general'
 
   return (
     <Tabs
@@ -37,13 +40,9 @@ export function WorkspaceSettingsPage() {
           <TabsTrigger value="members">
             Miembros {members && <span className="font-mono">{members.length}</span>}
           </TabsTrigger>
-          {canManage && <TabsTrigger value="invitations">Invitaciones</TabsTrigger>}
-          {canManage && (
-            <TabsTrigger value="storage">
-              Almacenamiento
-              <span className="rounded-md bg-card px-1.5 font-mono text-[10.5px] font-medium text-muted-foreground">solo PM</span>
-            </TabsTrigger>
-          )}
+          <TabsTrigger value="roles">Roles</TabsTrigger>
+          {canInvite && <TabsTrigger value="invitations">Invitaciones</TabsTrigger>}
+          {canSeeStorage && <TabsTrigger value="storage">Almacenamiento</TabsTrigger>}
         </TabsList>
       </PageHeader>
       <PageBody>
@@ -54,12 +53,15 @@ export function WorkspaceSettingsPage() {
           <TabsContent value="members">
             <MembersSettings workspace={workspace} />
           </TabsContent>
-          {canManage && (
+          <TabsContent value="roles">
+            <RolesSettings workspace={workspace} />
+          </TabsContent>
+          {canInvite && (
             <TabsContent value="invitations">
               <InvitationsSettings workspace={workspace} />
             </TabsContent>
           )}
-          {canManage && (
+          {canSeeStorage && (
             <TabsContent value="storage">
               <StorageSettings workspace={workspace} />
             </TabsContent>
