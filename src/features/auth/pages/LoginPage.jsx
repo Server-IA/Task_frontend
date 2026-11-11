@@ -55,7 +55,7 @@ export function LoginPage() {
   }
 
   return (
-    <SplitShell caption="tableros · ciclos · módulos" panel={<MiniBoard />}>
+    <SplitShell intro caption="tableros · ciclos · módulos" panel={<MiniBoard />}>
       <AuthHeader path="~/acceso/login" title="Hola de nuevo" description="Entra con tu correo para seguir con tus tareas." />
 
       {expired && !unverifiedEmail && (
@@ -163,14 +163,23 @@ const DEMO_BOARD = [
 function MiniBoard() {
   return (
     <div aria-hidden="true" className="flex w-full max-w-[580px] gap-2.5">
-      {DEMO_BOARD.map((column) => (
-        <div key={column.name} className="flex min-w-0 flex-1 flex-col gap-1.5 rounded-[14px] bg-sidebar-accent p-2.5">
+      {/* `--i`: el orden en la entrada animada (después del nombre y el lema); cada tarjeta, un poco después de su columna */}
+      {DEMO_BOARD.map((column, columnIndex) => (
+        <div
+          key={column.name}
+          className="tf-intro-item flex min-w-0 flex-1 flex-col gap-1.5 rounded-[14px] bg-sidebar-accent p-2.5"
+          style={{ '--i': 2 + columnIndex }}
+        >
           <p className="mb-0.5 flex justify-between font-mono text-[11px] text-sidebar-muted">
             <span>{column.name}</span>
             <span>{column.count}</span>
           </p>
-          {column.cards.map((card) => (
-            <div key={card.code} className="rounded-[10px] border border-sidebar-border bg-card px-2.5 py-2.5">
+          {column.cards.map((card, cardIndex) => (
+            <div
+              key={card.code}
+              className="tf-intro-item rounded-[10px] border border-sidebar-border bg-card px-2.5 py-2.5"
+              style={{ '--i': 3 + columnIndex + cardIndex }}
+            >
               <p className="flex items-center justify-between font-mono text-[10px] text-muted-foreground">
                 {card.code}
                 <PriorityIcon priority={card.priority} className="size-3.5" />

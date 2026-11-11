@@ -1,7 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, Outlet } from 'react-router'
 import { Logo, LogoMark } from '@/components/common/Logo'
+import { SplashStage } from '@/components/common/Splash'
 import { ThemeToggle } from '@/components/common/ThemeToggle'
+import { INTRO, markFirstScreen, peekIntro } from '@/lib/intro'
 import { cn } from '@/lib/utils'
 
 /** Pantallas públicas: cada página elige su marco (`SplitShell` o `CenteredShell`). */
@@ -14,20 +16,91 @@ export function AuthLayout() {
 }
 
 /**
- * Login y registro: panel de marca a la izquierda (logo, nombre y `panel`) y el formulario a la derecha.
- * En pantallas pequeñas el panel se oculta.
+ * La entrada animada del login cuando es la primera pantalla al abrir la app (`lib/intro`):
+ *  1. `wait`: una tapa del color del fondo con el logo de carga en el centro, mientras termina de dibujarse.
+ *  2. `go`: el logo vuela hasta el del panel de marca, la tapa se desvanece y el contenido entra por partes (CSS).
+ *  3. `done`: todo quieto, sin estilos de la entrada.
+ * `landed` dice si el logo ya aterrizó: ahí se quita la tapa y se ve el logo de verdad.
  */
-export function SplitShell({ caption, panel, children }) {
+function useLoginIntro(enabled) {
+  const [intro] = useState(() => (enabled ? peekIntro() : null))
+  const [phase, setPhase] = useState(intro ? 'wait' : null)
+  const [landed, setLanded] = useState(false)
+  const markRef = useRef(null)
+  const coverRef = useRef(null)
+  const groundRef = useRef(null)
+  const flyRef = useRef(null)
+
+  useEffect(() => markFirstScreen(), [])
+
+  useEffect(() => {
+    if (!intro) return undefined
+    const timer = setTimeout(() => setPhase('go'), Math.max(0, INTRO.draw - intro.elapsed) + INTRO.hold)
+    return () => clearTimeout(timer)
+  }, [intro])
+
+  useLayoutEffect(() => {
+    if (phase !== 'go') return undefined
+    const settle = setTimeout(() => setPhase('done'), INTRO.settle)
+    const land = () => setLanded(true)
+    const fly = flyRef.current
+    const target = markRef.current?.getBoundingClientRect()
+    const animations = []
+    if (fly && target && target.width > 0) {
+      // El logo va de donde está (el centro) a donde lo espera el del panel; la tapa se va mientras tanto
+      const from = fly.getBoundingClientRect()
+      const dx = target.left + target.width / 2 - (from.left + from.width / 2)
+      const dy = target.top + target.height / 2 - (from.top + from.height / 2)
+      const timing = { duration: INTRO.fly, easing: 'cubic-bezier(0.65, 0, 0.35, 1)', fill: 'forwards' }
+      animations.push(
+        fly.animate([{ transform: 'none' }, { transform: `translate(${dx}px, ${dy}px) scale(${target.width / from.width})` }], timing),
+        groundRef.current.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, easing: 'ease-out', fill: 'forwards' }),
+      )
+    } else if (coverRef.current) {
+      // Sin panel de marca a la vista (ventana angosta): la tapa entera se desvanece
+      animations.push(coverRef.current.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 320, easing: 'ease-out', fill: 'forwards' }))
+    }
+    if (animations.length) animations[0].finished.then(land, () => {})
+    else land()
+    return () => {
+      clearTimeout(settle)
+      animations.forEach((animation) => animation.cancel())
+    }
+  }, [phase])
+
+  const cover = phase && phase !== 'done' && !landed && (
+    <div ref={coverRef} aria-hidden="true" className="pointer-events-none fixed inset-0 z-50">
+      <div ref={groundRef} className="absolute inset-0 bg-background" />
+      <SplashStage markRef={flyRef} line={phase === 'wait'} />
+    </div>
+  )
+  return { phase, cover, markRef, markHidden: Boolean(phase) && !landed }
+}
+
+/**
+ * Login y registro: panel de marca a la izquierda (logo, nombre y `panel`) y el formulario a la derecha.
+ * En pantallas pequeñas el panel se oculta. Con `intro`, si es la primera pantalla al abrir la app entra animada
+ * (`useLoginIntro`): lo que lleva `tf-intro-item` y los hijos del formulario aparecen por partes, en el orden de `--i`.
+ */
+export function SplitShell({ caption, panel, children, intro = false }) {
+  const { phase, cover, markRef, markHidden } = useLoginIntro(intro)
   return (
-    <div className="flex min-h-svh gap-3.5 p-2 sm:p-3.5">
-      <aside className="hidden flex-[1_1_520px] flex-col rounded-[22px] bg-sidebar px-8 py-6.5 text-sidebar-foreground lg:flex">
+    <div data-intro={phase ?? undefined} className="flex min-h-svh gap-3.5 p-2 sm:p-3.5">
+      {cover}
+      <aside className="tf-intro-aside hidden flex-[1_1_520px] flex-col rounded-[22px] bg-sidebar px-8 py-6.5 text-sidebar-foreground lg:flex">
         <p className="font-mono text-[11px] text-sidebar-muted">~/acceso</p>
-        <div className="tf-fade flex flex-1 flex-col items-center justify-center gap-9 py-7">
+        <div className={cn('flex flex-1 flex-col items-center justify-center gap-9 py-7', !phase && 'tf-fade')}>
           <div className="flex flex-col items-center gap-4 text-center">
-            <LogoMark className="size-18" />
+            <span ref={markRef} className={cn('block', markHidden && 'opacity-0')}>
+              <LogoMark className="size-18" />
+            </span>
             <div>
-              <p className="font-display text-[46px] leading-none font-extrabold tracking-[-0.03em]">TaskFlow</p>
-              <p className="mt-2.5 font-mono text-xs text-sidebar-muted">// {caption}</p>
+              <p className="tf-intro-item font-display text-[46px] leading-none font-extrabold tracking-[-0.03em]" style={{ '--i': 0 }}>
+                TaskFlow
+              </p>
+              <p className="tf-intro-item mt-2.5 font-mono text-xs text-sidebar-muted" style={{ '--i': 1 }}>
+                // {caption}
+              </p>
             </div>
           </div>
           {panel}
@@ -38,10 +111,11 @@ export function SplitShell({ caption, panel, children }) {
         <Link to="/" aria-label="TaskFlow" className="absolute top-3 left-3 lg:hidden">
           <Logo />
         </Link>
-        <div className="absolute top-2 right-2">
+        <div className="tf-intro-item absolute top-2 right-2" style={{ '--i': 0 }}>
           <ThemeToggle />
         </div>
-        <div className="tf-enter flex w-full max-w-[400px] flex-col gap-5.5">{children}</div>
+        {/* La clase no cambia al terminar la entrada: si pasara a `tf-enter`, el formulario volvería a animarse */}
+        <div className={cn('flex w-full max-w-[400px] flex-col gap-5.5', phase ? 'tf-intro-list' : 'tf-enter')}>{children}</div>
       </main>
     </div>
   )

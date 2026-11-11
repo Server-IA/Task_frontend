@@ -857,6 +857,109 @@
   transition: none !important;
 }
 
+/*
+ * Logo de carga (components/common/Splash): el cuadro aparece con un pequeño rebote, el check se dibuja y termina en
+ * la flecha. `--splash-delay` es negativo cuando el logo ya llevaba un rato a la vista: sigue donde iba.
+ */
+@keyframes tf-splash-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes tf-splash-draw {
+  from {
+    opacity: 0;
+    stroke-dashoffset: 1;
+  }
+  5% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes tf-splash-line {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(260%);
+  }
+}
+.tf-splash {
+  transform-origin: 50% 50%;
+  animation: tf-splash-pop 450ms cubic-bezier(0.22, 1, 0.36, 1) var(--splash-delay, 0ms) both;
+}
+.tf-splash-check,
+.tf-splash-arrow {
+  stroke-dasharray: 1;
+}
+.tf-splash-check {
+  animation: tf-splash-draw 550ms cubic-bezier(0.65, 0, 0.35, 1) calc(var(--splash-delay, 0ms) + 300ms) both;
+}
+.tf-splash-arrow {
+  animation: tf-splash-draw 250ms ease-out calc(var(--splash-delay, 0ms) + 800ms) both;
+}
+.tf-splash-line {
+  animation: tf-splash-line 1100ms cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+/*
+ * Entrada del login al abrir la app (layouts/AuthLayout, `data-intro`): mientras el logo se dibuja (`wait`) el
+ * contenido no se ve; cuando despega (`go`) el panel aparece y cada parte sube 12 px, una tras otra según `--i`.
+ */
+@keyframes tf-intro-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+[data-intro='wait'] .tf-intro-aside,
+[data-intro='wait'] .tf-intro-item,
+[data-intro='wait'] .tf-intro-list > * {
+  opacity: 0;
+}
+[data-intro='go'] .tf-intro-aside {
+  animation: tf-fade 450ms ease-out backwards;
+}
+[data-intro='go'] .tf-intro-item,
+[data-intro='go'] .tf-intro-list > * {
+  animation: tf-intro-rise 420ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: calc(var(--intro-at, 400ms) + var(--i, 0) * 80ms);
+}
+.tf-intro-list {
+  --intro-at: 450ms;
+}
+.tf-intro-list > :nth-child(2) {
+  --i: 1;
+}
+.tf-intro-list > :nth-child(3) {
+  --i: 2;
+}
+.tf-intro-list > :nth-child(4) {
+  --i: 3;
+}
+.tf-intro-list > :nth-child(5) {
+  --i: 4;
+}
+.tf-intro-list > :nth-child(n + 6) {
+  --i: 5;
+}
+
 /* Quien pide menos movimiento en su sistema ve los cambios sin animación */
 @media (prefers-reduced-motion: reduce) {
   *,

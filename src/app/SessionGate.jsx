@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { FullScreenLoader } from '@/components/common/Loaders'
 import { EmptyState } from '@/components/common/States'
 import { useForgetSession } from '@/features/auth/hooks'
+import { markFirstScreen } from '@/lib/intro'
 import { useSessionStore } from '@/stores/sessionStore'
 
 // Fuera del componente: en desarrollo StrictMode monta los efectos dos veces y el refresh
@@ -23,6 +24,12 @@ export function SessionGate() {
     }
     return listenToOtherTabs()
   }, [])
+
+  // Pasada la carga inicial, lo que venga llega navegando: sin la entrada animada del login. Va en un efecto para que
+  // la pantalla que se monta en este mismo render (el login, si no hay sesión) todavía alcance a pedirla.
+  useEffect(() => {
+    if (status !== 'loading') markFirstScreen()
+  }, [status])
 
   if (status === 'loading') return <FullScreenLoader />
   if (status === 'offline') return <OfflineScreen />
