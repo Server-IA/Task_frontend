@@ -1,5 +1,6 @@
 import { useSearchParams } from 'react-router'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { t } from '@/i18n'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { workspacePath } from '@/lib/paths'
 import { can } from '@/lib/permissions'
@@ -31,18 +32,18 @@ export function WorkspaceSettingsPage() {
       className="min-h-0 flex-1 gap-3.5"
     >
       <PageHeader
-        path={[...workspacePath(workspace), { label: 'ajustes' }]}
-        title="Ajustes del workspace"
-        documentTitle={['Ajustes', workspace.name]}
+        path={[...workspacePath(workspace), { label: t('ajustes') }]}
+        title={t('Ajustes del workspace')}
+        documentTitle={[t('Ajustes'), workspace.name]}
       >
-        <TabsList aria-label="Secciones">
-          <TabsTrigger value="general">General</TabsTrigger>
+        <TabsList aria-label={t('Secciones')}>
+          <TabsTrigger value="general">{t('General')}</TabsTrigger>
           <TabsTrigger value="members">
-            Miembros {members && <span className="font-mono">{members.length}</span>}
+            {t('Miembros')} {members && <span className="font-mono">{members.length}</span>}
           </TabsTrigger>
-          <TabsTrigger value="roles">Roles</TabsTrigger>
-          {canInvite && <TabsTrigger value="invitations">Invitaciones</TabsTrigger>}
-          {canSeeStorage && <TabsTrigger value="storage">Almacenamiento</TabsTrigger>}
+          <TabsTrigger value="roles">{t('Roles')}</TabsTrigger>
+          {canInvite && <TabsTrigger value="invitations">{t('Invitaciones')}</TabsTrigger>}
+          {canSeeStorage && <TabsTrigger value="storage">{t('Almacenamiento')}</TabsTrigger>}
         </TabsList>
       </PageHeader>
       <PageBody>

@@ -4,6 +4,7 @@ import { Outlet, useParams } from 'react-router'
 import { queryKeys } from '@/api/queryKeys'
 import { CenteredSpinner } from '@/components/common/Loaders'
 import { ErrorState } from '@/components/common/States'
+import { t } from '@/i18n'
 import { PageHeader } from '@/layouts/PageHeader'
 import { toApiError } from '@/lib/errors'
 import { usePreferencesStore } from '@/stores/preferencesStore'
@@ -36,7 +37,7 @@ export function WorkspaceLayout() {
   if (error) {
     return (
       <>
-        <PageHeader path={[{ label: slug }]} title="Workspace" />
+        <PageHeader path={[{ label: slug }]} title={t('Workspace')} />
         <ErrorState error={error} onRetry={refetch} className="flex-1" />
       </>
     )

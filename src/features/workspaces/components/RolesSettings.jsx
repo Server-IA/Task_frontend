@@ -8,6 +8,7 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { CenteredSpinner, Spinner } from '@/components/common/Loaders'
 import { LockNote } from '@/components/common/LockNote'
 import { ErrorState } from '@/components/common/States'
+import { t, tn, tx } from '@/i18n'
 import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { can, isManager } from '@/lib/permissions'
@@ -26,7 +27,7 @@ import {
   togglePermission,
 } from '../roles'
 
-const KIND_HINT = { MANAGER: 'de fábrica · todo', MEMBER: 'de fábrica', CUSTOM: 'propio' }
+const KIND_HINT = { MANAGER: t('de fábrica · todo'), MEMBER: t('de fábrica'), CUSTOM: t('propio') }
 
 /**
  * Roles del workspace: a la izquierda la lista (project manager, «Miembro» y los creados) y a la derecha los permisos
@@ -54,18 +55,18 @@ export function RolesSettings({ workspace }) {
 
   return (
     <div className="grid items-start gap-3.5 xl:grid-cols-[340px_minmax(0,1fr)]">
-      <section aria-label="Roles" className="tf-panel flex flex-col gap-3 px-4.5 py-4">
+      <section aria-label={t('Roles')} className="tf-panel flex flex-col gap-3 px-4.5 py-4">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-[15px] font-semibold">Roles</h2>
+          <h2 className="text-[15px] font-semibold">{t('Roles')}</h2>
           {canManage && (
             <Button size="sm" variant={creating ? 'secondary' : 'default'} onClick={() => setSelectedKey('new')}>
               <Plus strokeWidth={2.5} />
-              Nuevo rol
+              {t('Nuevo rol')}
             </Button>
           )}
         </div>
         <p className="text-[13px] text-muted-foreground">
-          Quien crea el workspace es project manager. Los demás entran como «Miembro» o con el rol que les des al invitarlos.
+          {t('Quien crea el workspace es project manager. Los demás entran como «Miembro» o con el rol que les des al invitarlos.')}
         </p>
         <ul className="flex flex-col gap-1">
           {roles.map((role) => {
@@ -84,12 +85,12 @@ export function RolesSettings({ workspace }) {
                   <span className="flex min-w-0 flex-1 flex-col">
                     <span className="truncate text-sm font-semibold">{role.name}</span>
                     <span className="font-mono text-[11px] text-muted-foreground">
-                      {KIND_HINT[role.kind]} · {role.permissions.length} de {total}
+                      {KIND_HINT[role.kind]} · {t('{count} de {total}', { count: role.permissions.length, total })}
                     </span>
                   </span>
                   <span
                     className="flex shrink-0 items-center gap-1 font-mono text-[11px] text-muted-foreground"
-                    title={`${role.memberCount} ${role.memberCount === 1 ? 'persona' : 'personas'} con este rol`}
+                    title={tn(role.memberCount, '{count} persona con este rol', '{count} personas con este rol')}
                   >
                     <Users className="size-3" aria-hidden="true" />
                     {role.memberCount}
@@ -100,11 +101,11 @@ export function RolesSettings({ workspace }) {
           })}
           {creating && (
             <li className="flex items-center gap-2.5 rounded-xl border border-dashed border-accent-text/50 bg-accent-soft px-3 py-2 text-sm font-semibold text-accent-text">
-              Rol nuevo
+              {t('Rol nuevo')}
             </li>
           )}
         </ul>
-        {!canManage && <LockNote>Solo quien gestiona roles puede crearlos o cambiarlos.</LockNote>}
+        {!canManage && <LockNote>{t('Solo quien gestiona roles puede crearlos o cambiarlos.')}</LockNote>}
       </section>
 
       <RoleEditor
@@ -157,35 +158,40 @@ function RoleEditor({ workspace, role, groups, canManage, onSaved, onDeleted, on
       { role, name: trimmedName, description: description.trim(), permissions },
       {
         onSuccess: (saved) => {
-          toast.success(isNew ? `Rol «${saved.name}» creado` : `Rol «${saved.name}» guardado`)
+          toast.success(isNew ? t('Rol «{name}» creado', { name: saved.name }) : t('Rol «{name}» guardado', { name: saved.name }))
           onSaved(saved)
         },
         onError: (error) => {
           const mapped = applyFieldErrors(error, (field, value) => field === 'name' && setNameError(value.message), { fields: ['name'] })
           // «Ya hay un rol llamado…» (409) también va bajo el nombre
           if (!mapped && error?.status === 409) setNameError(error.message)
-          else if (!mapped) notifyError(error, 'No se pudo guardar el rol')
+          else if (!mapped) notifyError(error, t('No se pudo guardar el rol'))
         },
       },
     )
   }
 
   return (
-    <form onSubmit={onSubmit} aria-label={isNew ? 'Rol nuevo' : `Rol ${role.name}`} className="tf-panel flex min-w-0 flex-col gap-4 px-4.5 py-4" noValidate>
+    <form
+      onSubmit={onSubmit}
+      aria-label={isNew ? t('Rol nuevo') : t('Rol {name}', { name: role.name })}
+      className="tf-panel flex min-w-0 flex-col gap-4 px-4.5 py-4"
+      noValidate
+    >
       <div className="flex flex-wrap items-start gap-3">
         <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-3">
           {role.kind === 'CUSTOM' ? (
             <>
               <div className="flex flex-col gap-1.5">
                 <label htmlFor={nameId} className="text-sm font-medium">
-                  Nombre del rol
+                  {t('Nombre del rol')}
                 </label>
                 <Input
                   id={nameId}
                   value={name}
                   maxLength={ROLE_NAME_MAX}
                   disabled={!editable}
-                  placeholder="Por ejemplo: Líder, Desarrollador, Invitado"
+                  placeholder={t('Por ejemplo: Líder, Desarrollador, Invitado')}
                   aria-invalid={Boolean(nameError)}
                   onChange={(event) => {
                     setName(event.target.value)
@@ -202,14 +208,14 @@ function RoleEditor({ workspace, role, groups, canManage, onSaved, onDeleted, on
               </div>
               <div className="flex flex-col gap-1.5">
                 <label htmlFor={descriptionId} className="text-sm font-medium">
-                  Descripción <span className="font-normal text-muted-foreground">(opcional)</span>
+                  {t('Descripción')} <span className="font-normal text-muted-foreground">{t('(opcional)')}</span>
                 </label>
                 <Input
                   id={descriptionId}
                   value={description}
                   maxLength={ROLE_DESCRIPTION_MAX}
                   disabled={!editable}
-                  placeholder="Para qué es este rol"
+                  placeholder={t('Para qué es este rol')}
                   onChange={(event) => setDescription(event.target.value)}
                 />
               </div>
@@ -226,17 +232,22 @@ function RoleEditor({ workspace, role, groups, canManage, onSaved, onDeleted, on
         </div>
         <div className="flex flex-col items-end gap-1.5">
           <p className="font-mono text-xs text-muted-foreground">
-            <strong className="text-foreground">{permissions.length}</strong> de {total} permisos
+            {tx('{count} de {total} permisos', {
+              count: <strong className="text-foreground">{permissions.length}</strong>,
+              total,
+            })}
           </p>
           <p className="font-mono text-[11px] text-muted-foreground">
-            {role.memberCount} {role.memberCount === 1 ? 'persona' : 'personas'} con este rol
+            {tn(role.memberCount, '{count} persona con este rol', '{count} personas con este rol')}
           </p>
         </div>
       </div>
 
-      {role.kind === 'MANAGER' && <LockNote>Es el rol de quien crea el workspace: siempre tiene todos los permisos y no se edita.</LockNote>}
+      {role.kind === 'MANAGER' && (
+        <LockNote>{t('Es el rol de quien crea el workspace: siempre tiene todos los permisos y no se edita.')}</LockNote>
+      )}
       {role.kind !== 'MANAGER' && canManage && !editable && (
-        <LockNote>Este rol tiene permisos que el tuyo no tiene: solo un project manager puede cambiarlo.</LockNote>
+        <LockNote>{t('Este rol tiene permisos que el tuyo no tiene: solo un project manager puede cambiarlo.')}</LockNote>
       )}
 
       {/* En columnas (los módulos tienen alturas distintas: una cuadrícula dejaría huecos debajo de los cortos) */}
@@ -259,13 +270,13 @@ function RoleEditor({ workspace, role, groups, canManage, onSaved, onDeleted, on
           {role.id && (
             <Button type="button" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setConfirmDelete(true)}>
               <Trash2 />
-              Eliminar rol
+              {t('Eliminar rol')}
             </Button>
           )}
           <span className="ml-auto flex items-center gap-2">
             {isNew && (
               <Button type="button" variant="ghost" onClick={onCancelNew}>
-                Cancelar
+                {t('Cancelar')}
               </Button>
             )}
             {!isNew && dirty && (
@@ -279,12 +290,12 @@ function RoleEditor({ workspace, role, groups, canManage, onSaved, onDeleted, on
                   setNameError(null)
                 }}
               >
-                Descartar cambios
+                {t('Descartar cambios')}
               </Button>
             )}
             <Button type="submit" disabled={!canSave}>
               {save.isPending && <Spinner />}
-              {isNew ? 'Crear rol' : 'Guardar cambios'}
+              {isNew ? t('Crear rol') : t('Guardar cambios')}
             </Button>
           </span>
         </div>
@@ -293,22 +304,26 @@ function RoleEditor({ workspace, role, groups, canManage, onSaved, onDeleted, on
       <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
-        title={`¿Eliminar el rol «${role.name}»?`}
+        title={t('¿Eliminar el rol «{name}»?', { name: role.name })}
         description={
           role.memberCount > 0
-            ? `${role.memberCount} ${role.memberCount === 1 ? 'persona pasará' : 'personas pasarán'} al rol «Miembro», igual que las invitaciones pendientes con este rol.`
-            : 'Las invitaciones pendientes con este rol pasarán a «Miembro».'
+            ? tn(
+                role.memberCount,
+                '{count} persona pasará al rol «Miembro», igual que las invitaciones pendientes con este rol.',
+                '{count} personas pasarán al rol «Miembro», igual que las invitaciones pendientes con este rol.',
+              )
+            : t('Las invitaciones pendientes con este rol pasarán a «Miembro».')
         }
-        confirmLabel="Eliminar rol"
+        confirmLabel={t('Eliminar rol')}
         loading={remove.isPending}
         onConfirm={() =>
           remove.mutate(role.id, {
             onSuccess: () => {
-              toast.success(`Rol «${role.name}» eliminado`)
+              toast.success(t('Rol «{name}» eliminado', { name: role.name }))
               setConfirmDelete(false)
               onDeleted()
             },
-            onError: (error) => notifyError(error, 'No se pudo eliminar el rol'),
+            onError: (error) => notifyError(error, t('No se pudo eliminar el rol')),
           })
         }
       />
@@ -334,7 +349,7 @@ function PermissionGroupCard({ group, selected, editable, grantable, onToggle, o
           checked={state === 'all' ? true : state === 'some' ? 'indeterminate' : false}
           disabled={!editable || mine.permissions.length === 0}
           onCheckedChange={() => onToggleAll(state !== 'all')}
-          aria-label={`Todo el módulo ${group.label}`}
+          aria-label={t('Todo el módulo {name}', { name: group.label })}
           className="bg-card"
         />
         <label htmlFor={allId} className="min-w-0 flex-1 truncate font-mono text-[11px] font-semibold tracking-[0.06em] uppercase">
@@ -374,7 +389,7 @@ function PermissionRow({ permission, checked, disabled, locked, onToggle }) {
         </span>
       </span>
       {locked && (
-        <Lock className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-label="Tu rol no tiene este permiso: no lo puedes dar" />
+        <Lock className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-label={t('Tu rol no tiene este permiso: no lo puedes dar')} />
       )}
     </li>
   )

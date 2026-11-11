@@ -33,9 +33,9 @@ describe('ajustes del proyecto: los botones de cada fila dicen de cuál son', ()
 
   it('estados: subir, bajar, editar y eliminar llevan el nombre del estado', () => {
     render(<StatesSettings slug="equipo" project={project} />)
-    expect(screen.getByRole('button', { name: 'Bajar «Todo»' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Subir «Done»' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Editar el estado «Todo»' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Eliminar el estado «Done»' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Bajar «Sin empezar»' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Subir «Completado»' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Editar el estado «Sin empezar»' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Eliminar el estado «Completado»' })).toBeInTheDocument()
   })
 })

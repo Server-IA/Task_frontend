@@ -20,6 +20,7 @@ import { SAVED_VIEW_PARAM } from '@/features/issues/constants'
 import { useIssues } from '@/features/issues/hooks'
 import { missingFiltersText, withoutUnknownViewFilters } from '@/features/issues/unknownFilters'
 import { useCan } from '@/features/workspaces/hooks'
+import { t } from '@/i18n'
 import { toApiError } from '@/lib/errors'
 import { useFocusAfterRemoval } from '@/lib/focusReturn'
 import { notifyError } from '@/lib/notify'
@@ -79,41 +80,42 @@ export function SavedViewsBar({ slug, project, meta, issueFilters, known = {} })
     update.mutate(
       { viewId: view.id, filters: current },
       {
-        onSuccess: () => toast.success(`Vista «${view.name}» actualizada`),
-        onError: (error) => notifyError(error, 'No se pudo actualizar la vista'),
+        onSuccess: () => toast.success(t('Vista «{name}» actualizada', { name: view.name })),
+        onError: (error) => notifyError(error, t('No se pudo actualizar la vista')),
       },
     )
   const setShared = (view, shared) =>
     update.mutate(
       { viewId: view.id, shared },
       {
-        onSuccess: () => toast.success(shared ? `«${view.name}» ahora es compartida` : `«${view.name}» ahora es personal`),
+        onSuccess: () =>
+          toast.success(shared ? t('«{name}» ahora es compartida', { name: view.name }) : t('«{name}» ahora es personal', { name: view.name })),
         onError: (error) => notifyError(error),
       },
     )
 
   return (
-    <nav aria-label="Vistas guardadas" className="flex flex-wrap items-center gap-1.5 px-1">
+    <nav aria-label={t('Vistas guardadas')} className="flex flex-wrap items-center gap-1.5 px-1">
       <button
         ref={allRef}
         type="button"
         aria-current={!active && !bugsActive ? 'page' : undefined}
-        title="Todas las tareas y bugs del proyecto"
+        title={t('Todas las tareas y bugs del proyecto')}
         onClick={() => issueFilters.applyParams(clearViewParams)}
         className={pillClass(!active && !bugsActive)}
       >
-        Todas
+        {t('Todas')}
         <ViewCount value={project.issueCount} active={!active && !bugsActive} />
       </button>
       <button
         type="button"
         aria-current={bugsActive ? 'page' : undefined}
-        title="Los bugs abiertos por prioridad. Viene con cada proyecto"
+        title={t('Los bugs abiertos por prioridad. Viene con cada proyecto')}
         onClick={openBugsView}
         className={pillClass(bugsActive)}
       >
         <TypeIcon type="BUG" size={14} />
-        Bugs
+        {t('Bugs')}
         <ViewCount value={openBugs?.totalElements} active={bugsActive} />
       </button>
       {views.map((view) => (
@@ -133,9 +135,9 @@ export function SavedViewsBar({ slug, project, meta, issueFilters, known = {} })
       ))}
 
       <span className="ml-auto flex flex-wrap items-center gap-1.5">
-        {bugsActive && <span className="tf-fade mr-1.5 text-xs text-muted-foreground">«Bugs» viene con cada proyecto · no se borra</span>}
+        {bugsActive && <span className="tf-fade mr-1.5 text-xs text-muted-foreground">{t('«Bugs» viene con cada proyecto · no se borra')}</span>}
         {missingText && (
-          <span className="tf-fade mr-1.5 text-xs text-muted-foreground" title="Se muestra sin ese filtro">
+          <span className="tf-fade mr-1.5 text-xs text-muted-foreground" title={t('Se muestra sin ese filtro')}>
             {missingText}
           </span>
         )}
@@ -143,11 +145,11 @@ export function SavedViewsBar({ slug, project, meta, issueFilters, known = {} })
           <span className="mr-1.5 hidden items-center gap-3 text-xs text-muted-foreground xl:flex">
             <span className="flex items-center gap-1.5">
               <Users className="size-3.5" aria-hidden="true" />
-              compartida
+              {t('compartida')}
             </span>
             <span className="flex items-center gap-1.5">
               <Lock className="size-3.5" aria-hidden="true" />
-              personal
+              {t('personal')}
             </span>
           </span>
         )}
@@ -157,19 +159,19 @@ export function SavedViewsBar({ slug, project, meta, issueFilters, known = {} })
             onClick={() => setOrdering(true)}
             className="mr-1.5 rounded-md px-1 text-xs font-medium text-accent-text outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
           >
-            Ordenar vistas
+            {t('Ordenar vistas')}
           </button>
         )}
         {modified && (
           <>
-            <span className="tf-fade text-xs text-muted-foreground">Vista modificada</span>
+            <span className="tf-fade text-xs text-muted-foreground">{t('Vista modificada')}</span>
             <Button variant="ghost" size="sm" className="h-8 rounded-full" onClick={() => apply(active)}>
-              Descartar
+              {t('Descartar')}
             </Button>
             {canEditActive && (
               <Button variant="outline" size="sm" className="h-8 rounded-full" disabled={update.isPending} onClick={() => saveChanges(active)}>
                 {update.isPending && <Spinner />}
-                Actualizar vista
+                {t('Actualizar vista')}
               </Button>
             )}
           </>
@@ -221,7 +223,7 @@ const pillClass = (active) =>
 function ViewCount({ value, active }) {
   if (value == null) return null
   return (
-    <span className={cn('font-mono text-[11px] font-normal', active ? 'text-accent-text' : 'text-muted-foreground')} title="Tareas que muestra">
+    <span className={cn('font-mono text-[11px] font-normal', active ? 'text-accent-text' : 'text-muted-foreground')} title={t('Tareas que muestra')}>
       {value}
     </span>
   )
@@ -230,7 +232,7 @@ function ViewCount({ value, active }) {
 /** Pastilla de una vista: icono compartida/personal, nombre, tareas, «cambiado» y el menú de acciones si se puede editar. */
 function ViewPill({ view, active, changed, canEdit, canShare, onApply, onSaveChanges, onRename, onDelete, onShare }) {
   const Icon = view.shared ? Users : Lock
-  const hint = view.shared ? 'Vista compartida con el proyecto' : 'Vista personal, solo la ves tú'
+  const hint = view.shared ? t('Vista compartida con el proyecto') : t('Vista personal, solo la ves tú')
   const showMenu = canEdit || canShare
 
   return (
@@ -242,11 +244,11 @@ function ViewPill({ view, active, changed, canEdit, canShare, onApply, onSaveCha
         onClick={onApply}
         className={cn('flex h-full items-center gap-1.5 rounded-full py-0 pl-3 outline-none focus-visible:ring-2 focus-visible:ring-ring', showMenu ? 'pr-1.5' : 'pr-3')}
       >
-        <Icon className="size-3.5 shrink-0" aria-label={view.shared ? 'compartida' : 'personal'} />
+        <Icon className="size-3.5 shrink-0" aria-label={view.shared ? t('compartida') : t('personal')} />
         <span className="max-w-48 truncate">{view.name}</span>
         <ViewCount value={view.issueCount} active={active} />
         {changed && (
-          <span className="tf-pop rounded-full bg-primary px-1.5 font-mono text-[10px] font-semibold text-primary-foreground">cambiado</span>
+          <span className="tf-pop rounded-full bg-primary px-1.5 font-mono text-[10px] font-semibold text-primary-foreground">{t('cambiado')}</span>
         )}
       </button>
       {showMenu && (
@@ -254,7 +256,7 @@ function ViewPill({ view, active, changed, canEdit, canShare, onApply, onSaveCha
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              aria-label={`Acciones de la vista «${view.name}»`}
+              aria-label={t('Acciones de la vista «{name}»', { name: view.name })}
               className="mr-1 flex size-6 items-center justify-center rounded-full opacity-70 outline-none hover:bg-foreground/5 hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring data-[state=open]:opacity-100"
             >
               <ChevronDown className="size-3.5" />
@@ -264,19 +266,19 @@ function ViewPill({ view, active, changed, canEdit, canShare, onApply, onSaveCha
             {canEdit && active && changed && (
               <DropdownMenuItem onSelect={onSaveChanges}>
                 <RefreshCcw />
-                Actualizar con los filtros actuales
+                {t('Actualizar con los filtros actuales')}
               </DropdownMenuItem>
             )}
             {canEdit && (
               <DropdownMenuItem onSelect={onRename}>
                 <Pencil />
-                Cambiar nombre
+                {t('Cambiar nombre')}
               </DropdownMenuItem>
             )}
             {canShare && (
               <DropdownMenuItem onSelect={() => onShare(!view.shared)}>
                 {view.shared ? <Lock /> : <Share2 />}
-                {view.shared ? 'Hacer personal' : 'Compartir con el proyecto'}
+                {view.shared ? t('Hacer personal') : t('Compartir con el proyecto')}
               </DropdownMenuItem>
             )}
             {canEdit && (
@@ -284,7 +286,7 @@ function ViewPill({ view, active, changed, canEdit, canShare, onApply, onSaveCha
                 <DropdownMenuSeparator />
                 <DropdownMenuItem variant="destructive" onSelect={onDelete}>
                   <Trash2 />
-                  Eliminar vista
+                  {t('Eliminar vista')}
                 </DropdownMenuItem>
               </>
             )}
@@ -337,14 +339,14 @@ function SaveViewPopover({ slug, project, meta, views, current, active, canEditA
       { name: value, shared: asShared, filters: current },
       {
         onSuccess: (view) => {
-          toast.success(`Vista «${view.name}» guardada`)
+          toast.success(t('Vista «{name}» guardada', { name: view.name }))
           setOpen(false)
           onCreated(view)
         },
         onError: (error) => {
           const apiError = toApiError(error)
           if (apiError.status === 409) setNameError(apiError.message)
-          else notifyError(error, 'No se pudo guardar la vista')
+          else notifyError(error, t('No se pudo guardar la vista'))
         },
       },
     )
@@ -358,20 +360,22 @@ function SaveViewPopover({ slug, project, meta, views, current, active, canEditA
           className="flex h-8 items-center gap-1.5 rounded-full border border-accent-text bg-accent-soft px-3 text-[13px] font-semibold text-accent-text transition-opacity duration-150 outline-none hover:opacity-85 focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Bookmark className="size-3.5" />
-          Guardar vista
+          {t('Guardar vista')}
         </button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-[min(420px,calc(100vw-2rem))] rounded-[18px] p-0">
         <form onSubmit={save} className="flex flex-col gap-3.5 px-4.5 pt-4 pb-3.5">
           <div className="flex items-center gap-2">
-            <h2 className="text-[15px] font-semibold">Guardar vista</h2>
-            {active && <span className="min-w-0 truncate font-mono text-xs text-muted-foreground">a partir de «{active.name}»</span>}
-            <Button type="button" variant="ghost" size="icon" className="ml-auto size-7 text-muted-foreground" aria-label="Cerrar" onClick={() => setOpen(false)}>
+            <h2 className="text-[15px] font-semibold">{t('Guardar vista')}</h2>
+            {active && (
+              <span className="min-w-0 truncate font-mono text-xs text-muted-foreground">{t('a partir de «{name}»', { name: active.name })}</span>
+            )}
+            <Button type="button" variant="ghost" size="icon" className="ml-auto size-7 text-muted-foreground" aria-label={t('Cerrar')} onClick={() => setOpen(false)}>
               <X />
             </Button>
           </div>
           <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-            Nombre
+            {t('Nombre')}
             <Input
               autoFocus
               value={name}
@@ -380,7 +384,7 @@ function SaveViewPopover({ slug, project, meta, views, current, active, canEditA
                 setName(event.target.value)
                 setNameError(null)
               }}
-              placeholder="Para la daily"
+              placeholder={t('Para la daily')}
               aria-invalid={nameError ? true : undefined}
               aria-describedby={nameError ? errorId : undefined}
               className="text-sm font-normal"
@@ -388,31 +392,31 @@ function SaveViewPopover({ slug, project, meta, views, current, active, canEditA
             <NameError id={errorId} message={nameError} />
           </label>
           <fieldset className="flex flex-col gap-1.5">
-            <legend className="mb-1.5 text-xs font-medium text-muted-foreground">Quién la ve</legend>
+            <legend className="mb-1.5 text-xs font-medium text-muted-foreground">{t('Quién la ve')}</legend>
             <VisibilityOption
               checked={!shared}
               onChange={() => chooseShared(false)}
               icon={Lock}
-              title="Personal"
-              description="Solo tú la ves en tu barra de vistas."
+              title={t('Personal')}
+              description={t('Solo tú la ves en tu barra de vistas.')}
             />
             <VisibilityOption
               checked={shared}
               disabled={!isManager}
               onChange={() => chooseShared(true)}
               icon={Users}
-              title="Compartida"
-              description="Aparece en la barra de todo el proyecto. Los miembros la usan pero no la cambian."
+              title={t('Compartida')}
+              description={t('Aparece en la barra de todo el proyecto. Los miembros la usan pero no la cambian.')}
             />
           </fieldset>
           {!isManager && (
             <p className="flex items-start gap-2 rounded-[10px] bg-muted px-2.5 py-2 text-xs leading-normal text-muted-foreground">
               <Lock className="mt-px size-3.5 shrink-0" aria-hidden="true" />
-              Solo el project manager crea y edita vistas compartidas. Los miembros pueden guardar vistas personales.
+              {t('Solo el project manager crea y edita vistas compartidas. Los miembros pueden guardar vistas personales.')}
             </p>
           )}
           <div className="flex flex-col gap-1.5">
-            <p className="text-xs font-medium text-muted-foreground">Se guarda con</p>
+            <p className="text-xs font-medium text-muted-foreground">{t('Se guarda con')}</p>
             <ul className="rounded-[10px] border border-dashed border-dash px-3 py-2 font-mono text-xs leading-[1.8]">
               {summary.map((row) => (
                 <li key={row.key} className="flex gap-2">
@@ -434,15 +438,15 @@ function SaveViewPopover({ slug, project, meta, views, current, active, canEditA
                   setOpen(false)
                 }}
               >
-                <span className="truncate">Actualizar «{active.name}»</span>
+                <span className="truncate">{t('Actualizar «{name}»', { name: active.name })}</span>
               </Button>
             )}
             <Button type="button" variant="ghost" size="sm" className="ml-auto" onClick={() => setOpen(false)}>
-              Cancelar
+              {t('Cancelar')}
             </Button>
             <Button type="submit" size="sm" disabled={!name.trim() || create.isPending}>
               {create.isPending && <Spinner />}
-              Guardar vista
+              {t('Guardar vista')}
             </Button>
           </div>
         </form>
@@ -505,7 +509,7 @@ function RenameDialog({ slug, projectId, views, view, onClose }) {
       { viewId: view.id, name: value },
       {
         onSuccess: () => {
-          toast.success('Nombre actualizado')
+          toast.success(t('Nombre actualizado'))
           onClose()
         },
         onError: (error) => {
@@ -521,8 +525,8 @@ function RenameDialog({ slug, projectId, views, view, onClose }) {
     <Dialog open={Boolean(view)} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Cambiar nombre de la vista</DialogTitle>
-          <DialogDescription className="sr-only">Escribe el nombre nuevo</DialogDescription>
+          <DialogTitle>{t('Cambiar nombre de la vista')}</DialogTitle>
+          <DialogDescription className="sr-only">{t('Escribe el nombre nuevo')}</DialogDescription>
         </DialogHeader>
         <form onSubmit={save} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
@@ -534,7 +538,7 @@ function RenameDialog({ slug, projectId, views, view, onClose }) {
                 setName(event.target.value)
                 setNameError(null)
               }}
-              aria-label="Nombre"
+              aria-label={t('Nombre')}
               aria-invalid={nameError ? true : undefined}
               aria-describedby={nameError ? errorId : undefined}
             />
@@ -542,11 +546,11 @@ function RenameDialog({ slug, projectId, views, view, onClose }) {
           </div>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={onClose}>
-              Cancelar
+              {t('Cancelar')}
             </Button>
             <Button type="submit" disabled={!name.trim() || update.isPending}>
               {update.isPending && <Spinner />}
-              Guardar
+              {t('Guardar')}
             </Button>
           </DialogFooter>
         </form>
@@ -572,9 +576,9 @@ function DeleteViewDialog({ slug, projectId, view, fallbackRef, onClose, onDelet
     <ConfirmDialog
       open={Boolean(view)}
       onOpenChange={(open) => !open && onClose()}
-      title={view ? `¿Eliminar la vista «${view.name}»?` : ''}
-      description={view?.shared ? 'Desaparece de la barra de todo el proyecto. Las tareas no cambian.' : 'Las tareas no cambian.'}
-      confirmLabel="Eliminar"
+      title={view ? t('¿Eliminar la vista «{name}»?', { name: view.name }) : ''}
+      description={view?.shared ? t('Desaparece de la barra de todo el proyecto. Las tareas no cambian.') : t('Las tareas no cambian.')}
+      confirmLabel={t('Eliminar')}
       loading={remove.isPending}
       returnFocusRef={fallbackRef}
       focusAfterConfirmRef={removal.ref}
@@ -583,7 +587,7 @@ function DeleteViewDialog({ slug, projectId, view, fallbackRef, onClose, onDelet
         remove.mutate(view.id, {
           onSuccess: () => {
             removal.done()
-            toast.success(`Vista «${view.name}» eliminada`)
+            toast.success(t('Vista «{name}» eliminada', { name: view.name }))
             onDeleted(view)
             onClose()
           },

@@ -1,4 +1,5 @@
 import { ColorSwatch } from '@/components/common/ColorPicker'
+import { t } from '@/i18n'
 import { PROJECT_COLORS } from '../projectColors'
 import { ProjectIcon } from './ProjectIcon'
 
@@ -23,7 +24,7 @@ export function ProjectColorPicker({ value, onChange, identifier, disabled = fal
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
       <div
         role="radiogroup"
-        aria-label="Color del proyecto"
+        aria-label={t('Color del proyecto')}
         className="flex flex-wrap gap-1.5"
         onKeyDown={handleKeyDown}
       >
@@ -48,7 +49,7 @@ export function ProjectColorPicker({ value, onChange, identifier, disabled = fal
         })}
       </div>
       <span className="flex items-center gap-2 text-xs text-muted-foreground">
-        Así se ve
+        {t('Así se ve')}
         <ProjectIcon project={{ identifier: identifier || 'WEB', color: value }} className="tf-pop" key={value} />
       </span>
     </div>

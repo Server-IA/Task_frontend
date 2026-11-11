@@ -16,6 +16,7 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { CenteredSpinner } from '@/components/common/Loaders'
 import { ErrorState } from '@/components/common/States'
 import { UserAvatar } from '@/components/common/UserAvatar'
+import { t, tc, tn } from '@/i18n'
 import { formatShortDate } from '@/lib/dates'
 import { useFocusAfterRemoval } from '@/lib/focusReturn'
 import { notifyError } from '@/lib/notify'
@@ -50,9 +51,10 @@ export function MembersSettings({ workspace }) {
     updateRole.mutate(
       { userId: member.user.id, ...memberRoleBody(key) },
       {
-        onSuccess: () => toast.success(`${member.user.fullName} ahora tiene el rol ${role?.name ?? ''}`.trim()),
+        onSuccess: () =>
+          toast.success(t('{name} ahora tiene el rol {role}', { name: member.user.fullName, role: role?.name ?? '' }).trim()),
         // 409 si el workspace se quedaría sin project manager: se muestra el mensaje del backend
-        onError: (error) => notifyError(error, 'No se pudo cambiar el rol'),
+        onError: (error) => notifyError(error, t('No se pudo cambiar el rol')),
       },
     )
   }
@@ -62,10 +64,10 @@ export function MembersSettings({ workspace }) {
     removeMember.mutate(toRemove.user.id, {
       onSuccess: () => {
         removal.done()
-        toast.success(`${toRemove.user.fullName} ya no es miembro`)
+        toast.success(t('{name} ya no es miembro', { name: toRemove.user.fullName }))
         setToRemove(null)
       },
-      onError: (error) => notifyError(error, 'No se pudo quitar'),
+      onError: (error) => notifyError(error, t('No se pudo quitar')),
     })
   }
 
@@ -73,12 +75,13 @@ export function MembersSettings({ workspace }) {
     <Card>
       <CardHeader>
         <CardTitle ref={titleRef} tabIndex={-1} className="outline-none">
-          Miembros
+          {t('Miembros')}
         </CardTitle>
         <CardDescription>
-          {members ? `${members.length} ${members.length === 1 ? 'persona' : 'personas'} en el workspace.` : ' '} El
-          project manager tiene todos los permisos y puede haber más de uno; lo que pueden hacer los demás lo decide su
-          rol (pestaña Roles).
+          {members ? tn(members.length, '{count} persona en el workspace.', '{count} personas en el workspace.') : ' '}{' '}
+          {t(
+            'El project manager tiene todos los permisos y puede haber más de uno; lo que pueden hacer los demás lo decide su rol (pestaña Roles).',
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent className="px-0 sm:px-6">
@@ -88,9 +91,9 @@ export function MembersSettings({ workspace }) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Persona</TableHead>
-                <TableHead className="w-48">Rol</TableHead>
-                <TableHead className="hidden w-28 sm:table-cell">Desde</TableHead>
+                <TableHead>{t('Persona')}</TableHead>
+                <TableHead className="w-48">{t('Rol')}</TableHead>
+                <TableHead className="hidden w-28 sm:table-cell">{tc('miembro', 'Desde')}</TableHead>
                 <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
@@ -105,7 +108,7 @@ export function MembersSettings({ workspace }) {
                         <div className="min-w-0">
                           <p className="truncate font-medium">
                             {member.user.fullName}
-                            {isMe && <span className="ml-1.5 text-xs text-muted-foreground">(tú)</span>}
+                            {isMe && <span className="ml-1.5 text-xs text-muted-foreground">{t('(tú)')}</span>}
                           </p>
                           <p className="truncate text-xs text-muted-foreground">{member.user.email}</p>
                         </div>
@@ -119,7 +122,7 @@ export function MembersSettings({ workspace }) {
                           onValueChange={(key) => handleRoleChange(member, key)}
                           disabled={updateRole.isPending}
                         >
-                          <SelectTrigger size="sm" className="w-44" aria-label={`Rol de ${member.user.fullName}`}>
+                          <SelectTrigger size="sm" className="w-44" aria-label={t('Rol de {name}', { name: member.user.fullName })}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -145,14 +148,14 @@ export function MembersSettings({ workspace }) {
                       {canRemove && !isMe && (manager || member.role !== 'OWNER') && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="size-8" aria-label="Acciones">
+                            <Button variant="ghost" size="icon" className="size-8" aria-label={t('Acciones')}>
                               <MoreHorizontal className="size-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem variant="destructive" onSelect={() => setToRemove(member)}>
                               <UserMinus />
-                              Quitar del workspace
+                              {t('Quitar del workspace')}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -167,9 +170,9 @@ export function MembersSettings({ workspace }) {
         <ConfirmDialog
           open={Boolean(toRemove)}
           onOpenChange={(open) => !open && setToRemove(null)}
-          title={`¿Quitar a ${toRemove?.user.fullName}?`}
-          description="Perderá el acceso al workspace y a todos sus proyectos."
-          confirmLabel="Quitar"
+          title={t('¿Quitar a {name}?', { name: toRemove?.user.fullName })}
+          description={t('Perderá el acceso al workspace y a todos sus proyectos.')}
+          confirmLabel={t('Quitar')}
           loading={removeMember.isPending}
           onConfirm={handleRemove}
           returnFocusRef={titleRef}

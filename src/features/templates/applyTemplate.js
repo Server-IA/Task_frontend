@@ -1,4 +1,5 @@
 import { PRIORITY_LABELS } from '@/features/issues/constants'
+import { stateName, t, tn } from '@/i18n'
 
 /**
  * Aplicar una plantilla al formulario de nueva tarea y textos que la resumen.
@@ -89,8 +90,8 @@ function checklistParts(checklist = []) {
   const steps = checklist.filter((item) => item.kind === 'CHECK').length
   const criteria = checklist.filter((item) => item.kind === 'CRITERION').length
   return [
-    steps > 0 && `${steps} ${steps === 1 ? 'paso' : 'pasos'}`,
-    criteria > 0 && `${criteria} ${criteria === 1 ? 'criterio' : 'criterios'}`,
+    steps > 0 && tn(steps, '{count} paso', '{count} pasos'),
+    criteria > 0 && tn(criteria, '{count} criterio', '{count} criterios'),
   ].filter(Boolean)
 }
 
@@ -108,7 +109,7 @@ export function templateSummary(template) {
     template.titlePrefix?.trim(),
     ...(template.labels ?? []).map((label) => label.name),
     template.priority && template.priority !== 'NONE' ? PRIORITY_LABELS[template.priority].toLowerCase() : null,
-    template.state?.name,
+    stateName(template.state),
     ...(template.assignees ?? []).map(mention),
     checklistLabel(template.checklist),
   ]
@@ -119,20 +120,20 @@ export function templateSummary(template) {
 /** Lo que aplicó la plantilla, para el aviso del diálogo: «prefijo, descripción, prioridad y 4 pasos». */
 export function appliedParts(template) {
   const parts = [
-    template.titlePrefix && 'prefijo',
-    template.description && 'descripción',
-    template.labels?.length && (template.labels.length === 1 ? 'etiqueta' : 'etiquetas'),
-    template.priority && template.priority !== 'NONE' && 'prioridad',
-    template.state && 'estado',
-    template.assignees?.length && (template.assignees.length === 1 ? 'asignado' : 'asignados'),
+    template.titlePrefix && t('prefijo'),
+    template.description && t('descripción'),
+    template.labels?.length && (template.labels.length === 1 ? t('etiqueta') : t('etiquetas')),
+    template.priority && template.priority !== 'NONE' && t('prioridad'),
+    template.state && t('estado'),
+    template.assignees?.length && (template.assignees.length === 1 ? t('asignado') : t('asignados')),
     ...checklistParts(template.checklist),
   ].filter(Boolean)
-  if (parts.length <= 1) return parts[0] ?? 'nada'
-  return `${parts.slice(0, -1).join(', ')} y ${parts.at(-1)}`
+  if (parts.length <= 1) return parts[0] ?? t('nada')
+  return t('{list} y {last}', { list: parts.slice(0, -1).join(', '), last: parts.at(-1) })
 }
 
 /** Cuántas tareas se crearon con la plantilla: «12 usos», «1 uso», «sin usos». */
 export function usesLabel(count = 0) {
-  if (!count) return 'sin usos'
-  return `${count} ${count === 1 ? 'uso' : 'usos'}`
+  if (!count) return t('sin usos')
+  return tn(count, '{count} uso', '{count} usos')
 }

@@ -9,6 +9,7 @@ import {
   SORT_OPTIONS,
 } from '@/features/issues/constants'
 import { effectiveTypes, isDefaultTypes, typesLabel, typesToUrl } from '@/features/issues/issueTypes'
+import { stateName, t } from '@/i18n'
 
 /**
  * Vistas guardadas: los filtros de la lista de tareas (los mismos parámetros de la URL), la vista
@@ -134,27 +135,27 @@ export function summarizeViewFilters(filters, meta) {
   }
   const nameOf = (id, list = []) => (id ? (list.find((item) => item.id === id)?.name ?? '') : '')
   const rows = [
-    ['ciclo', nameOf(filters.cycle, meta.cycles)],
-    ['módulo', nameOf(filters.module, meta.modules)],
-    ['estado', names(filters.state, meta.states, (state) => state.name)],
-    ['prioridad', (filters.priority ?? []).map((value) => PRIORITY_LABELS[value] ?? value).join(', ')],
-    ['asignado', names(filters.assignee, meta.users, (user) => user.fullName)],
-    ['etiqueta', names(filters.label, meta.labels, (label) => label.name)],
-    ['bloqueo', filters.blocked ? 'solo bloqueadas' : ''],
-    ['tipo', filters.type?.length && !isDefaultTypes(effectiveTypes(filters.type)) ? typesLabel(effectiveTypes(filters.type)).toLowerCase() : ''],
-    ['búsqueda', filters.search ? `«${filters.search}»` : ''],
+    [t('ciclo'), nameOf(filters.cycle, meta.cycles)],
+    [t('módulo'), nameOf(filters.module, meta.modules)],
+    [t('estado'), names(filters.state, meta.states, (state) => stateName(state))],
+    [t('prioridad'), (filters.priority ?? []).map((value) => PRIORITY_LABELS[value] ?? value).join(', ')],
+    [t('asignado'), names(filters.assignee, meta.users, (user) => user.fullName)],
+    [t('etiqueta'), names(filters.label, meta.labels, (label) => label.name)],
+    [t('bloqueo'), filters.blocked ? t('solo bloqueadas') : ''],
+    [t('tipo'), filters.type?.length && !isDefaultTypes(effectiveTypes(filters.type)) ? typesLabel(effectiveTypes(filters.type)).toLowerCase() : ''],
+    [t('búsqueda'), filters.search ? t('«{text}»', { text: filters.search }) : ''],
   ]
     .filter(([, value]) => value)
     .map(([key, value]) => ({ key, value }))
-  if (rows.length === 0) rows.push({ key: 'filtros', value: 'ninguno (todas las tareas)' })
-  rows.push({ key: 'vista', value: filters.view === 'board' ? 'tablero' : 'lista' })
-  if (filters.view === 'board' && filters.groupBy === BOARD_GROUP_STORY) rows.push({ key: 'agrupar', value: 'carriles por historia' })
+  if (rows.length === 0) rows.push({ key: t('filtros'), value: t('ninguno (todas las tareas)') })
+  rows.push({ key: t('vista'), value: filters.view === 'board' ? t('tablero') : t('lista') })
+  if (filters.view === 'board' && filters.groupBy === BOARD_GROUP_STORY) rows.push({ key: t('agrupar'), value: t('carriles por historia') })
   if (filters.view !== 'board') {
     const group = GROUP_BY_OPTIONS.find((option) => option.value === (filters.groupBy || GROUP_BY_DEFAULT))
-    rows.push({ key: 'agrupar', value: `por ${(group?.label ?? filters.groupBy).toLowerCase()}` })
+    rows.push({ key: t('agrupar'), value: t('por {group}', { group: (group?.label ?? filters.groupBy).toLowerCase() }) })
   }
   const sort = SORT_OPTIONS.find((option) => option.value === (filters.sort || DEFAULT_SORT))
-  rows.push({ key: 'orden', value: sort?.summary ?? (sort?.label ?? filters.sort).toLowerCase() })
+  rows.push({ key: t('orden'), value: sort?.summary ?? (sort?.label ?? filters.sort).toLowerCase() })
   return rows
 }
 
@@ -224,6 +225,6 @@ export function duplicateViewName(views, name, { shared, excludeId } = {}) {
   )
   if (!taken) return null
   return shared
-    ? `Ya hay una vista compartida llamada «${clean}» en este proyecto`
-    : `Ya tienes una vista personal llamada «${clean}» en este proyecto`
+    ? t('Ya hay una vista compartida llamada «{name}» en este proyecto', { name: clean })
+    : t('Ya tienes una vista personal llamada «{name}» en este proyecto', { name: clean })
 }

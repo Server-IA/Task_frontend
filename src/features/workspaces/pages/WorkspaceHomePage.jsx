@@ -8,6 +8,7 @@ import { EmptyState, ErrorState } from '@/components/common/States'
 import { CreateProjectDialog } from '@/features/projects/components/CreateProjectDialog'
 import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
 import { useProjects } from '@/features/projects/hooks'
+import { t, tn } from '@/i18n'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { formatShortDate } from '@/lib/dates'
 import { workspacePath } from '@/lib/paths'
@@ -29,14 +30,14 @@ export function WorkspaceHomePage() {
   return (
     <>
       <PageHeader
-        path={[...workspacePath(workspace), { label: 'proyectos' }]}
-        title="Proyectos"
-        documentTitle={['Proyectos', workspace.name]}
+        path={[...workspacePath(workspace), { label: t('proyectos') }]}
+        title={t('Proyectos')}
+        documentTitle={[t('Proyectos'), workspace.name]}
         description={
           projects && (
             <>
-              {count} {count === 1 ? 'proyecto' : 'proyectos'}
-              {members && ` · ${people} ${people === 1 ? 'persona' : 'personas'} en el equipo`}
+              {tn(count, '{count} proyecto', '{count} proyectos')}
+              {members && ` · ${tn(people, '{count} persona en el equipo', '{count} personas en el equipo')}`}
             </>
           )
         }
@@ -44,7 +45,7 @@ export function WorkspaceHomePage() {
           canManage && (
             <Button className="h-10 rounded-xl px-3.5" onClick={() => setCreateOpen(true)}>
               <Plus strokeWidth={3} />
-              Nuevo proyecto
+              {t('Nuevo proyecto')}
             </Button>
           )
         }
@@ -61,17 +62,17 @@ export function WorkspaceHomePage() {
         {count === 0 && projects && (
           <EmptyState
             icon={FolderClosed}
-            title="Todavía no hay proyectos"
+            title={t('Todavía no hay proyectos')}
             description={
               canManage
-                ? 'Crea el primer proyecto para empezar a organizar las tareas del equipo.'
-                : 'Todavía no estás en ningún proyecto. Pide al project manager que te agregue a uno.'
+                ? t('Crea el primer proyecto para empezar a organizar las tareas del equipo.')
+                : t('Todavía no estás en ningún proyecto. Pide al project manager que te agregue a uno.')
             }
             action={
               canManage && (
                 <Button onClick={() => setCreateOpen(true)}>
                   <Plus />
-                  Crear proyecto
+                  {t('Crear proyecto')}
                 </Button>
               )
             }
@@ -91,8 +92,8 @@ export function WorkspaceHomePage() {
                 <span className="flex size-9 items-center justify-center rounded-xl border bg-card">
                   <Plus className="size-4" />
                 </span>
-                <span className="font-semibold text-foreground">Nuevo proyecto</span>
-                <span className="font-mono text-xs">crea sus estados por defecto</span>
+                <span className="font-semibold text-foreground">{t('Nuevo proyecto')}</span>
+                <span className="font-mono text-xs">{t('crea sus estados por defecto')}</span>
               </button>
             )}
           </div>
@@ -119,15 +120,15 @@ function ProjectCard({ slug, project }) {
         <div className="min-w-0">
           <h2 className="truncate text-[17px] font-semibold">{project.name}</h2>
           <p className="font-mono text-xs text-muted-foreground">
-            {total} {total === 1 ? 'tarea' : 'tareas'} · {open} {open === 1 ? 'abierta' : 'abiertas'}
+            {tn(total, '{count} tarea', '{count} tareas')} · {tn(open, '{count} abierta', '{count} abiertas')}
           </p>
         </div>
       </div>
-      <p className="line-clamp-2 min-h-10 text-sm text-muted-foreground">{project.description || 'Sin descripción'}</p>
+      <p className="line-clamp-2 min-h-10 text-sm text-muted-foreground">{project.description || t('Sin descripción')}</p>
       <div className="mt-auto flex items-center gap-3">
         {members.length > 0 && <AvatarStack users={members} total={project.memberCount} size="sm" max={4} />}
-        <span className="font-mono text-[11px] text-muted-foreground">creado el {formatShortDate(project.createdAt)}</span>
-        <span className="ml-auto text-sm font-semibold text-accent-text group-hover:underline">Abrir →</span>
+        <span className="font-mono text-[11px] text-muted-foreground">{t('creado el {date}', { date: formatShortDate(project.createdAt) })}</span>
+        <span className="ml-auto text-sm font-semibold text-accent-text group-hover:underline">{t('Abrir →')}</span>
       </div>
     </Link>
   )

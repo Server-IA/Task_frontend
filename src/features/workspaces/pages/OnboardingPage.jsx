@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/common/Loaders'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { emailSchema } from '@/features/auth/schemas'
+import { t, tn, tx } from '@/i18n'
 import { AuthHeader, CenteredShell } from '@/layouts/AuthLayout'
 import { UserMenu } from '@/layouts/UserMenu'
 import { applyFieldErrors } from '@/lib/errors'
@@ -51,9 +52,9 @@ export function OnboardingPage() {
           )
           setSendingInvites(false)
           const failed = results.filter((result) => result.status === 'rejected').length
-          if (failed > 0) toast.warning(`${failed} ${failed === 1 ? 'invitación no se pudo enviar' : 'invitaciones no se pudieron enviar'}`)
+          if (failed > 0) toast.warning(tn(failed, '{count} invitación no se pudo enviar', '{count} invitaciones no se pudieron enviar'))
         }
-        toast.success('¡Workspace creado!')
+        toast.success(t('¡Workspace creado!'))
         navigate(`/${workspace.slug}`, { replace: true })
       },
       onError: (error) => {
@@ -65,8 +66,8 @@ export function OnboardingPage() {
   const pending = createWorkspace.isPending || sendingInvites
   const steps = isFirst
     ? [
-        { label: 'cuenta', done: true },
-        { label: 'correo', done: true },
+        { label: t('cuenta'), done: true },
+        { label: t('correo'), done: true },
         { label: 'workspace', done: false },
       ]
     : []
@@ -76,7 +77,7 @@ export function OnboardingPage() {
       meta={
         <div className="flex items-center gap-3">
           {steps.length > 0 && (
-            <ol aria-label="Progreso" className="hidden gap-1.5 sm:flex">
+            <ol aria-label={t('Progreso')}className="hidden gap-1.5 sm:flex">
               {steps.map((step) => (
                 <li
                   key={step.label}
@@ -95,15 +96,21 @@ export function OnboardingPage() {
           </div>
         </div>
       }
-      footer={<span>¿Te invitaron a uno? abre el enlace del correo</span>}
+      footer={<span>{t('¿Te invitaron a uno? abre el enlace del correo')}</span>}
     >
       <div className="flex w-full flex-wrap items-center justify-center gap-7">
         <section aria-labelledby="onboarding-titulo" className="flex w-full max-w-[460px] flex-col gap-5.5">
           <div id="onboarding-titulo">
             <AuthHeader
-              path={isFirst ? '~/nuevo-workspace · paso 3/3' : '~/nuevo-workspace'}
-              title={isFirst ? 'Arma tu primer workspace' : 'Crea un workspace'}
-              description={`${isFirst ? `Hola, ${user?.fullName?.split(' ')[0] ?? ''}. ` : ''}Un workspace agrupa a tu equipo y sus proyectos. Puedes crear más después.`}
+              path={isFirst ? t('~/nuevo-workspace · paso 3/3') : t('~/nuevo-workspace')}
+              title={isFirst ? t('Arma tu primer workspace') : t('Crea un workspace')}
+              description={
+                isFirst
+                  ? t('Hola, {name}. Un workspace agrupa a tu equipo y sus proyectos. Puedes crear más después.', {
+                      name: user?.fullName?.split(' ')[0] ?? '',
+                    })
+                  : t('Un workspace agrupa a tu equipo y sus proyectos. Puedes crear más después.')
+              }
             />
           </div>
           <Form {...form}>
@@ -113,9 +120,9 @@ export function OnboardingPage() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nombre del workspace</FormLabel>
+                    <FormLabel>{t('Nombre del workspace')}</FormLabel>
                     <FormControl>
-                      <Input placeholder="Equipo de producto" autoFocus className="h-10" {...field} />
+                      <Input placeholder={t('Equipo de producto')}autoFocus className="h-10" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -126,7 +133,7 @@ export function OnboardingPage() {
                 name="slug"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Identificador</FormLabel>
+                    <FormLabel>{t('Identificador')}</FormLabel>
                     <FormControl>
                       <div className="flex h-10 items-center overflow-hidden rounded-md border border-input bg-card font-mono text-[13px] focus-within:ring-[3px] focus-within:ring-ring/50">
                         <span className="pl-3 text-muted-foreground select-none">{window.location.host}/</span>
@@ -140,7 +147,7 @@ export function OnboardingPage() {
                         />
                       </div>
                     </FormControl>
-                    <p className="font-mono text-[11px] text-muted-foreground">minúsculas, números y guiones</p>
+                    <p className="font-mono text-[11px] text-muted-foreground">{t('minúsculas, números y guiones')}</p>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -149,11 +156,11 @@ export function OnboardingPage() {
               <div className="flex flex-wrap items-center gap-3.5 pt-1">
                 <Button type="submit" className="h-11 flex-[1_1_200px] rounded-xl" disabled={pending}>
                   {pending && <Spinner />}
-                  Crear workspace
+                  {t('Crear workspace')}
                 </Button>
                 {workspaces.length > 0 && (
                   <Link to="/" className="text-[13px] font-medium text-muted-foreground hover:text-foreground">
-                    Volver a mis workspaces
+                    {t('Volver a mis workspaces')}
                   </Link>
                 )}
               </div>
@@ -176,11 +183,11 @@ function InviteEmails({ value, onChange, ownEmail }) {
     const email = draft.trim().replace(/,$/, '').toLowerCase()
     if (!email) return
     if (!emailSchema.safeParse(email).success) {
-      setError('Ese correo no es válido')
+      setError(t('Ese correo no es válido'))
       return
     }
     if (email === ownEmail?.toLowerCase()) {
-      setError('Ya eres parte del workspace')
+      setError(t('Ya eres parte del workspace'))
       return
     }
     if (!value.includes(email)) onChange([...value, email])
@@ -191,7 +198,7 @@ function InviteEmails({ value, onChange, ownEmail }) {
   return (
     <div className="space-y-2">
       <label htmlFor="invite-input" className="text-sm font-medium">
-        Invita a tu equipo <span className="font-normal text-muted-foreground">(opcional)</span>
+        {t('Invita a tu equipo')} <span className="font-normal text-muted-foreground">{t('(opcional)')}</span>
       </label>
       <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-input bg-card px-2 py-1.5 focus-within:ring-[3px] focus-within:ring-ring/50">
         {value.map((email) => (
@@ -201,7 +208,7 @@ function InviteEmails({ value, onChange, ownEmail }) {
               type="button"
               className="flex size-4.5 items-center justify-center rounded text-muted-foreground hover:text-foreground"
               onClick={() => onChange(value.filter((item) => item !== email))}
-              aria-label={`Quitar ${email}`}
+              aria-label={t('Quitar {email}', { email })}
             >
               <X className="size-3" />
             </button>
@@ -223,14 +230,14 @@ function InviteEmails({ value, onChange, ownEmail }) {
             if (event.key === 'Backspace' && !draft && value.length) onChange(value.slice(0, -1))
           }}
           onBlur={add}
-          placeholder="correo@equipo.com"
+          placeholder={t('correo@equipo.com')}
           className="min-w-36 flex-1 bg-transparent px-1 py-0.5 text-sm outline-none placeholder:text-muted-foreground"
         />
       </div>
       {error ? (
         <p className="text-sm text-destructive">{error}</p>
       ) : (
-        <p className="font-mono text-[11px] text-muted-foreground">les llegará un correo para unirse como miembros</p>
+        <p className="font-mono text-[11px] text-muted-foreground">{t('les llegará un correo para unirse como miembros')}</p>
       )}
     </div>
   )
@@ -239,27 +246,29 @@ function InviteEmails({ value, onChange, ownEmail }) {
 /** Vista previa de cómo se verá la barra lateral con el workspace nuevo. */
 function SidebarPreview({ name, slug, user, invites }) {
   return (
-    <figure aria-label="Vista previa" className="m-0 hidden w-full max-w-[420px] flex-col gap-3 rounded-[22px] border border-dashed border-dash p-4.5 md:flex">
-      <figcaption className="font-mono text-[11px] text-muted-foreground">// así se verá tu barra lateral</figcaption>
+    <figure aria-label={t('Vista previa')} className="m-0 hidden w-full max-w-[420px] flex-col gap-3 rounded-[22px] border border-dashed border-dash p-4.5 md:flex">
+      <figcaption className="font-mono text-[11px] text-muted-foreground">{t('// así se verá tu barra lateral')}</figcaption>
       <div aria-hidden="true" className="flex flex-col gap-3.5 rounded-2xl bg-sidebar px-3 py-3.5 text-sidebar-foreground">
         <div className="flex items-center gap-2.5 p-1.5">
-          <WorkspaceLogo name={name || 'Mi equipo'} />
+          <WorkspaceLogo name={name || t('Mi equipo')} />
           <span className="min-w-0 flex-1">
-            <span className="block truncate font-semibold">{name || 'Mi equipo'}</span>
-            <span className="block truncate font-mono text-[11px] text-sidebar-muted">{slug || 'mi-equipo'}</span>
+            <span className="block truncate font-semibold">{name || t('Mi equipo')}</span>
+            <span className="block truncate font-mono text-[11px] text-sidebar-muted">{slug || t('mi-equipo')}</span>
           </span>
         </div>
         <div className="flex flex-col gap-0.5 text-sm">
-          {['Bandeja', 'Proyectos', 'Ajustes'].map((item) => (
+          {[t('Bandeja'), t('Proyectos'), t('Ajustes')].map((item) => (
             <span key={item} className="rounded-[10px] px-2.5 py-2">
               {item}
             </span>
           ))}
         </div>
         <div className="flex flex-col gap-2 rounded-[14px] border border-dashed border-sidebar-border p-3.5">
-          <p className="font-mono text-[11px] text-sidebar-muted">// proyectos</p>
+          <p className="font-mono text-[11px] text-sidebar-muted">{t('// proyectos')}</p>
           <p className="text-[13px] text-sidebar-muted">
-            Aún no hay proyectos. El siguiente paso será crear el primero, por ejemplo <span className="font-mono text-sidebar-foreground">WEB</span>.
+            {tx('Aún no hay proyectos. El siguiente paso será crear el primero, por ejemplo {code}.', {
+              code: <span className="font-mono text-sidebar-foreground">WEB</span>,
+            })}
           </p>
         </div>
         <div className="flex items-center gap-2 p-1.5">
@@ -272,7 +281,7 @@ function SidebarPreview({ name, slug, user, invites }) {
             )}
           </span>
           <span className="text-xs text-sidebar-muted">
-            tú{invites > 0 && ` + ${invites} ${invites === 1 ? 'invitación' : 'invitaciones'}`}
+            {invites > 0 ? tn(invites, 'tú + {count} invitación', 'tú + {count} invitaciones') : t('tú')}
           </span>
         </div>
       </div>

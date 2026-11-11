@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { t } from '@/i18n'
 import { myRoleName } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { useWorkspaces } from '../hooks'
@@ -50,13 +51,13 @@ export function WorkspaceSwitcher({ currentSlug, collapsed }) {
             'flex w-full items-center gap-2.5 rounded-xl p-1.5 text-left text-sm whitespace-nowrap text-sidebar-foreground transition-colors duration-150 outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring',
             collapsed && 'justify-center',
           )}
-          aria-label="Cambiar de workspace"
+          aria-label={t('Cambiar de workspace')}
         >
           <WorkspaceLogo name={current?.name ?? 'TaskFlow'} />
           {!collapsed && (
             <>
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-semibold">{current?.name ?? 'Elige un workspace'}</span>
+                <span className="block truncate font-semibold">{current?.name ?? t('Elige un workspace')}</span>
                 {current && <span className="block truncate font-mono text-[11px] text-sidebar-muted">{current.slug}</span>}
               </span>
               <ChevronsUpDown className="size-4 text-sidebar-muted" />
@@ -64,7 +65,7 @@ export function WorkspaceSwitcher({ currentSlug, collapsed }) {
           )}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-64">
-          <DropdownMenuLabel className="text-xs text-muted-foreground">Workspaces</DropdownMenuLabel>
+          <DropdownMenuLabel className="text-xs text-muted-foreground">{t('Workspaces')}</DropdownMenuLabel>
           {workspaces.map((workspace) => (
             <DropdownMenuItem key={workspace.id} onSelect={() => navigate(`/${workspace.slug}`)}>
               <WorkspaceLogo name={workspace.name} className="size-7 rounded-lg text-xs" />
@@ -78,7 +79,7 @@ export function WorkspaceSwitcher({ currentSlug, collapsed }) {
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => setCreateOpen(true)}>
             <Plus />
-            Crear workspace
+            {t('Crear workspace')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

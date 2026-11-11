@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { CenteredSpinner, Spinner } from '@/components/common/Loaders'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { useCooldown } from '@/hooks/useCooldown'
+import { t } from '@/i18n'
 import { formatRelative, formatShortDate } from '@/lib/dates'
 import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
@@ -47,7 +48,9 @@ function InviteCard({ workspace }) {
   const onSubmit = (values) => {
     invite.mutate({ ...values, roleId: invitationRoleId(selectedKey) }, {
       onSuccess: (invitation) => {
-        toast.success(`Invitación enviada a ${invitation.email}`, { description: `Entra con el rol ${roleNameOf(invitation)}.` })
+        toast.success(t('Invitación enviada a {email}', { email: invitation.email }), {
+          description: t('Entra con el rol {role}.', { role: roleNameOf(invitation) }),
+        })
         form.reset({ email: '' })
       },
       onError: (error) => {
@@ -59,10 +62,11 @@ function InviteCard({ workspace }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Invitar personas</CardTitle>
+        <CardTitle>{t('Invitar personas')}</CardTitle>
         <CardDescription>
-          Les llegará un correo con un enlace válido por 7 días. Si no tienen cuenta, podrán crearla con ese correo.
-          Entran con el rol que elijas; el de project manager se da después, desde Miembros.
+          {t(
+            'Les llegará un correo con un enlace válido por 7 días. Si no tienen cuenta, podrán crearla con ese correo. Entran con el rol que elijas; el de project manager se da después, desde Miembros.',
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -74,7 +78,7 @@ function InviteCard({ workspace }) {
               render={({ field }) => (
                 <FormItem className="flex-1">
                   <FormControl>
-                    <Input type="email" placeholder="persona@correo.com" aria-label="Correo" {...field} />
+                    <Input type="email" placeholder={t('persona@correo.com')} aria-label={t('Correo')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -82,7 +86,7 @@ function InviteCard({ workspace }) {
             />
             {options.length > 1 && (
               <Select value={selectedKey} onValueChange={setRoleKey}>
-                <SelectTrigger className="w-full sm:w-48" aria-label="Rol con el que entra">
+                <SelectTrigger className="w-full sm:w-48" aria-label={t('Rol con el que entra')}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -96,7 +100,7 @@ function InviteCard({ workspace }) {
             )}
             <Button type="submit" disabled={invite.isPending || cooldown.active}>
               {invite.isPending ? <Spinner /> : <MailPlus />}
-              {cooldown.active ? `Espera ${cooldown.secondsLeft} s` : 'Invitar'}
+              {cooldown.active ? t('Espera {seconds} s', { seconds: cooldown.secondsLeft }) : t('Invitar')}
             </Button>
           </form>
         </Form>
@@ -130,7 +134,7 @@ function PendingInvitations({ workspace }) {
     revoke.mutate(invitation.id, {
       onSuccess: () => {
         revoked.current = { id: invitation.id, index }
-        toast.success(`Invitación a ${invitation.email} cancelada`)
+        toast.success(t('Invitación a {email} cancelada', { email: invitation.email }))
       },
       onError: (revokeError) => notifyError(revokeError),
     })
@@ -140,14 +144,14 @@ function PendingInvitations({ workspace }) {
     <Card>
       <CardHeader>
         <CardTitle ref={titleRef} tabIndex={-1} className="outline-none">
-          Invitaciones pendientes
+          {t('Invitaciones pendientes')}
         </CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading && <CenteredSpinner />}
         {error && <ErrorState error={error} onRetry={refetch} />}
         {invitations?.length === 0 && (
-          <EmptyState icon={MailPlus} title="Sin invitaciones pendientes" className="py-6" />
+          <EmptyState icon={MailPlus} title={t('Sin invitaciones pendientes')} className="py-6" />
         )}
         {invitations?.length > 0 && (
           <ul ref={listRef} className="divide-y">
@@ -161,9 +165,16 @@ function PendingInvitations({ workspace }) {
                     </span>
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Enviada {formatRelative(invitation.createdAt)}
-                    {invitation.invitedBy && ` por ${invitation.invitedBy.fullName}`} · vence el{' '}
-                    {formatShortDate(invitation.expiresAt)}
+                    {invitation.invitedBy
+                      ? t('Enviada {when} por {name} · vence el {date}', {
+                          when: formatRelative(invitation.createdAt),
+                          name: invitation.invitedBy.fullName,
+                          date: formatShortDate(invitation.expiresAt),
+                        })
+                      : t('Enviada {when} · vence el {date}', {
+                          when: formatRelative(invitation.createdAt),
+                          date: formatShortDate(invitation.expiresAt),
+                        })}
                   </p>
                 </div>
                 <Tooltip>
@@ -175,12 +186,12 @@ function PendingInvitations({ workspace }) {
                       data-revoke=""
                       onClick={() => handleRevoke(invitation, index)}
                       disabled={revoke.isPending}
-                      aria-label={`Cancelar invitación a ${invitation.email}`}
+                      aria-label={t('Cancelar invitación a {email}', { email: invitation.email })}
                     >
                       <X className="size-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Cancelar invitación</TooltipContent>
+                  <TooltipContent>{t('Cancelar invitación')}</TooltipContent>
                 </Tooltip>
               </li>
             ))}

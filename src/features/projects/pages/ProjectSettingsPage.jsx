@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TemplatesSettings } from '@/features/templates/components/TemplatesSettings'
 import { useTemplates } from '@/features/templates/hooks'
 import { useCurrentWorkspace } from '@/features/workspaces/hooks'
+import { t } from '@/i18n'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { projectPath } from '@/lib/paths'
 import { LabelsSettings } from '../components/LabelsSettings'
@@ -32,16 +33,16 @@ export function ProjectSettingsPage() {
       className="min-h-0 flex-1 gap-3.5"
     >
       <PageHeader
-        path={[...projectPath(workspace, project), { label: 'ajustes' }]}
-        title="Ajustes del proyecto"
-        documentTitle={['Ajustes', project.name]}
+        path={[...projectPath(workspace, project), { label: t('ajustes') }]}
+        title={t('Ajustes del proyecto')}
+        documentTitle={[t('Ajustes'), project.name]}
       >
-        <TabsList aria-label="Secciones">
-          <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="states">Estados {count(states)}</TabsTrigger>
-          <TabsTrigger value="labels">Etiquetas {count(labels)}</TabsTrigger>
-          <TabsTrigger value="members">Miembros {count(members)}</TabsTrigger>
-          <TabsTrigger value="templates">Plantillas {count(templates)}</TabsTrigger>
+        <TabsList aria-label={t('Secciones')}>
+          <TabsTrigger value="general">{t('General')}</TabsTrigger>
+          <TabsTrigger value="states">{t('Estados')} {count(states)}</TabsTrigger>
+          <TabsTrigger value="labels">{t('Etiquetas')} {count(labels)}</TabsTrigger>
+          <TabsTrigger value="members">{t('Miembros')} {count(members)}</TabsTrigger>
+          <TabsTrigger value="templates">{t('Plantillas')} {count(templates)}</TabsTrigger>
         </TabsList>
       </PageHeader>
       <PageBody>

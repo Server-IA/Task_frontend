@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/common/Loaders'
+import { t } from '@/i18n'
 import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { slugify } from '@/lib/slug'
@@ -45,9 +46,9 @@ export function WorkspaceForm({ defaultValues, onSubmit, pending, submitLabel, d
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Nombre del workspace</FormLabel>
+              <FormLabel>{t('Nombre del workspace')}</FormLabel>
               <FormControl>
-                <Input placeholder="Equipo de producto" autoFocus={!isEdit} disabled={disabled} {...field} />
+                <Input placeholder={t('Equipo de producto')}autoFocus={!isEdit} disabled={disabled} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -81,7 +82,7 @@ export function WorkspaceForm({ defaultValues, onSubmit, pending, submitLabel, d
                   />
                 </div>
               </FormControl>
-              <FormDescription>Solo minúsculas, números y guiones.</FormDescription>
+              <FormDescription>{t('Solo minúsculas, números y guiones.')}</FormDescription>
               <FormMessage />
             </FormItem>
           )}

@@ -5,6 +5,7 @@ import { ErrorState } from '@/components/common/States'
 import { CanEditIssuesContext } from '@/features/issues/editPermission'
 import { useWorkspace } from '@/features/workspaces/hooks'
 import { useHotkey } from '@/hooks/useHotkey'
+import { t } from '@/i18n'
 import { PageHeader } from '@/layouts/PageHeader'
 import { can } from '@/lib/permissions'
 import { useProject } from '../hooks'
@@ -37,7 +38,7 @@ export function ProjectLayout() {
   if (error || !project) {
     return (
       <>
-        <PageHeader path={[{ label: slug, to: `/${slug}` }]} title="Proyecto" />
+        <PageHeader path={[{ label: slug, to: `/${slug}` }]} title={t('Proyecto')} />
         <ErrorState error={error} onRetry={refetch} homeLink={`/${slug}`} className="flex-1" />
       </>
     )

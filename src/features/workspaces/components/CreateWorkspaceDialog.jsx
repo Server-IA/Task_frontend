@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { t } from '@/i18n'
 import { useCreateWorkspace } from '../hooks'
 import { WorkspaceForm } from './WorkspaceForm'
 
@@ -12,7 +13,7 @@ export function CreateWorkspaceDialog({ open, onOpenChange }) {
   const handleSubmit = (values, { onError }) => {
     createWorkspace.mutate(values, {
       onSuccess: (workspace) => {
-        toast.success(`Workspace «${workspace.name}» creado`)
+        toast.success(t('Workspace «{name}» creado', { name: workspace.name }))
         onOpenChange(false)
         navigate(`/${workspace.slug}`)
       },
@@ -24,17 +25,17 @@ export function CreateWorkspaceDialog({ open, onOpenChange }) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Crear workspace</DialogTitle>
-          <DialogDescription>Un espacio para tu equipo, sus proyectos y sus tareas.</DialogDescription>
+          <DialogTitle>{t('Crear workspace')}</DialogTitle>
+          <DialogDescription>{t('Un espacio para tu equipo, sus proyectos y sus tareas.')}</DialogDescription>
         </DialogHeader>
         {/* El formulario vive mientras exista el diálogo: así no desaparece durante la animación de cierre */}
         <WorkspaceForm
           onSubmit={handleSubmit}
           pending={createWorkspace.isPending}
-          submitLabel="Crear workspace"
+          submitLabel={t('Crear workspace')}
           footer={
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancelar
+              {t('Cancelar')}
             </Button>
           }
         />

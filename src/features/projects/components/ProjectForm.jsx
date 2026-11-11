@@ -6,6 +6,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Spinner } from '@/components/common/Loaders'
+import { t } from '@/i18n'
 import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { projectSchema, suggestIdentifier } from '../schemas'
@@ -56,9 +57,9 @@ export function ProjectForm({
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Nombre</FormLabel>
+                <FormLabel>{t('Nombre')}</FormLabel>
                 <FormControl>
-                  <Input placeholder="Sitio web" autoFocus={!isEdit} disabled={disabled} {...field} />
+                  <Input placeholder={t('Sitio web')}autoFocus={!isEdit} disabled={disabled} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -69,7 +70,7 @@ export function ProjectForm({
             name="identifier"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Identificador</FormLabel>
+                <FormLabel>{t('Identificador')}</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="WEB"
@@ -89,14 +90,14 @@ export function ProjectForm({
           />
         </div>
         <FormDescription className="-mt-2">
-          El identificador es el prefijo de las tareas: {identifier || 'WEB'}-1, -2, -3…
+          {t('El identificador es el prefijo de las tareas: {code}-1, -2, -3…', { code: identifier || 'WEB' })}
         </FormDescription>
         <FormField
           control={form.control}
           name="color"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Color</FormLabel>
+              <FormLabel>{t('Color')}</FormLabel>
               <ProjectColorPicker
                 value={field.value}
                 onChange={(color) => field.onChange(color)}
@@ -112,9 +113,9 @@ export function ProjectForm({
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Descripción</FormLabel>
+              <FormLabel>{t('Descripción')}</FormLabel>
               <FormControl>
-                <Textarea rows={3} placeholder="¿De qué trata el proyecto? (opcional)" disabled={disabled} {...field} />
+                <Textarea rows={3} placeholder={t('¿De qué trata el proyecto? (opcional)')}disabled={disabled} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
