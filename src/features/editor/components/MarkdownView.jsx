@@ -95,9 +95,12 @@ function renderBlock(node, ctx) {
       return <MarkdownImage node={node} />
     case 'table':
       return (
-        <table>
-          <tbody>{renderBlocks(node.content, ctx)}</tbody>
-        </table>
+        // El mismo contenedor que pone el editor: una tabla más ancha que el texto se desliza en vez de apretarse
+        <div className="tableWrapper">
+          <table>
+            <tbody>{renderBlocks(node.content, ctx)}</tbody>
+          </table>
+        </div>
       )
     case 'tableRow':
       return <tr>{renderBlocks(node.content, ctx)}</tr>

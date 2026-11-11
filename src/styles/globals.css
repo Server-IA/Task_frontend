@@ -395,24 +395,31 @@
     font-family: var(--font-mono);
     font-size: 12.5px;
   }
-  .tf-md table {
-    width: 100%;
-    margin: 0 0 14px;
-    border-collapse: separate;
-    border-spacing: 0;
+  /* Tablas: cada columna toma el ancho de su contenido (una con un número no ocupa lo mismo que una con una frase)
+     y, si no caben, la tabla se desliza dentro de su contenedor en vez de apretar el texto letra por letra */
+  .tf-md .tableWrapper {
+    margin: 4px 0 16px;
+    overflow-x: auto;
     border: 1px solid var(--border);
     border-radius: 10px;
-    overflow: hidden;
+  }
+  .tf-md table {
+    width: 100%;
+    margin: 0;
+    border-collapse: separate;
+    border-spacing: 0;
     font-size: 13.5px;
     line-height: 1.45;
-    table-layout: fixed;
+    table-layout: auto;
   }
   .tf-md th,
   .tf-md td {
     position: relative;
+    min-width: 96px;
     padding: 8px 12px;
     text-align: left;
     vertical-align: top;
+    overflow-wrap: break-word;
     border-top: 1px solid var(--border);
     border-left: 1px solid var(--border);
   }
@@ -426,17 +433,21 @@
     background: var(--subtle);
     font-weight: 600;
   }
+  /* Filas alternas apenas marcadas: en una tabla larga ayudan a seguir la línea */
+  .tf-md tr:nth-child(odd) > td {
+    background: color-mix(in oklab, var(--subtle) 45%, transparent);
+  }
   .tf-md th p,
   .tf-md td p {
     margin: 0;
   }
+  .tf-md th p + p,
+  .tf-md td p + p {
+    margin-top: 4px;
+  }
   /* Una tabla dentro de un punto de una lista (o de una casilla): igual que las demás, separada del texto */
-  .tf-md li table,
   .tf-md li .tableWrapper {
     margin: 6px 0 10px;
-  }
-  .tf-md li .tableWrapper table {
-    margin: 0;
   }
   /* Imagen subida: ajustada al texto (hasta 560 px de alto) o a todo el ancho, con su pie de foto */
   .tf-md .tf-md-figure {
@@ -663,9 +674,17 @@
   .tf-md-sm ol,
   .tf-md-sm blockquote,
   .tf-md-sm .tf-md-code,
-  .tf-md-sm table,
+  .tf-md-sm .tableWrapper,
   .tf-md-sm .tf-md-story {
     margin-bottom: 8px;
+  }
+  .tf-md-sm table {
+    font-size: 13px;
+  }
+  .tf-md-sm th,
+  .tf-md-sm td {
+    min-width: 80px;
+    padding: 6px 10px;
   }
 
   /* El editor */

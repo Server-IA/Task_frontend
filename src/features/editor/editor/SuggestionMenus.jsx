@@ -20,7 +20,7 @@ const SLASH_GROUPS = [
       { id: 'task', label: 'Lista de tareas', desc: 'Casillas para marcar', hint: '[ ]', icon: 'task', keywords: 'casillas todo checklist', run: (chain) => chain.toggleTaskList() },
       { id: 'quote', label: 'Cita', desc: 'Texto citado o decisión', hint: '>', icon: 'quote', keywords: 'historia usuario', run: (chain) => chain.toggleBlockquote() },
       { id: 'code', label: 'Código', desc: 'Bloque con lenguaje', hint: '```', icon: 'codeBlock', keywords: 'code bloque', run: (chain) => chain.toggleCodeBlock() },
-      { id: 'table', label: 'Tabla', desc: '3 × 3 para empezar', hint: '', icon: 'table', keywords: 'table', run: (chain) => chain.insertTable({ rows: 3, cols: 3, withHeaderRow: true }) },
+      { id: 'table', label: 'Tabla', desc: 'Eliges columnas y filas', hint: '', icon: 'table', keywords: 'table cuadro filas columnas' },
       { id: 'divider', label: 'Separador', desc: 'Línea horizontal', hint: '---', icon: 'divider', keywords: 'linea hr', run: (chain) => chain.setHorizontalRule() },
     ],
   },

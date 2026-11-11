@@ -24,6 +24,7 @@ import { caretRect, popupPosition } from './popups'
 import { ShortcutsDialog } from './ShortcutsDialog'
 import { MentionMenu, slashGroups, SlashMenu } from './SuggestionMenus'
 import { TaskSearchPopover } from './TaskSearchPopover'
+import { TablePicker } from './TablePicker'
 import { currentBlockType, Toolbar } from './Toolbar'
 
 /** Texto pegado que parece Markdown (títulos, listas, código, tablas, negritas, enlaces). */
@@ -149,6 +150,8 @@ export default function RichEditor({
   const [mentionActive, setMentionActive] = useState(0)
   const [link, setLink] = useState(null)
   const [taskSearch, setTaskSearch] = useState(null)
+  // Selector de columnas y filas de una tabla nueva, anclado donde estaba el cursor
+  const [tablePicker, setTablePicker] = useState(null)
   const [help, setHelp] = useState(false)
   const [pointerDown, setPointerDown] = useState(false)
   const [creating, setCreating] = useState(false)
@@ -305,9 +308,10 @@ export default function RichEditor({
       if (event.key !== 'Escape' || !root.contains(event.target)) return
       if (slash) exitSuggestion(editor.view, SLASH_KEY)
       else if (mention) exitSuggestion(editor.view, MENTION_KEY)
-      else if (link || taskSearch) {
+      else if (link || taskSearch || tablePicker) {
         setLink(null)
         setTaskSearch(null)
+        setTablePicker(null)
         editor.commands.focus()
       } else if (onEscape) onEscape()
       else return
@@ -316,19 +320,20 @@ export default function RichEditor({
     }
     window.addEventListener('keydown', onKeyDown, true)
     return () => window.removeEventListener('keydown', onKeyDown, true)
-  }, [root, editor, slash, mention, link, taskSearch, onEscape])
+  }, [root, editor, slash, mention, link, taskSearch, tablePicker, onEscape])
 
-  // Un clic fuera del editor cierra el enlace y la búsqueda de tareas
+  // Un clic fuera del editor cierra el enlace, la búsqueda de tareas y el selector de tabla
   useEffect(() => {
-    if (!root || (!link && !taskSearch)) return undefined
+    if (!root || (!link && !taskSearch && !tablePicker)) return undefined
     const onDown = (event) => {
       if (root.contains(event.target)) return
       setLink(null)
       setTaskSearch(null)
+      setTablePicker(null)
     }
     window.addEventListener('mousedown', onDown)
     return () => window.removeEventListener('mousedown', onDown)
-  }, [root, link, taskSearch])
+  }, [root, link, taskSearch, tablePicker])
 
   const features = { people: people.length > 0, tasks: Boolean(slug), taskHint: projectIdentifier, images: Boolean(imageUpload) }
   const groups = slash ? slashGroups(slash.query, features) : []
@@ -553,6 +558,9 @@ export default function RichEditor({
             chain.run()
             const pos = current.state.selection.from
             setTaskSearch({ key: Date.now(), pos })
+          } else if (item.id === 'table') {
+            chain.run()
+            setTablePicker({ key: Date.now(), pos: current.state.selection.from })
           } else item.run(chain).run()
         },
       },
@@ -606,9 +614,10 @@ export default function RichEditor({
       onMouseDown={(event) => {
         if (!event.target.closest?.('.ProseMirror')) return
         setPointerDown(true)
-        if (link || taskSearch) {
+        if (link || taskSearch || tablePicker) {
           setLink(null)
           setTaskSearch(null)
+          setTablePicker(null)
         }
       }}
     >
@@ -622,6 +631,7 @@ export default function RichEditor({
           onHelp={() => setHelp(true)}
           onMoveTasks={onMoveTasks ? moveTasks : undefined}
           onImage={imageUpload ? () => fileInputRef.current?.click() : undefined}
+          onTable={() => setTablePicker({ key: Date.now(), pos: editor.state.selection.from })}
         />
       )}
       <EditorContent editor={editor} />
@@ -697,6 +707,20 @@ export default function RichEditor({
           }}
           onClose={() => {
             setTaskSearch(null)
+            editor.commands.focus()
+          }}
+        />
+      )}
+      {tablePicker && (
+        <TablePicker
+          key={tablePicker.key}
+          style={popupPosition(caretRect(editor.view, Math.min(tablePicker.pos, editor.state.doc.content.size)), root, { width: 252, height: 250 })}
+          onInsert={({ cols, rows }) => {
+            setTablePicker(null)
+            editor.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run()
+          }}
+          onClose={() => {
+            setTablePicker(null)
             editor.commands.focus()
           }}
         />

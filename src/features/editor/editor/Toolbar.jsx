@@ -48,7 +48,8 @@ const LISTS = [
 const BLOCKS = [
   { name: 'quote', label: 'Cita', kbd: 'ctrl shift B', active: 'blockquote', run: (chain) => chain.toggleBlockquote() },
   { name: 'codeBlock', label: 'Bloque de código', kbd: 'ctrl alt C', active: 'codeBlock', run: (chain) => chain.toggleCodeBlock() },
-  { name: 'table', label: 'Tabla', kbd: '', run: (chain) => chain.insertTable({ rows: 3, cols: 3, withHeaderRow: true }) },
+  // La tabla no se inserta de una: abre el selector de columnas y filas (`onTable`)
+  { name: 'table', label: 'Tabla', kbd: '', picker: true },
   { name: 'divider', label: 'Separador', kbd: '---', run: (chain) => chain.setHorizontalRule() },
 ]
 export const IMAGE_SOON = 'Imágenes: solo en la descripción y los comentarios de una tarea'
@@ -112,8 +113,9 @@ const Group = ({ children, first }) => (
  * o `compact` (Nueva tarea y plantillas). Muestra además las acciones del contexto: la tabla donde está el cursor
  * o «Pasar al checklist» en una casilla.
  */
-export function Toolbar({ editor, state, variant = 'full', sticky = false, onLink, onHelp, onMoveTasks, onImage, className }) {
+export function Toolbar({ editor, state, variant = 'full', sticky = false, onLink, onHelp, onMoveTasks, onImage, onTable, className }) {
   const run = (action) => action(editor.chain().focus()).run()
+  const runBlock = (block) => (block.picker ? onTable?.() : run(block.run))
   const size = variant === 'compact' ? 28 : 30
   const blockType = BLOCK_TYPES.find((type) => type.value === state.blockType) ?? BLOCK_TYPES[0]
   const markButtons = (variant === 'compact' ? MARKS.filter((mark) => mark.name !== 'strike') : MARKS).map((mark) => (
@@ -123,7 +125,7 @@ export function Toolbar({ editor, state, variant = 'full', sticky = false, onLin
     <ToolButton key={list.name} icon={list.name} label={list.label} kbd={list.kbd} size={size} pressed={state.blockType === list.name} onClick={() => run(list.run)} />
   ))
   const blockButtons = BLOCKS.map((block) => (
-    <ToolButton key={block.name} icon={block.name} label={block.label} kbd={block.kbd} size={size} pressed={block.active ? state.active[block.active] : false} onClick={() => run(block.run)} />
+    <ToolButton key={block.name} icon={block.name} label={block.label} kbd={block.kbd} size={size} pressed={block.active ? state.active[block.active] : false} onClick={() => runBlock(block)} />
   ))
 
   return (
@@ -182,7 +184,7 @@ export function Toolbar({ editor, state, variant = 'full', sticky = false, onLin
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="min-w-56" onCloseAutoFocus={(event) => event.preventDefault()}>
               {BLOCKS.map((block) => (
-                <DropdownMenuItem key={block.name} onSelect={() => run(block.run)}>
+                <DropdownMenuItem key={block.name} onSelect={() => runBlock(block)}>
                   <EditorIcon name={block.name} size={15} strokeWidth={ICON_STROKE[block.name] ?? 2} />
                   {block.label}
                   {block.kbd && <DropdownMenuShortcut className="font-mono">{block.kbd}</DropdownMenuShortcut>}
@@ -251,7 +253,9 @@ function TableMenu({ editor, size }) {
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="min-w-52" onCloseAutoFocus={(event) => event.preventDefault()}>
+          <DropdownMenuItem onSelect={() => run((chain) => chain.addRowBefore())}>Agregar fila arriba</DropdownMenuItem>
           <DropdownMenuItem onSelect={() => run((chain) => chain.addRowAfter())}>Agregar fila debajo</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => run((chain) => chain.addColumnBefore())}>Agregar columna a la izquierda</DropdownMenuItem>
           <DropdownMenuItem onSelect={() => run((chain) => chain.addColumnAfter())}>Agregar columna a la derecha</DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => run((chain) => chain.deleteRow())}>Quitar fila</DropdownMenuItem>
