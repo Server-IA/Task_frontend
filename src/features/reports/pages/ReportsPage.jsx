@@ -312,32 +312,32 @@ function ReportPreview({ preview, rangesOk }) {
         </p>
       ) : (
         <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,220px),1fr))] gap-x-6 gap-y-4">
-          <Breakdown title="Por estado" counts={data.byState} />
-          <Breakdown title="Por prioridad" counts={data.byPriority} />
+          <Breakdown title="Por estado" counts={data.byState} total={totals.total} />
+          <Breakdown title="Por prioridad" counts={data.byPriority} total={totals.total} />
+          {/* Una tarea con dos asignados cuenta para las dos personas: ahí un porcentaje del total engañaría */}
           <Breakdown title="Por persona" counts={data.byAssignee} />
-          <Breakdown title="Por tipo" counts={data.byType} />
+          <Breakdown title="Por tipo" counts={data.byType} total={totals.total} />
         </div>
       )}
     </div>
   )
 }
 
-/** Un reparto con una barra por fila (las mismas que lleva el PDF). */
-function Breakdown({ title, counts = [] }) {
-  const max = Math.max(1, ...counts.map((row) => row.count))
+/** Un reparto como en el PDF: cada valor con su cantidad y, con `total`, qué parte del total es. */
+function Breakdown({ title, counts = [], total }) {
   return (
     <section className="flex min-w-0 flex-col gap-1.5">
       <h3 className="text-[13px] font-semibold">{title}</h3>
       <ul className="flex flex-col gap-1.5">
         {counts.map((row) => (
-          <li key={row.name} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2rem] items-center gap-2 text-[13px]">
-            <span className="truncate" title={row.name}>
+          <li key={row.name} className="flex items-baseline justify-between gap-2 border-b border-dashed border-dash/60 pb-1 text-[13px] last:border-0">
+            <span className="min-w-0 truncate" title={row.name}>
               {row.name}
             </span>
-            <span aria-hidden="true" className="block h-2 rounded-[4px] bg-column">
-              <span className="block h-full rounded-[4px] bg-chart-series" style={{ width: `${(row.count / max) * 100}%` }} />
+            <span className="shrink-0 font-mono text-xs tabular-nums">
+              <span className="font-semibold">{row.count}</span>
+              {total > 0 && <span className="ml-2 text-muted-foreground">{Math.round((row.count / total) * 100)} %</span>}
             </span>
-            <span className="text-right font-mono text-xs tabular-nums text-muted-foreground">{row.count}</span>
           </li>
         ))}
       </ul>

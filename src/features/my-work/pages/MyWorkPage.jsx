@@ -250,9 +250,8 @@ function MyWorkAside({ slug, data, issues, projectsById, listLabel }) {
   )
 }
 
-/** Tarjeta con una barra por fila («Por proyecto», «Por prioridad»); con `to`, la fila lleva a ese sitio. */
+/** Tarjeta con una fila por valor y su cantidad («Por proyecto», «Por prioridad»); con `to`, la fila lleva a ese sitio. */
 function BreakdownPanel({ title, meta, rows }) {
-  const max = Math.max(1, ...rows.map((row) => row.count))
   return (
     <section className="tf-panel flex flex-col gap-2.5 px-4.5 py-4">
       <div className="flex items-baseline justify-between gap-2">
@@ -262,21 +261,20 @@ function BreakdownPanel({ title, meta, rows }) {
       {rows.map((row) => {
         const content = (
           <>
-            <span className="flex w-full items-center justify-between gap-2 text-[13px]">
-              <span className="flex min-w-0 items-center gap-2">{row.label}</span>
-              <span className="shrink-0 font-mono text-muted-foreground">{row.count}</span>
-            </span>
-            <span className="block h-2 w-full rounded-[4px] bg-column">
-              <span className="block h-full rounded-[4px] bg-chart-series" style={{ width: `${(row.count / max) * 100}%` }} />
-            </span>
+            <span className="flex min-w-0 items-center gap-2">{row.label}</span>
+            <span className="shrink-0 font-mono text-muted-foreground">{row.count}</span>
           </>
         )
         return row.to ? (
-          <Link key={row.key} to={row.to} className="-mx-1.5 flex flex-col gap-1 rounded-lg px-1.5 py-1 transition-colors hover:bg-subtle">
+          <Link
+            key={row.key}
+            to={row.to}
+            className="-mx-1.5 flex items-center justify-between gap-2 rounded-lg px-1.5 py-1 text-[13px] transition-colors hover:bg-subtle"
+          >
             {content}
           </Link>
         ) : (
-          <div key={row.key} className="flex flex-col gap-1 py-1">
+          <div key={row.key} className="flex items-center justify-between gap-2 py-1 text-[13px]">
             {content}
           </div>
         )

@@ -7,7 +7,7 @@ import { formatShortDate } from '@/lib/dates'
 import { cn } from '@/lib/utils'
 import { average, formatDecimal, formatDelta, percent } from '../chartMath'
 import { BurndownChart, burndownSeries } from './BurndownChart'
-import { ChartCard, ChartTooltip } from './ChartCard'
+import { ChartCard, ChartTooltip, DataTable } from './ChartCard'
 import { ThroughputChart } from './ThroughputChart'
 
 /** «!» en un cuadrito rojo: acompaña al rojo de lo vencido (el color nunca va solo). */
@@ -343,83 +343,71 @@ export function StatesCard({ states, className }) {
 }
 
 /**
- * Tareas abiertas asignadas a cada persona (barras horizontales) y cuántas tiene vencidas.
+ * Tareas abiertas asignadas a cada persona y cuántas tiene vencidas, en una tabla. Sin barras: con unas pocas
+ * personas el número ya dice quién tiene más.
  * @param {{ workload: import('@/api/types').WorkloadEntry[], className?: string }} props
  */
 export function WorkloadCard({ workload, className }) {
   // Primero las personas (de más a menos) y al final «Sin asignar»
   const rows = [...workload].sort((a, b) => (a.user === null) - (b.user === null) || b.open - a.open)
-  const max = Math.max(1, ...rows.map((row) => row.open))
-  const name = (row) => row.user?.fullName ?? 'Sin asignar'
 
   return (
-    <ChartCard
-      className={className}
-      title="Carga por persona"
-      meta="tareas abiertas asignadas"
-      table={{
-        caption: 'Tareas abiertas por persona',
-        columns: [
-          { key: 'name', label: 'Persona' },
-          { key: 'open', label: 'Abiertas', numeric: true },
-          { key: 'overdue', label: 'Vencidas', numeric: true },
-        ],
-        rows: rows.map((row) => ({ name: name(row), open: row.open, overdue: row.overdue })),
-      }}
-    >
+    <ChartCard className={className} title="Carga por persona" meta="tareas abiertas asignadas">
       {rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">No hay tareas abiertas.</p>
       ) : (
-        <ul className="flex flex-col gap-2.5">
-          {rows.map((row) => (
-            <li key={row.user?.id ?? 'none'} className="grid grid-cols-[minmax(0,8.5rem)_minmax(0,1fr)_2rem] items-center gap-2.5">
-              <span className="flex min-w-0 items-center gap-2 text-[13px]">
+        <DataTable
+          caption="Tareas abiertas por persona"
+          columns={[
+            { key: 'name', label: 'Persona' },
+            { key: 'open', label: 'Abiertas', numeric: true },
+            { key: 'overdue', label: 'Vencidas', numeric: true },
+          ]}
+          rows={rows.map((row) => ({
+            name: (
+              <span className="flex min-w-0 items-center gap-2">
                 {row.user ? (
                   <UserAvatar user={row.user} size="xs" className="size-5.5" />
                 ) : (
                   <span aria-hidden="true" className="size-5.5 shrink-0 rounded-full border border-dashed border-dash" />
                 )}
-                <span className={cn('truncate', !row.user && 'text-muted-foreground')}>{name(row)}</span>
+                <span className={cn('truncate', !row.user && 'text-muted-foreground')}>{row.user?.fullName ?? 'Sin asignar'}</span>
               </span>
-              <span className="flex flex-col gap-0.5" title={`${row.open} abiertas${row.overdue ? ` · ${row.overdue} vencidas` : ''}`}>
-                <span className="block h-2.5 rounded-[4px] bg-column">
-                  <span
-                    className="block h-full rounded-[4px] bg-chart-series transition-[width] duration-300"
-                    style={{ width: `${(row.open / max) * 100}%` }}
-                  />
+            ),
+            open: row.open,
+            overdue:
+              row.overdue > 0 ? (
+                <span className="inline-flex items-center gap-1 font-semibold text-late">
+                  <AlertMark className="size-3 text-[9px]" />
+                  {row.overdue}
                 </span>
-                {row.overdue > 0 && (
-                  <span className="flex items-center gap-1 text-[11px] font-semibold text-late">
-                    <AlertMark className="size-3 text-[9px]" />
-                    {row.overdue} {row.overdue === 1 ? 'vencida' : 'vencidas'}
-                  </span>
-                )}
-              </span>
-              <span className="text-right font-mono text-xs tabular-nums">{row.open}</span>
-            </li>
-          ))}
-        </ul>
+              ) : (
+                <span className="text-muted-foreground">0</span>
+              ),
+          }))}
+        />
       )}
     </ChartCard>
   )
 }
 
 /**
- * Abiertas sin cambios hace más de 14 días (como mucho 5, la más antigua primero): una barra por tarea con los días
- * que lleva quieta y, con «Ver tabla», los mismos datos en una tabla. Cada tarea abre su panel.
+ * Abiertas sin cambios hace más de 14 días (como mucho 5, la más antigua primero), en una tabla. Cada tarea abre su
+ * panel.
  * @param {{ stale: import('@/api/types').StaleIssue[], onOpenIssue: (issueId: string) => void, className?: string }} props
  */
 export function StaleCard({ stale, onOpenIssue, className }) {
-  const max = Math.max(1, ...stale.map((issue) => issue.daysWithoutChanges))
-  const days = (count) => `${count} ${count === 1 ? 'día' : 'días'}`
-  const codeButton = (issue) => (
+  const open = (issue, className, children) => (
     <button
       type="button"
       title={`Abrir ${issue.code}`}
       onClick={() => onOpenIssue(issue.id)}
-      className="rounded font-mono text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      className={cn(
+        'rounded text-left underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+        className,
+      )}
     >
-      {issue.code}
+      {children}
     </button>
   )
 
@@ -428,19 +416,6 @@ export function StaleCard({ stale, onOpenIssue, className }) {
       className={className}
       title="Sin movimiento"
       meta="abiertas y sin cambios hace más de 14 días"
-      table={
-        stale.length > 0
-          ? {
-              caption: 'Tareas abiertas sin cambios hace más de 14 días',
-              columns: [
-                { key: 'code', label: 'Tarea' },
-                { key: 'title', label: 'Título' },
-                { key: 'days', label: 'Días sin cambios', numeric: true },
-              ],
-              rows: stale.map((issue) => ({ code: codeButton(issue), title: issue.title, days: issue.daysWithoutChanges })),
-            }
-          : undefined
-      }
       footer={
         stale.length > 0 && (
           <p className="text-xs text-muted-foreground">Revísalas en la próxima reunión: quizá sobran o necesitan responsable.</p>
@@ -452,33 +427,19 @@ export function StaleCard({ stale, onOpenIssue, className }) {
           Todas las tareas abiertas tuvieron cambios en las últimas dos semanas.
         </p>
       ) : (
-        <ul className="flex flex-col gap-1">
-          {stale.map((issue) => (
-            <li key={issue.id}>
-              <button
-                type="button"
-                onClick={() => onOpenIssue(issue.id)}
-                title={`${issue.code} · ${days(issue.daysWithoutChanges)} sin cambios`}
-                className="grid w-full grid-cols-[minmax(0,1fr)_4rem] items-center gap-x-3 rounded-[10px] px-2 py-1.5 text-left outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <span className="flex min-w-0 flex-col gap-1">
-                  <span className="flex min-w-0 items-baseline gap-2 text-[13px]">
-                    <span className="shrink-0 font-mono text-xs text-muted-foreground">{issue.code}</span>
-                    <span className="min-w-0 truncate">{issue.title}</span>
-                  </span>
-                  {/* El largo de la barra es proporcional a la tarea que lleva más tiempo quieta */}
-                  <span aria-hidden="true" className="block h-2.5 rounded-[4px] bg-column">
-                    <span
-                      className="block h-full rounded-[4px] bg-chart-series transition-[width] duration-300"
-                      style={{ width: `${Math.max(4, (issue.daysWithoutChanges / max) * 100)}%` }}
-                    />
-                  </span>
-                </span>
-                <span className="self-end text-right font-mono text-xs tabular-nums">{days(issue.daysWithoutChanges)}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <DataTable
+          caption="Tareas abiertas sin cambios hace más de 14 días"
+          columns={[
+            { key: 'code', label: 'Tarea' },
+            { key: 'title', label: 'Título' },
+            { key: 'days', label: 'Días sin cambios', numeric: true },
+          ]}
+          rows={stale.map((issue) => ({
+            code: open(issue, 'font-mono text-xs whitespace-nowrap text-muted-foreground hover:text-foreground', issue.code),
+            title: open(issue, undefined, issue.title),
+            days: issue.daysWithoutChanges,
+          }))}
+        />
       )}
     </ChartCard>
   )

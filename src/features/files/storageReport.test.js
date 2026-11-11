@@ -6,7 +6,7 @@ import {
   formatPercent,
   freeBytes,
   kindSegments,
-  projectBars,
+  projectRows,
   uploadedWhen,
   usageBarLabel,
 } from './storageReport'
@@ -70,17 +70,16 @@ describe('espacio usado', () => {
 })
 
 describe('por proyecto y archivos', () => {
-  it('el proyecto que más ocupa llena la barra', () => {
-    const bars = projectBars([
+  it('cada proyecto con su tamaño y sus archivos', () => {
+    const rows = projectRows([
       { project: { id: 'p1', name: 'Sitio web 2026', identifier: 'WEB', color: 'TEAL' }, bytes: 900 * MB, count: 214 },
       { project: { id: 'p2', name: 'App Móvil Clientes', identifier: 'AMC', color: 'AMBER' }, bytes: 300 * MB, count: 1 },
     ])
-    expect(bars.map((bar) => [bar.size, bar.files, bar.width])).toEqual([
-      ['0,9 GB', '214 archivos', '100%'],
-      ['0,3 GB', '1 archivo', '33.33%'],
+    expect(rows.map((row) => [row.size, row.files])).toEqual([
+      ['0,9 GB', '214 archivos'],
+      ['0,3 GB', '1 archivo'],
     ])
-    expect(projectBars([])).toEqual([])
-    expect(projectBars([{ project: { id: 'p1' }, bytes: 0, count: 0 }])[0].width).toBe('0%')
+    expect(projectRows([])).toEqual([])
   })
 
   it('archivos en singular y plural', () => {

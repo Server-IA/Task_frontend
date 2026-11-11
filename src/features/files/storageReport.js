@@ -84,17 +84,11 @@ export function usageBarLabel(report) {
 export const filesCount = (count = 0) => `${count} ${count === 1 ? 'archivo' : 'archivos'}`
 
 /**
- * Barras por proyecto: el que más ocupa llena la barra y los demás en proporción.
+ * Lo que ocupa cada proyecto, con el tamaño y la cantidad de archivos ya en texto.
  * @param {StorageReport['byProject']} byProject
  */
-export function projectBars(byProject = []) {
-  const max = Math.max(0, ...byProject.map((entry) => entry.bytes))
-  return byProject.map((entry) => ({
-    ...entry,
-    size: formatGigabytes(entry.bytes),
-    files: filesCount(entry.count),
-    width: widthOf(entry.bytes, max),
-  }))
+export function projectRows(byProject = []) {
+  return byProject.map((entry) => ({ ...entry, size: formatGigabytes(entry.bytes), files: filesCount(entry.count) }))
 }
 
 /** «hoy», «ayer» o la fecha corta («14 oct»), para «Subido por · fecha». */

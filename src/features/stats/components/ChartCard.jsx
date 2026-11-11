@@ -41,7 +41,10 @@ export function ChartCard({ title, meta, table, footer, children, className }) {
  *             rows: Record<string, React.ReactNode>[] }} DataTableProps
  */
 
-/** Tabla simple con los datos de un gráfico (la alternativa accesible a mirar las barras). */
+/**
+ * Tabla simple: la alternativa accesible a un gráfico («Ver tabla») o, donde un gráfico no aporta (carga por persona,
+ * sin movimiento), la forma de mostrar los datos.
+ */
 export function DataTable({ caption, columns, rows }) {
   return (
     <div className="tf-fade overflow-x-auto rounded-xl border">

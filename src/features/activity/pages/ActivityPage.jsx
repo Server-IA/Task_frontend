@@ -246,7 +246,6 @@ function FeedEntry({ slug, entry, stateGroup }) {
 function WeekSummary({ slug, selectedProjectId, onSelectProject }) {
   const { data: summary, isLoading } = useActivitySummary(slug, 7)
   const byProject = [...(summary?.byProject ?? [])].sort((a, b) => b.count - a.count)
-  const max = Math.max(1, ...byProject.map((project) => project.count))
   const numbers = summary
     ? [
         ['cambios', summary.changes],
@@ -285,17 +284,12 @@ function WeekSummary({ slug, selectedProjectId, onSelectProject }) {
               type="button"
               aria-pressed={selectedProjectId === project.projectId}
               onClick={() => onSelectProject(selectedProjectId === project.projectId ? null : project.projectId)}
-              className="-mx-1.5 flex flex-col gap-1 rounded-lg px-1.5 py-1 text-left transition-colors hover:bg-subtle aria-pressed:bg-accent-soft/60"
+              className="-mx-1.5 flex justify-between gap-2 rounded-lg px-1.5 py-1 text-left text-[13px] transition-colors hover:bg-subtle aria-pressed:bg-accent-soft/60"
               title="Ver solo este proyecto"
             >
-              <span className="flex w-full justify-between gap-2 text-[13px]">
-                <span className="truncate">{project.name}</span>
-                <span className="shrink-0 font-mono text-muted-foreground">
-                  {project.count} {project.count === 1 ? 'cambio' : 'cambios'}
-                </span>
-              </span>
-              <span className="block h-2 w-full rounded-[4px] bg-column">
-                <span className="block h-full rounded-[4px] bg-chart-series" style={{ width: `${(project.count / max) * 100}%` }} />
+              <span className="truncate">{project.name}</span>
+              <span className="shrink-0 font-mono text-muted-foreground">
+                {project.count} {project.count === 1 ? 'cambio' : 'cambios'}
               </span>
             </button>
           ))}

@@ -16,7 +16,7 @@ import {
   formatPercent,
   freeBytes,
   kindSegments,
-  projectBars,
+  projectRows,
   uploadedWhen,
   usageBarLabel,
 } from '@/features/files/storageReport'
@@ -108,24 +108,21 @@ function UsageSection({ report }) {
 
 /** @param {{ byProject: import('@/features/files/storageReport').StorageReport['byProject'] }} props */
 function ProjectsSection({ byProject }) {
-  const bars = projectBars(byProject)
+  const rows = projectRows(byProject)
   return (
     <section aria-labelledby="storage-projects-title" className="tf-panel flex flex-[1_1_260px] flex-col gap-3 px-5 py-4.5">
       <h2 id="storage-projects-title" className="text-[15px] font-semibold">
         Por proyecto
       </h2>
-      {bars.length === 0 && <p className="text-[13px] text-muted-foreground">Ningún proyecto tiene archivos todavía.</p>}
-      {bars.map((bar) => (
-        <div key={bar.project.id} className="flex flex-col gap-1.5">
+      {rows.length === 0 && <p className="text-[13px] text-muted-foreground">Ningún proyecto tiene archivos todavía.</p>}
+      {rows.map((row) => (
+        <div key={row.project.id} className="flex flex-col gap-0.5">
           <p className="flex min-w-0 items-center gap-2 text-[13px]">
-            <ProjectIcon project={bar.project} />
-            <span className="truncate">{bar.project.name}</span>
-            <span className="ml-auto shrink-0 font-mono text-xs text-muted-foreground">{bar.size}</span>
+            <ProjectIcon project={row.project} />
+            <span className="truncate">{row.project.name}</span>
+            <span className="ml-auto shrink-0 font-mono text-xs">{row.size}</span>
           </p>
-          <span className={cn('block h-2 rounded-[4px]', TRACK)}>
-            <span className="block h-full rounded-[4px] bg-ring transition-[width] duration-300" style={{ width: bar.width }} />
-          </span>
-          <span className="font-mono text-[11px] text-muted-foreground">{bar.files}</span>
+          <span className="pl-7 font-mono text-[11px] text-muted-foreground">{row.files}</span>
         </div>
       ))}
     </section>
