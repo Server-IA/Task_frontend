@@ -49,6 +49,7 @@ const TYPE_MARKS = {
   STORY_READY: { mark: '✓', className: 'border-transparent bg-ok-soft text-ok' },
   STORAGE_WARNING: { mark: '!', className: 'border-transparent bg-soon-soft text-soon' },
   IMPORT_FINISHED: { mark: '↓', className: 'border-transparent bg-accent-soft text-accent-text' },
+  PR_MERGED_PENDING: { mark: '⑂', className: 'border-transparent bg-merged-soft text-merged' },
 }
 const DEFAULT_MARK = { mark: '·', className: 'bg-card text-muted-foreground' }
 

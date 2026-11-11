@@ -22,7 +22,7 @@ export function ProjectLayout() {
   const { data: workspace } = useWorkspace(slug)
 
   // Atajos de la sidebar: I tareas, H historias, Y ciclos, D daily, M módulos, R hoja de ruta, S estadísticas,
-  // E reportes (exportar), «,» ajustes
+  // E reportes (exportar), G GitHub, «,» ajustes
   const base = `/${slug}/projects/${projectId}`
   useHotkey('i', useCallback(() => navigate(`${base}/issues`), [navigate, base]))
   useHotkey('h', useCallback(() => navigate(`${base}/stories`), [navigate, base]))
@@ -32,6 +32,7 @@ export function ProjectLayout() {
   useHotkey('r', useCallback(() => navigate(`${base}/roadmap`), [navigate, base]))
   useHotkey('s', useCallback(() => navigate(`${base}/stats`), [navigate, base]))
   useHotkey('e', useCallback(() => navigate(`${base}/reports`), [navigate, base]))
+  useHotkey('g', useCallback(() => navigate(`${base}/github`), [navigate, base]))
   useHotkey(',', useCallback(() => navigate(`${base}/settings`), [navigate, base]))
 
   if (isLoading) return <CenteredSpinner className="flex-1" />

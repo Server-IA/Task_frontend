@@ -15,6 +15,7 @@ describe('orden del menú lateral', () => {
       'Ciclos',
       'Daily',
       'Estadísticas',
+      'GitHub',
       'Historias',
       'Hoja de ruta',
       'Módulos',

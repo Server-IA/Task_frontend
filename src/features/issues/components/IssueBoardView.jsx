@@ -50,6 +50,7 @@ import { isClosed, useIssueUpdater } from '../useIssueHelpers'
 import { closedStoryActions, useStoryClosedGuard } from '../useStoryClosedGuard'
 import { PulseOnChange } from '@/components/common/Pulse'
 import { flash, useFlash } from '@/lib/flash'
+import { IssueDevChip } from '@/features/github/GithubParts'
 import { AttachmentsChip, BlockedChip, BlockingChip, ChecklistChip } from './IssueBadges'
 import { BugCountBadge, IssueTypeIcon, ParentStoryChip, ReadyBadge, StoryProgress, TypeIcon } from './IssueTypeBits'
 import { AssigneesPicker, DatePicker, LabelsPicker, PriorityPicker } from './PropertyPickers'
@@ -822,6 +823,7 @@ const IssueCard = memo(function IssueCard({
         )}
         <AttachmentsChip issue={issue} />
         <ChecklistChip issue={issue} />
+        {!overlay && <IssueDevChip slug={slug} projectId={project.id} issueId={issue.id} />}
         {!hasLabels && meta.labels.length > 0 && (
           <LabelsPicker disabled={locked} compact labels={meta.labels} value={[]} onChange={(labelIds) => update({ labelIds })} className={revealOnHover} />
         )}

@@ -82,7 +82,7 @@ export function notificationWorkspaceSlug(notification) {
  * Lo manda TaskFlow (sin autor): historia lista para revisar y espacio casi lleno.
  * @param {NotificationResponse} notification
  */
-export const isSystemNotification = (notification) => ['STORY_READY', 'STORAGE_WARNING', 'IMPORT_FINISHED'].includes(notification.type)
+export const isSystemNotification = (notification) => ['STORY_READY', 'STORAGE_WARNING', 'IMPORT_FINISHED', 'PR_MERGED_PENDING'].includes(notification.type)
 
 function codePrefix(code = '') {
   const dash = code.lastIndexOf('-')

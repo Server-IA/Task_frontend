@@ -1,5 +1,6 @@
 import { formatShortDate } from '@/lib/dates'
 import { markdownToPlainText } from '@/features/editor/markdown/plainText'
+import { githubEvent, githubStateChange } from '@/features/github/githubModel'
 import { PRIORITY_LABELS } from '@/features/issues/constants'
 import { TYPE_LABELS } from '@/features/issues/issueTypes'
 import { stateName, t, tc } from '@/i18n'
@@ -43,7 +44,17 @@ function autoReason(value) {
  */
 export function activityActorName(entry) {
   if (entry.field === 'STORY_AUTO_STATE') return 'TaskFlow'
+  // Lo que pasó en GitHub: quien lo hizo allá (su usuario de GitHub) o, si no se sabe, GitHub
+  if (entry.field === 'GITHUB') return githubEvent(entry.newValue).who ?? 'GitHub'
+  if (entry.field === 'GITHUB_STATE') return 'GitHub'
   return entry.actor?.fullName ?? t('Alguien')
+}
+
+/** Si la entrada la hizo una automatización (TaskFlow o GitHub) y no una persona de TaskFlow: `'TF'`, `'GH'` o `null`. */
+export function activityAutoMark(entry) {
+  if (entry.field === 'STORY_AUTO_STATE') return 'TF'
+  if (entry.field === 'GITHUB' || entry.field === 'GITHUB_STATE') return 'GH'
+  return null
 }
 
 /**
@@ -105,6 +116,10 @@ export function describeActivity({ field, oldValue, newValue }) {
       // El nombre del archivo: en `newValue` al adjuntarlo y en `oldValue` al eliminarlo
       if (newValue) return t('adjuntó «{name}»', { name: newValue })
       return oldValue ? t('eliminó «{name}»', { name: oldValue }) : t('eliminó un archivo')
+    case 'GITHUB':
+      return githubEvent(newValue).text
+    case 'GITHUB_STATE':
+      return githubStateChange(oldValue, newValue)
     default:
       return t('actualizó la tarea')
   }
@@ -185,6 +200,18 @@ export function describeFeedEntry({ field, oldValue, newValue }, { stateGroup } 
           : tc('actividad', 'a {state}', { state: stateName(newValue) }),
         '→',
       )
+    case 'GITHUB_STATE': {
+      const done = stateGroup === 'COMPLETED'
+      return {
+        verb: done ? tc('actividad', 'completó') : tc('actividad', 'movió'),
+        suffix: tc('actividad', 'automático'),
+        mark: done ? '✓' : '→',
+        tone: done ? 'ok' : 'neutral',
+        change: { from: stateName(oldValue), to: stateName(newValue), done },
+      }
+    }
+    case 'GITHUB':
+      return neutral(tc('actividad', '{event} · en', { event: githubEvent(newValue).text }), undefined, '⑂')
     case 'ATTACHMENT':
       if (newValue) return { verb: tc('actividad', 'adjuntó «{name}» en', { name: newValue }), mark: '↑', tone: 'accent', file: true }
       return neutral(oldValue ? tc('actividad', 'eliminó «{name}» de', { name: oldValue }) : tc('actividad', 'eliminó un archivo de'), undefined, '×')

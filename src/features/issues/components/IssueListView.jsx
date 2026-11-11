@@ -17,6 +17,7 @@ import { stateOptionsFor, storyStateLocked } from '../issueTypes'
 import { useCriteriaGuard } from '../useCriteriaGuard'
 import { isClosed, useIssueUpdater } from '../useIssueHelpers'
 import { closedStoryActions, useStoryClosedGuard } from '../useStoryClosedGuard'
+import { IssueDevChip } from '@/features/github/GithubParts'
 import { AttachmentsChip, BlockedChip, BlockingChip, ChecklistChip } from './IssueBadges'
 import { IssueTypeIcon, ParentStoryChip, TypeIcon } from './IssueTypeBits'
 import { PriorityIcon } from './PriorityIcon'
@@ -265,6 +266,7 @@ const IssueRow = memo(function IssueRow({ issue, slug, project, meta, openIssue,
             </span>
           )}
           <ChecklistChip issue={issue} />
+          <IssueDevChip slug={slug} projectId={project.id} issueId={issue.id} />
         </span>
         <span className="flex items-center gap-1.5" onClick={stop}>
           {(meta.labels.length > 0 || issue.labels?.length > 0) && (

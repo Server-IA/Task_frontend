@@ -7,7 +7,7 @@ import { Spinner } from '@/components/common/Loaders'
 import { Segmented } from '@/components/common/Segmented'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { UserAvatar } from '@/components/common/UserAvatar'
-import { activityActorName, describeFeedEntry } from '@/features/comments/describeActivity'
+import { activityActorName, activityAutoMark, describeFeedEntry } from '@/features/comments/describeActivity'
 import { FeedFileCard } from '@/features/files/components/FeedFileCard'
 import { markdownToPlainText } from '@/features/editor/markdown/plainText'
 import { MentionText } from '@/features/mentions/MentionText'
@@ -183,7 +183,12 @@ function FeedEntry({ slug, entry, stateGroup }) {
   return (
     <li className="flex items-start gap-3 px-4 py-2.5">
       <span className="relative shrink-0">
-        {entry.field === 'STORY_AUTO_STATE' ? (
+        {activityAutoMark(entry) === 'GH' ? (
+          // Pasó en GitHub
+          <span aria-hidden="true" className="flex size-8 items-center justify-center rounded-lg bg-foreground font-mono text-[11px] font-bold text-background">
+            GH
+          </span>
+        ) : activityAutoMark(entry) ? (
           // Lo hizo TaskFlow (sin autor)
           <span aria-hidden="true" className="flex size-8 items-center justify-center rounded-full bg-primary font-mono text-[11px] font-bold text-primary-foreground">
             TF

@@ -1,5 +1,6 @@
 import { useSearchParams } from 'react-router'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ProjectGithubSettings } from '@/features/github/ProjectGithubSettings'
 import { TemplatesSettings } from '@/features/templates/components/TemplatesSettings'
 import { useTemplates } from '@/features/templates/hooks'
 import { useCurrentWorkspace } from '@/features/workspaces/hooks'
@@ -12,7 +13,7 @@ import { ProjectMembersSettings } from '../components/ProjectMembersSettings'
 import { StatesSettings } from '../components/StatesSettings'
 import { useCurrentProject, useLabels, useProjectMembers, useStates } from '../hooks'
 
-const TABS = ['general', 'states', 'labels', 'members', 'templates']
+const TABS = ['general', 'states', 'labels', 'members', 'templates', 'github']
 
 export function ProjectSettingsPage() {
   const workspace = useCurrentWorkspace()
@@ -43,6 +44,7 @@ export function ProjectSettingsPage() {
           <TabsTrigger value="labels">{t('Etiquetas')} {count(labels)}</TabsTrigger>
           <TabsTrigger value="members">{t('Miembros')} {count(members)}</TabsTrigger>
           <TabsTrigger value="templates">{t('Plantillas')} {count(templates)}</TabsTrigger>
+          <TabsTrigger value="github">GitHub</TabsTrigger>
         </TabsList>
       </PageHeader>
       <PageBody>
@@ -61,6 +63,9 @@ export function ProjectSettingsPage() {
           </TabsContent>
           <TabsContent value="templates">
             <TemplatesSettings slug={workspace.slug} project={project} />
+          </TabsContent>
+          <TabsContent value="github">
+            <ProjectGithubSettings workspace={workspace} project={project} />
           </TabsContent>
         </div>
       </PageBody>

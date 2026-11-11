@@ -23,6 +23,7 @@ export const PROJECT_SECTIONS = [
   { path: 'roadmap', label: t('Hoja de ruta'), hint: 'R' },
   { path: 'stats', label: t('Estadísticas'), hint: 'S' },
   { path: 'reports', label: t('Reportes'), hint: 'E' },
+  { path: 'github', label: 'GitHub', hint: 'G' },
   { path: 'settings', label: t('Ajustes'), hint: ',' },
 ]
 

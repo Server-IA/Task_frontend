@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { t } from '@/i18n'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { workspacePath } from '@/lib/paths'
+import { WorkspaceIntegrations } from '@/features/github/WorkspaceIntegrations'
 import { ImportSettings } from '@/features/imports/ImportSettings'
 import { can } from '@/lib/permissions'
 import { GeneralSettings } from '../components/GeneralSettings'
@@ -12,7 +13,7 @@ import { RolesSettings } from '../components/RolesSettings'
 import { StorageSettings } from '../components/StorageSettings'
 import { useCurrentWorkspace, useMembers } from '../hooks'
 
-const TABS = ['general', 'members', 'roles', 'invitations', 'storage', 'import']
+const TABS = ['general', 'members', 'roles', 'invitations', 'storage', 'import', 'integrations']
 /** Pestañas que piden un permiso (sin él, la URL lleva a «General»). Los roles los ve cualquiera. */
 const TAB_PERMISSIONS = { invitations: 'MEMBER_INVITE', storage: 'STORAGE_VIEW', import: 'DATA_IMPORT' }
 
@@ -47,6 +48,7 @@ export function WorkspaceSettingsPage() {
           {canInvite && <TabsTrigger value="invitations">{t('Invitaciones')}</TabsTrigger>}
           {canSeeStorage && <TabsTrigger value="storage">{t('Almacenamiento')}</TabsTrigger>}
           {canImport && <TabsTrigger value="import">{t('Importar')}</TabsTrigger>}
+          <TabsTrigger value="integrations">{t('Integraciones')}</TabsTrigger>
         </TabsList>
       </PageHeader>
       <PageBody>
@@ -75,6 +77,10 @@ export function WorkspaceSettingsPage() {
               <ImportSettings workspace={workspace} />
             </TabsContent>
           )}
+          {/* Cualquiera ve si GitHub está conectado; conectar y desconectar piden «Configurar GitHub» */}
+          <TabsContent value="integrations">
+            <WorkspaceIntegrations workspace={workspace} />
+          </TabsContent>
         </div>
       </PageBody>
     </Tabs>

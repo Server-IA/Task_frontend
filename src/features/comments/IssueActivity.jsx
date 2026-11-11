@@ -27,7 +27,7 @@ import { notifyError } from '@/lib/notify'
 import { can, canDeleteComment } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { useSessionStore } from '@/stores/sessionStore'
-import { activityActorName, describeActivity } from './describeActivity'
+import { activityActorName, activityAutoMark, describeActivity } from './describeActivity'
 import { useComments, useCreateComment, useDeleteComment, useUpdateComment } from './hooks'
 
 /**
@@ -145,7 +145,11 @@ const FILTERS = [
 function ActivityLine({ entry }) {
   return (
     <div className="flex items-start gap-2 pl-1.5 text-xs text-muted-foreground">
-      {entry.field === 'STORY_AUTO_STATE' ? (
+      {activityAutoMark(entry) === 'GH' ? (
+        <span aria-hidden="true" className="mt-px flex size-5 shrink-0 items-center justify-center rounded-md bg-foreground font-mono text-[8px] font-bold text-background">
+          GH
+        </span>
+      ) : activityAutoMark(entry) ? (
         <span aria-hidden="true" className="mt-px flex size-5 shrink-0 items-center justify-center rounded-full bg-primary font-mono text-[8px] font-bold text-primary-foreground">
           TF
         </span>

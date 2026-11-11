@@ -21,6 +21,7 @@ import { IssuesPage } from '@/features/issues/pages/IssuesPage'
 import { ProfilePage } from '@/features/profile/ProfilePage'
 import { ProjectLayout } from '@/features/projects/pages/ProjectLayout'
 import { ProjectSettingsPage } from '@/features/projects/pages/ProjectSettingsPage'
+import { GithubPage } from '@/features/github/pages/GithubPage'
 import { StatsPage } from '@/features/stats/pages/StatsPage'
 import { StoriesPage } from '@/features/stories/pages/StoriesPage'
 import { HomeRedirect } from '@/features/workspaces/pages/HomeRedirect'
@@ -113,6 +114,7 @@ export const router = createBrowserRouter([
                           </RequirePermission>
                         ),
                       },
+                      { path: 'github', element: <GithubPage /> },
                       { path: 'settings', element: <ProjectSettingsPage /> },
                       { path: '*', element: <NotFoundPage /> },
                     ],

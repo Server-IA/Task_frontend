@@ -5,6 +5,7 @@ import { TaskFileDropZone } from '@/features/files/components/TaskFileDropZone'
 import { TaskImagesProvider } from '@/features/files/components/TaskImagesProvider'
 import { formatSize } from '@/features/files/fileTypes'
 import { useAttachFiles, useStorageUsage } from '@/features/files/hooks'
+import { IssueDevelopment } from '@/features/github/IssueDevelopment'
 import { IssuePlanningProperties } from '@/features/planning/components/IssuePlanningProperties'
 import { BlockedBanner, IssueRelations } from '@/features/relations/components/IssueRelations'
 import { StoryBanner, StoryParentCard, StorySections, useAddToStory } from '@/features/stories/components/StoryPanel'
@@ -78,6 +79,8 @@ export function IssueDetailWithExtras({ focusCommentId, ...props }) {
           }
           renderAfterSubIssues={(current) => (
             <>
+              {/* El código es de las tareas y los bugs: una historia no tiene rama propia */}
+              {!isStory(current) && <IssueDevelopment slug={slug} project={project} issue={current} />}
               <IssueRelations slug={slug} projectId={project.id} issue={current} onOpenIssue={onOpenIssue} />
               <IssueAttachments slug={slug} projectId={project.id} issue={current} variant={variant === 'panel' ? 'panel' : 'page'} />
             </>

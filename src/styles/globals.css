@@ -46,6 +46,9 @@
   --ok: #1d6b47;
   --ok-dot: #2e9e6a;
   --ok-soft: #e3f5ec;
+  /* Pull request fusionado (GitHub) */
+  --merged: #4b33a8;
+  --merged-soft: #ece6ff;
   --overlay: rgb(35 32 27 / 0.35);
   --dot: #ddd8ce;
   --card-shadow: 0 1px 2px rgb(35 32 27 / 0.05), 0 4px 12px rgb(35 32 27 / 0.05);
@@ -131,6 +134,8 @@
   --ok: #86efac;
   --ok-dot: #7ee2a8;
   --ok-soft: #12291d;
+  --merged: #c9bbff;
+  --merged-soft: #2b2440;
   --overlay: rgb(5 4 10 / 0.6);
   --dot: #26231f;
   --card-shadow: none;
@@ -218,6 +223,8 @@
   --color-ok: var(--ok);
   --color-ok-dot: var(--ok-dot);
   --color-ok-soft: var(--ok-soft);
+  --color-merged: var(--merged);
+  --color-merged-soft: var(--merged-soft);
   --color-overlay: var(--overlay);
   --shadow-card: var(--card-shadow);
   --color-chart-series: var(--chart-series);

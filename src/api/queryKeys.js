@@ -65,6 +65,19 @@ export const queryKeys = {
   imports: (slug) => ['imports', slug, 'list'],
   importJob: (slug, jobId) => ['imports', slug, 'job', jobId],
 
+  // GitHub: todo lo de un workspace cuelga de ['github', slug] (al desconectar se invalida entero)
+  github: (slug) => ['github', slug],
+  githubWorkspace: (slug) => ['github', slug, 'workspace'],
+  githubProject: (slug, projectId) => ['github', slug, 'project', projectId, 'status'],
+  githubPulls: (slug, projectId, state) => ['github', slug, 'project', projectId, 'pulls', state],
+  githubRuns: (slug, projectId) => ['github', slug, 'project', projectId, 'runs'],
+  githubBranches: (slug, projectId) => ['github', slug, 'project', projectId, 'branches'],
+  githubSummary: (slug, projectId) => ['github', slug, 'project', projectId, 'summary'],
+  githubWorkflows: (slug, projectId, repositoryId) => ['github', slug, 'project', projectId, 'workflows', repositoryId],
+  githubRepoBranches: (slug, projectId, repositoryId) => ['github', slug, 'project', projectId, 'repo-branches', repositoryId],
+  githubIssue: (slug, projectId, issueId) => ['github', slug, 'project', projectId, 'issue', issueId],
+  githubChecks: (slug, projectId, issueId, pullRequestId) => ['github', slug, 'project', projectId, 'issue', issueId, 'checks', pullRequestId],
+
   notifications: (params) => ['notifications', 'list', params],
   notificationsAll: ['notifications'],
   unreadCount: ['notifications', 'unread-count'],
