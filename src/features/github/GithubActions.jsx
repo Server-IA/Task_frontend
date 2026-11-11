@@ -30,10 +30,19 @@ export function ActionsView({ workspace, project, status, settingsLink }) {
   const [branch, setBranch] = useState(ALL)
   const [result, setResult] = useState(ALL)
 
-  const workflows = useMemo(() => [...new Set((runs ?? []).map((run) => run.workflowName).filter(Boolean))].sort(), [runs])
-  const branches = useMemo(() => [...new Set((runs ?? []).map((run) => run.branch).filter(Boolean))].sort(), [runs])
+  const workflows = useMemo(
+    () => [...new Set((runs ?? []).map((run) => run.workflowName).filter(Boolean))].sort(),
+    [runs],
+  )
+  const branches = useMemo(
+    () => [...new Set((runs ?? []).map((run) => run.branch).filter(Boolean))].sort(),
+    [runs],
+  )
   const shown = (runs ?? []).filter(
-    (run) => (workflow === ALL || run.workflowName === workflow) && (branch === ALL || run.branch === branch) && (result === ALL || runState(run).result === result),
+    (run) =>
+      (workflow === ALL || run.workflowName === workflow) &&
+      (branch === ALL || run.branch === branch) &&
+      (result === ALL || runState(run).result === result),
   )
 
   const handleRerun = (run) =>
@@ -54,14 +63,20 @@ export function ActionsView({ workspace, project, status, settingsLink }) {
           label={t('Workflow')}
           value={workflow}
           onChange={setWorkflow}
-          options={[{ value: ALL, label: t('Workflow: todos') }, ...workflows.map((name) => ({ value: name, label: name }))]}
+          options={[
+            { value: ALL, label: t('Workflow: todos') },
+            ...workflows.map((name) => ({ value: name, label: name })),
+          ]}
           className="h-8 w-[200px] text-[13px]"
         />
         <Pick
           label={t('Rama')}
           value={branch}
           onChange={setBranch}
-          options={[{ value: ALL, label: t('Rama: todas') }, ...branches.map((name) => ({ value: name, label: name }))]}
+          options={[
+            { value: ALL, label: t('Rama: todas') },
+            ...branches.map((name) => ({ value: name, label: name })),
+          ]}
           className="h-8 w-[200px] text-[13px]"
         />
         <Pick
@@ -77,18 +92,21 @@ export function ActionsView({ workspace, project, status, settingsLink }) {
           ]}
           className="h-8 w-[180px] text-[13px]"
         />
-        <span className="ml-auto font-mono text-[11.5px] text-muted-foreground">
+        <span className="text-muted-foreground ml-auto font-mono text-[11.5px]">
           {tx('{rules} · se configuran en {link}', {
             rules: tn(status.rules.length, '{count} regla activa', '{count} reglas activas'),
             link: (
-              <Link to={settingsLink} className="underline hover:text-foreground">
+              <Link to={settingsLink} className="hover:text-foreground underline">
                 {t('Ajustes del proyecto → GitHub')}
               </Link>
             ),
           })}
         </span>
       </div>
-      <section aria-label={t('Ejecuciones de GitHub Actions')} className="overflow-hidden rounded-2xl border bg-card">
+      <section
+        aria-label={t('Ejecuciones de GitHub Actions')}
+        className="bg-card overflow-hidden rounded-2xl border"
+      >
         {isLoading ? (
           <div className="space-y-2 p-4">
             <Skeleton className="h-11 rounded-lg" />
@@ -99,8 +117,12 @@ export function ActionsView({ workspace, project, status, settingsLink }) {
         ) : shown.length === 0 ? (
           <EmptyState
             icon={Workflow}
-            title={runs.length === 0 ? t('Todavía no hay ejecuciones') : t('Ninguna ejecución con esos filtros')}
-            description={t('Aquí aparece cada workflow que corre en los repositorios del proyecto, lo lance GitHub o TaskFlow.')}
+            title={
+              runs.length === 0 ? t('Todavía no hay ejecuciones') : t('Ninguna ejecución con esos filtros')
+            }
+            description={t(
+              'Aquí aparece cada workflow que corre en los repositorios del proyecto, lo lance GitHub o TaskFlow.',
+            )}
             className="py-10"
           />
         ) : (
@@ -110,12 +132,23 @@ export function ActionsView({ workspace, project, status, settingsLink }) {
               const trigger = runTrigger(run, status.rules)
               const name = run.workflowName ?? t('Workflow')
               return (
-                <li key={run.id} className={cn('flex flex-wrap items-center gap-x-3.5 gap-y-2 px-4 py-3', index > 0 && 'border-t')}>
+                <li
+                  key={run.id}
+                  className={cn(
+                    'flex flex-wrap items-center gap-x-3.5 gap-y-2 px-4 py-3',
+                    index > 0 && 'border-t',
+                  )}
+                >
                   <StateMark info={info} />
                   <div className="min-w-0 flex-[1_1_320px]">
                     <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                       {run.url ? (
-                        <a href={run.url} target="_blank" rel="noreferrer" className="font-semibold hover:underline">
+                        <a
+                          href={run.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-semibold hover:underline"
+                        >
                           {name}
                         </a>
                       ) : (
@@ -124,31 +157,53 @@ export function ActionsView({ workspace, project, status, settingsLink }) {
                       <TonePill tone={info.tone} outline={info.outline}>
                         {info.label}
                       </TonePill>
-                      {run.title && run.title !== name && <span className="min-w-0 truncate text-[13px] text-muted-foreground">{run.title}</span>}
+                      {run.title && run.title !== name && (
+                        <span className="text-muted-foreground min-w-0 truncate text-[13px]">
+                          {run.title}
+                        </span>
+                      )}
                     </p>
-                    <p className="mt-0.5 truncate font-mono text-[11.5px] text-muted-foreground">
-                      {[repoName(run.repository), run.branch, shortSha(run.headSha)].filter(Boolean).join(' · ')}
+                    <p className="text-muted-foreground mt-0.5 truncate font-mono text-[11.5px]">
+                      {[repoName(run.repository), run.branch, shortSha(run.headSha)]
+                        .filter(Boolean)
+                        .join(' · ')}
                       {trigger.text && (
                         <>
                           {' · '}
-                          <span className={cn(trigger.fromTaskflow && 'text-accent-text')}>{trigger.text}</span>
+                          <span className={cn(trigger.fromTaskflow && 'text-accent-text')}>
+                            {trigger.text}
+                          </span>
                         </>
                       )}
                     </p>
                   </div>
-                  {run.issueId && <TaskLink slug={slug} projectId={project.id} issueId={run.issueId} code={run.issueCode} />}
-                  <span className="w-[86px] shrink-0 text-right font-mono text-[11.5px] text-muted-foreground">{runDuration(run)}</span>
-                  <span className="w-[92px] shrink-0 text-right font-mono text-[11.5px] text-muted-foreground">
+                  {run.issueId && (
+                    <TaskLink slug={slug} projectId={project.id} issueId={run.issueId} code={run.issueCode} />
+                  )}
+                  <span className="text-muted-foreground w-[86px] shrink-0 text-right font-mono text-[11.5px]">
+                    {runDuration(run)}
+                  </span>
+                  <span className="text-muted-foreground min-w-[92px] shrink-0 text-right font-mono text-[11.5px] whitespace-nowrap">
                     {formatRelative(run.startedAt ?? run.requestedAt ?? run.changedAt)}
                   </span>
                   <span className="flex w-[92px] shrink-0 justify-end">
                     {canRun && info.canRetry && (
-                      <Button variant="outline" size="sm" onClick={() => handleRerun(run)} disabled={rerun.isPending}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRerun(run)}
+                        disabled={rerun.isPending}
+                      >
                         {t('Reintentar')}
                       </Button>
                     )}
                     {canRun && info.canCancel && (
-                      <Button variant="outline" size="sm" onClick={() => handleCancel(run)} disabled={cancel.isPending}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCancel(run)}
+                        disabled={cancel.isPending}
+                      >
                         {t('Cancelar')}
                       </Button>
                     )}
@@ -159,8 +214,10 @@ export function ActionsView({ workspace, project, status, settingsLink }) {
           </ul>
         )}
       </section>
-      <p className="font-mono text-[11.5px] text-muted-foreground">
-        {t('cada ejecución abre su registro en GitHub · reintentar y cancelar piden el permiso «Ejecutar workflows»')}
+      <p className="text-muted-foreground font-mono text-[11.5px]">
+        {t(
+          'cada ejecución abre su registro en GitHub · reintentar y cancelar piden el permiso «Ejecutar workflows»',
+        )}
       </p>
     </div>
   )

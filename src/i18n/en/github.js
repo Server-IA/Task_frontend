@@ -3,16 +3,21 @@ export default {
   // Ajustes del workspace → Integraciones
   Integraciones: 'Integrations',
   'GitHub quedó conectado': 'GitHub is now connected',
-  'Esa instalación de GitHub ya está conectada a otro workspace': 'That GitHub installation is already connected to another workspace',
-  'El enlace para conectar caducó. Vuelve a pulsar «Conectar con GitHub».': 'The link to connect expired. Press “Connect to GitHub” again.',
-  'No se pudo conectar con GitHub. Vuelve a intentarlo desde aquí.': 'Could not connect to GitHub. Try again from here.',
+  'Esa instalación de GitHub ya está conectada a otro workspace':
+    'That GitHub installation is already connected to another workspace',
+  'El enlace para conectar caducó. Vuelve a pulsar «Conectar con GitHub».':
+    'The link to connect expired. Press “Connect to GitHub” again.',
+  'No se pudo conectar con GitHub. Vuelve a intentarlo desde aquí.':
+    'Could not connect to GitHub. Try again from here.',
   'Instalas la app de TaskFlow': 'You install the TaskFlow app',
   'En tu organización o tu cuenta de GitHub. Hace falta ser dueño o administrador allá.':
     'In your GitHub organization or account. You need to be an owner or admin there.',
   'Eliges los repositorios': 'You choose the repositories',
-  'Todos o solo algunos. TaskFlow no ve los demás, y se puede cambiar después.': 'All or just some. TaskFlow cannot see the rest, and you can change it later.',
+  'Todos o solo algunos. TaskFlow no ve los demás, y se puede cambiar después.':
+    'All or just some. TaskFlow cannot see the rest, and you can change it later.',
   'Enlazas cada proyecto': 'You link each project',
-  'En Ajustes del proyecto → GitHub dices qué repositorios son de ese proyecto.': 'In Project settings → GitHub you say which repositories belong to that project.',
+  'En Ajustes del proyecto → GitHub dices qué repositorios son de ese proyecto.':
+    'In Project settings → GitHub you say which repositories belong to that project.',
   'Conecta GitHub': 'Connect GitHub',
   'Cada tarea muestra su rama, sus pull requests y el resultado de sus pipelines, y se mueve sola cuando el PR se abre o se fusiona.':
     'Each task shows its branch, its pull requests and the result of its pipelines, and moves by itself when the PR is opened or merged.',
@@ -56,7 +61,8 @@ export default {
   'Crear ramas': 'Create branches',
   'con el botón «Crear rama» de la tarea': 'with the task’s “Create branch” button',
   'Ejecutar workflows': 'Run workflows',
-  'con el botón «Ejecutar workflow» y las reglas del proyecto': 'with the “Run workflow” button and the project’s rules',
+  'con el botón «Ejecutar workflow» y las reglas del proyecto':
+    'with the “Run workflow” button and the project’s rules',
   'Fusionar o cerrar pull requests': 'Merge or close pull requests',
   'Borrar ramas ni escribir código': 'Delete branches or write code',
   'Cambiar los ajustes o los secretos del repositorio': 'Change the repository’s settings or secrets',
@@ -87,7 +93,8 @@ export default {
   'Desde TaskFlow o con el código de la tarea en el nombre. Solo si la tarea no había empezado.':
     'From TaskFlow or with the task code in its name. Only if the task had not started.',
   'Se abre el pull request': 'The pull request is opened',
-  'Un PR en borrador no cuenta hasta que se marca listo para revisar.': 'A draft PR does not count until it is marked ready for review.',
+  'Un PR en borrador no cuenta hasta que se marca listo para revisar.':
+    'A draft PR does not count until it is marked ready for review.',
   'Se fusiona el pull request': 'The pull request is merged',
   'Si a la tarea le faltan criterios de aceptación, no se completa sola: avisa a quien la tiene asignada.':
     'If the task still has acceptance criteria pending, it is not completed automatically: its assignees are notified.',
@@ -120,7 +127,8 @@ export default {
   'Cuándo se ejecuta': 'When it runs',
   'Leyendo workflows…': 'Reading workflows…',
   'Elige un workflow': 'Choose a workflow',
-  'No se pudieron leer los workflows de GitHub. Vuelve a intentarlo en un momento.': 'Could not read the workflows from GitHub. Try again in a moment.',
+  'No se pudieron leer los workflows de GitHub. Vuelve a intentarlo en un momento.':
+    'Could not read the workflows from GitHub. Try again in a moment.',
   'Ese repositorio no tiene workflows que acepten ejecución manual. Agrégale «workflow_dispatch» a su «on:» y vuelve a intentarlo.':
     'That repository has no workflows that accept manual runs. Add “workflow_dispatch” to its “on:” and try again.',
   'Guardar regla': 'Save rule',
@@ -142,7 +150,8 @@ export default {
     'Once connected, each task shows its branch, its pull requests and the result of its pipelines.',
   'Enlazar repositorios': 'Link repositories',
   'Conectar GitHub': 'Connect GitHub',
-  'Lo configura quien tiene el permiso «Configurar GitHub».': 'It is set up by whoever has the “Set up GitHub” permission.',
+  'Lo configura quien tiene el permiso «Configurar GitHub».':
+    'It is set up by whoever has the “Set up GitHub” permission.',
   'Pull requests': 'Pull requests',
   Actions: 'Actions',
   Ramas: 'Branches',
@@ -220,7 +229,8 @@ export default {
   'Ejecutar workflow': 'Run workflow',
   'Lo lanza GitHub Actions en el repositorio; aquí queda quién lo pidió y su resultado.':
     'GitHub Actions runs it in the repository; who requested it and its result are kept here.',
-  'solo aparecen los que aceptan ejecución manual (workflow_dispatch)': 'only those that accept manual runs (workflow_dispatch) appear',
+  'solo aparecen los que aceptan ejecución manual (workflow_dispatch)':
+    'only those that accept manual runs (workflow_dispatch) appear',
   'dato que pide el workflow': 'input the workflow asks for',
   'Tarea relacionada': 'Related task',
   opcional: 'optional',
@@ -249,13 +259,16 @@ export default {
   'Se crea en GitHub y queda enlazada a la tarea.': 'It is created on GitHub and linked to the task.',
   'A partir de': 'From',
   'Nombre de la rama': 'Branch name',
-  'con el código de la tarea al principio, para que el PR se enlace solo': 'with the task code first, so the PR links itself',
-  'usa letras, números, guiones, puntos y barras, sin espacios': 'use letters, numbers, hyphens, dots and slashes, no spaces',
+  'con el código de la tarea al principio, para que el PR se enlace solo':
+    'with the task code first, so the PR links itself',
+  'usa letras, números, guiones, puntos y barras, sin espacios':
+    'use letters, numbers, hyphens, dots and slashes, no spaces',
   'Pasar la tarea a «{state}»': 'Move the task to “{state}”',
   'Comando copiado': 'Command copied',
   'Rama {branch} enlazada': 'Branch {branch} linked',
   'Enlazar una rama o un pull request a {code}': 'Link a branch or a pull request to {code}',
-  'Para lo que no nombra a la tarea. Lo que sí la nombra se enlaza solo.': 'For what does not name the task. What does name it links itself.',
+  'Para lo que no nombra a la tarea. Lo que sí la nombra se enlaza solo.':
+    'For what does not name the task. What does name it links itself.',
   'Pull requests abiertos sin tarea': 'Open pull requests with no task',
   'No hay ninguno.': 'There are none.',
   'Leyendo ramas…': 'Reading branches…',

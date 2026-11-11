@@ -460,7 +460,7 @@ function ShortcutsBar() {
         <kbd className="text-foreground">Enter</kbd> {t('abrir')}
       </span>
       <span>
-        <kbd className="text-foreground">I H Y D M R S E</kbd> {t('secciones')}
+        <kbd className="text-foreground">I H Y D M R S E G</kbd> {t('secciones')}
       </span>
       <span className="ml-auto flex items-center gap-1.5">
         <span aria-hidden="true" className={cn('size-1.5 rounded-full bg-ok-dot', fetching && 'animate-pulse bg-soon')} />

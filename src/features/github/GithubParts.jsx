@@ -14,7 +14,7 @@ export function GhMark({ size = 'lg', className }) {
     <span
       aria-hidden="true"
       className={cn(
-        'flex shrink-0 items-center justify-center bg-foreground font-mono font-semibold text-background',
+        'bg-foreground text-background flex shrink-0 items-center justify-center font-mono font-semibold',
         size === 'lg' ? 'size-11 rounded-xl text-sm' : 'size-6 rounded-md text-[10px]',
         className,
       )}
@@ -30,7 +30,7 @@ export function TonePill({ tone, outline = false, className, children }) {
     <span
       className={cn(
         'inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[11px] font-semibold whitespace-nowrap',
-        outline ? 'border border-dashed border-dash text-muted-foreground' : TONE[tone],
+        outline ? 'border-dash text-muted-foreground border border-dashed' : TONE[tone],
         className,
       )}
     >
@@ -46,7 +46,15 @@ export function PullMark({ state, className }) {
   const info = pullState(state)
   const Icon = ICONS[info.icon]
   return (
-    <span role="img" aria-label={info.label} className={cn('flex size-7.5 shrink-0 items-center justify-center rounded-full', TONE[info.tone], className)}>
+    <span
+      role="img"
+      aria-label={info.label}
+      className={cn(
+        'flex size-7.5 shrink-0 items-center justify-center rounded-full',
+        TONE[info.tone],
+        className,
+      )}
+    >
       <Icon className="size-3.5" strokeWidth={2.25} aria-hidden="true" />
     </span>
   )
@@ -60,7 +68,7 @@ export function StateMark({ info, className }) {
       aria-label={info.label}
       className={cn(
         'flex size-6 shrink-0 items-center justify-center rounded-full font-mono text-xs font-semibold',
-        info.outline ? 'border border-dashed border-dash' : TONE[info.tone],
+        info.outline ? 'border-dash border border-dashed' : TONE[info.tone],
         className,
       )}
     >
@@ -104,7 +112,10 @@ export function DevChip({ summary, className }) {
       title={info.title}
       // Dentro de una tarjeta o una fila que se abre al hacer clic: el enlace no abre la tarea
       onClick={(event) => event.stopPropagation()}
-      className={cn(classes, 'hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none')}
+      className={cn(
+        classes,
+        'focus-visible:ring-ring hover:underline focus-visible:ring-2 focus-visible:outline-none',
+      )}
     >
       {content}
     </a>
@@ -124,12 +135,19 @@ export function IssueDevChip({ slug, projectId, issueId, className }) {
 export function Pick({ value, onChange, options, label, placeholder, disabled, mono = false, className }) {
   return (
     <Select value={value ?? ''} onValueChange={onChange} disabled={disabled}>
-      <SelectTrigger aria-label={label} className={cn('h-8.5 min-w-0', mono && 'font-mono text-[12.5px]', className)}>
+      <SelectTrigger
+        aria-label={label}
+        className={cn('h-8.5 min-w-0', mono && 'font-mono text-[12.5px]', className)}
+      >
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
         {options.map((option) => (
-          <SelectItem key={option.value} value={option.value} className={cn(mono && 'font-mono text-[12.5px]')}>
+          <SelectItem
+            key={option.value}
+            value={option.value}
+            className={cn(mono && 'font-mono text-[12.5px]')}
+          >
             {option.label}
           </SelectItem>
         ))}
@@ -143,7 +161,7 @@ export function TaskLink({ slug, projectId, issueId, code, state }) {
   return (
     <Link
       to={`/${slug}/projects/${projectId}/issues/${issueId}`}
-      className="inline-flex shrink-0 items-center gap-1.75 rounded-lg border px-2 py-1 text-[12.5px] transition-colors hover:border-dash hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      className="hover:border-dash hover:bg-muted focus-visible:ring-ring inline-flex shrink-0 items-center gap-1.75 rounded-lg border px-2 py-1 text-[12.5px] transition-colors focus-visible:ring-2 focus-visible:outline-none"
     >
       <span className="font-mono text-xs font-semibold">{code}</span>
       {state && <span className="text-muted-foreground">{stateName(state)}</span>}

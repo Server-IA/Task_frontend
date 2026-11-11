@@ -22,7 +22,8 @@ export const repoName = (fullName) => (fullName ?? '').split('/').pop()
 
 const GITHUB = 'https://github.com'
 export const repoUrl = (fullName) => `${GITHUB}/${fullName}`
-export const branchUrl = (fullName, branch) => `${GITHUB}/${fullName}/tree/${branch.split('/').map(encodeURIComponent).join('/')}`
+export const branchUrl = (fullName, branch) =>
+  `${GITHUB}/${fullName}/tree/${branch.split('/').map(encodeURIComponent).join('/')}`
 export const shortSha = (sha) => (sha ?? '').slice(0, 7)
 
 /**
@@ -59,7 +60,11 @@ export function pullChecks(pull) {
     case 'PENDING':
       return { tone: 'run', mark: '·', text: t('en curso') }
     case 'SUCCESS':
-      return { tone: 'ok', mark: '✓', text: tn(total, '{count} de {total} pasó', '{count} de {total} pasaron', { total }) }
+      return {
+        tone: 'ok',
+        mark: '✓',
+        text: tn(total, '{count} de {total} pasó', '{count} de {total} pasaron', { total }),
+      }
     default:
       return null
   }
@@ -67,7 +72,8 @@ export function pullChecks(pull) {
 
 /** La nota de un pull request en la lista: a quién se le pidió revisión, o que ya se fusionó. */
 export function pullNote(pull) {
-  if (pull.state === 'MERGED') return pull.issueStateGroup === 'COMPLETED' ? t('fusionado · tarea completada') : t('fusionado')
+  if (pull.state === 'MERGED')
+    return pull.issueStateGroup === 'COMPLETED' ? t('fusionado · tarea completada') : t('fusionado')
   if (pull.reviewers) return t('revisión pedida a {names}', { names: pull.reviewers })
   return pull.state === 'DRAFT' ? t('en borrador') : t('sin revisores')
 }
@@ -83,27 +89,59 @@ const RUN_FAILED = ['failure', 'timed_out', 'startup_failure', 'action_required'
 export function runState(run) {
   const base = { outline: false, canRetry: false, canCancel: false }
   if (run.status === 'completed') {
-    if (run.conclusion === 'success') return { ...base, label: t('correcto'), tone: 'ok', mark: '✓', result: 'ok' }
+    if (run.conclusion === 'success')
+      return { ...base, label: t('correcto'), tone: 'ok', mark: '✓', result: 'ok' }
     if (RUN_FAILED.includes(run.conclusion)) {
-      return { ...base, label: t('falló'), tone: 'fail', mark: '×', canRetry: run.runId != null, result: 'fail' }
+      return {
+        ...base,
+        label: t('falló'),
+        tone: 'fail',
+        mark: '×',
+        canRetry: run.runId != null,
+        result: 'fail',
+      }
     }
     if (run.conclusion === 'cancelled') {
-      return { ...base, label: t('cancelada'), tone: 'wait', mark: '–', canRetry: run.runId != null, result: 'fail' }
+      return {
+        ...base,
+        label: t('cancelada'),
+        tone: 'wait',
+        mark: '–',
+        canRetry: run.runId != null,
+        result: 'fail',
+      }
     }
     return { ...base, label: t('omitida'), tone: 'wait', mark: '–', result: 'wait' }
   }
   if (run.status === 'in_progress') {
-    return { ...base, label: t('en curso'), tone: 'run', mark: '·', canCancel: run.runId != null, result: 'run' }
+    return {
+      ...base,
+      label: t('en curso'),
+      tone: 'run',
+      mark: '·',
+      canCancel: run.runId != null,
+      result: 'run',
+    }
   }
   // «requested» es la que pidió TaskFlow y GitHub todavía no anunció
   const label = run.status === 'requested' ? t('pedida') : t('en cola')
-  return { ...base, label, tone: 'wait', mark: '', outline: true, canCancel: run.status !== 'requested' && run.runId != null, result: 'wait' }
+  return {
+    ...base,
+    label,
+    tone: 'wait',
+    mark: '',
+    outline: true,
+    canCancel: run.status !== 'requested' && run.runId != null,
+    result: 'wait',
+  }
 }
 
 /** A qué se refiere una regla: «al fusionar el PR de una tarea» o «al completar una tarea». */
-export const ruleTrigger = (firesOn) => (firesOn === 'PR_MERGED' ? t('al fusionar el PR de una tarea') : t('al completar una tarea'))
+export const ruleTrigger = (firesOn) =>
+  firesOn === 'PR_MERGED' ? t('al fusionar el PR de una tarea') : t('al completar una tarea')
 /** Lo mismo como condición, para armar la regla: «se fusiona el PR de una tarea». */
-export const ruleWhen = (firesOn) => (firesOn === 'PR_MERGED' ? t('se fusiona el PR de una tarea') : t('una tarea pasa a completada'))
+export const ruleWhen = (firesOn) =>
+  firesOn === 'PR_MERGED' ? t('se fusiona el PR de una tarea') : t('una tarea pasa a completada')
 
 /**
  * Qué lanzó una ejecución: una regla del proyecto, alguien desde TaskFlow, un push, un pull request…
@@ -114,13 +152,24 @@ export const ruleWhen = (firesOn) => (firesOn === 'PR_MERGED' ? t('se fusiona el
 export function runTrigger(run, rules = []) {
   if (run.ruleId) {
     const rule = rules.find((candidate) => candidate.id === run.ruleId)
-    return { text: rule ? t('regla: {trigger}', { trigger: ruleTrigger(rule.firesOn) }) : t('regla del proyecto'), fromTaskflow: true }
+    return {
+      text: rule ? t('regla: {trigger}', { trigger: ruleTrigger(rule.firesOn) }) : t('regla del proyecto'),
+      fromTaskflow: true,
+    }
   }
-  if (run.triggeredByName) return { text: t('a mano · {name}, desde TaskFlow', { name: run.triggeredByName }), fromTaskflow: true }
+  if (run.triggeredByName)
+    return { text: t('a mano · {name}, desde TaskFlow', { name: run.triggeredByName }), fromTaskflow: true }
   if (run.event === 'pull_request' || run.event === 'pull_request_target') {
-    return { text: run.prNumber ? t('pull request #{number}', { number: run.prNumber }) : t('pull request'), fromTaskflow: false }
+    return {
+      text: run.prNumber ? t('pull request #{number}', { number: run.prNumber }) : t('pull request'),
+      fromTaskflow: false,
+    }
   }
-  if (run.event === 'workflow_dispatch') return { text: run.actorLogin ? t('a mano · {name}', { name: run.actorLogin }) : t('a mano'), fromTaskflow: false }
+  if (run.event === 'workflow_dispatch')
+    return {
+      text: run.actorLogin ? t('a mano · {name}', { name: run.actorLogin }) : t('a mano'),
+      fromTaskflow: false,
+    }
   if (run.event === 'schedule') return { text: t('programada'), fromTaskflow: false }
   return { text: run.event ?? '', fromTaskflow: false }
 }
@@ -136,7 +185,10 @@ export function duration(from, to) {
   if (!from || !to) return null
   const seconds = Math.max(0, Math.round((new Date(to).getTime() - new Date(from).getTime()) / 1000))
   if (seconds < 60) return t('{seconds} s', { seconds })
-  return t('{minutes} min {seconds} s', { minutes: Math.floor(seconds / 60), seconds: String(seconds % 60).padStart(2, '0') })
+  return t('{minutes} min {seconds} s', {
+    minutes: Math.floor(seconds / 60),
+    seconds: String(seconds % 60).padStart(2, '0'),
+  })
 }
 
 /**
@@ -147,7 +199,9 @@ export function duration(from, to) {
 export function checkState(check) {
   if (check.status !== 'completed') return { label: t('en curso'), tone: 'run', mark: '·' }
   if (check.conclusion === 'success') return { label: t('pasó'), tone: 'ok', mark: '✓' }
-  if (['failure', 'timed_out', 'cancelled', 'action_required', 'startup_failure'].includes(check.conclusion)) {
+  if (
+    ['failure', 'timed_out', 'cancelled', 'action_required', 'startup_failure'].includes(check.conclusion)
+  ) {
     return { label: t('falló'), tone: 'fail', mark: '×' }
   }
   return { label: t('omitido'), tone: 'wait', mark: '–' }
@@ -162,29 +216,69 @@ export function devIndicator(summary) {
   if (!summary) return null
   if (summary.prNumber == null) {
     if (!summary.branch) return null
-    return { icon: 'branch', tone: 'wait', text: t('rama'), title: t('{branch} · sin pull request', { branch: summary.branch }) }
+    return {
+      icon: 'branch',
+      tone: 'wait',
+      text: t('rama'),
+      title: t('{branch} · sin pull request', { branch: summary.branch }),
+    }
   }
   const number = `#${summary.prNumber}`
   if (summary.prState === 'MERGED') {
     return summary.running
-      ? { icon: 'merge', tone: 'merged', text: t('{pr} · desplegando', { pr: number }), title: t('PR {pr} fusionado · hay un workflow en curso', { pr: number }) }
-      : { icon: 'merge', tone: 'merged', text: t('{pr} · fusionado', { pr: number }), title: t('PR {pr} fusionado', { pr: number }) }
+      ? {
+          icon: 'merge',
+          tone: 'merged',
+          text: t('{pr} · desplegando', { pr: number }),
+          title: t('PR {pr} fusionado · hay un workflow en curso', { pr: number }),
+        }
+      : {
+          icon: 'merge',
+          tone: 'merged',
+          text: t('{pr} · fusionado', { pr: number }),
+          title: t('PR {pr} fusionado', { pr: number }),
+        }
   }
   if (summary.prState === 'CLOSED') {
-    return { icon: 'pr', tone: 'wait', text: t('{pr} · cerrado', { pr: number }), title: t('PR {pr} cerrado sin fusionar', { pr: number }) }
+    return {
+      icon: 'pr',
+      tone: 'wait',
+      text: t('{pr} · cerrado', { pr: number }),
+      title: t('PR {pr} cerrado sin fusionar', { pr: number }),
+    }
   }
   const state = summary.prState === 'DRAFT' ? t('en borrador') : t('abierto')
   if (summary.checksState === 'FAILURE') {
-    return { icon: 'pr', tone: 'fail', text: t('{pr} · falló', { pr: number }), title: t('PR {pr} {state} · los checks fallaron', { pr: number, state }) }
+    return {
+      icon: 'pr',
+      tone: 'fail',
+      text: t('{pr} · falló', { pr: number }),
+      title: t('PR {pr} {state} · los checks fallaron', { pr: number, state }),
+    }
   }
   if (summary.checksState === 'PENDING') {
-    return { icon: 'pr', tone: 'run', text: t('{pr} · en curso', { pr: number }), title: t('PR {pr} {state} · checks en curso', { pr: number, state }) }
+    return {
+      icon: 'pr',
+      tone: 'run',
+      text: t('{pr} · en curso', { pr: number }),
+      title: t('PR {pr} {state} · checks en curso', { pr: number, state }),
+    }
   }
   if (summary.prState === 'DRAFT') {
-    return { icon: 'pr', tone: 'wait', text: t('{pr} · borrador', { pr: number }), title: t('PR {pr} en borrador', { pr: number }) }
+    return {
+      icon: 'pr',
+      tone: 'wait',
+      text: t('{pr} · borrador', { pr: number }),
+      title: t('PR {pr} en borrador', { pr: number }),
+    }
   }
   return summary.checksState === 'SUCCESS'
-    ? { icon: 'pr', tone: 'ok', text: t('{pr} · pasó', { pr: number }), title: t('PR {pr} abierto · los checks pasaron', { pr: number }) }
+    ? {
+        icon: 'pr',
+        tone: 'ok',
+        text: t('{pr} · pasó', { pr: number }),
+        title: t('PR {pr} abierto · los checks pasaron', { pr: number }),
+      }
     : { icon: 'pr', tone: 'ok', text: number, title: t('PR {pr} abierto', { pr: number }) }
 }
 
@@ -229,7 +323,9 @@ export function githubEvent(value) {
       const [, number, names] = parts(value, 3)
       return {
         who: null,
-        text: names ? t('el check {names} falló en el PR #{number}', { names, number }) : t('los checks fallaron en el PR #{number}', { number }),
+        text: names
+          ? t('el check {names} falló en el PR #{number}', { names, number })
+          : t('los checks fallaron en el PR #{number}', { number }),
       }
     }
     default:
@@ -238,14 +334,25 @@ export function githubEvent(value) {
 }
 
 /** «pasó la tarea de «Por hacer» a «En curso», automático»: el cambio de estado que hizo una automatización. */
-export const githubStateChange = (from, to) => t('pasó la tarea de «{from}» a «{to}», automático', { from: stateName(from), to: stateName(to) })
+export const githubStateChange = (from, to) =>
+  t('pasó la tarea de «{from}» a «{to}», automático', { from: stateName(from), to: stateName(to) })
 
-/** Los formatos del nombre de las ramas que crea TaskFlow, con un ejemplo. */
-export const branchFormats = () => [
-  { value: 'CODE_TITLE', label: t('código-título'), example: 'web-22-rotacion-del-token' },
-  { value: 'TYPE_CODE_TITLE', label: t('tipo/código-título'), example: 'feature/web-22-rotacion-del-token' },
-  { value: 'CODE', label: t('solo el código'), example: 'web-22' },
-]
+/**
+ * Los formatos del nombre de las ramas que crea TaskFlow, con un ejemplo hecho con el identificador del proyecto.
+ * @param {string} [identifier]
+ */
+export function branchFormats(identifier = 'WEB') {
+  const code = `${String(identifier).toLowerCase()}-22`
+  return [
+    { value: 'CODE_TITLE', label: t('código-título'), example: `${code}-rotacion-del-token` },
+    {
+      value: 'TYPE_CODE_TITLE',
+      label: t('tipo/código-título'),
+      example: `feature/${code}-rotacion-del-token`,
+    },
+    { value: 'CODE', label: t('solo el código'), example: code },
+  ]
+}
 
 /** Si un nombre sirve como rama de git (lo mismo que comprueba el servidor). */
 export function validBranchName(name) {

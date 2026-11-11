@@ -3,7 +3,12 @@ import { Link } from 'react-router'
 import { Plus, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { ErrorState } from '@/components/common/States'
@@ -48,7 +53,7 @@ export function ProjectGithubSettings({ workspace, project }) {
   return (
     <div className="mx-auto flex max-w-[940px] flex-col gap-3.5">
       {!canManage && (
-        <p className="rounded-xl bg-muted px-3.5 py-2.5 text-[13px] leading-normal text-muted-foreground">
+        <p className="bg-muted text-muted-foreground rounded-xl px-3.5 py-2.5 text-[13px] leading-normal">
           {t('Puedes ver cómo está configurado. Cambiarlo pide el permiso «Configurar GitHub».')}
         </p>
       )}
@@ -65,7 +70,7 @@ function NotConnected({ workspace }) {
       <GhMark />
       <div className="flex-[1_1_320px]">
         <h2 className="text-[17px] font-semibold">{t('Este workspace no está conectado con GitHub')}</h2>
-        <p className="mt-0.5 text-sm leading-normal text-muted-foreground">
+        <p className="text-muted-foreground mt-0.5 text-sm leading-normal">
           {t('Primero se conecta el workspace; después cada proyecto elige sus repositorios aquí.')}
         </p>
       </div>
@@ -84,7 +89,10 @@ function Repositories({ workspace, project, status, canManage }) {
   const save = (repositoryIds, done) =>
     setRepositories.mutate(
       { projectId: project.id, repositoryIds },
-      { onSuccess: () => toast.success(done), onError: (saveError) => notifyError(saveError, t('No se pudo guardar')) },
+      {
+        onSuccess: () => toast.success(done),
+        onError: (saveError) => notifyError(saveError, t('No se pudo guardar')),
+      },
     )
 
   return (
@@ -94,10 +102,13 @@ function Repositories({ workspace, project, status, canManage }) {
           <h2 id="github-linked-title" className="text-[17px] font-semibold">
             {t('Repositorios de este proyecto')}
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t('Sus ramas, PR y pipelines se enlazan con las tareas que nombren: {code} en la rama, o en el título o la descripción del PR.', {
-              code: `${project.identifier}-22`,
-            })}
+          <p className="text-muted-foreground mt-1 text-sm">
+            {t(
+              'Sus ramas, PR y pipelines se enlazan con las tareas que nombren: {code} en la rama, o en el título o la descripción del PR.',
+              {
+                code: `${project.identifier}-22`,
+              },
+            )}
           </p>
         </div>
         {canManage && (
@@ -113,7 +124,12 @@ function Repositories({ workspace, project, status, canManage }) {
                 <DropdownMenuItem
                   key={repository.id}
                   className="font-mono text-[13px]"
-                  onSelect={() => save([...linkedIds, repository.id], t('{repository} enlazado', { repository: repository.fullName }))}
+                  onSelect={() =>
+                    save(
+                      [...linkedIds, repository.id],
+                      t('{repository} enlazado', { repository: repository.fullName }),
+                    )
+                  }
                 >
                   {repository.fullName}
                 </DropdownMenuItem>
@@ -123,18 +139,35 @@ function Repositories({ workspace, project, status, canManage }) {
         )}
       </div>
       {status.repositories.length === 0 ? (
-        <p className="rounded-[14px] border border-dashed border-dash px-4 py-5 text-center text-sm text-muted-foreground">
+        <p className="border-dash text-muted-foreground rounded-[14px] border border-dashed px-4 py-5 text-center text-sm">
           {status.available.length === 0
-            ? t('La app de TaskFlow todavía no tiene acceso a ningún repositorio. Se eligen en GitHub, desde Ajustes del workspace → Integraciones.')
-            : t('Este proyecto todavía no tiene repositorios. Enlaza uno para ver sus ramas y pull requests en las tareas.')}
+            ? t(
+                'La app de TaskFlow todavía no tiene acceso a ningún repositorio. Se eligen en GitHub, desde Ajustes del workspace → Integraciones.',
+              )
+            : t(
+                'Este proyecto todavía no tiene repositorios. Enlaza uno para ver sus ramas y pull requests en las tareas.',
+              )}
         </p>
       ) : (
         <ul className="overflow-hidden rounded-[14px] border">
           {status.repositories.map((repository, index) => (
-            <li key={repository.id} className={cn('flex flex-wrap items-center gap-x-3.5 gap-y-2.5 px-3.5 py-2.75', index > 0 && 'border-t')}>
-              <span className="min-w-0 flex-[1_1_240px] truncate font-mono text-[13px] font-semibold">{repository.fullName}</span>
-              <span className="font-mono text-xs text-muted-foreground">
-                {[repository.defaultBranch, tn(repository.openPullRequests, '{count} PR abierto', '{count} PR abiertos')].filter(Boolean).join(' · ')}
+            <li
+              key={repository.id}
+              className={cn(
+                'flex flex-wrap items-center gap-x-3.5 gap-y-2.5 px-3.5 py-2.75',
+                index > 0 && 'border-t',
+              )}
+            >
+              <span className="min-w-0 flex-[1_1_240px] truncate font-mono text-[13px] font-semibold">
+                {repository.fullName}
+              </span>
+              <span className="text-muted-foreground font-mono text-xs">
+                {[
+                  repository.defaultBranch,
+                  tn(repository.openPullRequests, '{count} PR abierto', '{count} PR abiertos'),
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
               </span>
               {canManage && (
                 <button
@@ -147,7 +180,7 @@ function Repositories({ workspace, project, status, canManage }) {
                       t('{repository} ya no es de este proyecto', { repository: repository.fullName }),
                     )
                   }
-                  className="flex size-7.5 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  className="text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-ring flex size-7.5 items-center justify-center rounded-lg transition-colors focus-visible:ring-2 focus-visible:outline-none"
                 >
                   <X className="size-4" aria-hidden="true" />
                 </button>
@@ -178,7 +211,9 @@ const AUTOMATIONS = () => [
   {
     key: 'onPrMergedStateId',
     when: t('Se fusiona el pull request'),
-    note: t('Si a la tarea le faltan criterios de aceptación, no se completa sola: avisa a quien la tiene asignada.'),
+    note: t(
+      'Si a la tarea le faltan criterios de aceptación, no se completa sola: avisa a quien la tiene asignada.',
+    ),
     prefer: ['COMPLETED'],
   },
   {
@@ -201,11 +236,15 @@ function Automations({ workspace, project, status, canManage }) {
   const { data: states } = useStates(workspace.slug, project.id)
   const save = useSaveGithubSettings(workspace.slug, project.id)
   const settings = status.settings
-  const formats = branchFormats()
+  const formats = branchFormats(project.identifier)
   const format = formats.find((candidate) => candidate.value === settings.branchFormat) ?? formats[0]
   const stateOptions = (states ?? []).map((state) => ({ value: state.id, label: stateName(state.name) }))
 
-  const change = (patch) => save.mutate({ ...settings, ...patch }, { onError: (saveError) => notifyError(saveError, t('No se pudo guardar')) })
+  const change = (patch) =>
+    save.mutate(
+      { ...settings, ...patch },
+      { onError: (saveError) => notifyError(saveError, t('No se pudo guardar')) },
+    )
 
   return (
     <section aria-labelledby="github-auto-title" className="tf-panel flex flex-col gap-3 px-5 py-4.5">
@@ -213,23 +252,37 @@ function Automations({ workspace, project, status, canManage }) {
         <h2 id="github-auto-title" className="text-[17px] font-semibold">
           {t('La tarea sigue al pull request')}
         </h2>
-        <p className="mt-1 text-sm text-muted-foreground">{t('Cada cambio queda en la actividad de la tarea como hecho por GitHub, automático.')}</p>
+        <p className="text-muted-foreground mt-1 text-sm">
+          {t('Cada cambio queda en la actividad de la tarea como hecho por GitHub, automático.')}
+        </p>
       </div>
       <ul className="overflow-hidden rounded-[14px] border">
         {AUTOMATIONS().map((automation, index) => {
           const stateId = settings[automation.key]
           const on = Boolean(stateId)
           return (
-            <li key={automation.key} className={cn('flex flex-wrap items-center gap-x-3.5 gap-y-2.5 px-3.5 py-2.75', index > 0 && 'border-t')}>
+            <li
+              key={automation.key}
+              className={cn(
+                'flex flex-wrap items-center gap-x-3.5 gap-y-2.5 px-3.5 py-2.75',
+                index > 0 && 'border-t',
+              )}
+            >
               <Switch
                 aria-label={automation.when}
                 checked={on}
                 disabled={!canManage || !states || save.isPending}
-                onCheckedChange={(checked) => change({ [automation.key]: checked ? defaultStateFor(automation, states) : null })}
+                onCheckedChange={(checked) =>
+                  change({ [automation.key]: checked ? defaultStateFor(automation, states) : null })
+                }
               />
               <span className="min-w-0 flex-[1_1_260px]">
-                <span className={cn('block font-medium', !on && 'text-muted-foreground')}>{automation.when}</span>
-                <span className="mt-0.5 block text-[12.5px] leading-snug text-muted-foreground">{automation.note}</span>
+                <span className={cn('block font-medium', !on && 'text-muted-foreground')}>
+                  {automation.when}
+                </span>
+                <span className="text-muted-foreground mt-0.5 block text-[12.5px] leading-snug">
+                  {automation.note}
+                </span>
               </span>
               <span aria-hidden="true" className="text-muted-foreground">
                 →
@@ -259,7 +312,7 @@ function Automations({ workspace, project, status, canManage }) {
           disabled={!canManage || save.isPending}
           className="w-[178px] text-[13px]"
         />
-        <span className="font-mono text-xs text-muted-foreground">{format.example}</span>
+        <span className="text-muted-foreground font-mono text-xs">{format.example}</span>
       </div>
     </section>
   )
@@ -269,8 +322,13 @@ function Automations({ workspace, project, status, canManage }) {
 function lastRun(rule) {
   if (!rule.lastRunAt) return { text: t('todavía no se ha ejecutado'), tone: 'text-muted-foreground' }
   const state = runState({ status: rule.lastRunStatus, conclusion: rule.lastRunConclusion, runId: 1 })
-  const tone = { ok: 'text-ok', fail: 'text-late', run: 'text-accent-text', wait: 'text-muted-foreground' }[state.result]
-  return { text: t('última vez {when} · {state}', { when: formatRelative(rule.lastRunAt), state: state.label }), tone }
+  const tone = { ok: 'text-ok', fail: 'text-late', run: 'text-accent-text', wait: 'text-muted-foreground' }[
+    state.result
+  ]
+  return {
+    text: t('última vez {when} · {state}', { when: formatRelative(rule.lastRunAt), state: state.label }),
+    tone,
+  }
 }
 
 function Rules({ workspace, project, status, canManage }) {
@@ -292,42 +350,53 @@ function Rules({ workspace, project, status, canManage }) {
           <h2 id="github-rules-title" className="text-[17px] font-semibold">
             {t('Reglas de GitHub Actions')}
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t('Cuando pasa algo en una tarea, TaskFlow le pide a GitHub que ejecute un workflow. El resultado se ve en la tarea y en GitHub → Actions.')}
+          <p className="text-muted-foreground mt-1 text-sm">
+            {t(
+              'Cuando pasa algo en una tarea, TaskFlow le pide a GitHub que ejecute un workflow. El resultado se ve en la tarea y en GitHub → Actions.',
+            )}
           </p>
         </div>
         {canManage && !adding && (
-          <Button variant="outline" className="gap-2" onClick={() => setAdding(true)} disabled={status.repositories.length === 0}>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => setAdding(true)}
+            disabled={status.repositories.length === 0}
+          >
             <Plus className="size-3.5" strokeWidth={3} aria-hidden="true" />
             {t('Nueva regla')}
           </Button>
         )}
       </div>
       {status.rules.length === 0 && !adding && (
-        <p className="rounded-[14px] border border-dashed border-dash px-4 py-5 text-center text-sm text-muted-foreground">
-          {status.repositories.length === 0 ? t('Enlaza un repositorio para poder crear reglas.') : t('Este proyecto todavía no tiene reglas.')}
+        <p className="border-dash text-muted-foreground rounded-[14px] border border-dashed px-4 py-5 text-center text-sm">
+          {status.repositories.length === 0
+            ? t('Enlaza un repositorio para poder crear reglas.')
+            : t('Este proyecto todavía no tiene reglas.')}
         </p>
       )}
       {status.rules.map((rule) => {
         const last = lastRun(rule)
         return (
-          <div key={rule.id} className="flex flex-wrap items-center gap-x-2.5 gap-y-2 rounded-[14px] border px-3.5 py-3">
-            <span className={word}>{t('cuando')}</span>
-            <span className={chip}>{ruleWhen(rule.firesOn)}</span>
-            <span className={word}>{t('ejecutar')}</span>
-            <span className={chip}>{rule.workflowName}</span>
-            <span className={word}>{t('en')}</span>
-            <span className={cn(chip, 'font-mono text-[12.5px] font-normal')}>
-              {repoName(rule.repository)} · {rule.ref}
-            </span>
-            <span className={cn('ml-auto font-mono text-[11.5px]', last.tone)}>{last.text}</span>
+          <div key={rule.id} className="flex items-center gap-2 rounded-[14px] border py-3 pr-2.5 pl-3.5">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-2">
+              <span className={word}>{t('cuando')}</span>
+              <span className={chip}>{ruleWhen(rule.firesOn)}</span>
+              <span className={word}>{t('ejecutar')}</span>
+              <span className={chip}>{rule.workflowName}</span>
+              <span className={word}>{t('en')}</span>
+              <span className={cn(chip, 'font-mono text-[12.5px] font-normal')}>
+                {repoName(rule.repository)} · {rule.ref}
+              </span>
+              <span className={cn('ml-auto font-mono text-[11.5px]', last.tone)}>{last.text}</span>
+            </div>
             {canManage && (
               <button
                 type="button"
                 aria-label={t('Quitar la regla «{name}»', { name: rule.workflowName })}
                 disabled={remove.isPending}
                 onClick={() => handleRemove(rule)}
-                className="flex size-7.5 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                className="text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-ring flex size-7.5 items-center justify-center rounded-lg transition-colors focus-visible:ring-2 focus-visible:outline-none"
               >
                 <X className="size-4" aria-hidden="true" />
               </button>
@@ -335,8 +404,15 @@ function Rules({ workspace, project, status, canManage }) {
           </div>
         )
       })}
-      {adding && <NewRule workspace={workspace} project={project} repositories={status.repositories} onDone={() => setAdding(false)} />}
-      <p className="rounded-xl bg-muted px-3 py-2.5 text-[12.5px] leading-normal text-muted-foreground">
+      {adding && (
+        <NewRule
+          workspace={workspace}
+          project={project}
+          repositories={status.repositories}
+          onDone={() => setAdding(false)}
+        />
+      )}
+      <p className="bg-muted text-muted-foreground rounded-xl px-3 py-2.5 text-[12.5px] leading-normal">
         {t(
           'Si el workflow ya corre solo al hacer push a main, no hace falta una regla: GitHub lo lanza al fusionar y TaskFlow lo muestra en la tarea. Las reglas sirven para lo que GitHub no sabe, como «la tarea quedó completada». Solo se pueden elegir workflows que acepten ejecución manual (workflow_dispatch).',
         )}
@@ -352,14 +428,21 @@ function NewRule({ workspace, project, repositories, onDone }) {
   const [workflowId, setWorkflowId] = useState('')
   const [ref, setRef] = useState('')
   const repository = repositories.find((candidate) => candidate.id === repositoryId)
-  const { data: workflows, isLoading: loadingWorkflows, error: workflowsError } = useGithubWorkflows(workspace.slug, project.id, repositoryId)
+  const {
+    data: workflows,
+    isLoading: loadingWorkflows,
+    error: workflowsError,
+  } = useGithubWorkflows(workspace.slug, project.id, repositoryId)
   const { data: branches } = useGithubRepoBranches(workspace.slug, project.id, repositoryId)
   const add = useAddGithubRule(workspace.slug, project.id)
   const word = 'font-mono text-[11.5px] text-muted-foreground'
 
   const branch = ref || repository?.defaultBranch || ''
   const workflow = workflows?.find((candidate) => String(candidate.id) === workflowId)
-  const branchOptions = [...new Set([branch, ...(branches ?? [])].filter(Boolean))].map((name) => ({ value: name, label: name }))
+  const branchOptions = [...new Set([branch, ...(branches ?? [])].filter(Boolean))].map((name) => ({
+    value: name,
+    label: name,
+  }))
 
   const handleRepository = (value) => {
     setRepositoryId(value)
@@ -379,7 +462,11 @@ function NewRule({ workspace, project, repositories, onDone }) {
     )
 
   return (
-    <div role="group" aria-label={t('Nueva regla')} className="flex flex-col gap-2.5 rounded-[14px] border border-ring bg-accent-soft/40 px-3.5 py-3">
+    <div
+      role="group"
+      aria-label={t('Nueva regla')}
+      className="border-ring bg-accent-soft/40 flex flex-col gap-2.5 rounded-[14px] border px-3.5 py-3"
+    >
       <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
         <span className={word}>{t('cuando')}</span>
         <Pick
@@ -387,34 +474,53 @@ function NewRule({ workspace, project, repositories, onDone }) {
           value={firesOn}
           onChange={setFiresOn}
           options={['PR_MERGED', 'ISSUE_COMPLETED'].map((value) => ({ value, label: ruleWhen(value) }))}
-          className="w-[250px] bg-background text-[13px]"
+          className="bg-background w-[250px] text-[13px]"
         />
         <span className={word}>{t('en')}</span>
         <Pick
           label={t('Repositorio')}
           value={repositoryId}
           onChange={handleRepository}
-          options={repositories.map((candidate) => ({ value: candidate.id, label: repoName(candidate.fullName) }))}
+          options={repositories.map((candidate) => ({
+            value: candidate.id,
+            label: repoName(candidate.fullName),
+          }))}
           mono
-          className="w-[170px] bg-background"
+          className="bg-background w-[170px]"
         />
         <span className={word}>{t('ejecutar')}</span>
         <Pick
           label={t('Workflow')}
           value={workflowId}
           onChange={setWorkflowId}
-          options={(workflows ?? []).map((candidate) => ({ value: String(candidate.id), label: candidate.name }))}
+          options={(workflows ?? []).map((candidate) => ({
+            value: String(candidate.id),
+            label: candidate.name,
+          }))}
           placeholder={loadingWorkflows ? t('Leyendo workflows…') : t('Elige un workflow')}
           disabled={!workflows || workflows.length === 0}
-          className="w-[210px] bg-background text-[13px]"
+          className="bg-background w-[210px] text-[13px]"
         />
         <span className={word}>{t('sobre')}</span>
-        <Pick label={t('Rama')} value={branch} onChange={setRef} options={branchOptions} mono className="w-[150px] bg-background" />
+        <Pick
+          label={t('Rama')}
+          value={branch}
+          onChange={setRef}
+          options={branchOptions}
+          mono
+          className="bg-background w-[150px]"
+        />
       </div>
-      {workflowsError && <p className="text-[12.5px] text-late">{t('No se pudieron leer los workflows de GitHub. Vuelve a intentarlo en un momento.')}</p>}
+      {workflowsError && (
+        <p className="text-late text-[12.5px]">
+          {t('No se pudieron leer los workflows de GitHub. Vuelve a intentarlo en un momento.')}
+        </p>
+      )}
       {workflows?.length === 0 && (
-        <p className="text-[12.5px] text-muted-foreground">
-          {t('Ese repositorio no tiene workflows que acepten ejecución manual. Agrégale «workflow_dispatch» a su «on:» y vuelve a intentarlo.')}
+        <p className="text-muted-foreground text-[12.5px]">
+          {t(
+            'Ese repositorio no tiene workflows que acepten ejecución manual. Agrégale «workflow_dispatch» a su «on:» y vuelve a intentarlo.',
+          )}
         </p>
       )}
       <div className="flex justify-end gap-2">

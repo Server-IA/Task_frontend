@@ -58,27 +58,34 @@ export const githubApi = {
   /** @returns {Promise<ProjectStatus>} */
   project: (slug, projectId) => api.get(project(slug, projectId)).then(data),
   /** @returns {Promise<ProjectStatus>} */
-  setRepositories: (slug, projectId, repositoryIds) => api.put(`${project(slug, projectId)}/repositories`, { repositoryIds }, SLOW).then(data),
+  setRepositories: (slug, projectId, repositoryIds) =>
+    api.put(`${project(slug, projectId)}/repositories`, { repositoryIds }, SLOW).then(data),
   /** @returns {Promise<ProjectStatus>} */
-  saveSettings: (slug, projectId, settings) => api.put(`${project(slug, projectId)}/settings`, settings).then(data),
+  saveSettings: (slug, projectId, settings) =>
+    api.put(`${project(slug, projectId)}/settings`, settings).then(data),
   /** @returns {Promise<ProjectStatus>} */
   addRule: (slug, projectId, rule) => api.post(`${project(slug, projectId)}/rules`, rule).then(data),
   deleteRule: (slug, projectId, ruleId) => api.delete(`${project(slug, projectId)}/rules/${ruleId}`),
 
   /** @param {'open' | 'merged' | 'all'} state @returns {Promise<PullRequest[]>} */
-  pulls: (slug, projectId, state) => api.get(`${project(slug, projectId)}/pulls`, { params: { state } }).then(data),
+  pulls: (slug, projectId, state) =>
+    api.get(`${project(slug, projectId)}/pulls`, { params: { state } }).then(data),
   /** @returns {Promise<PullRequest>} */
-  linkPull: (slug, projectId, pullRequestId, issueId) => api.put(`${project(slug, projectId)}/pulls/${pullRequestId}/issue`, { issueId }).then(data),
+  linkPull: (slug, projectId, pullRequestId, issueId) =>
+    api.put(`${project(slug, projectId)}/pulls/${pullRequestId}/issue`, { issueId }).then(data),
   /** @returns {Promise<Run[]>} */
   runs: (slug, projectId) => api.get(`${project(slug, projectId)}/runs`).then(data),
   /** @returns {Promise<Run>} */
   dispatch: (slug, projectId, body) => api.post(`${project(slug, projectId)}/runs`, body, SLOW).then(data),
   rerun: (slug, projectId, runId) => api.post(`${project(slug, projectId)}/runs/${runId}/rerun`, null, SLOW),
-  cancel: (slug, projectId, runId) => api.post(`${project(slug, projectId)}/runs/${runId}/cancel`, null, SLOW),
+  cancel: (slug, projectId, runId) =>
+    api.post(`${project(slug, projectId)}/runs/${runId}/cancel`, null, SLOW),
   /** @returns {Promise<Workflow[]>} */
-  workflows: (slug, projectId, repositoryId) => api.get(`${project(slug, projectId)}/repositories/${repositoryId}/workflows`, SLOW).then(data),
+  workflows: (slug, projectId, repositoryId) =>
+    api.get(`${project(slug, projectId)}/repositories/${repositoryId}/workflows`, SLOW).then(data),
   /** @returns {Promise<string[]>} */
-  repoBranches: (slug, projectId, repositoryId) => api.get(`${project(slug, projectId)}/repositories/${repositoryId}/branches`, SLOW).then(data),
+  repoBranches: (slug, projectId, repositoryId) =>
+    api.get(`${project(slug, projectId)}/repositories/${repositoryId}/branches`, SLOW).then(data),
   /** @returns {Promise<Branch[]>} */
   branches: (slug, projectId) => api.get(`${project(slug, projectId)}/branches`).then(data),
   /** @returns {Promise<IssueSummary[]>} */
@@ -90,7 +97,9 @@ export const githubApi = {
   checks: (slug, projectId, issueId, pullRequestId) =>
     api.get(`${project(slug, projectId)}/issues/${issueId}/pulls/${pullRequestId}/checks`, SLOW).then(data),
   /** @param {{ repositoryId: string, base: string, name: string, move: boolean }} body @returns {Promise<IssueDev>} */
-  createBranch: (slug, projectId, issueId, body) => api.post(`${project(slug, projectId)}/issues/${issueId}/branches`, body, SLOW).then(data),
+  createBranch: (slug, projectId, issueId, body) =>
+    api.post(`${project(slug, projectId)}/issues/${issueId}/branches`, body, SLOW).then(data),
   /** @param {{ repositoryId: string, name: string }} body @returns {Promise<IssueDev>} */
-  linkBranch: (slug, projectId, issueId, body) => api.post(`${project(slug, projectId)}/issues/${issueId}/branches/link`, body, SLOW).then(data),
+  linkBranch: (slug, projectId, issueId, body) =>
+    api.post(`${project(slug, projectId)}/issues/${issueId}/branches/link`, body, SLOW).then(data),
 }

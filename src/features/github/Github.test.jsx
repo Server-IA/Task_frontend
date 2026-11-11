@@ -47,19 +47,41 @@ const STATES = [
 ]
 let role = 'OWNER'
 vi.mock('@/features/projects/hooks', () => ({
-  useProjects: () => ({ data: [{ id: 'p-web', name: 'Sitio web', identifier: 'WEB', color: 'TEAL' }, { id: 'p-app', name: 'App móvil', identifier: 'APP', color: 'AMBER' }] }),
+  useProjects: () => ({
+    data: [
+      { id: 'p-web', name: 'Sitio web', identifier: 'WEB', color: 'TEAL' },
+      { id: 'p-app', name: 'App móvil', identifier: 'APP', color: 'AMBER' },
+    ],
+  }),
   useStates: () => ({ data: STATES }),
 }))
-vi.mock('@/features/workspaces/hooks', () => ({ useWorkspace: () => ({ data: { slug: 'equipo', myRole: role, myPermissions: [] } }) }))
-vi.mock('@/features/issues/hooks', () => ({ useIssues: () => ({ data: { content: [] }, isFetching: false }) }))
+vi.mock('@/features/workspaces/hooks', () => ({
+  useWorkspace: () => ({ data: { slug: 'equipo', myRole: role, myPermissions: [] } }),
+}))
+vi.mock('@/features/issues/hooks', () => ({
+  useIssues: () => ({ data: { content: [] }, isFetching: false }),
+}))
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } }))
 
 const owner = { slug: 'equipo', name: 'Equipo', myRole: 'OWNER' }
 const member = { slug: 'equipo', name: 'Equipo', myRole: 'MEMBER', myPermissions: ['ISSUE_EDIT'] }
 const project = { id: 'p-web', name: 'Sitio web', identifier: 'WEB' }
 
-const repo = (id, fullName, projects = [], openPullRequests = 0) => ({ id, fullName, defaultBranch: 'main', isPrivate: true, projects, openPullRequests })
-const linked = { repositoryId: 'r-api', projectId: 'p-web', identifier: 'WEB', name: 'Sitio web', color: 'TEAL' }
+const repo = (id, fullName, projects = [], openPullRequests = 0) => ({
+  id,
+  fullName,
+  defaultBranch: 'main',
+  isPrivate: true,
+  projects,
+  openPullRequests,
+})
+const linked = {
+  repositoryId: 'r-api',
+  projectId: 'p-web',
+  identifier: 'WEB',
+  name: 'Sitio web',
+  color: 'TEAL',
+}
 const connected = {
   configured: true,
   connected: true,
@@ -71,7 +93,13 @@ const connected = {
   manageUrl: 'https://github.com/organizations/acme/settings/installations/7',
   repositories: [repo('r-api', 'acme/sitio-web-api', [linked]), repo('r-app', 'acme/app-movil')],
 }
-const settings = { onBranchStateId: null, onPrOpenedStateId: null, onPrMergedStateId: 's-done', onPrClosedStateId: null, branchFormat: 'CODE_TITLE' }
+const settings = {
+  onBranchStateId: null,
+  onPrOpenedStateId: null,
+  onPrMergedStateId: 's-done',
+  onPrClosedStateId: null,
+  branchFormat: 'CODE_TITLE',
+}
 const rule = {
   id: 'rule-1',
   firesOn: 'PR_MERGED',
@@ -166,12 +194,16 @@ describe('Integraciones del workspace', () => {
     const assign = vi.fn()
     vi.stubGlobal('location', { ...window.location, assign })
     githubApi.workspace.mockResolvedValue({ configured: true, connected: false, repositories: [] })
-    githubApi.install.mockResolvedValue({ url: 'https://github.com/apps/taskflow/installations/new?state=abc' })
+    githubApi.install.mockResolvedValue({
+      url: 'https://github.com/apps/taskflow/installations/new?state=abc',
+    })
     renderWith(<WorkspaceIntegrations workspace={owner} />)
 
     await userEvent.click(await screen.findByRole('button', { name: /Conectar con GitHub/ }))
 
-    await waitFor(() => expect(assign).toHaveBeenCalledWith('https://github.com/apps/taskflow/installations/new?state=abc'))
+    await waitFor(() =>
+      expect(assign).toHaveBeenCalledWith('https://github.com/apps/taskflow/installations/new?state=abc'),
+    )
     expect(screen.getByText('Lo que no puede')).toBeInTheDocument()
     vi.unstubAllGlobals()
   })
@@ -207,7 +239,10 @@ describe('Integraciones del workspace', () => {
     const rows = screen.getAllByRole('listitem').filter((row) => within(row).queryByText(/acme\//))
     expect(within(rows[0]).getByText('Sitio web')).toBeInTheDocument()
     expect(within(rows[1]).getByRole('button', { name: 'Enlazar a un proyecto' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Administrar en GitHub/ })).toHaveAttribute('href', connected.manageUrl)
+    expect(screen.getByRole('link', { name: /Administrar en GitHub/ })).toHaveAttribute(
+      'href',
+      connected.manageUrl,
+    )
   })
 
   it('desconectar pide confirmación', async () => {
@@ -227,19 +262,34 @@ describe('Integraciones del workspace', () => {
   it('al volver de GitHub dice cómo salió', async () => {
     const { toast } = await import('sonner')
     githubApi.workspace.mockResolvedValue(connected)
-    renderWith(<WorkspaceIntegrations workspace={owner} />, { path: '/equipo/settings?tab=integrations&github=taken' })
+    renderWith(<WorkspaceIntegrations workspace={owner} />, {
+      path: '/equipo/settings?tab=integrations&github=taken',
+    })
 
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Esa instalación de GitHub ya está conectada a otro workspace'))
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        'Esa instalación de GitHub ya está conectada a otro workspace',
+      ),
+    )
   })
 })
 
 describe('GitHub en los ajustes del proyecto', () => {
   it('sin conexión, lleva a Integraciones', async () => {
-    githubApi.project.mockResolvedValue({ ...projectStatus, connected: false, repositories: [], available: [], rules: [] })
+    githubApi.project.mockResolvedValue({
+      ...projectStatus,
+      connected: false,
+      repositories: [],
+      available: [],
+      rules: [],
+    })
     renderWith(<ProjectGithubSettings workspace={owner} project={project} />)
 
     expect(await screen.findByText('Este workspace no está conectado con GitHub')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Ir a Integraciones' })).toHaveAttribute('href', '/equipo/settings?tab=integrations')
+    expect(screen.getByRole('link', { name: 'Ir a Integraciones' })).toHaveAttribute(
+      'href',
+      '/equipo/settings?tab=integrations',
+    )
   })
 
   it('muestra los repositorios, las automatizaciones y las reglas', async () => {
@@ -265,18 +315,31 @@ describe('GitHub en los ajustes del proyecto', () => {
     await userEvent.click(await screen.findByRole('switch', { name: 'Se abre el pull request' }))
 
     // «Se abre el PR» prefiere un estado de revisión si el proyecto lo tiene
-    await waitFor(() => expect(githubApi.saveSettings).toHaveBeenCalledWith('equipo', 'p-web', { ...settings, onPrOpenedStateId: 's-review' }))
+    await waitFor(() =>
+      expect(githubApi.saveSettings).toHaveBeenCalledWith('equipo', 'p-web', {
+        ...settings,
+        onPrOpenedStateId: 's-review',
+      }),
+    )
     await waitFor(() => expect(screen.getByRole('switch', { name: 'Se abre el pull request' })).toBeChecked())
   })
 
   it('apagar una automatización deja de mover la tarea', async () => {
     githubApi.project.mockResolvedValue(projectStatus)
-    githubApi.saveSettings.mockResolvedValue({ ...projectStatus, settings: { ...settings, onPrMergedStateId: null } })
+    githubApi.saveSettings.mockResolvedValue({
+      ...projectStatus,
+      settings: { ...settings, onPrMergedStateId: null },
+    })
     renderWith(<ProjectGithubSettings workspace={owner} project={project} />)
 
     await userEvent.click(await screen.findByRole('switch', { name: 'Se fusiona el pull request' }))
 
-    await waitFor(() => expect(githubApi.saveSettings).toHaveBeenCalledWith('equipo', 'p-web', { ...settings, onPrMergedStateId: null }))
+    await waitFor(() =>
+      expect(githubApi.saveSettings).toHaveBeenCalledWith('equipo', 'p-web', {
+        ...settings,
+        onPrMergedStateId: null,
+      }),
+    )
   })
 
   it('el estado propuesto sale del grupo de cada automatización', () => {
@@ -309,13 +372,22 @@ describe('GitHub en los ajustes del proyecto', () => {
     expect(screen.getByRole('switch', { name: 'Se fusiona el pull request' })).toBeDisabled()
     expect(screen.queryByRole('button', { name: /Enlazar repositorio/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Nueva regla/ })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Quitar la regla «Deploy a staging»' })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Quitar la regla «Deploy a staging»' }),
+    ).not.toBeInTheDocument()
   })
 })
 
 describe('Desarrollo de la tarea', () => {
   const repositories = [repo('r-api', 'acme/sitio-web-api')]
-  const emptyDev = { available: true, repositories, branches: [], pullRequests: [], runs: [], suggestedBranch: 'web-23-rate-limit' }
+  const emptyDev = {
+    available: true,
+    repositories,
+    branches: [],
+    pullRequests: [],
+    runs: [],
+    suggestedBranch: 'web-23-rate-limit',
+  }
 
   it('si el proyecto no usa GitHub no aparece', async () => {
     githubApi.issue.mockResolvedValue({ ...emptyDev, available: false, repositories: [] })
@@ -327,9 +399,23 @@ describe('Desarrollo de la tarea', () => {
 
   it('sin rama, la crea con el nombre propuesto', async () => {
     githubApi.issue.mockResolvedValue(emptyDev)
-    githubApi.project.mockResolvedValue({ ...projectStatus, settings: { ...settings, onBranchStateId: 's-doing' } })
+    githubApi.project.mockResolvedValue({
+      ...projectStatus,
+      settings: { ...settings, onBranchStateId: 's-doing' },
+    })
     githubApi.repoBranches.mockResolvedValue(['main', 'develop'])
-    githubApi.createBranch.mockResolvedValue({ ...emptyDev, branches: [{ id: 'b1', repositoryId: 'r-api', repository: 'acme/sitio-web-api', name: 'web-23-rate-limit', createdAt: '2026-11-11T10:00:00Z' }] })
+    githubApi.createBranch.mockResolvedValue({
+      ...emptyDev,
+      branches: [
+        {
+          id: 'b1',
+          repositoryId: 'r-api',
+          repository: 'acme/sitio-web-api',
+          name: 'web-23-rate-limit',
+          createdAt: '2026-11-11T10:00:00Z',
+        },
+      ],
+    })
     renderWith(<IssueDevelopment slug="equipo" project={project} issue={issue} />)
 
     expect(await screen.findByText(/Todavía no hay rama ni pull request/)).toBeInTheDocument()
@@ -344,7 +430,12 @@ describe('Desarrollo de la tarea', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Crear rama' }))
 
     await waitFor(() =>
-      expect(githubApi.createBranch).toHaveBeenCalledWith('equipo', 'p-web', 'i-23', { repositoryId: 'r-api', base: 'main', name: 'web-23-rate-limit', move: true }),
+      expect(githubApi.createBranch).toHaveBeenCalledWith('equipo', 'p-web', 'i-23', {
+        repositoryId: 'r-api',
+        base: 'main',
+        name: 'web-23-rate-limit',
+        move: true,
+      }),
     )
     expect(await screen.findByRole('link', { name: 'web-23-rate-limit' })).toBeInTheDocument()
   })
@@ -368,15 +459,39 @@ describe('Desarrollo de la tarea', () => {
   it('con rama y pull request, muestra el PR con sus checks', async () => {
     githubApi.issue.mockResolvedValue({
       ...emptyDev,
-      branches: [{ id: 'b1', repositoryId: 'r-api', repository: 'acme/sitio-web-api', name: 'web-22-rotacion', createdAt: '2026-11-11T08:00:00Z' }],
+      branches: [
+        {
+          id: 'b1',
+          repositoryId: 'r-api',
+          repository: 'acme/sitio-web-api',
+          name: 'web-22-rotacion',
+          createdAt: '2026-11-11T08:00:00Z',
+        },
+      ],
       pullRequests: [pull],
       runs: [run()],
     })
     githubApi.checks.mockResolvedValue([
-      { name: 'CI / build', status: 'completed', conclusion: 'success', startedAt: '2026-11-11T09:00:00Z', completedAt: '2026-11-11T09:00:58Z', url: null },
-      { name: 'CI / test', status: 'completed', conclusion: 'failure', startedAt: '2026-11-11T09:00:00Z', completedAt: '2026-11-11T09:02:48Z', url: null },
+      {
+        name: 'CI / build',
+        status: 'completed',
+        conclusion: 'success',
+        startedAt: '2026-11-11T09:00:00Z',
+        completedAt: '2026-11-11T09:00:58Z',
+        url: null,
+      },
+      {
+        name: 'CI / test',
+        status: 'completed',
+        conclusion: 'failure',
+        startedAt: '2026-11-11T09:00:00Z',
+        completedAt: '2026-11-11T09:02:48Z',
+        url: null,
+      },
     ])
-    renderWith(<IssueDevelopment slug="equipo" project={project} issue={{ ...issue, id: 'i-22', code: 'WEB-22' }} />)
+    renderWith(
+      <IssueDevelopment slug="equipo" project={project} issue={{ ...issue, id: 'i-22', code: 'WEB-22' }} />,
+    )
 
     expect(await screen.findByText('1 rama · 1 PR')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Rotación del refresh token' })).toHaveAttribute('href', pull.url)
@@ -385,7 +500,9 @@ describe('Desarrollo de la tarea', () => {
     expect(within(checks).getByText('CI / test')).toBeInTheDocument()
     expect(within(checks).getByText('2 min 48 s')).toBeInTheDocument()
     expect(within(checks).getByRole('img', { name: 'falló' })).toBeInTheDocument()
-    expect(within(screen.getByRole('list', { name: 'Ejecuciones de GitHub Actions' })).getByText('CI')).toBeInTheDocument()
+    expect(
+      within(screen.getByRole('list', { name: 'Ejecuciones de GitHub Actions' })).getByText('CI'),
+    ).toBeInTheDocument()
   })
 
   it('sin permiso de editar tareas no ofrece crear ni enlazar', async () => {
@@ -401,8 +518,26 @@ describe('Desarrollo de la tarea', () => {
 describe('indicador en tarjetas y filas', () => {
   it('cada tarea muestra lo suyo del resumen del proyecto', async () => {
     githubApi.summary.mockResolvedValue([
-      { issueId: 'i-22', branch: 'web-22-rotacion', branches: 1, prNumber: 128, prState: 'OPEN', checksState: 'FAILURE', prUrl: pull.url, running: false },
-      { issueId: 'i-23', branch: 'web-23-rate-limit', branches: 1, prNumber: null, prState: null, checksState: null, prUrl: null, running: false },
+      {
+        issueId: 'i-22',
+        branch: 'web-22-rotacion',
+        branches: 1,
+        prNumber: 128,
+        prState: 'OPEN',
+        checksState: 'FAILURE',
+        prUrl: pull.url,
+        running: false,
+      },
+      {
+        issueId: 'i-23',
+        branch: 'web-23-rate-limit',
+        branches: 1,
+        prNumber: null,
+        prState: null,
+        checksState: null,
+        prUrl: null,
+        running: false,
+      },
     ])
     renderWith(
       <>
@@ -421,22 +556,54 @@ describe('indicador en tarjetas y filas', () => {
 
 describe('Actions', () => {
   const status = { ...projectStatus, rules: [rule] }
-  const view = (workspace = owner) => <ActionsView workspace={workspace} project={project} status={status} settingsLink="/equipo/projects/p-web/settings?tab=github" />
+  const view = (workspace = owner) => (
+    <ActionsView
+      workspace={workspace}
+      project={project}
+      status={status}
+      settingsLink="/equipo/projects/p-web/settings?tab=github"
+    />
+  )
 
   it('lista las ejecuciones con qué las lanzó y su tarea', async () => {
     githubApi.runs.mockResolvedValue([
       run(),
-      run({ id: 'run-2', runId: 9002, workflowName: 'Deploy a staging', status: 'in_progress', conclusion: null, event: 'workflow_dispatch', ruleId: 'rule-1', prNumber: null, branch: 'main' }),
-      run({ id: 'run-3', runId: null, workflowName: 'Deploy a producción', status: 'requested', conclusion: null, event: 'workflow_dispatch', triggeredByName: 'Ana', issueId: null, issueCode: null }),
+      run({
+        id: 'run-2',
+        runId: 9002,
+        workflowName: 'Deploy a staging',
+        status: 'in_progress',
+        conclusion: null,
+        event: 'workflow_dispatch',
+        ruleId: 'rule-1',
+        prNumber: null,
+        branch: 'main',
+      }),
+      run({
+        id: 'run-3',
+        runId: null,
+        workflowName: 'Deploy a producción',
+        status: 'requested',
+        conclusion: null,
+        event: 'workflow_dispatch',
+        triggeredByName: 'Ana',
+        issueId: null,
+        issueCode: null,
+      }),
     ])
     renderWith(view())
 
     await screen.findByText('pull request #128')
-    const rows = within(screen.getByRole('region', { name: 'Ejecuciones de GitHub Actions' })).getAllByRole('listitem')
+    const rows = within(screen.getByRole('region', { name: 'Ejecuciones de GitHub Actions' })).getAllByRole(
+      'listitem',
+    )
     expect(within(rows[0]).getByRole('img', { name: 'falló' })).toBeInTheDocument()
     expect(within(rows[0]).getByText('pull request #128')).toBeInTheDocument()
     expect(within(rows[0]).getByText('2 min 48 s')).toBeInTheDocument()
-    expect(within(rows[0]).getByRole('link', { name: 'WEB-22' })).toHaveAttribute('href', '/equipo/projects/p-web/issues/i-22')
+    expect(within(rows[0]).getByRole('link', { name: 'WEB-22' })).toHaveAttribute(
+      'href',
+      '/equipo/projects/p-web/issues/i-22',
+    )
     expect(within(rows[1]).getByText('regla: al fusionar el PR de una tarea')).toBeInTheDocument()
     expect(within(rows[1]).getByRole('button', { name: 'Cancelar' })).toBeInTheDocument()
     expect(within(rows[2]).getByText('a mano · Ana, desde TaskFlow')).toBeInTheDocument()

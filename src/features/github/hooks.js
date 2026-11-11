@@ -12,7 +12,11 @@ const SUMMARY_MS = 60_000
 
 /** La conexión del workspace con GitHub. */
 export function useGithubWorkspace(slug) {
-  return useQuery({ queryKey: queryKeys.githubWorkspace(slug), queryFn: () => githubApi.workspace(slug), enabled: Boolean(slug) })
+  return useQuery({
+    queryKey: queryKeys.githubWorkspace(slug),
+    queryFn: () => githubApi.workspace(slug),
+    enabled: Boolean(slug),
+  })
 }
 
 /** GitHub en un proyecto: sus repositorios, los que puede enlazar, las automatizaciones y las reglas. */
@@ -114,7 +118,8 @@ export function useGithubIssue(slug, projectId, issueId) {
     queryFn: () => githubApi.issue(slug, projectId, issueId),
     enabled: Boolean(slug && projectId && issueId),
     // Solo se sigue consultando si la tarea ya tiene algo en GitHub que pueda cambiar
-    refetchInterval: (query) => (query.state.data?.branches.length || query.state.data?.pullRequests.length ? LIVE_MS : false),
+    refetchInterval: (query) =>
+      query.state.data?.branches.length || query.state.data?.pullRequests.length ? LIVE_MS : false,
   })
 }
 
@@ -122,7 +127,11 @@ export function useGithubIssue(slug, projectId, issueId) {
 export function useGithubChecks(slug, projectId, issueId, pullRequest) {
   return useQuery({
     // El commit entra en la clave: un push nuevo trae checks nuevos
-    queryKey: [...queryKeys.githubChecks(slug, projectId, issueId, pullRequest?.id), pullRequest?.headSha, pullRequest?.checksState],
+    queryKey: [
+      ...queryKeys.githubChecks(slug, projectId, issueId, pullRequest?.id),
+      pullRequest?.headSha,
+      pullRequest?.checksState,
+    ],
     queryFn: () => githubApi.checks(slug, projectId, issueId, pullRequest.id),
     enabled: Boolean(slug && projectId && issueId && pullRequest?.id && pullRequest?.headSha),
     staleTime: LIVE_MS,
@@ -164,9 +173,12 @@ export function useSetRepositories(slug) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.github(slug) }),
   })
 }
-export const useSaveGithubSettings = (slug, projectId) => useProjectAction(slug, projectId, (settings) => githubApi.saveSettings(slug, projectId, settings))
-export const useAddGithubRule = (slug, projectId) => useProjectAction(slug, projectId, (rule) => githubApi.addRule(slug, projectId, rule))
-export const useDeleteGithubRule = (slug, projectId) => useProjectAction(slug, projectId, (ruleId) => githubApi.deleteRule(slug, projectId, ruleId))
+export const useSaveGithubSettings = (slug, projectId) =>
+  useProjectAction(slug, projectId, (settings) => githubApi.saveSettings(slug, projectId, settings))
+export const useAddGithubRule = (slug, projectId) =>
+  useProjectAction(slug, projectId, (rule) => githubApi.addRule(slug, projectId, rule))
+export const useDeleteGithubRule = (slug, projectId) =>
+  useProjectAction(slug, projectId, (ruleId) => githubApi.deleteRule(slug, projectId, ruleId))
 
 function useRunsAction(slug, projectId, mutationFn) {
   const queryClient = useQueryClient()
@@ -175,9 +187,12 @@ function useRunsAction(slug, projectId, mutationFn) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.githubRuns(slug, projectId) }),
   })
 }
-export const useDispatchWorkflow = (slug, projectId) => useRunsAction(slug, projectId, (body) => githubApi.dispatch(slug, projectId, body))
-export const useRerunWorkflow = (slug, projectId) => useRunsAction(slug, projectId, (runId) => githubApi.rerun(slug, projectId, runId))
-export const useCancelWorkflow = (slug, projectId) => useRunsAction(slug, projectId, (runId) => githubApi.cancel(slug, projectId, runId))
+export const useDispatchWorkflow = (slug, projectId) =>
+  useRunsAction(slug, projectId, (body) => githubApi.dispatch(slug, projectId, body))
+export const useRerunWorkflow = (slug, projectId) =>
+  useRunsAction(slug, projectId, (runId) => githubApi.rerun(slug, projectId, runId))
+export const useCancelWorkflow = (slug, projectId) =>
+  useRunsAction(slug, projectId, (runId) => githubApi.cancel(slug, projectId, runId))
 
 /** `mutate({ pullRequestId, issueId })`; `issueId: null` lo deja sin tarea. */
 export function useLinkPullRequest(slug, projectId) {
@@ -204,5 +219,9 @@ function useIssueDevAction(slug, projectId, issueId, mutationFn) {
     },
   })
 }
-export const useCreateBranch = (slug, projectId, issueId) => useIssueDevAction(slug, projectId, issueId, (body) => githubApi.createBranch(slug, projectId, issueId, body))
-export const useLinkBranch = (slug, projectId, issueId) => useIssueDevAction(slug, projectId, issueId, (body) => githubApi.linkBranch(slug, projectId, issueId, body))
+export const useCreateBranch = (slug, projectId, issueId) =>
+  useIssueDevAction(slug, projectId, issueId, (body) =>
+    githubApi.createBranch(slug, projectId, issueId, body),
+  )
+export const useLinkBranch = (slug, projectId, issueId) =>
+  useIssueDevAction(slug, projectId, issueId, (body) => githubApi.linkBranch(slug, projectId, issueId, body))

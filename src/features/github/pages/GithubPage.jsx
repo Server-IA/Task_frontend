@@ -59,7 +59,7 @@ export function GithubPage() {
                 href={repoUrl(repository.fullName)}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground hover:underline"
+                className="bg-muted text-foreground rounded-md px-1.5 py-0.5 font-mono text-xs hover:underline"
               >
                 {repository.fullName}
               </a>
@@ -104,12 +104,18 @@ export function GithubPage() {
           <section className="tf-panel mx-auto mt-6 flex max-w-[640px] flex-col items-center gap-3 px-6 py-9 text-center">
             <GhMark />
             <h2 className="text-[19px] font-semibold">
-              {status.connected ? t('Este proyecto todavía no tiene repositorios') : t('Este workspace no está conectado con GitHub')}
-            </h2>
-            <p className="max-w-[460px] text-sm leading-normal text-muted-foreground">
               {status.connected
-                ? t('Enlaza los repositorios del proyecto y aquí verás sus pull requests, sus pipelines y la tarea de cada uno.')
-                : t('Al conectarlo, cada tarea muestra su rama, sus pull requests y el resultado de sus pipelines.')}
+                ? t('Este proyecto todavía no tiene repositorios')
+                : t('Este workspace no está conectado con GitHub')}
+            </h2>
+            <p className="text-muted-foreground max-w-[460px] text-sm leading-normal">
+              {status.connected
+                ? t(
+                    'Enlaza los repositorios del proyecto y aquí verás sus pull requests, sus pipelines y la tarea de cada uno.',
+                  )
+                : t(
+                    'Al conectarlo, cada tarea muestra su rama, sus pull requests y el resultado de sus pipelines.',
+                  )}
             </p>
             {canManage ? (
               <Button asChild>
@@ -118,7 +124,9 @@ export function GithubPage() {
                 </Link>
               </Button>
             ) : (
-              <p className="text-[13px] text-muted-foreground">{t('Lo configura quien tiene el permiso «Configurar GitHub».')}</p>
+              <p className="text-muted-foreground text-[13px]">
+                {t('Lo configura quien tiene el permiso «Configurar GitHub».')}
+              </p>
             )}
           </section>
         </PageBody>
@@ -128,7 +136,11 @@ export function GithubPage() {
 
   const count = (list) => list && <span className="font-mono">{list.length}</span>
   return (
-    <Tabs value={view} onValueChange={(value) => setSearchParams({ view: value }, { replace: true })} className="min-h-0 flex-1 gap-3.5">
+    <Tabs
+      value={view}
+      onValueChange={(value) => setSearchParams({ view: value }, { replace: true })}
+      className="min-h-0 flex-1 gap-3.5"
+    >
       {header(
         <TabsList aria-label={t('Secciones')}>
           <TabsTrigger value="pulls">
@@ -157,7 +169,15 @@ export function GithubPage() {
           <BranchesView workspace={workspace} project={project} branches={branches} />
         </TabsContent>
       </PageBody>
-      {canRun && <RunWorkflowDialog open={running} onOpenChange={setRunning} workspace={workspace} project={project} repositories={status.repositories} />}
+      {canRun && (
+        <RunWorkflowDialog
+          open={running}
+          onOpenChange={setRunning}
+          workspace={workspace}
+          project={project}
+          repositories={status.repositories}
+        />
+      )}
     </Tabs>
   )
 }
@@ -166,7 +186,10 @@ export function GithubPage() {
 function Author({ login }) {
   if (!login) return <span className="size-6.5 shrink-0" />
   return (
-    <span title={login} className="flex size-6.5 shrink-0 items-center justify-center rounded-full bg-accent-soft text-[10px] font-bold text-accent-text uppercase">
+    <span
+      title={login}
+      className="bg-accent-soft text-accent-text flex size-6.5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold uppercase"
+    >
       {login.slice(0, 2)}
     </span>
   )
@@ -181,16 +204,26 @@ function PullsView({ workspace, project, status }) {
   const link = useLinkPullRequest(slug, project.id)
   const canLink = can(workspace, 'ISSUE_EDIT')
 
-  const authors = useMemo(() => [...new Set((pulls ?? []).map((pull) => pull.authorLogin).filter(Boolean))].sort(), [pulls])
+  const authors = useMemo(
+    () => [...new Set((pulls ?? []).map((pull) => pull.authorLogin).filter(Boolean))].sort(),
+    [pulls],
+  )
   const shown = (pulls ?? []).filter(
-    (pull) => (repository === ALL || pull.repositoryId === repository) && (author === ALL || pull.authorLogin === author),
+    (pull) =>
+      (repository === ALL || pull.repositoryId === repository) &&
+      (author === ALL || pull.authorLogin === author),
   )
 
   const handleLink = (pull, issue) =>
     link.mutate(
       { pullRequestId: pull.id, issueId: issue?.id ?? null },
       {
-        onSuccess: () => toast.success(issue ? t('Pull request #{number} enlazado a {code}', { number: pull.number, code: issue.code }) : t('Pull request #{number} sin tarea', { number: pull.number })),
+        onSuccess: () =>
+          toast.success(
+            issue
+              ? t('Pull request #{number} enlazado a {code}', { number: pull.number, code: issue.code })
+              : t('Pull request #{number} sin tarea', { number: pull.number }),
+          ),
         onError: (linkError) => notifyError(linkError, t('No se pudo enlazar')),
       },
     )
@@ -214,7 +247,10 @@ function PullsView({ workspace, project, status }) {
             label={t('Repositorio')}
             value={repository}
             onChange={setRepository}
-            options={[{ value: ALL, label: t('Repositorio: todos') }, ...status.repositories.map((repo) => ({ value: repo.id, label: repoName(repo.fullName) }))]}
+            options={[
+              { value: ALL, label: t('Repositorio: todos') },
+              ...status.repositories.map((repo) => ({ value: repo.id, label: repoName(repo.fullName) })),
+            ]}
             className="h-8 w-[190px] text-[13px]"
           />
         )}
@@ -223,15 +259,20 @@ function PullsView({ workspace, project, status }) {
             label={t('Persona')}
             value={author}
             onChange={setAuthor}
-            options={[{ value: ALL, label: t('Persona: todas') }, ...authors.map((login) => ({ value: login, label: login }))]}
+            options={[
+              { value: ALL, label: t('Persona: todas') },
+              ...authors.map((login) => ({ value: login, label: login })),
+            ]}
             className="h-8 w-[170px] text-[13px]"
           />
         )}
-        <span className="ml-auto font-mono text-[11.5px] text-muted-foreground">
-          {t('un PR se enlaza solo si su rama, su título o su descripción nombran la tarea ({code})', { code: `${project.identifier}-22` })}
+        <span className="text-muted-foreground ml-auto font-mono text-[11.5px]">
+          {t('un PR se enlaza solo si su rama, su título o su descripción nombran la tarea ({code})', {
+            code: `${project.identifier}-22`,
+          })}
         </span>
       </div>
-      <section aria-label={t('Pull requests')} className="overflow-hidden rounded-2xl border bg-card">
+      <section aria-label={t('Pull requests')} className="bg-card overflow-hidden rounded-2xl border">
         {isLoading ? (
           <div className="space-y-2 p-4">
             <Skeleton className="h-11 rounded-lg" />
@@ -243,7 +284,9 @@ function PullsView({ workspace, project, status }) {
           <EmptyState
             icon={GitPullRequest}
             title={state === 'open' ? t('No hay pull requests abiertos') : t('No hay pull requests')}
-            description={t('Cuando alguien abra uno en un repositorio del proyecto, aparece aquí con su tarea.')}
+            description={t(
+              'Cuando alguien abra uno en un repositorio del proyecto, aparece aquí con su tarea.',
+            )}
             className="py-10"
           />
         ) : (
@@ -252,35 +295,61 @@ function PullsView({ workspace, project, status }) {
               const info = pullState(pull.state)
               const checks = pullChecks(pull)
               return (
-                <li key={pull.id} className={cn('flex flex-wrap items-center gap-x-3.5 gap-y-2 px-4 py-3', index > 0 && 'border-t')}>
+                <li
+                  key={pull.id}
+                  className={cn(
+                    'flex flex-wrap items-center gap-x-3.5 gap-y-2 px-4 py-3',
+                    index > 0 && 'border-t',
+                  )}
+                >
                   <PullMark state={pull.state} />
                   <div className="min-w-0 flex-[1_1_320px]">
                     <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                      <a href={pull.url} target="_blank" rel="noreferrer" className="min-w-0 truncate font-semibold hover:underline">
+                      <a
+                        href={pull.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="min-w-0 truncate font-semibold hover:underline"
+                      >
                         {pull.title}
                       </a>
-                      <span className="font-mono text-xs text-muted-foreground">#{pull.number}</span>
+                      <span className="text-muted-foreground font-mono text-xs">#{pull.number}</span>
                       <TonePill tone={info.tone}>{info.label}</TonePill>
                     </p>
-                    <p className="mt-0.5 truncate font-mono text-[11.5px] text-muted-foreground">
-                      {[repoName(pull.repository), pull.headBranch && `${pull.headBranch} → ${pull.baseBranch ?? ''}`.trim(), pullNote(pull)]
+                    <p className="text-muted-foreground mt-0.5 truncate font-mono text-[11.5px]">
+                      {[
+                        repoName(pull.repository),
+                        pull.headBranch && `${pull.headBranch} → ${pull.baseBranch ?? ''}`.trim(),
+                        pullNote(pull),
+                      ]
                         .filter(Boolean)
                         .join(' · ')}
                     </p>
                   </div>
                   {pull.issueId ? (
-                    <TaskLink slug={slug} projectId={project.id} issueId={pull.issueId} code={pull.issueCode} state={pull.issueState} />
+                    <TaskLink
+                      slug={slug}
+                      projectId={project.id}
+                      issueId={pull.issueId}
+                      code={pull.issueCode}
+                      state={pull.issueState}
+                    />
                   ) : canLink ? (
-                    <IssuePicker slug={slug} projectId={project.id} onPick={(issue) => handleLink(pull, issue)} align="end">
+                    <IssuePicker
+                      slug={slug}
+                      projectId={project.id}
+                      onPick={(issue) => handleLink(pull, issue)}
+                      align="end"
+                    >
                       <button
                         type="button"
-                        className="shrink-0 rounded-lg border border-dashed border-dash px-2 py-1 text-[12.5px] text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        className="border-dash text-muted-foreground hover:text-foreground focus-visible:ring-ring shrink-0 rounded-lg border border-dashed px-2 py-1 text-[12.5px] transition-colors focus-visible:ring-2 focus-visible:outline-none"
                       >
                         {t('sin tarea · enlazar')}
                       </button>
                     </IssuePicker>
                   ) : (
-                    <span className="shrink-0 text-[12.5px] text-muted-foreground">{t('sin tarea')}</span>
+                    <span className="text-muted-foreground shrink-0 text-[12.5px]">{t('sin tarea')}</span>
                   )}
                   <span className="flex w-[150px] shrink-0 justify-start">
                     {checks && (
@@ -291,7 +360,9 @@ function PullsView({ workspace, project, status }) {
                     )}
                   </span>
                   <Author login={pull.authorLogin} />
-                  <span className="w-[92px] shrink-0 text-right font-mono text-[11.5px] text-muted-foreground">{formatRelative(pull.changedAt)}</span>
+                  <span className="text-muted-foreground min-w-[92px] shrink-0 text-right font-mono text-[11.5px] whitespace-nowrap">
+                    {formatRelative(pull.changedAt)}
+                  </span>
                 </li>
               )
             })}
@@ -304,7 +375,7 @@ function PullsView({ workspace, project, status }) {
 
 function BranchesView({ workspace, project, branches }) {
   return (
-    <section aria-label={t('Ramas')} className="overflow-hidden rounded-2xl border bg-card">
+    <section aria-label={t('Ramas')} className="bg-card overflow-hidden rounded-2xl border">
       {!branches ? (
         <div className="space-y-2 p-4">
           <Skeleton className="h-10 rounded-lg" />
@@ -314,23 +385,44 @@ function BranchesView({ workspace, project, branches }) {
         <EmptyState
           icon={GitBranch}
           title={t('Todavía no hay ramas enlazadas a tareas')}
-          description={t('Crea la rama desde una tarea, o pon el código de la tarea ({code}) en el nombre de la tuya.', { code: `${project.identifier}-22` })}
+          description={t(
+            'Crea la rama desde una tarea, o pon el código de la tarea ({code}) en el nombre de la tuya.',
+            { code: `${project.identifier}-22` },
+          )}
           className="py-10"
         />
       ) : (
         <ul>
           {branches.map((branch, index) => (
-            <li key={branch.id} className={cn('flex flex-wrap items-center gap-x-3.5 gap-y-2 px-4 py-2.75', index > 0 && 'border-t')}>
-              <GitBranch className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+            <li
+              key={branch.id}
+              className={cn(
+                'flex flex-wrap items-center gap-x-3.5 gap-y-2 px-4 py-2.75',
+                index > 0 && 'border-t',
+              )}
+            >
+              <GitBranch className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
               <span className="min-w-0 flex-[1_1_300px]">
-                <a href={branchUrl(branch.repository, branch.name)} target="_blank" rel="noreferrer" className="block truncate font-mono text-[13px] font-semibold hover:underline">
+                <a
+                  href={branchUrl(branch.repository, branch.name)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block truncate font-mono text-[13px] font-semibold hover:underline"
+                >
                   {branch.name}
                 </a>
-                <span className="block truncate text-xs text-muted-foreground">{branch.issueTitle}</span>
+                <span className="text-muted-foreground block truncate text-xs">{branch.issueTitle}</span>
               </span>
-              <span className="font-mono text-xs text-muted-foreground">{repoName(branch.repository)}</span>
-              <TaskLink slug={workspace.slug} projectId={project.id} issueId={branch.issueId} code={branch.issueCode} />
-              <span className="w-[92px] shrink-0 text-right font-mono text-[11.5px] text-muted-foreground">{formatRelative(branch.createdAt)}</span>
+              <span className="text-muted-foreground font-mono text-xs">{repoName(branch.repository)}</span>
+              <TaskLink
+                slug={workspace.slug}
+                projectId={project.id}
+                issueId={branch.issueId}
+                code={branch.issueCode}
+              />
+              <span className="text-muted-foreground min-w-[92px] shrink-0 text-right font-mono text-[11.5px] whitespace-nowrap">
+                {formatRelative(branch.createdAt)}
+              </span>
             </li>
           ))}
         </ul>

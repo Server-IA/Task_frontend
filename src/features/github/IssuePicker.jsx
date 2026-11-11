@@ -1,6 +1,13 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Spinner } from '@/components/common/Loaders'
 import { useIssues } from '@/features/issues/hooks'
@@ -17,7 +24,12 @@ export function IssuePicker({ slug, projectId, onPick, clearLabel, align = 'star
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const debounced = useDebouncedValue(search, 300)
-  const { data, isFetching } = useIssues(slug, projectId, { search: debounced || undefined, size: 20, sort: 'sequenceId,desc' }, { enabled: open })
+  const { data, isFetching } = useIssues(
+    slug,
+    projectId,
+    { search: debounced || undefined, size: 20, sort: 'sequenceId,desc' },
+    { enabled: open },
+  )
   const issues = data?.content ?? []
 
   const pick = (issue) => {
@@ -42,13 +54,13 @@ export function IssuePicker({ slug, projectId, onPick, clearLabel, align = 'star
             <CommandGroup>
               {clearLabel && (
                 <CommandItem value="__none__" onSelect={() => pick(null)}>
-                  <X className="size-3.5 text-muted-foreground" />
+                  <X className="text-muted-foreground size-3.5" />
                   {clearLabel}
                 </CommandItem>
               )}
               {issues.map((issue) => (
                 <CommandItem key={issue.id} value={issue.id} onSelect={() => pick(issue)}>
-                  <span className="font-mono text-xs text-muted-foreground">{issue.code}</span>
+                  <span className="text-muted-foreground font-mono text-xs">{issue.code}</span>
                   <span className="truncate">{issue.title}</span>
                 </CommandItem>
               ))}

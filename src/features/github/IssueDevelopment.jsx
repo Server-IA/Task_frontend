@@ -3,7 +3,14 @@ import { ArrowUpRight, GitBranch } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { useStates } from '@/features/projects/hooks'
 import { useWorkspace } from '@/features/workspaces/hooks'
@@ -13,7 +20,16 @@ import { notifyError } from '@/lib/notify'
 import { can } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { Pick, PullMark, StateMark, TonePill } from './GithubParts'
-import { branchUrl, checkState, devCount, duration, pullState, repoName, runState, validBranchName } from './githubModel'
+import {
+  branchUrl,
+  checkState,
+  devCount,
+  duration,
+  pullState,
+  repoName,
+  runState,
+  validBranchName,
+} from './githubModel'
 import {
   useCreateBranch,
   useGithubChecks,
@@ -56,7 +72,10 @@ export function IssueDevelopment({ slug, project, issue }) {
     <section aria-labelledby={titleId} className="flex flex-col gap-2.5">
       <div className="flex flex-wrap items-center gap-2">
         <h2 id={titleId} className="text-sm font-semibold">
-          {t('Desarrollo')} {!empty && <span className="font-mono text-xs font-normal text-muted-foreground">{devCount(dev)}</span>}
+          {t('Desarrollo')}{' '}
+          {!empty && (
+            <span className="text-muted-foreground font-mono text-xs font-normal">{devCount(dev)}</span>
+          )}
         </h2>
         {canEdit && !empty && (
           <span className="ml-auto flex gap-1.5">
@@ -71,11 +90,14 @@ export function IssueDevelopment({ slug, project, issue }) {
       </div>
 
       {empty ? (
-        <div className="flex flex-wrap items-center gap-3 rounded-[14px] border border-dashed border-dash px-4 py-3.5">
-          <span className="min-w-0 flex-[1_1_260px] text-[13px] leading-normal text-muted-foreground">
-            {tx('Todavía no hay rama ni pull request. Crea la rama aquí, o nombra {code} en la tuya y se enlaza sola.', {
-              code: <strong className="font-mono font-semibold text-foreground">{issue.code}</strong>,
-            })}
+        <div className="border-dash flex flex-wrap items-center gap-3 rounded-[14px] border border-dashed px-4 py-3.5">
+          <span className="text-muted-foreground min-w-0 flex-[1_1_260px] text-[13px] leading-normal">
+            {tx(
+              'Todavía no hay rama ni pull request. Crea la rama aquí, o nombra {code} en la tuya y se enlaza sola.',
+              {
+                code: <strong className="text-foreground font-mono font-semibold">{issue.code}</strong>,
+              },
+            )}
           </span>
           {canEdit && (
             <span className="flex flex-wrap gap-2">
@@ -92,17 +114,25 @@ export function IssueDevelopment({ slug, project, issue }) {
       ) : (
         <>
           {dev.branches.map((branch) => (
-            <div key={branch.id} className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 rounded-xl bg-muted px-3 py-2">
-              <GitBranch className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-              <a href={branchUrl(branch.repository, branch.name)} target="_blank" rel="noreferrer" className="min-w-0 truncate font-mono text-[13px] font-semibold hover:underline">
+            <div
+              key={branch.id}
+              className="bg-muted flex flex-wrap items-center gap-x-2.5 gap-y-1.5 rounded-xl px-3 py-2"
+            >
+              <GitBranch className="text-muted-foreground size-3.5 shrink-0" aria-hidden="true" />
+              <a
+                href={branchUrl(branch.repository, branch.name)}
+                target="_blank"
+                rel="noreferrer"
+                className="min-w-0 truncate font-mono text-[13px] font-semibold hover:underline"
+              >
                 {branch.name}
               </a>
-              <span className="min-w-0 flex-1 truncate font-mono text-[11.5px] text-muted-foreground">
+              <span className="text-muted-foreground min-w-0 flex-1 truncate font-mono text-[11.5px]">
                 {branch.repository} · {formatRelative(branch.createdAt)}
               </span>
               <button
                 type="button"
-                className="rounded-md px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                className="text-muted-foreground hover:bg-background hover:text-foreground focus-visible:ring-ring rounded-md px-1.5 py-0.5 text-xs focus-visible:ring-2 focus-visible:outline-none"
                 onClick={() => copy(branch.name, t('Nombre de la rama copiado'))}
               >
                 {t('Copiar nombre')}
@@ -116,8 +146,26 @@ export function IssueDevelopment({ slug, project, issue }) {
         </>
       )}
 
-      {canEdit && <CreateBranchDialog open={creating} onOpenChange={setCreating} slug={slug} project={project} issue={issue} dev={dev} />}
-      {canEdit && <LinkDialog open={linking} onOpenChange={setLinking} slug={slug} project={project} issue={issue} dev={dev} />}
+      {canEdit && (
+        <CreateBranchDialog
+          open={creating}
+          onOpenChange={setCreating}
+          slug={slug}
+          project={project}
+          issue={issue}
+          dev={dev}
+        />
+      )}
+      {canEdit && (
+        <LinkDialog
+          open={linking}
+          onOpenChange={setLinking}
+          slug={slug}
+          project={project}
+          issue={issue}
+          dev={dev}
+        />
+      )}
     </section>
   )
 }
@@ -139,15 +187,27 @@ function PullCard({ slug, projectId, issueId, pull }) {
         <PullMark state={pull.state} />
         <span className="min-w-0 flex-[1_1_240px]">
           <span className="flex flex-wrap items-baseline gap-x-1.5">
-            <a href={pull.url} target="_blank" rel="noreferrer" className="min-w-0 truncate font-semibold hover:underline">
+            <a
+              href={pull.url}
+              target="_blank"
+              rel="noreferrer"
+              className="min-w-0 truncate font-semibold hover:underline"
+            >
               {pull.title}
             </a>
-            <span className="font-mono text-xs text-muted-foreground">#{pull.number}</span>
+            <span className="text-muted-foreground font-mono text-xs">#{pull.number}</span>
           </span>
-          <span className="mt-0.5 block truncate font-mono text-[11.5px] text-muted-foreground">{facts.filter(Boolean).join(' · ')}</span>
+          <span className="text-muted-foreground mt-0.5 block truncate font-mono text-[11.5px]">
+            {facts.filter(Boolean).join(' · ')}
+          </span>
         </span>
         <TonePill tone={info.tone}>{info.label}</TonePill>
-        <a href={pull.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[12.5px] text-muted-foreground hover:text-foreground hover:underline">
+        <a
+          href={pull.url}
+          target="_blank"
+          rel="noreferrer"
+          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-[12.5px] hover:underline"
+        >
           {t('ver en GitHub')}
           <ArrowUpRight className="size-3.5" aria-hidden="true" />
         </a>
@@ -158,17 +218,36 @@ function PullCard({ slug, projectId, issueId, pull }) {
             const state = checkState(check)
             const time = duration(check.startedAt, check.completedAt)
             return (
-              <li key={`${check.name}-${index}`} className={cn('flex items-center gap-2.5 px-3.5 py-2 text-[13px]', index > 0 && 'border-t')}>
+              <li
+                key={`${check.name}-${index}`}
+                className={cn('flex items-center gap-2.5 px-3.5 py-2 text-[13px]', index > 0 && 'border-t')}
+              >
                 <StateMark info={state} className="size-5 text-[11px]" />
                 {check.url ? (
-                  <a href={check.url} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate hover:underline">
+                  <a
+                    href={check.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="min-w-0 flex-1 truncate hover:underline"
+                  >
                     {check.name}
                   </a>
                 ) : (
                   <span className="min-w-0 flex-1 truncate">{check.name}</span>
                 )}
-                <span className={cn('font-mono text-[11.5px]', state.tone === 'fail' ? 'text-late' : 'text-muted-foreground')}>{state.label}</span>
-                {time && <span className="w-[86px] text-right font-mono text-[11.5px] text-muted-foreground">{time}</span>}
+                <span
+                  className={cn(
+                    'font-mono text-[11.5px]',
+                    state.tone === 'fail' ? 'text-late' : 'text-muted-foreground',
+                  )}
+                >
+                  {state.label}
+                </span>
+                {time && (
+                  <span className="text-muted-foreground w-[86px] text-right font-mono text-[11.5px]">
+                    {time}
+                  </span>
+                )}
               </li>
             )
           })}
@@ -186,7 +265,13 @@ function Runs({ runs }) {
         const info = runState(run)
         const name = run.workflowName ?? t('Workflow')
         return (
-          <li key={run.id} className={cn('flex flex-wrap items-center gap-x-2.5 gap-y-1 px-3.5 py-2 text-[13px]', index > 0 && 'border-t')}>
+          <li
+            key={run.id}
+            className={cn(
+              'flex flex-wrap items-center gap-x-2.5 gap-y-1 px-3.5 py-2 text-[13px]',
+              index > 0 && 'border-t',
+            )}
+          >
             <StateMark info={info} className="size-5 text-[11px]" />
             {run.url ? (
               <a href={run.url} target="_blank" rel="noreferrer" className="font-medium hover:underline">
@@ -195,13 +280,13 @@ function Runs({ runs }) {
             ) : (
               <span className="font-medium">{name}</span>
             )}
-            <span className="min-w-0 flex-1 truncate font-mono text-[11.5px] text-muted-foreground">
+            <span className="text-muted-foreground min-w-0 flex-1 truncate font-mono text-[11.5px]">
               {[repoName(run.repository), run.branch].filter(Boolean).join(' · ')}
             </span>
             <TonePill tone={info.tone} outline={info.outline}>
               {info.label}
             </TonePill>
-            <span className="w-[92px] text-right font-mono text-[11.5px] text-muted-foreground">
+            <span className="text-muted-foreground min-w-[92px] text-right font-mono text-[11.5px] whitespace-nowrap">
               {formatRelative(run.startedAt ?? run.requestedAt ?? run.changedAt)}
             </span>
           </li>
@@ -215,7 +300,15 @@ function CreateBranchDialog({ open, onOpenChange, slug, project, issue, dev }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[520px]">
-        {open && <CreateBranchForm slug={slug} project={project} issue={issue} dev={dev} onDone={() => onOpenChange(false)} />}
+        {open && (
+          <CreateBranchForm
+            slug={slug}
+            project={project}
+            issue={issue}
+            dev={dev}
+            onDone={() => onOpenChange(false)}
+          />
+        )}
       </DialogContent>
     </Dialog>
   )
@@ -233,13 +326,17 @@ function CreateBranchForm({ slug, project, issue, dev, onDone }) {
   const create = useCreateBranch(slug, project.id, issue.id)
 
   const from = base || repository?.defaultBranch || ''
-  const baseOptions = [...new Set([from, ...(branches ?? [])].filter(Boolean))].map((branch) => ({ value: branch, label: branch }))
+  const baseOptions = [...new Set([from, ...(branches ?? [])].filter(Boolean))].map((branch) => ({
+    value: branch,
+    label: branch,
+  }))
   const trimmed = name.trim()
   const valid = validBranchName(trimmed)
   // La automatización «se crea la rama» solo mueve una tarea que no ha empezado
   const target = states?.find((state) => state.id === status?.settings.onBranchStateId)
   const current = states?.find((state) => state.id === issue.state?.id)
-  const canMove = Boolean(target) && ['BACKLOG', 'UNSTARTED'].includes(current?.group) && target.id !== current?.id
+  const canMove =
+    Boolean(target) && ['BACKLOG', 'UNSTARTED'].includes(current?.group) && target.id !== current?.id
   const command = `git fetch && git checkout ${trimmed}`
 
   const handleSubmit = (event) => {
@@ -273,14 +370,24 @@ function CreateBranchForm({ slug, project, issue, dev, onDone }) {
               setRepositoryId(value)
               setBase('')
             }}
-            options={dev.repositories.map((candidate) => ({ value: candidate.id, label: candidate.fullName }))}
+            options={dev.repositories.map((candidate) => ({
+              value: candidate.id,
+              label: candidate.fullName,
+            }))}
             mono
             className="w-full"
           />
         </div>
         <div className={label}>
           {t('A partir de')}
-          <Pick label={t('A partir de')} value={from} onChange={setBase} options={baseOptions} mono className="w-full" />
+          <Pick
+            label={t('A partir de')}
+            value={from}
+            onChange={setBase}
+            options={baseOptions}
+            mono
+            className="w-full"
+          />
         </div>
       </div>
       <div className={label}>
@@ -296,7 +403,10 @@ function CreateBranchForm({ slug, project, issue, dev, onDone }) {
           autoComplete="off"
           className="font-mono text-[13px]"
         />
-        <span id="branch-name-hint" className={cn('font-mono text-[11.5px] font-normal', valid ? 'text-muted-foreground' : 'text-late')}>
+        <span
+          id="branch-name-hint"
+          className={cn('font-mono text-[11.5px] font-normal', valid ? 'text-muted-foreground' : 'text-late')}
+        >
           {valid
             ? t('con el código de la tarea al principio, para que el PR se enlace solo')
             : t('usa letras, números, guiones, puntos y barras, sin espacios')}
@@ -304,13 +414,25 @@ function CreateBranchForm({ slug, project, issue, dev, onDone }) {
       </div>
       {canMove && (
         <div className="flex items-center gap-2.5 text-sm">
-          <Checkbox id="branch-move" checked={move} onCheckedChange={(checked) => setMove(checked === true)} />
-          <label htmlFor="branch-move">{t('Pasar la tarea a «{state}»', { state: stateName(target.name) })}</label>
+          <Checkbox
+            id="branch-move"
+            checked={move}
+            onCheckedChange={(checked) => setMove(checked === true)}
+          />
+          <label htmlFor="branch-move">
+            {t('Pasar la tarea a «{state}»', { state: stateName(target.name) })}
+          </label>
         </div>
       )}
-      <div className="flex items-center gap-2.5 rounded-xl bg-muted px-3 py-2">
+      <div className="bg-muted flex items-center gap-2.5 rounded-xl px-3 py-2">
         <code className="min-w-0 flex-1 truncate font-mono text-xs">{command}</code>
-        <Button type="button" variant="ghost" size="sm" disabled={!valid} onClick={() => copy(command, t('Comando copiado'))}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          disabled={!valid}
+          onClick={() => copy(command, t('Comando copiado'))}
+        >
           {t('Copiar')}
         </Button>
       </div>
@@ -330,7 +452,15 @@ function LinkDialog({ open, onOpenChange, slug, project, issue, dev }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[520px]">
-        {open && <LinkForm slug={slug} project={project} issue={issue} dev={dev} onDone={() => onOpenChange(false)} />}
+        {open && (
+          <LinkForm
+            slug={slug}
+            project={project}
+            issue={issue}
+            dev={dev}
+            onDone={() => onOpenChange(false)}
+          />
+        )}
       </DialogContent>
     </Dialog>
   )
@@ -345,15 +475,23 @@ function LinkForm({ slug, project, issue, dev, onDone }) {
   const linkBranch = useLinkBranch(slug, project.id, issue.id)
   const linkPull = useLinkPullRequest(slug, project.id)
   const free = (pulls ?? []).filter((pull) => !pull.issueId)
-  const linked = new Set(dev.branches.filter((candidate) => candidate.repositoryId === repositoryId).map((candidate) => candidate.name))
-  const branchOptions = (branches ?? []).filter((name) => !linked.has(name)).map((name) => ({ value: name, label: name }))
+  const linked = new Set(
+    dev.branches
+      .filter((candidate) => candidate.repositoryId === repositoryId)
+      .map((candidate) => candidate.name),
+  )
+  const branchOptions = (branches ?? [])
+    .filter((name) => !linked.has(name))
+    .map((name) => ({ value: name, label: name }))
 
   const handlePull = (pull) =>
     linkPull.mutate(
       { pullRequestId: pull.id, issueId: issue.id },
       {
         onSuccess: () => {
-          toast.success(t('Pull request #{number} enlazado a {code}', { number: pull.number, code: issue.code }))
+          toast.success(
+            t('Pull request #{number} enlazado a {code}', { number: pull.number, code: issue.code }),
+          )
           onDone()
         },
         onError: (linkError) => notifyError(linkError, t('No se pudo enlazar')),
@@ -376,12 +514,16 @@ function LinkForm({ slug, project, issue, dev, onDone }) {
     <div className="flex flex-col gap-4">
       <DialogHeader>
         <DialogTitle>{t('Enlazar una rama o un pull request a {code}', { code: issue.code })}</DialogTitle>
-        <DialogDescription>{t('Para lo que no nombra a la tarea. Lo que sí la nombra se enlaza solo.')}</DialogDescription>
+        <DialogDescription>
+          {t('Para lo que no nombra a la tarea. Lo que sí la nombra se enlaza solo.')}
+        </DialogDescription>
       </DialogHeader>
       <div className="flex flex-col gap-1.5">
         <h3 className="text-sm font-medium">{t('Pull requests abiertos sin tarea')}</h3>
         {free.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-dash px-3 py-2.5 text-[13px] text-muted-foreground">{t('No hay ninguno.')}</p>
+          <p className="border-dash text-muted-foreground rounded-xl border border-dashed px-3 py-2.5 text-[13px]">
+            {t('No hay ninguno.')}
+          </p>
         ) : (
           <ul className="max-h-44 overflow-y-auto rounded-xl border">
             {free.map((pull, index) => (
@@ -390,11 +532,13 @@ function LinkForm({ slug, project, issue, dev, onDone }) {
                   type="button"
                   disabled={linkPull.isPending}
                   onClick={() => handlePull(pull)}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
+                  className="hover:bg-muted focus-visible:bg-muted flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] focus-visible:outline-none"
                 >
-                  <span className="font-mono text-xs text-muted-foreground">#{pull.number}</span>
+                  <span className="text-muted-foreground font-mono text-xs">#{pull.number}</span>
                   <span className="min-w-0 flex-1 truncate">{pull.title}</span>
-                  <span className="font-mono text-[11.5px] text-muted-foreground">{repoName(pull.repository)}</span>
+                  <span className="text-muted-foreground font-mono text-[11.5px]">
+                    {repoName(pull.repository)}
+                  </span>
                 </button>
               </li>
             ))}
@@ -411,7 +555,10 @@ function LinkForm({ slug, project, issue, dev, onDone }) {
               setRepositoryId(value)
               setBranch('')
             }}
-            options={dev.repositories.map((candidate) => ({ value: candidate.id, label: candidate.fullName }))}
+            options={dev.repositories.map((candidate) => ({
+              value: candidate.id,
+              label: candidate.fullName,
+            }))}
             mono
             className="w-full"
           />
