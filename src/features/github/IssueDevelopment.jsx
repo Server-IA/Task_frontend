@@ -100,7 +100,9 @@ export function IssueDevelopment({ slug, project, issue }) {
         <div className="border-dash flex flex-wrap items-center gap-3 rounded-[14px] border border-dashed px-4 py-3.5">
           <span className="text-muted-foreground min-w-0 flex-[1_1_260px] text-[13px] leading-normal">
             {tx(
-              'Todavía no hay rama ni pull request. Crea la rama aquí, o nombra {code} en la tuya y se enlaza sola.',
+              canCreate
+                ? 'Todavía no hay rama ni pull request. Crea la rama aquí, o nombra {code} en la tuya y se enlaza sola.'
+                : 'Todavía no hay rama ni pull request. Nombra {code} en la tuya y se enlaza sola.',
               {
                 code: <strong className="text-foreground font-mono font-semibold">{issue.code}</strong>,
               },

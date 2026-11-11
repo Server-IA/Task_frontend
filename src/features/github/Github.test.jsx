@@ -761,6 +761,7 @@ describe('la cuenta de GitHub de cada persona (modo estricto)', () => {
     expect(screen.getByRole('button', { name: /Conectar mi cuenta/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Crear rama' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Enlazar una que ya existe' })).toBeInTheDocument()
+    expect(screen.queryByText(/Crea la rama aquí/)).not.toBeInTheDocument()
   })
 
   it('sin mi cuenta veo las ejecuciones, pero no puedo reintentar ni cancelar', async () => {

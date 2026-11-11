@@ -310,6 +310,8 @@ export default {
   '{event} · en [[actividad]]': '{event} · on',
 
   // La cuenta de GitHub de cada persona
+  'Todavía no hay rama ni pull request. Nombra {code} en la tuya y se enlaza sola.':
+    'No branch or pull request yet. Name {code} in yours and it links itself.',
   'No se pudo consultar tu cuenta de GitHub.': 'Could not check your GitHub account.',
   'Conectar mi cuenta': 'Connect my account',
   'Conectar mi cuenta de GitHub': 'Connect my GitHub account',
