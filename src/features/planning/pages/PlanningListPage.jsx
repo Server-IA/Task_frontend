@@ -14,6 +14,7 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { useCurrentProject } from '@/features/projects/hooks'
 import { useCan, useCurrentWorkspace } from '@/features/workspaces/hooks'
+import { t } from '@/i18n'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { projectPath } from '@/lib/paths'
 import { cn } from '@/lib/utils'
@@ -55,7 +56,7 @@ export function PlanningListPage({ kind }) {
   return (
     <>
       <PageHeader
-        path={[...projectPath(workspace, project), { label: kind === 'cycles' ? 'ciclos' : 'modulos' }]}
+        path={[...projectPath(workspace, project), { label: kind === 'cycles' ? t('ciclos') : t('modulos') }]}
         title={text.title}
         documentTitle={[text.title, project.name]}
         description={text.headerDescription}
@@ -81,7 +82,7 @@ export function PlanningListPage({ kind }) {
           {items?.length === 0 && (
             <EmptyState
               icon={Icon}
-              title={`Todavía no hay ${text.title.toLowerCase()}`}
+              title={text.emptyTitle}
               description={canCreate ? text.emptyDescription : text.memberEmptyDescription}
               action={
                 canCreate && (
@@ -153,7 +154,7 @@ export function PlanningListPage({ kind }) {
                             variant="ghost"
                             size="icon"
                             className="absolute top-3 right-3 size-8"
-                            aria-label={`Acciones de ${item.name}`}
+                            aria-label={t('Acciones de {name}', { name: item.name })}
                           >
                             <MoreHorizontal />
                           </Button>
@@ -163,26 +164,26 @@ export function PlanningListPage({ kind }) {
                             <DropdownMenuItem asChild>
                               <Link to={`${base}/${item.id}/retro`}>
                                 <MessagesSquare />
-                                Ver retrospectiva
+                                {t('Ver retrospectiva')}
                               </Link>
                             </DropdownMenuItem>
                           )}
                           {closable && (
                             <DropdownMenuItem onSelect={() => setToClose(item)}>
                               <Flag />
-                              Cerrar ciclo
+                              {t('Cerrar ciclo')}
                             </DropdownMenuItem>
                           )}
                           {canEdit && (
                             <DropdownMenuItem onSelect={() => setFormState({ open: true, item })}>
                               <Pencil />
-                              Editar
+                              {t('Editar')}
                             </DropdownMenuItem>
                           )}
                           {canDelete && (
                             <DropdownMenuItem variant="destructive" onSelect={() => setToDelete(item)}>
                               <Trash2 />
-                              Eliminar
+                              {t('Eliminar')}
                             </DropdownMenuItem>
                           )}
                         </DropdownMenuContent>
@@ -215,14 +216,14 @@ export function PlanningListPage({ kind }) {
       <ConfirmDialog
         open={Boolean(toDelete)}
         onOpenChange={(open) => !open && setToDelete(null)}
-        title={`¿Eliminar «${toDelete?.name}»?`}
-        description="Las tareas no se borran: solo dejan de pertenecer a él."
-        confirmLabel="Eliminar"
+        title={t('¿Eliminar «{name}»?', { name: toDelete?.name ?? '' })}
+        description={t('Las tareas no se borran: solo dejan de pertenecer a él.')}
+        confirmLabel={t('Eliminar')}
         loading={remove.isPending}
         onConfirm={() =>
           remove.mutate(toDelete.id, {
             onSuccess: () => {
-              toast.success(`«${toDelete.name}» eliminado`)
+              toast.success(t('«{name}» eliminado', { name: toDelete.name }))
               setToDelete(null)
             },
             onError: (deleteError) => notifyError(deleteError),

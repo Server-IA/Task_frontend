@@ -12,6 +12,7 @@ import { ErrorState } from '@/components/common/States'
 import { StateIcon } from '@/components/common/StateIcon'
 import { BlockedChip } from '@/features/issues/components/IssueBadges'
 import { formatDecimal } from '@/features/stats/chartMath'
+import { t, tn, tx } from '@/i18n'
 import { formatShortDate } from '@/lib/dates'
 import { toApiError } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
@@ -35,7 +36,7 @@ import { DateRange, SummaryTile } from './PlanningShared'
 /** «WEB-2», «WEB-2 y WEB-4», «WEB-2, WEB-4 y WEB-15». */
 function joinCodes(issues) {
   const codes = issues.map((issue) => issue.code)
-  return codes.length <= 1 ? codes.join('') : `${codes.slice(0, -1).join(', ')} y ${codes.at(-1)}`
+  return codes.length <= 1 ? codes.join('') : t('{list} y {last}', { list: codes.slice(0, -1).join(', '), last: codes.at(-1) })
 }
 
 /**
@@ -96,14 +97,17 @@ function CloseCycleForm({ slug, projectId, cycle: initialCycle, onClose }) {
       { id: cycle.id, ...body },
       {
         onSuccess: (result) => {
-          const parts = []
-          if (result.movedToCycle > 0) parts.push(`${tasksLabel(result.movedToCycle)} a ${targetCycle?.name ?? 'otro ciclo'}`)
-          if (result.movedToBacklog > 0) parts.push(`${tasksLabel(result.movedToBacklog)} al backlog`)
-          const moved = parts.length > 0 ? `Pasaron ${parts.join(' y ')}.` : 'No quedaban tareas sin terminar.'
-          toast.success(`${cycle.name} cerrado`, {
+          const name = targetCycle?.name ?? t('otro ciclo')
+          const toCycle = tn(result.movedToCycle, '{count} tarea a {name}', '{count} tareas a {name}', { name })
+          const toBacklog = tn(result.movedToBacklog, '{count} tarea al backlog', '{count} tareas al backlog')
+          let moved = t('No quedaban tareas sin terminar.')
+          if (result.movedToCycle > 0 && result.movedToBacklog > 0) moved = t('Pasaron {first} y {second}.', { first: toCycle, second: toBacklog })
+          else if (result.movedToCycle > 0) moved = t('Pasaron {moved}.', { moved: toCycle })
+          else if (result.movedToBacklog > 0) moved = t('Pasaron {moved}.', { moved: toBacklog })
+          toast.success(t('{name} cerrado', { name: cycle.name }), {
             // `retroStartedNow`: este cierre abrió la retro y el backend avisó a los miembros del proyecto (menos a quien
             // cierra). `retroStarted` también es true si ya estaba abierta (y entonces no se avisó a nadie)
-            description: result.retroStartedNow ? `${moved} Se abrió la retro y se avisó al equipo.` : moved,
+            description: result.retroStartedNow ? t('{moved} Se abrió la retro y se avisó al equipo.', { moved }) : moved,
           })
           onClose()
           // A la retro si se abrió ahora o si ya estaba en curso (terminada, no hay nada que escribir)
@@ -112,7 +116,7 @@ function CloseCycleForm({ slug, projectId, cycle: initialCycle, onClose }) {
           }
         },
         onError: (error) => {
-          notifyError(error, 'No se pudo cerrar el ciclo')
+          notifyError(error, t('No se pudo cerrar el ciclo'))
           // 400 (ya no hay ciclo siguiente) o 409 (ya cerrado): se vuelve a pedir la vista previa
           if ([400, 409].includes(toApiError(error).status)) preview.refetch()
         },
@@ -135,12 +139,12 @@ function CloseCycleForm({ slug, projectId, cycle: initialCycle, onClose }) {
     >
       <div className="flex items-center gap-2.5">
         <DialogTitle className="font-display text-2xl leading-tight font-extrabold tracking-[-0.01em]">
-          Cerrar {cycle.name}
+          {t('Cerrar {name}', { name: cycle.name })}
         </DialogTitle>
         <span className="hidden font-mono text-xs text-muted-foreground sm:inline">
           <DateRange start={cycle.startDate} end={cycle.endDate} />
         </span>
-        <Button variant="ghost" size="icon" className="ml-auto size-8 text-muted-foreground" onClick={onClose} aria-label="Cerrar">
+        <Button variant="ghost" size="icon" className="ml-auto size-8 text-muted-foreground" onClick={onClose} aria-label={t('Cerrar')}>
           <X />
         </Button>
       </div>
@@ -157,25 +161,25 @@ function CloseCycleForm({ slug, projectId, cycle: initialCycle, onClose }) {
 
       {preview.data && (
         <>
-          <section aria-label="Resumen" className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+          <section aria-label={t('Resumen')} className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
             <SummaryTile
               variant="compact"
-              label="Tareas hechas"
+              label={t('Tareas hechas')}
               value={preview.data.completedCount}
-              unit={`de ${cycle.progress?.totalIssues ?? preview.data.completedCount + preview.data.unfinishedCount}`}
-              note={`${cycle.progress?.percentage ?? 0} % del ciclo`}
+              unit={t('de {total}', { total: cycle.progress?.totalIssues ?? preview.data.completedCount + preview.data.unfinishedCount })}
+              note={t('{percentage} % del ciclo', { percentage: cycle.progress?.percentage ?? 0 })}
             />
             <SummaryTile
               variant="compact"
-              label="Sin terminar"
+              label={t('Sin terminar')}
               value={preview.data.unfinishedCount}
-              unit={preview.data.unfinishedCount === 1 ? 'tarea' : 'tareas'}
+              unit={tn(preview.data.unfinishedCount, 'tarea', 'tareas')}
               note={
                 unfinished.length === 0
-                  ? 'nada que mover'
+                  ? t('nada que mover')
                   : [
-                      split.toCycle.length > 0 && `${split.toCycle.length} a ${targetCycle?.name}`,
-                      split.toBacklog.length > 0 && `${split.toBacklog.length} al backlog`,
+                      split.toCycle.length > 0 && t('{count} a {name}', { count: split.toCycle.length, name: targetCycle?.name }),
+                      split.toBacklog.length > 0 && t('{count} al backlog', { count: split.toBacklog.length }),
                     ]
                       .filter(Boolean)
                       .join(' · ')
@@ -183,43 +187,43 @@ function CloseCycleForm({ slug, projectId, cycle: initialCycle, onClose }) {
             />
             <SummaryTile
               variant="compact"
-              label="Tiempo de ciclo"
+              label={t('Tiempo de ciclo')}
               value={preview.data.cycleTimeDays != null ? formatDecimal(preview.data.cycleTimeDays) : '—'}
-              unit={preview.data.cycleTimeDays != null ? (preview.data.cycleTimeDays === 1 ? 'día' : 'días') : undefined}
-              note={preview.data.cycleTimeDays != null ? 'mediana, de En curso a Hecho' : 'ninguna pasó de En curso a Hecho'}
+              unit={preview.data.cycleTimeDays != null ? tn(preview.data.cycleTimeDays, 'día', 'días') : undefined}
+              note={preview.data.cycleTimeDays != null ? t('mediana, de En curso a Hecho') : t('ninguna pasó de En curso a Hecho')}
             />
           </section>
 
           {unfinished.length === 0 ? (
             <p className="rounded-xl border border-dashed px-3.5 py-3 text-sm text-muted-foreground">
-              Todas las tareas del ciclo están hechas o canceladas: no hay nada que mover.
+              {t('Todas las tareas del ciclo están hechas o canceladas: no hay nada que mover.')}
             </p>
           ) : (
             // Un fieldset mide por defecto al menos su contenido (min-inline-size: min-content)
             <fieldset className="flex min-w-0 flex-col gap-2">
               <legend className="mb-2 text-sm font-semibold">
-                Qué hacer con {unfinished.length === 1 ? 'la tarea sin terminar' : `las ${unfinished.length} tareas sin terminar`}
+                {tn(unfinished.length, 'Qué hacer con la tarea sin terminar', 'Qué hacer con las {count} tareas sin terminar')}
               </legend>
               <div className={cn('grid grid-cols-1 gap-2', otherCycles.length > 0 && nextCycle ? 'sm:grid-cols-3' : 'sm:grid-cols-2')}>
                 {nextCycle && (
                   <DestinationOption
                     checked={mode === 'NEXT'}
                     onChange={() => setMode('NEXT')}
-                    title={`Mover a ${nextCycle.name}`}
+                    title={t('Mover a {name}', { name: nextCycle.name })}
                     description={<CycleFacts cycle={nextCycle} />}
                   />
                 )}
                 <DestinationOption
                   checked={mode === 'BACKLOG'}
                   onChange={() => setMode('BACKLOG')}
-                  title="Mover al backlog"
-                  description="Quedan sin ciclo hasta replanificarlas"
+                  title={t('Mover al backlog')}
+                  description={t('Quedan sin ciclo hasta replanificarlas')}
                 />
                 {otherCycles.length > 0 && (
                   <DestinationOption
                     checked={mode === 'OTHER'}
                     onChange={() => setMode('OTHER')}
-                    title={nextCycle ? 'Otro ciclo' : 'Mover a otro ciclo'}
+                    title={nextCycle ? t('Otro ciclo') : t('Mover a otro ciclo')}
                     description={
                       <Select
                         value={otherCycleId ?? ''}
@@ -228,8 +232,8 @@ function CloseCycleForm({ slug, projectId, cycle: initialCycle, onClose }) {
                           setMode('OTHER')
                         }}
                       >
-                        <SelectTrigger size="sm" className="mt-1 h-7 w-full bg-card text-xs" aria-label="Ciclo destino">
-                          <SelectValue placeholder="Elegir ciclo" />
+                        <SelectTrigger size="sm" className="mt-1 h-7 w-full bg-card text-xs" aria-label={t('Ciclo destino')}>
+                          <SelectValue placeholder={t('Elegir ciclo')} />
                         </SelectTrigger>
                         <SelectContent>
                           {otherCycles.map((item) => (
@@ -245,11 +249,13 @@ function CloseCycleForm({ slug, projectId, cycle: initialCycle, onClose }) {
               </div>
               {!nextCycle && (
                 <p className="text-xs text-muted-foreground">
-                  No hay un ciclo siguiente con fechas: las tareas van al backlog{otherCycles.length > 0 && ' o a otro ciclo que elijas'}.
+                  {otherCycles.length > 0
+                    ? t('No hay un ciclo siguiente con fechas: las tareas van al backlog o a otro ciclo que elijas.')
+                    : t('No hay un ciclo siguiente con fechas: las tareas van al backlog.')}
                 </p>
               )}
 
-              <ul className="max-h-64 overflow-y-auto rounded-xl border" aria-label="Tareas sin terminar">
+              <ul className="max-h-64 overflow-y-auto rounded-xl border" aria-label={t('Tareas sin terminar')}>
                 {unfinished.map((issue, index) => {
                   const destination = split.toCycle.includes(issue) ? 'CYCLE' : 'BACKLOG'
                   const exception = split.exceptions.includes(issue)
@@ -268,14 +274,14 @@ function CloseCycleForm({ slug, projectId, cycle: initialCycle, onClose }) {
                       <Select value={destination} onValueChange={(value) => setRow(issue.id, value)} disabled={!targetCycle}>
                         <SelectTrigger
                           size="sm"
-                          aria-label={`Destino de ${issue.code}`}
+                          aria-label={t('Destino de {code}', { code: issue.code })}
                           className={cn('ml-auto h-7 w-32 shrink-0 bg-card text-xs sm:w-36', exception && 'border-accent-text bg-accent-soft dark:bg-accent-soft')}
                         >
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent align="end">
                           {targetCycle && <SelectItem value="CYCLE">{targetCycle.name}</SelectItem>}
-                          <SelectItem value="BACKLOG">Backlog</SelectItem>
+                          <SelectItem value="BACKLOG">{t('Backlog')}</SelectItem>
                         </SelectContent>
                       </Select>
                     </li>
@@ -288,7 +294,7 @@ function CloseCycleForm({ slug, projectId, cycle: initialCycle, onClose }) {
 
           {retroAlready ? (
             <p className="text-xs text-muted-foreground">
-              {retroAlready === 'OPEN' ? 'La retrospectiva ya está abierta: sigue igual al cerrar.' : 'La retrospectiva de este ciclo ya terminó.'}
+              {retroAlready === 'OPEN' ? t('La retrospectiva ya está abierta: sigue igual al cerrar.') : t('La retrospectiva de este ciclo ya terminó.')}
             </p>
           ) : (
             <label className="flex cursor-pointer items-start gap-2.5">
@@ -299,9 +305,9 @@ function CloseCycleForm({ slug, projectId, cycle: initialCycle, onClose }) {
                 className="mt-0.5 size-4 shrink-0 accent-[var(--ring)]"
               />
               <span>
-                <span className="block text-sm font-semibold">Empezar la retrospectiva</span>
+                <span className="block text-sm font-semibold">{t('Empezar la retrospectiva')}</span>
                 <span className="block text-xs text-muted-foreground">
-                  Abre la retro con el resumen del ciclo ya cargado y avisa al equipo.
+                  {t('Abre la retro con el resumen del ciclo ya cargado y avisa al equipo.')}
                 </span>
               </span>
             </label>
@@ -311,18 +317,18 @@ function CloseCycleForm({ slug, projectId, cycle: initialCycle, onClose }) {
 
       <p className="flex items-center gap-2 rounded-[10px] bg-muted px-2.5 py-2 text-xs text-muted-foreground">
         <Lock className="size-3.5 shrink-0" aria-hidden="true" />
-        Solo el project manager cierra ciclos. Un ciclo cerrado ya no acepta tareas nuevas ni cambios de nombre o fechas.
+        {t('Solo el project manager cierra ciclos. Un ciclo cerrado ya no acepta tareas nuevas ni cambios de nombre o fechas.')}
       </p>
 
       <div className="flex flex-wrap items-center gap-3 border-t pt-3.5">
-        <span className="hidden font-mono text-[11px] text-muted-foreground sm:inline">esc cancelar</span>
+        <span className="hidden font-mono text-[11px] text-muted-foreground sm:inline">{t('esc cancelar')}</span>
         <Button variant="ghost" className="ml-auto" onClick={onClose}>
-          Cancelar
+          {t('Cancelar')}
         </Button>
         {/* Con un nombre largo el botón se salía del diálogo (scroll horizontal y el atajo cortado): el nombre se corta */}
-        <Button onClick={submit} disabled={!canSubmit} className="max-w-full min-w-0 shrink rounded-[10px]" title={`Cerrar ${cycle.name}`}>
+        <Button onClick={submit} disabled={!canSubmit} className="max-w-full min-w-0 shrink rounded-[10px]" title={t('Cerrar {name}', { name: cycle.name })}>
           {close.isPending && <Spinner />}
-          <span className="truncate">Cerrar {cycle.name}</span>
+          <span className="truncate">{t('Cerrar {name}', { name: cycle.name })}</span>
           <kbd className="hidden shrink-0 rounded-[5px] bg-primary-foreground/20 px-1.5 font-mono text-[11px] font-normal sm:inline">
             {IS_MAC ? '⌘ ↵' : 'ctrl ↵'}
           </kbd>
@@ -339,19 +345,19 @@ function EndDateText({ cycle }) {
   if (notice.kind === 'shortens') {
     return (
       <span>
-        Termina el {formatShortDate(cycle.endDate)}. Si lo cierras hoy, la fecha de fin pasa a {today}.
+        {t('Termina el {date}. Si lo cierras hoy, la fecha de fin pasa a {today}.', { date: formatShortDate(cycle.endDate), today })}
       </span>
     )
   }
-  if (notice.kind === 'today') return <span>Termina hoy, {today}.</span>
+  if (notice.kind === 'today') return <span>{t('Termina hoy, {today}.', { today })}</span>
   if (notice.kind === 'ended') {
     return (
       <span>
-        Terminó el {formatShortDate(cycle.endDate)} ({notice.days === 1 ? 'ayer' : `hace ${notice.days} días`}).
+        {tn(notice.days, 'Terminó el {date} (ayer).', 'Terminó el {date} (hace {count} días).', { date: formatShortDate(cycle.endDate) })}
       </span>
     )
   }
-  return <span>No tiene fecha de fin: al cerrarlo, la fecha de fin pasa a hoy, {today}.</span>
+  return <span>{t('No tiene fecha de fin: al cerrarlo, la fecha de fin pasa a hoy, {today}.', { today })}</span>
 }
 
 /** «30 oct → 12 nov · ya tiene 3 tareas». */
@@ -365,7 +371,7 @@ function CycleFacts({ cycle }) {
           {' · '}
         </>
       )}
-      {count === 0 ? 'todavía sin tareas' : `ya tiene ${tasksLabel(count)}`}
+      {count === 0 ? t('todavía sin tareas') : tn(count, 'ya tiene {count} tarea', 'ya tiene {count} tareas')}
     </>
   )
 }
@@ -395,35 +401,36 @@ function DestinationOption({ checked, onChange, title, description }) {
 
 /** «Sprint 2 quedaría con 6 tareas. WEB-15 va al backlog.» */
 function OutcomeText({ split, mode, targetCycle, missingOther }) {
-  if (missingOther) return <p className="text-xs font-medium text-late">Elige a qué ciclo van las tareas.</p>
+  if (missingOther) return <p className="text-xs font-medium text-late">{t('Elige a qué ciclo van las tareas.')}</p>
   const general = mode === 'BACKLOG' || !targetCycle ? 'BACKLOG' : 'CYCLE'
   const sentences = []
   if (split.toCycle.length > 0 && targetCycle) {
     const total = (targetCycle.progress?.totalIssues ?? 0) + split.toCycle.length
     sentences.push(
       <span key="total">
-        {targetCycle.name} quedaría con <span className="font-mono text-foreground">{tasksLabel(total)}</span>.
+        {tx('{name} quedaría con {tasks}.', {
+          name: targetCycle.name,
+          tasks: <span className="font-mono text-foreground">{tasksLabel(total)}</span>,
+        })}
       </span>,
     )
   }
   if (split.exceptions.length > 0) {
-    const plural = split.exceptions.length > 1
-    sentences.push(
-      <span key="exceptions">
-        {' '}
-        {joinCodes(split.exceptions)}{' '}
-        {general === 'CYCLE' ? `${plural ? 'van' : 'va'} al backlog` : `${plural ? 'pasan' : 'pasa'} a ${targetCycle.name}`}
-        {general === 'CYCLE' && allBlocked(split.exceptions) && ` porque ${plural ? 'siguen bloqueadas' : 'sigue bloqueada'}`}.
-      </span>,
-    )
+    const count = split.exceptions.length
+    const codes = joinCodes(split.exceptions)
+    let text
+    if (general !== 'CYCLE') text = tn(count, '{codes} pasa a {name}.', '{codes} pasan a {name}.', { codes, name: targetCycle.name })
+    else if (allBlocked(split.exceptions)) text = tn(count, '{codes} va al backlog porque sigue bloqueada.', '{codes} van al backlog porque siguen bloqueadas.', { codes })
+    else text = tn(count, '{codes} va al backlog.', '{codes} van al backlog.', { codes })
+    sentences.push(<span key="exceptions"> {text}</span>)
   }
-  if (sentences.length === 0) sentences.push(<span key="backlog">Quedarán sin ciclo, en el estado en que están.</span>)
+  if (sentences.length === 0) sentences.push(<span key="backlog">{t('Quedarán sin ciclo, en el estado en que están.')}</span>)
   return <p className="text-xs text-muted-foreground">{sentences}</p>
 }
 
 function PreviewSkeleton() {
   return (
-    <div className="flex flex-col gap-3" aria-label="Cargando el resumen del ciclo">
+    <div className="flex flex-col gap-3" aria-label={t('Cargando el resumen del ciclo')}>
       <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
         {Array.from({ length: 3 }, (_, index) => (
           <Skeleton key={index} className="h-[86px] rounded-[14px]" />

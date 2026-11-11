@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/common/Loaders'
+import { t } from '@/i18n'
 import { formatDateTime, formatRelative, formatShortDate } from '@/lib/dates'
 import { useSessionStore } from '@/stores/sessionStore'
 import { NOTE_MAX_LENGTH } from '../daily'
@@ -51,20 +52,20 @@ export function DailyNoteEditor({ slug, projectId, date, isToday, note, readOnly
     [mutate],
   )
 
-  const dayLabel = isToday ? 'de hoy' : `del ${formatShortDate(date)}`
+  const day = formatShortDate(date)
 
   return (
     <section aria-labelledby={titleId} className="tf-panel flex flex-col gap-2 rounded-[18px] px-4 py-3.5">
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
         <h2 id={titleId} className="text-[15px] font-semibold">
-          Notas {dayLabel}
+          {isToday ? t('Notas de hoy') : t('Notas del {date}', { date: day })}
         </h2>
-        <span className="text-xs text-muted-foreground">las ve todo el proyecto · se guardan con la fecha</span>
+        <span className="text-xs text-muted-foreground">{t('las ve todo el proyecto · se guardan con la fecha')}</span>
         <SaveStatus save={save} dirty={dirty} note={note} userId={userId} onRetry={() => mutate(draft)} />
       </div>
       <textarea
-        aria-label={`Notas de la daily ${dayLabel}`}
-        placeholder="Acuerdos o temas para después de la reunión…"
+        aria-label={isToday ? t('Notas de la daily de hoy') : t('Notas de la daily del {date}', { date: day })}
+        placeholder={t('Acuerdos o temas para después de la reunión…')}
         value={draft}
         maxLength={NOTE_MAX_LENGTH}
         readOnly={readOnly}
@@ -85,15 +86,15 @@ function SaveStatus({ save, dirty, note, userId, onRetry }) {
     content = (
       <>
         <Spinner className="size-3" />
-        Guardando…
+        {t('Guardando…')}
       </>
     )
   } else if (save.isError) {
     content = (
       <span className="flex items-center gap-1.5 text-late">
-        No se pudo guardar
+        {t('No se pudo guardar')}
         <Button variant="link" size="xs" className="h-auto p-0 text-xs" onClick={onRetry}>
-          Reintentar
+          {t('Reintentar')}
         </Button>
       </span>
     )
@@ -103,12 +104,14 @@ function SaveStatus({ save, dirty, note, userId, onRetry }) {
       <>
         {save.isSuccess && mine && <Check className="size-3 text-ok" aria-hidden="true" />}
         <span title={formatDateTime(note.updatedAt)}>
-          editada por {mine ? 'ti' : (note.updatedBy?.fullName ?? 'alguien')} {formatRelative(note.updatedAt)}
+          {mine
+            ? t('editada por ti {when}', { when: formatRelative(note.updatedAt) })
+            : t('editada por {name} {when}', { name: note.updatedBy?.fullName ?? t('alguien'), when: formatRelative(note.updatedAt) })}
         </span>
       </>
     )
   } else if (save.isSuccess) {
-    content = 'Nota borrada'
+    content = t('Nota borrada')
   }
   if (!content) return null
   return (

@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Spinner } from '@/components/common/Loaders'
+import { t } from '@/i18n'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { AGENDA_ITEM_MAX, AGENDA_MAX, DAILY_SECTIONS, toSettingsBody } from '../daily'
@@ -29,8 +30,10 @@ export function DailySettingsDialog({ slug, projectId, settings, open, onOpenCha
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[calc(100dvh_-_3rem)] gap-4 overflow-y-auto sm:max-w-[560px]">
         <DialogHeader>
-          <DialogTitle>Ajustes de la daily</DialogTitle>
-          <DialogDescription>Valen para todo el proyecto: qué se expone en la reunión y los puntos que siempre se tratan.</DialogDescription>
+          <DialogTitle>{t('Ajustes de la daily')}</DialogTitle>
+          <DialogDescription>
+            {t('Valen para todo el proyecto: qué se expone en la reunión y los puntos que siempre se tratan.')}
+          </DialogDescription>
         </DialogHeader>
         <SettingsForm key={session} slug={slug} projectId={projectId} settings={settings} onClose={() => onOpenChange(false)} />
       </DialogContent>
@@ -51,16 +54,16 @@ function SettingsForm({ slug, projectId, settings, onClose }) {
     if (invalid) return
     save.mutate(toSettingsBody({ sections, agenda }), {
       onSuccess: () => {
-        toast.success('Ajustes de la daily guardados')
+        toast.success(t('Ajustes de la daily guardados'))
         onClose()
       },
-      onError: (error) => notifyError(error, 'No se pudieron guardar los ajustes'),
+      onError: (error) => notifyError(error, t('No se pudieron guardar los ajustes')),
     })
   }
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
-      <Fieldset title="Qué se expone" hint="Lo que se ve en la daily y en «Presentar».">
+      <Fieldset title={t('Qué se expone')} hint={t('Lo que se ve en la daily y en «Presentar».')}>
         <ul className="flex flex-col overflow-hidden rounded-xl border">
           {DAILY_SECTIONS.map((section, index) => (
             <SectionSwitch
@@ -74,22 +77,25 @@ function SettingsForm({ slug, projectId, settings, onClose }) {
         </ul>
         {noBlocks && (
           <p role="alert" className="text-sm text-destructive">
-            Deja visible al menos uno de los bloques: Ayer, Hoy o Bloqueos.
+            {t('Deja visible al menos uno de los bloques: Ayer, Hoy o Bloqueos.')}
           </p>
         )}
       </Fieldset>
 
-      <Fieldset title="Puntos a tratar" hint="Temas fijos que se quieren exponer o hacer en cada daily (una demo, riesgos, avisos). Se ven numerados arriba.">
+      <Fieldset
+        title={t('Puntos a tratar')}
+        hint={t('Temas fijos que se quieren exponer o hacer en cada daily (una demo, riesgos, avisos). Se ven numerados arriba.')}
+      >
         <AgendaEditor agenda={agenda} onChange={setAgenda} />
       </Fieldset>
 
       <div className="flex items-center justify-end gap-2 border-t pt-4">
         <Button type="button" variant="ghost" onClick={onClose}>
-          Cancelar
+          {t('Cancelar')}
         </Button>
         <Button type="submit" disabled={invalid || save.isPending}>
           {save.isPending && <Spinner />}
-          Guardar ajustes
+          {t('Guardar ajustes')}
         </Button>
       </div>
     </form>
@@ -135,11 +141,11 @@ function AgendaEditor({ agenda, onChange }) {
           <Input
             value={item}
             maxLength={AGENDA_ITEM_MAX}
-            placeholder="Por ejemplo: demo de lo terminado"
-            aria-label={`Punto ${index + 1}`}
+            placeholder={t('Por ejemplo: demo de lo terminado')}
+            aria-label={t('Punto {number}', { number: index + 1 })}
             onChange={(event) => setItem(index, event.target.value)}
           />
-          <Button type="button" variant="ghost" size="icon-sm" onClick={() => removeItem(index)} aria-label={`Quitar el punto ${index + 1}`}>
+          <Button type="button" variant="ghost" size="icon-sm" onClick={() => removeItem(index)} aria-label={t('Quitar el punto {number}', { number: index + 1 })}>
             <X />
           </Button>
         </div>
@@ -147,10 +153,10 @@ function AgendaEditor({ agenda, onChange }) {
       {agenda.length < AGENDA_MAX ? (
         <Button type="button" variant="outline" size="sm" className="self-start" onClick={() => onChange([...agenda, ''])}>
           <Plus />
-          Agregar punto
+          {t('Agregar punto')}
         </Button>
       ) : (
-        <p className="text-xs text-muted-foreground">Máximo {AGENDA_MAX} puntos.</p>
+        <p className="text-xs text-muted-foreground">{t('Máximo {max} puntos.', { max: AGENDA_MAX })}</p>
       )}
     </div>
   )

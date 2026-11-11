@@ -19,6 +19,7 @@ import { DatePicker } from '@/features/issues/components/PropertyPickers'
 import { useIssues } from '@/features/issues/hooks'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { differenceInCalendarDays, parseISO, startOfToday } from 'date-fns'
+import { t, tn } from '@/i18n'
 import { formatShortDate } from '@/lib/dates'
 import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
@@ -28,57 +29,74 @@ import { closedText } from '../closeCycle'
 import { planningUpdateBody } from '../planningDates'
 import { useAddPlanningIssues, useCreatePlanning, useUpdatePlanning } from '../hooks'
 
-/** Textos y nombres de campos que cambian entre ciclos y módulos. */
+/**
+ * Textos y nombres de campos que cambian entre ciclos y módulos. Cada frase va entera (no se arma con
+ * «ciclo»/«módulo» sueltos): en otro idioma el orden de las palabras cambia.
+ */
 export const PLANNING_TEXT = {
   cycles: {
-    title: 'Ciclos',
-    singular: 'ciclo',
-    newLabel: 'Nuevo ciclo',
+    title: t('Ciclos'),
+    newLabel: t('Nuevo ciclo'),
+    editLabel: t('Editar ciclo'),
+    deleteLabel: t('Eliminar ciclo'),
+    created: t('Ciclo creado'),
+    emptyTitle: t('Todavía no hay ciclos'),
+    issuesTitle: t('Tareas del ciclo'),
+    addHint: t('Agrega tareas del proyecto a este ciclo.'),
+    removeTitle: t('Quitar del ciclo'),
+    removeLabel: (code) => t('Quitar {code} del ciclo', { code }),
     endField: 'endDate',
-    endLabel: 'Fin',
-    emptyDescription: 'Los ciclos (sprints) agrupan el trabajo de un periodo, por ejemplo dos semanas.',
-    memberEmptyDescription: 'Los ciclos (sprints) los crea el project manager. Cuando haya uno, podrás agregarle tareas.',
-    headerDescription: 'Sprints de trabajo con fecha de inicio y fin.',
+    endLabel: t('Fin'),
+    emptyDescription: t('Los ciclos (sprints) agrupan el trabajo de un periodo, por ejemplo dos semanas.'),
+    memberEmptyDescription: t('Los ciclos (sprints) los crea el project manager. Cuando haya uno, podrás agregarle tareas.'),
+    headerDescription: t('Sprints de trabajo con fecha de inicio y fin.'),
     placeholder: 'Sprint 1',
   },
   modules: {
-    title: 'Módulos',
-    singular: 'módulo',
-    newLabel: 'Nuevo módulo',
+    title: t('Módulos'),
+    newLabel: t('Nuevo módulo'),
+    editLabel: t('Editar módulo'),
+    deleteLabel: t('Eliminar módulo'),
+    created: t('Módulo creado'),
+    emptyTitle: t('Todavía no hay módulos'),
+    issuesTitle: t('Tareas del módulo'),
+    addHint: t('Agrega tareas del proyecto a este módulo.'),
+    removeTitle: t('Quitar del módulo'),
+    removeLabel: (code) => t('Quitar {code} del módulo', { code }),
     endField: 'targetDate',
-    endLabel: 'Fecha objetivo',
-    emptyDescription: 'Los módulos agrupan las tareas de una funcionalidad (ej. «Autenticación»).',
-    memberEmptyDescription: 'Los módulos los crea el project manager. Cuando haya uno, podrás agregarle tareas.',
-    headerDescription: 'Agrupa las tareas por funcionalidad. Una tarea puede estar en varios módulos.',
-    placeholder: 'Autenticación',
+    endLabel: t('Fecha objetivo'),
+    emptyDescription: t('Los módulos agrupan las tareas de una funcionalidad (ej. «Autenticación»).'),
+    memberEmptyDescription: t('Los módulos los crea el project manager. Cuando haya uno, podrás agregarle tareas.'),
+    headerDescription: t('Agrupa las tareas por funcionalidad. Una tarea puede estar en varios módulos.'),
+    placeholder: t('Autenticación'),
   },
 }
 
 /** Estado del ciclo: pastilla (fondo/texto) y color de su barra de avance. */
 export const CYCLE_STATUS = {
   DRAFT: {
-    label: 'Borrador',
+    label: t('Borrador'),
     className: 'bg-muted text-muted-foreground',
     bar: 'bg-[#9E978C] dark:bg-[#A59E93]',
   },
   UPCOMING: {
-    label: 'Próximo',
+    label: t('Próximo'),
     className: 'bg-[#E1F0FF] text-[#1C4E86] dark:bg-[#132A3D] dark:text-[#8CCBFF]',
     bar: 'bg-[#3B82F6] dark:bg-[#8CCBFF]',
   },
   CURRENT: {
-    label: 'En curso',
+    label: t('En curso'),
     className: 'bg-ok-soft text-ok',
     bar: 'bg-ok-dot',
   },
   COMPLETED: {
-    label: 'Terminado',
+    label: t('Terminado'),
     className: 'bg-accent-soft text-accent-text',
     bar: 'bg-[#B08A3A] dark:bg-[#EAD9B0]',
   },
   // Cerrado a mano por el project manager (closedAt): ya no recibe tareas ni cambia de nombre o fechas
   CLOSED: {
-    label: 'Cerrado',
+    label: t('Cerrado'),
     className: 'bg-accent-soft text-accent-text',
     bar: 'bg-[#B08A3A] dark:bg-[#EAD9B0]',
   },
@@ -154,15 +172,15 @@ export function SummaryTile({ label, value, unit, note, variant = 'page', classN
 export function remainingText(end) {
   if (!end) return null
   const days = differenceInCalendarDays(parseISO(end), startOfToday())
-  if (days > 1) return `quedan ${days} días`
-  if (days === 1) return 'queda 1 día'
-  if (days === 0) return 'termina hoy'
-  return days === -1 ? 'terminó ayer' : `terminó hace ${-days} días`
+  if (days > 1) return t('quedan {days} días', { days })
+  if (days === 1) return t('queda 1 día')
+  if (days === 0) return t('termina hoy')
+  return days === -1 ? t('terminó ayer') : t('terminó hace {days} días', { days: -days })
 }
 
 /** «15 oct → 29 oct», o un texto si no hay fechas. */
 export function DateRange({ start, end }) {
-  if (!start && !end) return <span className="text-muted-foreground">Sin fechas</span>
+  if (!start && !end) return <span className="text-muted-foreground">{t('Sin fechas')}</span>
   return (
     <span>
       {start ? formatShortDate(start) : '…'} → {end ? formatShortDate(end) : '…'}
@@ -176,7 +194,9 @@ export function ProgressSummary({ progress, className, barClassName = 'bg-accent
     <div className={cn('space-y-1.5', className)}>
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>
-          {progress.totalIssues === 0 ? 'Sin tareas' : `${progress.completedIssues} de ${progress.totalIssues} completadas`}
+          {progress.totalIssues === 0
+            ? t('Sin tareas')
+            : t('{completed} de {total} completadas', { completed: progress.completedIssues, total: progress.totalIssues })}
         </span>
         <span className="font-mono font-semibold text-foreground">{progress.percentage}%</span>
       </div>
@@ -202,14 +222,14 @@ export function ProgressBar({ value, className, trackClassName }) {
 
 const planningSchema = z
   .object({
-    name: z.string().trim().min(1, 'El nombre es obligatorio').max(80, 'Máximo 80 caracteres'),
-    description: z.string().max(10000, 'La descripción es demasiado larga'),
+    name: z.string().trim().min(1, t('El nombre es obligatorio')).max(80, t('Máximo 80 caracteres')),
+    description: z.string().max(10000, t('La descripción es demasiado larga')),
     startDate: z.string().nullable(),
     endDate: z.string().nullable(),
   })
   .refine((values) => !values.startDate || !values.endDate || values.endDate >= values.startDate, {
     path: ['endDate'],
-    message: 'No puede ser anterior a la fecha de inicio',
+    message: t('No puede ser anterior a la fecha de inicio'),
   })
 
 /** Crear o editar un ciclo/módulo (`item` presente = editar). */
@@ -219,7 +239,7 @@ export function PlanningFormDialog({ kind, slug, projectId, item, open, onOpenCh
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{item ? `Editar ${text.singular}` : text.newLabel}</DialogTitle>
+          <DialogTitle>{item ? text.editLabel : text.newLabel}</DialogTitle>
           <DialogDescription>{text.emptyDescription}</DialogDescription>
         </DialogHeader>
         {/* El formulario vive mientras exista el diálogo: así no desaparece durante la animación de cierre */}
@@ -263,7 +283,7 @@ function PlanningForm({ kind, slug, projectId, item, onCancel, onSaved }) {
     const body = { name: values.name, description: values.description, startDate: values.startDate, [text.endField]: values.endDate }
     const options = {
       onSuccess: (saved) => {
-        toast.success(item ? 'Cambios guardados' : `${text.singular[0].toUpperCase()}${text.singular.slice(1)} creado`)
+        toast.success(item ? t('Cambios guardados') : text.created)
         onSaved(saved)
       },
       onError: (error) => {
@@ -292,7 +312,7 @@ function PlanningForm({ kind, slug, projectId, item, onCancel, onSaved }) {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Nombre</FormLabel>
+              <FormLabel>{t('Nombre')}</FormLabel>
               <FormControl>
                 <Input placeholder={text.placeholder} autoFocus={!closed} disabled={closed} {...field} />
               </FormControl>
@@ -305,9 +325,9 @@ function PlanningForm({ kind, slug, projectId, item, onCancel, onSaved }) {
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Descripción</FormLabel>
+              <FormLabel>{t('Descripción')}</FormLabel>
               <FormControl>
-                <Textarea rows={2} placeholder="Opcional" autoFocus={closed} {...field} />
+                <Textarea rows={2} placeholder={t('Opcional')} autoFocus={closed} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -315,14 +335,14 @@ function PlanningForm({ kind, slug, projectId, item, onCancel, onSaved }) {
         />
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label id={startLabelId}>Inicio</Label>
+            <Label id={startLabelId}>{t('Inicio')}</Label>
             <DatePicker
               value={startDate}
               onChange={(value) => {
                 form.clearErrors('startDate')
                 form.setValue('startDate', value, { shouldDirty: true })
               }}
-              placeholder="Sin fecha"
+              placeholder={t('Sin fecha')}
               labelId={startLabelId}
               maxDate={endDate}
               disabled={closed}
@@ -337,7 +357,7 @@ function PlanningForm({ kind, slug, projectId, item, onCancel, onSaved }) {
             <DatePicker
               value={endDate}
               onChange={(value) => form.setValue('endDate', value, { shouldDirty: true, shouldValidate: true })}
-              placeholder="Sin fecha"
+              placeholder={t('Sin fecha')}
               labelId={endLabelId}
               minDate={startDate}
               disabled={closed}
@@ -348,14 +368,14 @@ function PlanningForm({ kind, slug, projectId, item, onCancel, onSaved }) {
             )}
           </div>
         </div>
-        {closed && <LockNote>El ciclo está cerrado: solo se puede cambiar la descripción.</LockNote>}
+        {closed && <LockNote>{t('El ciclo está cerrado: solo se puede cambiar la descripción.')}</LockNote>}
         <DialogFooter>
           <Button type="button" variant="ghost" onClick={onCancel}>
-            Cancelar
+            {t('Cancelar')}
           </Button>
           <Button type="submit" disabled={pending}>
             {pending && <Spinner />}
-            {item ? 'Guardar' : 'Crear'}
+            {item ? t('Guardar') : t('Crear')}
           </Button>
         </DialogFooter>
       </form>
@@ -398,7 +418,7 @@ export function AddIssuesDialog({ kind, slug, projectId, item, existingIds, open
       { id: item.id, issueIds: [...selected] },
       {
         onSuccess: () => {
-          toast.success(`${selected.size} ${selected.size === 1 ? 'tarea agregada' : 'tareas agregadas'}`)
+          toast.success(tn(selected.size, '{count} tarea agregada', '{count} tareas agregadas'))
           close(false)
         },
         onError: (error) => notifyError(error),
@@ -410,22 +430,22 @@ export function AddIssuesDialog({ kind, slug, projectId, item, existingIds, open
     <Dialog open={open} onOpenChange={close}>
       <DialogContent className="gap-3 p-0 sm:max-w-lg">
         <DialogHeader className="px-4 pt-4">
-          <DialogTitle>Agregar tareas a «{item?.name}»</DialogTitle>
+          <DialogTitle>{t('Agregar tareas a «{name}»', { name: item?.name ?? '' })}</DialogTitle>
           <DialogDescription>
             {kind === 'cycles'
-              ? 'Si una tarea ya está en otro ciclo, se moverá a este.'
-              : 'Una tarea puede estar en varios módulos.'}
+              ? t('Si una tarea ya está en otro ciclo, se moverá a este.')
+              : t('Una tarea puede estar en varios módulos.')}
           </DialogDescription>
         </DialogHeader>
         <Command shouldFilter={false} className="border-t">
-          <CommandInput placeholder="Buscar por título o código…" value={search} onValueChange={setSearch} />
+          <CommandInput placeholder={t('Buscar por título o código…')} value={search} onValueChange={setSearch} />
           <CommandList className="max-h-80">
             {isFetching && (
               <div className="flex justify-center py-3">
                 <Spinner className="text-muted-foreground" />
               </div>
             )}
-            {!isFetching && <CommandEmpty>No hay tareas para agregar</CommandEmpty>}
+            {!isFetching && <CommandEmpty>{t('No hay tareas para agregar')}</CommandEmpty>}
             <CommandGroup>
               {candidates.map((issue) => (
                 <CommandItem key={issue.id} value={issue.id} onSelect={() => toggle(issue.id)}>
@@ -443,11 +463,11 @@ export function AddIssuesDialog({ kind, slug, projectId, item, existingIds, open
         </Command>
         <DialogFooter className="border-t px-4 py-3">
           <Button variant="ghost" onClick={() => close(false)}>
-            Cancelar
+            {t('Cancelar')}
           </Button>
           <Button onClick={submit} disabled={selected.size === 0 || add.isPending}>
             {add.isPending && <Spinner />}
-            Agregar{selected.size > 0 && ` (${selected.size})`}
+            {selected.size > 0 ? t('Agregar ({count})', { count: selected.size }) : t('Agregar')}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -3,6 +3,8 @@
  * cambios en la retro en caché (agregar, quitar y votar sin esperar a recargar).
  */
 
+import { t } from '@/i18n'
+
 /** @typedef {import('@/api/types').RetroResponse} RetroResponse */
 /** @typedef {import('@/api/types').RetroNote} RetroNote */
 /** @typedef {import('@/api/types').RetroColumn} RetroColumn */
@@ -15,9 +17,9 @@ export const NOTE_MAX_LENGTH = 500
 
 /** Las tres columnas, en orden. */
 export const RETRO_COLUMNS = /** @type {const} */ ([
-  { key: 'WENT_WELL', name: 'Qué salió bien', placeholder: 'Algo que funcionó y conviene repetir…' },
-  { key: 'IMPROVE', name: 'Qué mejorar', placeholder: 'Algo que costó o salió peor de lo esperado…' },
-  { key: 'ACTION', name: 'Acciones', placeholder: 'Algo concreto que el equipo hará en el próximo ciclo…' },
+  { key: 'WENT_WELL', name: t('Qué salió bien'), placeholder: t('Algo que funcionó y conviene repetir…') },
+  { key: 'IMPROVE', name: t('Qué mejorar'), placeholder: t('Algo que costó o salió peor de lo esperado…') },
+  { key: 'ACTION', name: t('Acciones'), placeholder: t('Algo concreto que el equipo hará en el próximo ciclo…') },
 ])
 
 /**

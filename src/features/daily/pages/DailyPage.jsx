@@ -10,6 +10,7 @@ import { useIssueFilters } from '@/features/issues/useIssueFilters'
 import { useCurrentProject } from '@/features/projects/hooks'
 import { useCan, useCurrentWorkspace } from '@/features/workspaces/hooks'
 import { useHotkey } from '@/hooks/useHotkey'
+import { t, tn } from '@/i18n'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { projectPath } from '@/lib/paths'
 import { cn } from '@/lib/utils'
@@ -89,18 +90,20 @@ export function DailyPage() {
   useHotkey('escape', exitPresenting, { enabled: presenting })
 
   const base = `/${workspace.slug}/projects/${project.id}`
+  let description = t('Se arma sola con la actividad del proyecto.')
+  if (cycle && cycleDay) {
+    description = t('{cycle} · día {day} de {total} · se arma sola con la actividad del proyecto', { cycle: cycle.name, day: cycleDay.day, total: cycleDay.total })
+  } else if (cycle) {
+    description = t('{cycle} · se arma sola con la actividad del proyecto', { cycle: cycle.name })
+  }
 
   return (
     <>
       <PageHeader
-        path={[...projectPath(workspace, project), { label: 'daily' }]}
-        title="Daily"
-        documentTitle={['Daily', project.name]}
-        description={
-          cycle
-            ? `${cycle.name}${cycleDay ? ` · día ${cycleDay.day} de ${cycleDay.total}` : ''} · se arma sola con la actividad del proyecto`
-            : 'Se arma sola con la actividad del proyecto.'
-        }
+        path={[...projectPath(workspace, project), { label: t('daily') }]}
+        title={t('Daily')}
+        documentTitle={[t('Daily'), project.name]}
+        description={description}
         actions={
           <>
             <DailyDateNav date={fixedDate} today={today} onChange={setDate} />
@@ -115,12 +118,12 @@ export function DailyPage() {
                     onClick={() => setSettingsOpen(true)}
                     // Hasta tener los ajustes guardados: abrirlo antes guardaría los de por defecto
                     disabled={!savedSettings}
-                    aria-label="Ajustes de la daily"
+                    aria-label={t('Ajustes de la daily')}
                   >
                     <Settings2 />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Ajustes de la daily: tiempos, bloques y puntos a tratar</TooltipContent>
+                <TooltipContent>{t('Ajustes de la daily: tiempos, bloques y puntos a tratar')}</TooltipContent>
               </Tooltip>
             )}
           </>
@@ -132,8 +135,8 @@ export function DailyPage() {
         {daily && people.length === 0 && (
           <EmptyState
             icon={Users}
-            title="Nadie en el proyecto todavía"
-            description="La daily muestra a los miembros del proyecto y a quienes tienen tareas asignadas."
+            title={t('Nadie en el proyecto todavía')}
+            description={t('La daily muestra a los miembros del proyecto y a quienes tienen tareas asignadas.')}
           />
         )}
 
@@ -237,7 +240,7 @@ function PresentSwitch({ checked, disabled, onToggle }) {
           )}
         />
       </span>
-      Presentar
+      {t('Presentar')}
       <kbd className="font-mono text-[11px] font-normal text-muted-foreground">P</kbd>
     </button>
   )
@@ -251,11 +254,11 @@ function DailySummaryStrip({ daily }) {
   const { items, blocked } = summaryItems(daily.summary)
   return (
     <section
-      aria-label="Resumen desde el día anterior"
+      aria-label={t('Resumen desde el día anterior')}
       className="flex flex-wrap items-center gap-x-5.5 gap-y-2 rounded-2xl border border-dashed border-dash px-4.5 py-2.5"
     >
-      <span className="font-mono text-[11px] text-muted-foreground">// desde {previousDayLabel(daily.date, daily.previousDate)}</span>
-      {items.length === 0 && blocked === 0 && <span className="text-[13px] text-muted-foreground">sin cambios en las tareas</span>}
+      <span className="font-mono text-[11px] text-muted-foreground">{t('// desde {day}', { day: previousDayLabel(daily.date, daily.previousDate) })}</span>
+      {items.length === 0 && blocked === 0 && <span className="text-[13px] text-muted-foreground">{t('sin cambios en las tareas')}</span>}
       {items.map((item) => (
         <span key={item.key} className="flex items-baseline gap-1.5">
           <strong className="font-display text-[22px] leading-none font-extrabold">{item.value}</strong>
@@ -263,16 +266,16 @@ function DailySummaryStrip({ daily }) {
         </span>
       ))}
       {blocked > 0 && (
-        <span className="flex items-center gap-1.5 text-[13px] font-semibold text-late" title="Tareas abiertas con una tarea abierta que las bloquea">
+        <span className="flex items-center gap-1.5 text-[13px] font-semibold text-late" title={t('Tareas abiertas con una tarea abierta que las bloquea')}>
           <Ban className="size-3.5" strokeWidth={2.5} aria-hidden="true" />
-          {blocked} {blocked === 1 ? 'bloqueo' : 'bloqueos'}
+          {tn(blocked, '{count} bloqueo', '{count} bloqueos')}
         </span>
       )}
       <span
         className="ml-auto text-xs text-muted-foreground"
-        title="El último día antes de la reunión en que hubo cambios o comentarios en el proyecto (como mucho, el día hábil anterior)"
+        title={t('El último día antes de la reunión en que hubo cambios o comentarios en el proyecto (como mucho, el día hábil anterior)')}
       >
-        Ayer = último día con actividad
+        {t('Ayer = último día con actividad')}
       </span>
     </section>
   )
@@ -280,7 +283,7 @@ function DailySummaryStrip({ daily }) {
 
 function DailySkeleton() {
   return (
-    <div className="flex flex-col gap-3.5" aria-label="Cargando la daily">
+    <div className="flex flex-col gap-3.5" aria-label={t('Cargando la daily')}>
       <Skeleton className="h-12 rounded-2xl" />
       <div className="grid grid-cols-[repeat(auto-fit,minmax(270px,1fr))] gap-3.5">
         {Array.from({ length: 3 }, (_, index) => (

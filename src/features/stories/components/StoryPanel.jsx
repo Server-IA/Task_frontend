@@ -16,6 +16,7 @@ import { isStory, storyFlags, storyProgress, typeOf } from '@/features/issues/is
 import { useProjectMeta } from '@/features/issues/useIssueHelpers'
 import { useRelations } from '@/features/relations/hooks'
 import { useWorkspace } from '@/features/workspaces/hooks'
+import { stateName, t, tn, tx } from '@/i18n'
 import { formatShortDate } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
 import { can } from '@/lib/permissions'
@@ -32,7 +33,7 @@ function useStoryCan(slug, permission) {
   return can(useWorkspace(slug).data, permission)
 }
 
-const firstName = (user) => user?.fullName?.trim().split(/\s+/)[0] ?? 'alguien'
+const firstName = (user) => user?.fullName?.trim().split(/\s+/)[0] ?? t('alguien')
 
 /**
  * Aviso sobre el título de una historia: «Lista para revisar» (con «Agregar tarea» y «Cerrar historia», que solo
@@ -56,80 +57,83 @@ export function StoryBanner({ slug, project, issue, onOpenIssue, onAddTask }) {
     close.mutate(issue.id, {
       onSuccess: () => {
         setConfirmClose(false)
-        toast.success(`${issue.code} cerrada`)
+        toast.success(t('{code} cerrada', { code: issue.code }))
       },
-      onError: (error) => notifyError(error, 'No se pudo cerrar la historia'),
+      onError: (error) => notifyError(error, t('No se pudo cerrar la historia')),
     })
   const askClose = () => (missing > 0 ? setConfirmClose(true) : doClose())
   const doReopen = () =>
     reopen.mutate(issue.id, {
-      onSuccess: () => toast.success(`${issue.code} reabierta`),
-      onError: (error) => notifyError(error, 'No se pudo reabrir la historia'),
+      onSuccess: () => toast.success(t('{code} reabierta', { code: issue.code })),
+      onError: (error) => notifyError(error, t('No se pudo reabrir la historia')),
     })
 
   return (
     <div className="flex flex-col gap-2.5">
       {flags.ready && (
-        <section className="tf-pop flex gap-3 rounded-2xl border border-ok/25 bg-ok-soft px-4 py-3.5" aria-label="Lista para revisar">
+        <section className="tf-pop flex gap-3 rounded-2xl border border-ok/25 bg-ok-soft px-4 py-3.5" aria-label={t('Lista para revisar')}>
           <CircleCheck className="mt-0.5 size-5 shrink-0 text-ok" aria-hidden="true" />
           <div className="flex min-w-0 flex-1 flex-col gap-2.5">
             <div>
-              <h2 className="text-[15px] font-semibold text-ok">Lista para revisar</h2>
+              <h2 className="text-[15px] font-semibold text-ok">{t('Lista para revisar')}</h2>
               <p className="text-sm text-foreground/85">
-                {progress.total === 1 ? 'La tarea está terminada' : `Las ${progress.total} tareas están terminadas`} y no queda ningún bug
-                abierto ligado (uno abierto la bloquea). {manager ? 'Revisa los criterios de aceptación y cierra la historia.' : 'La revisa quien puede cerrar historias.'}
+                {tn(
+                  progress.total,
+                  'La tarea está terminada y no queda ningún bug abierto ligado (uno abierto la bloquea).',
+                  'Las {count} tareas están terminadas y no queda ningún bug abierto ligado (uno abierto la bloquea).',
+                )}{' '}
+                {manager ? t('Revisa los criterios de aceptación y cierra la historia.') : t('La revisa quien puede cerrar historias.')}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {canCreate && (
                 <Button variant="outline" size="sm" className="bg-card" onClick={onAddTask}>
-                  Agregar tarea
+                  {t('Agregar tarea')}
                 </Button>
               )}
               {manager ? (
                 <Button size="sm" onClick={askClose} disabled={close.isPending}>
-                  Cerrar historia
+                  {t('Cerrar historia')}
                 </Button>
               ) : (
                 <Button size="sm" variant="outline" disabled className="border-dashed bg-transparent">
                   <Lock />
-                  Cerrar historia
+                  {t('Cerrar historia')}
                 </Button>
               )}
             </div>
             {!manager && (
               <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Lock className="size-3" aria-hidden="true" />
-                Tu rol no permite cerrar historias
+                {t('Tu rol no permite cerrar historias')}
               </p>
             )}
           </div>
         </section>
       )}
       {flags.closed && (
-        <section className="tf-pop flex items-start gap-3 rounded-2xl border bg-subtle px-4 py-3.5" aria-label="Historia cerrada">
+        <section className="tf-pop flex items-start gap-3 rounded-2xl border bg-subtle px-4 py-3.5" aria-label={t('Historia cerrada')}>
           <LockKeyhole className="mt-0.5 size-5 shrink-0 text-ok" aria-hidden="true" />
           <div className="min-w-0 flex-1">
             <h2 className="text-[15px] font-semibold">
-              Cerrada{issue.closedBy ? ` por ${firstName(issue.closedBy)}` : ''}
-              {issue.closedAt ? ` · ${formatShortDate(issue.closedAt)}` : ''}
+              {closedTitle(issue)}
             </h2>
             <p className="text-sm text-muted-foreground">
-              Sus tareas y criterios quedan como documentación. Lo nuevo va en una tarea o una historia relacionada.
+              {t('Sus tareas y criterios quedan como documentación. Lo nuevo va en una tarea o una historia relacionada.')}
             </p>
           </div>
           {manager ? (
             <div className="flex flex-col items-end gap-1">
               <Button variant="outline" size="sm" className="bg-card" onClick={doReopen} disabled={reopen.isPending}>
                 <RotateCcw />
-                Reabrir
+                {t('Reabrir')}
               </Button>
-              <span className="font-mono text-[10px] text-muted-foreground">tu rol no la reabre</span>
+              <span className="font-mono text-[10px] text-muted-foreground">{t('tu rol no la reabre')}</span>
             </div>
           ) : (
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
               <Lock className="size-3" aria-hidden="true" />
-              tu rol no permite reabrirla
+              {t('tu rol no permite reabrirla')}
             </span>
           )}
         </section>
@@ -145,7 +149,7 @@ export function StoryBanner({ slug, project, issue, onOpenIssue, onAddTask }) {
               className="flex max-w-full items-center gap-1.5 rounded-lg border px-2 py-0.5 text-xs text-muted-foreground hover:bg-subtle"
             >
               <Link2 className="size-3 shrink-0" aria-hidden="true" />
-              relacionada:
+              {t('relacionada:')}
               <span className={cn('font-mono font-semibold', typeOf(relation.issue) === 'STORY' ? 'text-ty-story-text' : 'text-foreground')}>
                 {relation.issue.code}
               </span>
@@ -157,15 +161,25 @@ export function StoryBanner({ slug, project, issue, onOpenIssue, onAddTask }) {
       <ConfirmDialog
         open={confirmClose}
         onOpenChange={setConfirmClose}
-        title={`¿Cerrar ${issue.code} con ${missing} ${missing === 1 ? 'criterio' : 'criterios'} sin marcar?`}
-        description={`Tiene ${missing} de ${issue.criteriaTotal} criterios de aceptación sin marcar.`}
-        confirmLabel="Cerrar igual"
+        title={tn(missing, '¿Cerrar {code} con {count} criterio sin marcar?', '¿Cerrar {code} con {count} criterios sin marcar?', { code: issue.code })}
+        description={t('Tiene {missing} de {total} criterios de aceptación sin marcar.', { missing, total: issue.criteriaTotal })}
+        confirmLabel={t('Cerrar igual')}
         destructive={false}
         loading={close.isPending}
         onConfirm={doClose}
       />
     </div>
   )
+}
+
+/** «Cerrada por Ana · 12 nov», con lo que se sepa de quién y cuándo. */
+function closedTitle(issue) {
+  const name = issue.closedBy ? firstName(issue.closedBy) : null
+  const date = issue.closedAt ? formatShortDate(issue.closedAt) : null
+  if (name && date) return t('Cerrada por {name} · {date}', { name, date })
+  if (name) return t('Cerrada por {name}', { name })
+  if (date) return t('Cerrada · {date}', { date })
+  return t('Cerrada')
 }
 
 /**
@@ -218,17 +232,17 @@ export function StorySections({ slug, project, issue, onOpenIssue, onAdd, onRepo
   const closedAt = issue.closedAt ? new Date(issue.closedAt) : null
 
   return (
-    <section className="flex flex-col gap-2.5" aria-label="Tareas de la historia">
+    <section className="flex flex-col gap-2.5" aria-label={t('Tareas de la historia')}>
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="text-sm font-semibold">
-          Tareas de la historia{' '}
+          {t('Tareas de la historia')}{' '}
           <span className="font-mono text-xs font-normal text-muted-foreground">
-            {progress.total > 0 ? `${progress.done} de ${progress.total}` : '0'}
+            {progress.total > 0 ? t('{done} de {total}', { done: progress.done, total: progress.total }) : '0'}
           </span>
         </h2>
         {flags.unsplit && (
           <span className="inline-flex items-center gap-1 rounded-[7px] bg-soon-soft px-2 py-0.5 text-xs font-semibold text-soon">
-            sin partir
+            {t('sin partir')}
           </span>
         )}
         <span className="ml-auto flex items-center gap-1.5">
@@ -240,23 +254,23 @@ export function StorySections({ slug, project, issue, onOpenIssue, onAdd, onRepo
               onClick={() => setSplitting(true)}
             >
               <GitBranch className="size-3" />
-              Partir en tareas
+              {t('Partir en tareas')}
             </button>
           )}
           {canCreate && (
             <>
               <button type="button" className="rounded-full border px-2.5 py-1 text-xs hover:bg-accent" onClick={onReportBug}>
-                + bug
+                {t('+ bug')}
               </button>
               <button type="button" className="rounded-full border px-2.5 py-1 text-xs hover:bg-accent" onClick={onAdd}>
-                + agregar
+                {t('+ agregar')}
               </button>
             </>
           )}
         </span>
       </div>
       {flags.unsplit && tasks.length === 0 && (
-        <p className="text-right text-xs text-muted-foreground">Nadie trabaja la historia: el trabajo va en sus tareas.</p>
+        <p className="text-right text-xs text-muted-foreground">{t('Nadie trabaja la historia: el trabajo va en sus tareas.')}</p>
       )}
       {progress.total > 0 && <StoryProgress story={issue} compact barClassName="h-1.5" />}
       {isLoading ? (
@@ -277,7 +291,7 @@ export function StorySections({ slug, project, issue, onOpenIssue, onAdd, onRepo
       )}
       {bugs.length > 0 && (
         <>
-          <p className="mt-1 font-mono text-[11px] text-muted-foreground">// bugs de la historia · no cuentan en «x de y»</p>
+          <p className="mt-1 font-mono text-[11px] text-muted-foreground">{t('// bugs de la historia · no cuentan en «x de y»')}</p>
           <ChildList
             items={bugs}
             onOpenIssue={onOpenIssue}
@@ -285,7 +299,7 @@ export function StorySections({ slug, project, issue, onOpenIssue, onAdd, onRepo
               const after = closedAt && new Date(bug.createdAt) > closedAt
               return (
                 <span className={cn('shrink-0 font-mono text-[11px]', after ? 'font-semibold text-late' : 'text-muted-foreground')}>
-                  {after ? 'después de cerrar' : 'apareció aquí'}
+                  {after ? t('después de cerrar') : t('apareció aquí')}
                 </span>
               )
             }}
@@ -334,10 +348,11 @@ export function ClosedStoryDialog({ story, open, onOpenChange, manager, onReopen
       <DialogContent className="gap-3.5 sm:max-w-[440px]">
         <DialogHeader>
           <DialogTitle className="text-[17px] leading-snug">
-            <span className="font-mono text-ty-story-text">{story.code}</span> está cerrada. ¿La reabres o creas la tarea suelta
-            relacionada?
+            {tx('{code} está cerrada. ¿La reabres o creas la tarea suelta relacionada?', {
+              code: <span className="font-mono text-ty-story-text">{story.code}</span>,
+            })}
           </DialogTitle>
-          <DialogDescription className="sr-only">Elige cómo agregar el trabajo nuevo.</DialogDescription>
+          <DialogDescription className="sr-only">{t('Elige cómo agregar el trabajo nuevo.')}</DialogDescription>
         </DialogHeader>
         <button
           type="button"
@@ -348,10 +363,12 @@ export function ClosedStoryDialog({ story, open, onOpenChange, manager, onReopen
           <StateIcon group="STARTED" color="var(--started)" className="mt-0.5" />
           <span className="flex flex-col gap-0.5">
             <span className="flex items-center gap-2 text-sm font-semibold">
-              Reabrir y agregar
-              <span className="rounded-md bg-muted px-1.5 font-mono text-[10px] font-normal text-muted-foreground">solo PM</span>
+              {t('Reabrir y agregar')}
+              <span className="rounded-md bg-muted px-1.5 font-mono text-[10px] font-normal text-muted-foreground">{t('solo PM')}</span>
             </span>
-            <span className="text-[13px] text-muted-foreground">La historia vuelve a In Progress y queda anotado en la actividad.</span>
+            <span className="text-[13px] text-muted-foreground">
+              {t('La historia vuelve a {state} y queda anotado en la actividad.', { state: stateName('In Progress') })}
+            </span>
           </span>
         </button>
         <button
@@ -362,21 +379,21 @@ export function ClosedStoryDialog({ story, open, onOpenChange, manager, onReopen
         >
           <Link2 className="mt-0.5 size-4 shrink-0 text-accent-text" aria-hidden="true" />
           <span className="flex flex-col gap-0.5">
-            <span className="text-sm font-semibold">Crear tarea relacionada</span>
+            <span className="text-sm font-semibold">{t('Crear tarea relacionada')}</span>
             <span className="text-[13px] text-muted-foreground">
-              La historia sigue cerrada. La tarea va suelta, con el vínculo «relacionada con {story.code}».
+              {t('La historia sigue cerrada. La tarea va suelta, con el vínculo «relacionada con {code}».', { code: story.code })}
             </span>
           </span>
         </button>
         {!manager && (
           <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
             <Lock className="mt-0.5 size-3 shrink-0" aria-hidden="true" />
-            Tu rol no permite cerrar ni reabrir historias.
+            {t('Tu rol no permite cerrar ni reabrir historias.')}
           </p>
         )}
         <div className="flex justify-end">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
+            {t('Cancelar')}
           </Button>
         </div>
       </DialogContent>
@@ -449,7 +466,7 @@ export function StoryParentCard({ slug, project, issue, onOpenIssue }) {
       >
         <span className="flex min-w-0 items-center gap-2 text-sm">
           <TypeIcon type="STORY" size={14} />
-          <span className="font-mono text-xs text-muted-foreground">{bug ? 'apareció en' : 'historia'}</span>
+          <span className="font-mono text-xs text-muted-foreground">{bug ? t('apareció en') : t('historia')}</span>
           <span className="font-mono text-xs font-semibold text-ty-story-text">{parent.code}</span>
           <span className="min-w-0 truncate font-medium">{parent.title}</span>
         </span>
@@ -458,7 +475,7 @@ export function StoryParentCard({ slug, project, issue, onOpenIssue }) {
             <StoryProgress story={story} compact className="flex-1" />
             <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
               {storyProgress(story).label}
-              {flags.openBugs > 0 && ` · ${flags.openBugs} ${flags.openBugs === 1 ? 'bug abierto' : 'bugs abiertos'}`}
+              {flags.openBugs > 0 && ` · ${tn(flags.openBugs, '{count} bug abierto', '{count} bugs abiertos')}`}
             </span>
           </span>
         )}
@@ -466,7 +483,7 @@ export function StoryParentCard({ slug, project, issue, onOpenIssue }) {
       {bug && open && story && !flags.closed && (
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Info className="size-3" aria-hidden="true" />
-          Mientras {issue.code} siga abierto, {parent.code} no queda lista para revisar.
+          {t('Mientras {bug} siga abierto, {story} no queda lista para revisar.', { bug: issue.code, story: parent.code })}
         </p>
       )}
     </div>

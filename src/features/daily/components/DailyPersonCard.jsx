@@ -1,4 +1,5 @@
 import { UserAvatar } from '@/components/common/UserAvatar'
+import { t, tn } from '@/i18n'
 import { useSessionStore } from '@/stores/sessionStore'
 import { personMeta } from '../daily'
 import { DailyBlock, personBlocks } from './DailyBlocks'
@@ -22,11 +23,15 @@ export function DailyPersonCard({ person, cycle, date, previousDate, projectId, 
         <span className="min-w-0 flex-1">
           <span className="block truncate font-semibold">
             {person.user?.fullName}
-            {me && <span className="font-normal text-muted-foreground"> · tú</span>}
+            {me && <span className="font-normal text-muted-foreground"> · {t('tú')}</span>}
           </span>
           <span
             className="block truncate font-mono text-[11px] text-muted-foreground"
-            title={cycle ? `En ${cycle.name} · ${open} ${open === 1 ? 'tarea abierta' : 'tareas abiertas'} en el proyecto` : undefined}
+            title={
+              cycle
+                ? tn(open, 'En {cycle} · {count} tarea abierta en el proyecto', 'En {cycle} · {count} tareas abiertas en el proyecto', { cycle: cycle.name })
+                : undefined
+            }
           >
             {personMeta(person, cycle)}
           </span>

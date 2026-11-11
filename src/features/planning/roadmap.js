@@ -15,7 +15,7 @@ import {
   startOfQuarter,
   startOfWeek,
 } from 'date-fns'
-import { es } from 'date-fns/locale'
+import { dateLocale, t } from '@/i18n'
 
 /**
  * Escalas de la hoja de ruta: píxeles por día, la unidad de cada columna, cuántas columnas como mínimo
@@ -23,7 +23,7 @@ import { es } from 'date-fns/locale'
  */
 export const ROADMAP_SCALES = {
   weeks: {
-    label: 'Semanas',
+    label: t('Semanas'),
     pxPerDay: 14,
     start: (date) => startOfWeek(date, { weekStartsOn: 1 }),
     add: addWeeks,
@@ -31,32 +31,32 @@ export const ROADMAP_SCALES = {
     before: 1,
     after: 2,
     column: (date) => format(date, 'd'),
-    group: (date) => capitalize(format(date, 'LLLL', { locale: es })),
+    group: (date) => capitalize(format(date, 'LLLL', { locale: dateLocale() })),
     groupStart: startOfMonth,
     addGroup: addMonths,
   },
   months: {
-    label: 'Meses',
+    label: t('Meses'),
     pxPerDay: 4,
     start: startOfMonth,
     add: addMonths,
     minColumns: 6,
     before: 1,
     after: 1,
-    column: (date) => capitalize(format(date, 'LLL', { locale: es }).replace('.', '')),
+    column: (date) => capitalize(format(date, 'LLL', { locale: dateLocale() }).replace('.', '')),
     group: (date) => format(date, 'yyyy'),
     groupStart: (date) => new Date(date.getFullYear(), 0, 1),
     addGroup: (date, amount) => new Date(date.getFullYear() + amount, 0, 1),
   },
   quarters: {
-    label: 'Trimestre',
+    label: t('Trimestre'),
     pxPerDay: 1.6,
     start: startOfQuarter,
     add: addQuarters,
     minColumns: 4,
     before: 0,
     after: 1,
-    column: (date) => `T${Math.floor(date.getMonth() / 3) + 1}`,
+    column: (date) => t('T{quarter}', { quarter: Math.floor(date.getMonth() / 3) + 1 }),
     group: (date) => format(date, 'yyyy'),
     groupStart: (date) => new Date(date.getFullYear(), 0, 1),
     addGroup: (date, amount) => new Date(date.getFullYear() + amount, 0, 1),

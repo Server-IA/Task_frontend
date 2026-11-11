@@ -1,6 +1,7 @@
 import { Fragment } from 'react'
 import { Ban } from 'lucide-react'
 import { StateIcon } from '@/components/common/StateIcon'
+import { t } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { blockerOwner, changeNote, todayNotes, yesterdayDetail } from '../daily'
 
@@ -47,23 +48,23 @@ export function personBlocks({ person, date, previousDate, projectId, blocking =
 
   const blockingText =
     blocking.length > 0
-      ? ` ${blocking.map((item) => `Su ${item.code} bloquea a ${item.blockedCode} de ${item.ownerName}`).join('. ')}.`
+      ? ` ${blocking.map((item) => t('Su {code} bloquea a {blocked} de {owner}', { code: item.code, blocked: item.blockedCode, owner: item.ownerName })).join('. ')}.`
       : ''
 
   return [
     {
       key: 'yesterday',
-      title: 'Ayer',
+      title: t('Ayer'),
       detail: yesterdayDetail(date, previousDate),
       items: yesterday,
-      empty: 'Sin cambios registrados.',
+      empty: t('Sin cambios registrados.'),
     },
-    { key: 'today', title: 'Hoy', items: today, empty: 'Nada en curso ni con fecha para hoy.' },
+    { key: 'today', title: t('Hoy'), items: today, empty: t('Nada en curso ni con fecha para hoy.') },
     {
       key: 'blockers',
-      title: 'Bloqueos',
+      title: t('Bloqueos'),
       items: blockers,
-      empty: blocking.length > 0 ? `Nada lo bloquea.${blockingText}` : 'Sin bloqueos.',
+      empty: blocking.length > 0 ? `${t('Nada lo bloquea.')}${blockingText}` : t('Sin bloqueos.'),
       late: blockers.length > 0,
     },
   ]
@@ -127,7 +128,7 @@ function DailyIssueItem({ item, size, onOpenIssue }) {
         <button
           type="button"
           onClick={() => onOpenIssue(issue.id)}
-          title={`Abrir ${issue.code}`}
+          title={t('Abrir {code}', { code: issue.code })}
           className="text-left outline-none after:absolute after:inset-0 after:rounded-[inherit] focus-visible:after:ring-2 focus-visible:after:ring-ring"
         >
           <span className={cn('font-mono text-muted-foreground', focus ? 'text-[13px]' : 'text-xs')}>{issue.code}</span>{' '}
@@ -137,7 +138,7 @@ function DailyIssueItem({ item, size, onOpenIssue }) {
         {blocked ? (
           <span className={cn('mt-0.5 flex flex-wrap items-center gap-x-1', noteSize, TONES.late)}>
             <Ban className="size-3" strokeWidth={2.5} aria-hidden="true" />
-            bloqueada por
+            {t('bloqueada por')}
             {item.blockedBy.map((by, index) => (
               <span key={by.id}>
                 {by.openable ? (
@@ -152,7 +153,7 @@ function DailyIssueItem({ item, size, onOpenIssue }) {
                 ) : (
                   <span
                     className="font-mono"
-                    title={by.title ? `${by.title} · ${by.project?.name ?? 'otro proyecto'}` : 'De un proyecto al que no tienes acceso'}
+                    title={by.title ? `${by.title} · ${by.project?.name ?? t('otro proyecto')}` : t('De un proyecto al que no tienes acceso')}
                   >
                     {by.code}
                   </span>

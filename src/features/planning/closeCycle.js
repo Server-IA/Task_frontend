@@ -1,4 +1,5 @@
 import { differenceInCalendarDays, parseISO } from 'date-fns'
+import { t, tn } from '@/i18n'
 import { formatShortDate } from '@/lib/dates'
 
 /**
@@ -131,9 +132,11 @@ export function endDateNotice(cycle, today = new Date()) {
 export function closedText(cycle, today = new Date()) {
   if (!isCycleClosed(cycle)) return ''
   const days = differenceInCalendarDays(today, parseISO(cycle.closedAt))
-  const when = days === 0 ? 'hoy' : days === 1 ? 'ayer' : `el ${formatShortDate(cycle.closedAt)}`
-  const by = cycle.closedBy?.fullName ? ` por ${cycle.closedBy.fullName}` : ''
-  return `cerrado ${when}${by}`
+  const name = cycle.closedBy?.fullName
+  if (days === 0) return name ? t('cerrado hoy por {name}', { name }) : t('cerrado hoy')
+  if (days === 1) return name ? t('cerrado ayer por {name}', { name }) : t('cerrado ayer')
+  const date = formatShortDate(cycle.closedAt)
+  return name ? t('cerrado el {date} por {name}', { date, name }) : t('cerrado el {date}', { date })
 }
 
 /**
@@ -143,4 +146,4 @@ export function closedText(cycle, today = new Date()) {
 export const allBlocked = (issues) => issues.length > 0 && issues.every((issue) => (issue.blockedByCount ?? 0) > 0)
 
 /** «1 tarea» / «3 tareas». */
-export const tasksLabel = (count) => `${count} ${count === 1 ? 'tarea' : 'tareas'}`
+export const tasksLabel = (count) => tn(count, '{count} tarea', '{count} tareas')

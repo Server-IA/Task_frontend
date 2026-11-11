@@ -1,12 +1,13 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { UserAvatar } from '@/components/common/UserAvatar'
+import { t, tc, tx } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { firstName, personMeta, stepStatus } from '../daily'
 import { DailyAgenda } from './DailyAgenda'
 import { DailyBlock, personBlocks } from './DailyBlocks'
 
-const STEP_LABEL = { done: 'lista', current: 'ahora', next: 'sigue', later: '' }
+const STEP_LABEL = { done: tc('daily', 'lista'), current: t('ahora'), next: t('sigue'), later: '' }
 
 /**
  * Modo «Presentar»: una persona a la vez, con quién ya habló y quién sigue. Solo se ven los bloques que el proyecto
@@ -48,7 +49,7 @@ export function DailyPresenter({
 
   return (
     <div className="tf-fade flex min-h-0 flex-1 flex-col gap-3.5">
-      <nav aria-label="Personas" className="flex flex-wrap items-center gap-2">
+      <nav aria-label={t('Personas')} className="flex flex-wrap items-center gap-2">
         {people.map((item, position) => {
           const status = stepStatus(position, current)
           return (
@@ -86,7 +87,7 @@ export function DailyPresenter({
               {person.user?.fullName}
             </span>
             <span className="block font-mono text-xs text-muted-foreground">
-              {current + 1} de {people.length} · {personMeta(person, cycle, { long: true })}
+              {t('{current} de {total}', { current: current + 1, total: people.length })} · {personMeta(person, cycle, { long: true })}
             </span>
           </span>
         </header>
@@ -103,10 +104,13 @@ export function DailyPresenter({
             </Button>
           )}
           <span className="hidden font-mono text-[11px] text-muted-foreground sm:inline">
-            <kbd className="text-foreground">← →</kbd> cambiar persona · <kbd className="text-foreground">esc</kbd> salir
+            {tx('{arrows} cambiar persona · {esc} salir', {
+              arrows: <kbd className="text-foreground">← →</kbd>,
+              esc: <kbd className="text-foreground">esc</kbd>,
+            })}
           </span>
           <Button className="ml-auto h-10 rounded-xl px-3.5" onClick={next ? () => onSelect(current + 1) : onExit}>
-            {next ? `Sigue ${next.user?.fullName}` : 'Terminar'}
+            {next ? t('Sigue {name}', { name: next.user?.fullName }) : t('Terminar')}
             {next && <ChevronRight strokeWidth={2.5} />}
           </Button>
         </footer>
