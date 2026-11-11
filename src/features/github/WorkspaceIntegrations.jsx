@@ -21,8 +21,10 @@ import { notifyError } from '@/lib/notify'
 import { can } from '@/lib/permissions'
 import { githubApi } from './api'
 import { GhMark } from './GithubParts'
+import { ConnectAccountNotice } from './GithubAccount'
 import {
   useDisconnectGithub,
+  useGithubLinked,
   useGithubWorkspace,
   useInstallGithub,
   useSetRepositories,
@@ -36,6 +38,14 @@ const RESULTS = {
   expired: () => toast.error(t('El enlace para conectar caducó. Vuelve a pulsar «Conectar con GitHub».')),
   invalid: () => toast.error(t('No se pudo conectar con GitHub. Vuelve a intentarlo desde aquí.')),
   failed: () => toast.error(t('No se pudo conectar con GitHub. Vuelve a intentarlo desde aquí.')),
+  unlinked: () =>
+    toast.error(t('Conecta primero tu cuenta de GitHub y vuelve a pulsar «Conectar con GitHub».')),
+  foreign: () =>
+    toast.error(
+      t(
+        'Tu cuenta de GitHub no ve esa instalación. Instala la app en una organización o cuenta a la que tengas acceso.',
+      ),
+    ),
 }
 
 /**
@@ -95,6 +105,8 @@ const HOW = () => [
 
 function Connect({ workspace, status, canManage }) {
   const install = useInstallGithub(workspace.slug)
+  // Conectar el workspace pide tener enlazada la cuenta propia: con ella se comprueba que la instalación es de quien la pide
+  const linked = useGithubLinked()
   const handleConnect = () =>
     install.mutate(undefined, {
       // Se va a GitHub en esta misma pestaña: al terminar, GitHub trae de vuelta a esta página
@@ -117,19 +129,26 @@ function Connect({ workspace, status, canManage }) {
           </p>
         </div>
         {canManage && status.configured && (
-          <Button onClick={handleConnect} disabled={install.isPending} className="gap-2">
+          <Button onClick={handleConnect} disabled={install.isPending || !linked} className="gap-2">
             {t('Conectar con GitHub')}
             <ArrowUpRight className="size-4" aria-hidden="true" />
           </Button>
         )}
       </div>
+      {canManage && status.configured && (
+        <ConnectAccountNotice>
+          {t(
+            'Primero conecta tu cuenta de GitHub. Así TaskFlow comprueba que la instalación es de alguien de este workspace y no de otra persona.',
+          )}
+        </ConnectAccountNotice>
+      )}
       {!status.configured && (
         <p
           role="status"
           className="bg-soon-soft text-soon rounded-xl px-3.5 py-2.5 text-[13px] leading-normal"
         >
           {t(
-            'A este servidor le falta la configuración de la GitHub App (identificador, clave privada y secreto de los avisos). Cuando esté, aquí aparece el botón para conectar.',
+            'A este servidor le falta la configuración de la GitHub App (identificador, clave privada, secreto de los avisos y cliente de OAuth). Cuando esté, aquí aparece el botón para conectar.',
           )}
         </p>
       )}
@@ -279,6 +298,8 @@ function Connected({ workspace, status, canManage }) {
         )}
       </section>
 
+      <TeamAccounts accounts={status.accounts ?? []} />
+
       <ConfirmDialog
         open={confirming}
         onOpenChange={setConfirming}
@@ -292,6 +313,47 @@ function Connected({ workspace, status, canManage }) {
         onConfirm={handleDisconnect}
       />
     </>
+  )
+}
+
+/** Quién del equipo tiene enlazada su cuenta de GitHub: sin ella puede ver, pero no crear ramas ni ejecutar workflows. */
+function TeamAccounts({ accounts }) {
+  const linked = accounts.filter((account) => account.login).length
+  return (
+    <section aria-labelledby="github-accounts-title" className="bg-card overflow-hidden rounded-2xl border">
+      <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 px-4 pt-3.5 pb-2.5">
+        <h2 id="github-accounts-title" className="text-[15px] font-semibold">
+          {t('Cuentas de GitHub del equipo')}{' '}
+          <span className="text-muted-foreground font-mono text-xs font-normal">
+            {t('{linked} de {total}', { linked, total: accounts.length })}
+          </span>
+        </h2>
+        <span className="text-muted-foreground flex-1 text-[12.5px]">
+          {t(
+            'Cada persona conecta la suya desde su perfil. Sin ella puede ver, pero no crear ramas ni ejecutar workflows.',
+          )}
+        </span>
+      </div>
+      <ul>
+        {accounts.map((account) => (
+          <li
+            key={account.userId}
+            className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 border-t px-4 py-2.5"
+          >
+            <span className="min-w-0 flex-[1_1_220px] truncate font-medium">{account.fullName}</span>
+            <span
+              className={
+                account.login
+                  ? 'bg-ok-soft text-ok rounded-full px-2.25 py-0.5 font-mono text-[11.5px] font-semibold'
+                  : 'bg-muted text-muted-foreground rounded-full px-2.25 py-0.5 font-mono text-[11.5px]'
+              }
+            >
+              {account.login ? `@${account.login}` : t('sin enlazar')}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 

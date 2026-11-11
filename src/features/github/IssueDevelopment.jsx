@@ -19,6 +19,7 @@ import { formatRelative } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
 import { can } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
+import { ConnectAccountNotice } from './GithubAccount'
 import { Pick, PullMark, StateMark, TonePill } from './GithubParts'
 import {
   branchUrl,
@@ -34,6 +35,7 @@ import {
   useCreateBranch,
   useGithubChecks,
   useGithubIssue,
+  useGithubLinked,
   useGithubProject,
   useGithubPulls,
   useGithubRepoBranches,
@@ -61,9 +63,12 @@ export function IssueDevelopment({ slug, project, issue }) {
   const { data: dev } = useGithubIssue(slug, project.id, issue.id)
   const [creating, setCreating] = useState(false)
   const [linking, setLinking] = useState(false)
+  const linked = useGithubLinked()
   if (!dev?.available) return null
 
   const canEdit = can(workspace, 'ISSUE_EDIT')
+  // La rama la crea la persona con su cuenta de GitHub; enlazar una que ya existe no la necesita
+  const canCreate = canEdit && linked === true
   const empty = dev.branches.length === 0 && dev.pullRequests.length === 0
   const titleId = `development-${issue.id}`
   const action = 'rounded-full border px-2.5 py-1 text-xs transition-colors duration-150 hover:bg-accent'
@@ -79,9 +84,11 @@ export function IssueDevelopment({ slug, project, issue }) {
         </h2>
         {canEdit && !empty && (
           <span className="ml-auto flex gap-1.5">
-            <button type="button" className={action} onClick={() => setCreating(true)}>
-              {t('+ crear rama')}
-            </button>
+            {canCreate && (
+              <button type="button" className={action} onClick={() => setCreating(true)}>
+                {t('+ crear rama')}
+              </button>
+            )}
             <button type="button" className={action} onClick={() => setLinking(true)}>
               {t('+ enlazar otra rama o PR')}
             </button>
@@ -104,10 +111,12 @@ export function IssueDevelopment({ slug, project, issue }) {
               <Button variant="ghost" size="sm" onClick={() => setLinking(true)}>
                 {t('Enlazar una que ya existe')}
               </Button>
-              <Button size="sm" className="gap-2" onClick={() => setCreating(true)}>
-                <GitBranch className="size-3.5" aria-hidden="true" />
-                {t('Crear rama')}
-              </Button>
+              {canCreate && (
+                <Button size="sm" className="gap-2" onClick={() => setCreating(true)}>
+                  <GitBranch className="size-3.5" aria-hidden="true" />
+                  {t('Crear rama')}
+                </Button>
+              )}
             </span>
           )}
         </div>
@@ -147,6 +156,11 @@ export function IssueDevelopment({ slug, project, issue }) {
       )}
 
       {canEdit && (
+        <ConnectAccountNotice short>
+          {t('Para crear la rama desde aquí, conecta tu cuenta de GitHub: la rama se crea a tu nombre.')}
+        </ConnectAccountNotice>
+      )}
+      {canEdit && (
         <CreateBranchDialog
           open={creating}
           onOpenChange={setCreating}
@@ -176,7 +190,7 @@ function PullCard({ slug, projectId, issueId, pull }) {
   const live = pull.state === 'OPEN' || pull.state === 'DRAFT'
   const { data: checks } = useGithubChecks(slug, projectId, issueId, live ? pull : null)
   const facts = [
-    pull.authorLogin && t('abierto por {name}', { name: pull.authorLogin }),
+    pull.authorLogin && t('abierto por {name}', { name: pull.authorName ?? pull.authorLogin }),
     pull.reviewers && live && t('revisión pedida a {names}', { names: pull.reviewers }),
     pull.baseBranch && `→ ${pull.baseBranch}`,
     pull.repository && repoName(pull.repository),

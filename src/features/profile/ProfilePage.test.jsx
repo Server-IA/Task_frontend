@@ -37,6 +37,8 @@ vi.mock('./cropImage', async (importOriginal) => ({
   renderCrop: vi.fn(async () => new Blob(['recorte'], { type: 'image/webp' })),
 }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } }))
+// La sección «Cuentas conectadas» consulta la cuenta de GitHub: se prueba en features/github
+vi.mock('@/features/github/GithubAccount', () => ({ GithubAccountSection: () => null }))
 
 beforeAll(() => {
   globalThis.ResizeObserver ??= class {

@@ -45,7 +45,7 @@ function autoReason(value) {
 export function activityActorName(entry) {
   if (entry.field === 'STORY_AUTO_STATE') return 'TaskFlow'
   // Lo que pasó en GitHub: quien lo hizo allá (su usuario de GitHub) o, si no se sabe, GitHub
-  if (entry.field === 'GITHUB') return githubEvent(entry.newValue).who ?? 'GitHub'
+  if (entry.field === 'GITHUB') return entry.actor?.fullName ?? githubEvent(entry.newValue).who ?? 'GitHub'
   if (entry.field === 'GITHUB_STATE') return 'GitHub'
   return entry.actor?.fullName ?? t('Alguien')
 }
@@ -53,7 +53,9 @@ export function activityActorName(entry) {
 /** Si la entrada la hizo una automatización (TaskFlow o GitHub) y no una persona de TaskFlow: `'TF'`, `'GH'` o `null`. */
 export function activityAutoMark(entry) {
   if (entry.field === 'STORY_AUTO_STATE') return 'TF'
-  if (entry.field === 'GITHUB' || entry.field === 'GITHUB_STATE') return 'GH'
+  if (entry.field === 'GITHUB_STATE') return 'GH'
+  // Lo que pasó en GitHub lo hizo una persona: si enlazó su cuenta se muestra ella; si no, la marca de GitHub
+  if (entry.field === 'GITHUB') return entry.actor ? null : 'GH'
   return null
 }
 

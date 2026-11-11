@@ -1,13 +1,15 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
+import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { githubApi } from './api'
+import { GithubAccountSection, rememberReturn } from './GithubAccount'
 import { ActionsView } from './GithubActions'
 import { IssueDevChip } from './GithubParts'
 import { IssueDevelopment } from './IssueDevelopment'
+import { GithubCallbackPage } from './pages/GithubCallbackPage'
 import { defaultStateFor, ProjectGithubSettings } from './ProjectGithubSettings'
 import { WorkspaceIntegrations } from './WorkspaceIntegrations'
 
@@ -36,6 +38,10 @@ vi.mock('./api', () => ({
     checks: vi.fn(),
     createBranch: vi.fn(),
     linkBranch: vi.fn(),
+    me: vi.fn(),
+    linkUrl: vi.fn(),
+    completeLink: vi.fn(),
+    unlink: vi.fn(),
   },
 }))
 
@@ -92,6 +98,10 @@ const connected = {
   lastEventAt: '2026-11-11T10:00:00Z',
   manageUrl: 'https://github.com/organizations/acme/settings/installations/7',
   repositories: [repo('r-api', 'acme/sitio-web-api', [linked]), repo('r-app', 'acme/app-movil')],
+  accounts: [
+    { userId: 'u-ana', fullName: 'Ana Torres', login: 'ana-torres' },
+    { userId: 'u-marta', fullName: 'Marta Gil', login: null },
+  ],
 }
 const settings = {
   onBranchStateId: null,
@@ -184,9 +194,28 @@ globalThis.ResizeObserver ??= class {
   disconnect() {}
 }
 
+const myAccount = {
+  configured: true,
+  linked: true,
+  login: 'ana-torres',
+  avatarUrl: null,
+  profileUrl: 'https://github.com/ana-torres',
+  linkedAt: '2026-11-11T10:00:00Z',
+}
+const noAccount = {
+  configured: true,
+  linked: false,
+  login: null,
+  avatarUrl: null,
+  profileUrl: null,
+  linkedAt: null,
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
   role = 'OWNER'
+  // Por defecto, quien mira tiene su cuenta de GitHub enlazada
+  githubApi.me.mockResolvedValue(myAccount)
 })
 
 describe('Integraciones del workspace', () => {
@@ -628,5 +657,153 @@ describe('Actions', () => {
 
     expect(await screen.findByText('CI')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument()
+  })
+})
+
+describe('la cuenta de GitHub de cada persona (modo estricto)', () => {
+  const repositories = [repo('r-api', 'acme/sitio-web-api')]
+  const emptyDev = {
+    available: true,
+    repositories,
+    branches: [],
+    pullRequests: [],
+    runs: [],
+    suggestedBranch: 'web-23-rate-limit',
+  }
+
+  it('en el perfil, sin conectar ofrece conectarla y lleva a GitHub', async () => {
+    const assign = vi.fn()
+    vi.stubGlobal('location', { ...window.location, assign, pathname: '/profile', search: '' })
+    githubApi.me.mockResolvedValue(noAccount)
+    githubApi.linkUrl.mockResolvedValue({
+      url: 'https://github.com/login/oauth/authorize?client_id=x&state=y',
+    })
+    renderWith(<GithubAccountSection />)
+
+    expect(await screen.findByText('sin conectar')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /Conectar mi cuenta de GitHub/ }))
+
+    await waitFor(() =>
+      expect(assign).toHaveBeenCalledWith('https://github.com/login/oauth/authorize?client_id=x&state=y'),
+    )
+    vi.unstubAllGlobals()
+  })
+
+  it('en el perfil, conectada muestra cuál es y desconectarla pide confirmación', async () => {
+    githubApi.unlink.mockResolvedValue({})
+    renderWith(<GithubAccountSection />)
+
+    expect(await screen.findByText('conectada')).toBeInTheDocument()
+    expect(screen.getByText(/@ana-torres/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'ver en GitHub' })).toHaveAttribute(
+      'href',
+      'https://github.com/ana-torres',
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Desconectar' }))
+    expect(githubApi.unlink).not.toHaveBeenCalled()
+    await userEvent.click(
+      within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Desconectar' }),
+    )
+
+    await waitFor(() => expect(githubApi.unlink).toHaveBeenCalled())
+  })
+
+  it('si al servidor le falta la app, el perfil lo dice y no ofrece conectar', async () => {
+    githubApi.me.mockResolvedValue({ ...noAccount, configured: false })
+    renderWith(<GithubAccountSection />)
+
+    expect(await screen.findByText(/todavía no tiene configurada la integración/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Conectar mi cuenta/ })).not.toBeInTheDocument()
+  })
+
+  it('la vuelta de GitHub termina de enlazar y regresa a donde estaba la persona', async () => {
+    const { toast } = await import('sonner')
+    rememberReturn('/equipo/projects/p-web/github?view=actions')
+    githubApi.completeLink.mockResolvedValue(myAccount)
+    renderWith(
+      <Routes>
+        <Route path="/github/callback" element={<GithubCallbackPage />} />
+        <Route path="/equipo/projects/p-web/github" element={<p>de vuelta en Actions</p>} />
+        <Route path="/profile" element={<p>perfil</p>} />
+      </Routes>,
+      { path: '/github/callback?code=abc&state=xyz' },
+    )
+
+    expect(await screen.findByText('de vuelta en Actions')).toBeInTheDocument()
+    expect(githubApi.completeLink).toHaveBeenCalledTimes(1)
+    expect(githubApi.completeLink).toHaveBeenCalledWith({ code: 'abc', state: 'xyz' })
+    expect(toast.success).toHaveBeenCalledWith('Tu cuenta de GitHub (@ana-torres) quedó conectada')
+  })
+
+  it('si la persona cancela en GitHub, vuelve sin enlazar nada', async () => {
+    const { toast } = await import('sonner')
+    renderWith(
+      <Routes>
+        <Route path="/github/callback" element={<GithubCallbackPage />} />
+        <Route path="/profile" element={<p>perfil</p>} />
+      </Routes>,
+      { path: '/github/callback?error=access_denied' },
+    )
+
+    expect(await screen.findByText('perfil')).toBeInTheDocument()
+    expect(githubApi.completeLink).not.toHaveBeenCalled()
+    expect(toast.error).toHaveBeenCalledWith('No autorizaste la conexión en GitHub')
+  })
+
+  it('sin mi cuenta no puedo crear la rama, pero sí enlazar una que ya existe', async () => {
+    githubApi.me.mockResolvedValue(noAccount)
+    githubApi.issue.mockResolvedValue(emptyDev)
+    renderWith(<IssueDevelopment slug="equipo" project={project} issue={issue} />)
+
+    expect(
+      await screen.findByText(/Para crear la rama desde aquí, conecta tu cuenta de GitHub/),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Conectar mi cuenta/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Crear rama' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Enlazar una que ya existe' })).toBeInTheDocument()
+  })
+
+  it('sin mi cuenta veo las ejecuciones, pero no puedo reintentar ni cancelar', async () => {
+    githubApi.me.mockResolvedValue(noAccount)
+    githubApi.runs.mockResolvedValue([run()])
+    renderWith(<ActionsView workspace={owner} project={project} status={projectStatus} settingsLink="/x" />)
+
+    expect(await screen.findByText('pull request #128')).toBeInTheDocument()
+    expect(
+      await screen.findByText(/Para ejecutar, reintentar o cancelar workflows, conecta tu cuenta de GitHub/),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument()
+  })
+
+  it('con mi cuenta no aparece ningún aviso', async () => {
+    githubApi.runs.mockResolvedValue([run()])
+    renderWith(<ActionsView workspace={owner} project={project} status={projectStatus} settingsLink="/x" />)
+
+    expect(await screen.findByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
+    expect(screen.queryByRole('note')).not.toBeInTheDocument()
+  })
+
+  it('conectar el workspace pide tener mi cuenta enlazada', async () => {
+    githubApi.me.mockResolvedValue(noAccount)
+    githubApi.workspace.mockResolvedValue({
+      configured: true,
+      connected: false,
+      repositories: [],
+      accounts: [],
+    })
+    renderWith(<WorkspaceIntegrations workspace={owner} />)
+
+    expect(await screen.findByText(/Primero conecta tu cuenta de GitHub/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Conectar con GitHub/ })).toBeDisabled()
+  })
+
+  it('en Integraciones se ve quién del equipo tiene su cuenta enlazada', async () => {
+    githubApi.workspace.mockResolvedValue(connected)
+    renderWith(<WorkspaceIntegrations workspace={owner} />)
+
+    const section = await screen.findByRole('region', { name: /Cuentas de GitHub del equipo/ })
+    expect(within(section).getByText('1 de 2')).toBeInTheDocument()
+    expect(within(section).getByText('@ana-torres')).toBeInTheDocument()
+    expect(within(section).getByText('sin enlazar')).toBeInTheDocument()
   })
 })

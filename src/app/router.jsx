@@ -21,6 +21,7 @@ import { IssuesPage } from '@/features/issues/pages/IssuesPage'
 import { ProfilePage } from '@/features/profile/ProfilePage'
 import { ProjectLayout } from '@/features/projects/pages/ProjectLayout'
 import { ProjectSettingsPage } from '@/features/projects/pages/ProjectSettingsPage'
+import { GithubCallbackPage } from '@/features/github/pages/GithubCallbackPage'
 import { GithubPage } from '@/features/github/pages/GithubPage'
 import { StatsPage } from '@/features/stats/pages/StatsPage'
 import { StoriesPage } from '@/features/stories/pages/StoriesPage'
@@ -63,6 +64,8 @@ export const router = createBrowserRouter([
         children: [
           { path: '/', element: <HomeRedirect /> },
           { path: '/onboarding', element: <OnboardingPage /> },
+          // A donde GitHub trae a la persona después de autorizar: termina de enlazar su cuenta
+          { path: '/github/callback', element: <GithubCallbackPage /> },
           {
             element: <AppLayout />,
             children: [

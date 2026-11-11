@@ -19,7 +19,13 @@ import { cn } from '@/lib/utils'
 import { ActionsView } from '../GithubActions'
 import { GhMark, Pick, PullMark, TaskLink, TonePill } from '../GithubParts'
 import { branchUrl, pullChecks, pullNote, pullState, repoName, repoUrl } from '../githubModel'
-import { useGithubBranches, useGithubProject, useGithubPulls, useLinkPullRequest } from '../hooks'
+import {
+  useGithubBranches,
+  useGithubLinked,
+  useGithubProject,
+  useGithubPulls,
+  useLinkPullRequest,
+} from '../hooks'
 import { IssuePicker } from '../IssuePicker'
 import { RunWorkflowDialog } from '../RunWorkflowDialog'
 
@@ -42,6 +48,7 @@ export function GithubPage() {
   const { data: branches } = useGithubBranches(slug, project.id, { enabled: ready })
   const [running, setRunning] = useState(false)
   const canRun = can(workspace, 'GITHUB_RUN')
+  const linked = useGithubLinked()
   const settingsLink = `/${slug}/projects/${project.id}/settings?tab=github`
 
   const header = (children, actions) => (
@@ -152,7 +159,12 @@ export function GithubPage() {
           </TabsTrigger>
         </TabsList>,
         view === 'actions' && canRun && (
-          <Button className="gap-2" onClick={() => setRunning(true)}>
+          <Button
+            className="gap-2"
+            onClick={() => setRunning(true)}
+            disabled={!linked}
+            title={linked ? undefined : t('Conecta tu cuenta de GitHub para ejecutar workflows')}
+          >
             <Play className="size-3.5" aria-hidden="true" />
             {t('Ejecutar workflow')}
           </Button>
@@ -183,14 +195,22 @@ export function GithubPage() {
 }
 
 /** Las siglas de quien abrió un pull request (su usuario de GitHub). */
-function Author({ login }) {
+function Author({ login, name }) {
   if (!login) return <span className="size-6.5 shrink-0" />
+  // Con la cuenta enlazada es la persona de TaskFlow (sus iniciales); si no, su usuario de GitHub
+  const initials = name
+    ? name
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((word) => word[0])
+        .join('')
+    : login.slice(0, 2)
   return (
     <span
-      title={login}
+      title={name ? `${name} (@${login})` : `@${login}`}
       className="bg-accent-soft text-accent-text flex size-6.5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold uppercase"
     >
-      {login.slice(0, 2)}
+      {initials}
     </span>
   )
 }
@@ -359,7 +379,7 @@ function PullsView({ workspace, project, status }) {
                       </TonePill>
                     )}
                   </span>
-                  <Author login={pull.authorLogin} />
+                  <Author login={pull.authorLogin} name={pull.authorName} />
                   <span className="text-muted-foreground min-w-[92px] shrink-0 text-right font-mono text-[11.5px] whitespace-nowrap">
                     {formatRelative(pull.changedAt)}
                   </span>

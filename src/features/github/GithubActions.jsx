@@ -12,7 +12,8 @@ import { can } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { Pick, StateMark, TaskLink, TonePill } from './GithubParts'
 import { repoName, runDuration, runState, runTrigger, shortSha } from './githubModel'
-import { useCancelWorkflow, useGithubRuns, useRerunWorkflow } from './hooks'
+import { ConnectAccountNotice } from './GithubAccount'
+import { useCancelWorkflow, useGithubLinked, useGithubRuns, useRerunWorkflow } from './hooks'
 
 const ALL = '__all__'
 
@@ -26,6 +27,9 @@ export function ActionsView({ workspace, project, status, settingsLink }) {
   const rerun = useRerunWorkflow(slug, project.id)
   const cancel = useCancelWorkflow(slug, project.id)
   const canRun = can(workspace, 'GITHUB_RUN')
+  // Ejecutar, reintentar y cancelar se hacen con la cuenta de GitHub de la persona
+  const linked = useGithubLinked()
+  const canAct = canRun && linked === true
   const [workflow, setWorkflow] = useState(ALL)
   const [branch, setBranch] = useState(ALL)
   const [result, setResult] = useState(ALL)
@@ -58,6 +62,13 @@ export function ActionsView({ workspace, project, status, settingsLink }) {
 
   return (
     <div className="flex flex-col gap-3">
+      {canRun && (
+        <ConnectAccountNotice>
+          {t(
+            'Para ejecutar, reintentar o cancelar workflows, conecta tu cuenta de GitHub. Ver las ejecuciones no lo necesita.',
+          )}
+        </ConnectAccountNotice>
+      )}
       <div className="flex flex-wrap items-center gap-2.5">
         <Pick
           label={t('Workflow')}
@@ -187,7 +198,7 @@ export function ActionsView({ workspace, project, status, settingsLink }) {
                     {formatRelative(run.startedAt ?? run.requestedAt ?? run.changedAt)}
                   </span>
                   <span className="flex w-[92px] shrink-0 justify-end">
-                    {canRun && info.canRetry && (
+                    {canAct && info.canRetry && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -197,7 +208,7 @@ export function ActionsView({ workspace, project, status, settingsLink }) {
                         {t('Reintentar')}
                       </Button>
                     )}
-                    {canRun && info.canCancel && (
+                    {canAct && info.canCancel && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -216,7 +227,7 @@ export function ActionsView({ workspace, project, status, settingsLink }) {
       </section>
       <p className="text-muted-foreground font-mono text-[11.5px]">
         {t(
-          'cada ejecución abre su registro en GitHub · reintentar y cancelar piden el permiso «Ejecutar workflows»',
+          'cada ejecución abre su registro en GitHub · reintentar y cancelar piden el permiso «Ejecutar workflows» y tu cuenta de GitHub conectada',
         )}
       </p>
     </div>

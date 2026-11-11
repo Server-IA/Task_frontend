@@ -1,3 +1,4 @@
+import { GithubAccountSection } from '@/features/github/GithubAccount'
 import { useEffect } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -41,6 +42,7 @@ export function ProfilePage() {
           <ProfileCard user={user} />
           <ChangePasswordCard />
         </div>
+        <GithubAccountSection />
         <SessionCard />
       </PageBody>
     </div>

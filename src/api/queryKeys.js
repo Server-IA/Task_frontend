@@ -67,6 +67,8 @@ export const queryKeys = {
 
   // GitHub: todo lo de un workspace cuelga de ['github', slug] (al desconectar se invalida entero)
   github: (slug) => ['github', slug],
+  /** Mi cuenta de GitHub (no depende del workspace). */
+  githubMe: ['github', 'me'],
   githubWorkspace: (slug) => ['github', slug, 'workspace'],
   githubProject: (slug, projectId) => ['github', slug, 'project', projectId, 'status'],
   githubPulls: (slug, projectId, state) => ['github', slug, 'project', projectId, 'pulls', state],

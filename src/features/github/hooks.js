@@ -138,6 +138,30 @@ export function useGithubChecks(slug, projectId, issueId, pullRequest) {
   })
 }
 
+/** Mi cuenta de GitHub: si la tengo enlazada (sin ella puedo ver, no actuar). */
+export function useMyGithub() {
+  return useQuery({ queryKey: queryKeys.githubMe, queryFn: () => githubApi.me(), staleTime: 60_000 })
+}
+
+/** Si tengo mi cuenta enlazada; `undefined` mientras no se sabe. */
+export const useGithubLinked = () => useMyGithub().data?.linked
+
+export const useLinkGithub = () => useMutation({ mutationFn: () => githubApi.linkUrl() })
+
+/** Enlazar o desenlazar mi cuenta cambia lo que puedo hacer y cómo aparezco: se recarga todo lo de GitHub. */
+function useAccountAction(mutationFn) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn,
+    onSuccess: (account) => {
+      if (account?.configured !== undefined) queryClient.setQueryData(queryKeys.githubMe, account)
+      queryClient.invalidateQueries({ queryKey: ['github'] })
+    },
+  })
+}
+export const useCompleteGithubLink = () => useAccountAction((body) => githubApi.completeLink(body))
+export const useUnlinkGithub = () => useAccountAction(() => githubApi.unlink())
+
 // ----- Acciones
 
 function useWorkspaceAction(slug, mutationFn) {

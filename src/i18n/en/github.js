@@ -308,4 +308,56 @@ export default {
   'pasó la tarea de «{from}» a «{to}», automático': 'moved the task from “{from}” to “{to}”, automatically',
   'automático [[actividad]]': 'automatically',
   '{event} · en [[actividad]]': '{event} · on',
+
+  // La cuenta de GitHub de cada persona
+  'No se pudo consultar tu cuenta de GitHub.': 'Could not check your GitHub account.',
+  'Conectar mi cuenta': 'Connect my account',
+  'Conectar mi cuenta de GitHub': 'Connect my GitHub account',
+  'Crear la rama de una tarea': 'Create a task’s branch',
+  'si puedes editar tareas': 'if you can edit tasks',
+  'Ejecutar, reintentar y cancelar workflows': 'Run, re-run and cancel workflows',
+  'si tu rol tiene «Ejecutar workflows»': 'if your role has “Run workflows”',
+  'Aparecer con tu nombre y tu foto': 'Appear with your name and photo',
+  'en los pull requests que abras y en la actividad de la tarea':
+    'on the pull requests you open and in the task’s activity',
+  'Tu cuenta de GitHub quedó desconectada': 'Your GitHub account is now disconnected',
+  'Cuentas conectadas': 'Connected accounts',
+  'Tu cuenta de GitHub le dice a TaskFlow quién eres allá: lo que hagas desde aquí (crear una rama, ejecutar un workflow) sale a tu nombre y solo donde tú tengas acceso.':
+    'Your GitHub account tells TaskFlow who you are there: what you do from here (create a branch, run a workflow) is done in your name and only where you have access.',
+  conectada: 'connected',
+  'conectada el {date}': 'connected on {date}',
+  'TaskFlow no ve tus repositorios personales ni actúa fuera de los que el workspace compartió.':
+    'TaskFlow cannot see your personal repositories or act outside the ones the workspace shared.',
+  'sin conectar': 'not connected',
+  'Sin conectarla puedes ver ramas, pull requests y pipelines, pero no crear ramas ni ejecutar workflows.':
+    'Without connecting it you can see branches, pull requests and pipelines, but not create branches or run workflows.',
+  'Este servidor todavía no tiene configurada la integración con GitHub.':
+    'This server does not have the GitHub integration set up yet.',
+  '¿Desconectar tu cuenta de GitHub?': 'Disconnect your GitHub account?',
+  'Podrás seguir viendo ramas, pull requests y pipelines, pero no crear ramas ni ejecutar workflows hasta que la conectes otra vez. En GitHub no se borra nada.':
+    'You will still see branches, pull requests and pipelines, but you will not be able to create branches or run workflows until you connect it again. Nothing is deleted on GitHub.',
+  'Para ejecutar, reintentar o cancelar workflows, conecta tu cuenta de GitHub. Ver las ejecuciones no lo necesita.':
+    'To run, re-run or cancel workflows, connect your GitHub account. Viewing runs does not need it.',
+  'cada ejecución abre su registro en GitHub · reintentar y cancelar piden el permiso «Ejecutar workflows» y tu cuenta de GitHub conectada':
+    'each run opens its log on GitHub · re-running and cancelling require the “Run workflows” permission and your GitHub account connected',
+  'Para crear la rama desde aquí, conecta tu cuenta de GitHub: la rama se crea a tu nombre.':
+    'To create the branch from here, connect your GitHub account: the branch is created in your name.',
+  'Conecta primero tu cuenta de GitHub y vuelve a pulsar «Conectar con GitHub».':
+    'Connect your GitHub account first and press “Connect to GitHub” again.',
+  'Tu cuenta de GitHub no ve esa instalación. Instala la app en una organización o cuenta a la que tengas acceso.':
+    'Your GitHub account cannot see that installation. Install the app on an organization or account you have access to.',
+  'Primero conecta tu cuenta de GitHub. Así TaskFlow comprueba que la instalación es de alguien de este workspace y no de otra persona.':
+    'Connect your GitHub account first. That way TaskFlow checks the installation belongs to someone in this workspace and not to someone else.',
+  'A este servidor le falta la configuración de la GitHub App (identificador, clave privada, secreto de los avisos y cliente de OAuth). Cuando esté, aquí aparece el botón para conectar.':
+    'This server is missing the GitHub App configuration (ID, private key, webhook secret and OAuth client). Once it is set, the button to connect appears here.',
+  'Cuentas de GitHub del equipo': 'The team’s GitHub accounts',
+  '{linked} de {total}': '{linked} of {total}',
+  'Cada persona conecta la suya desde su perfil. Sin ella puede ver, pero no crear ramas ni ejecutar workflows.':
+    'Each person connects their own from their profile. Without it they can view, but not create branches or run workflows.',
+  'sin enlazar': 'not linked',
+  'No autorizaste la conexión en GitHub': 'You did not authorize the connection on GitHub',
+  'Tu cuenta de GitHub (@{login}) quedó conectada': 'Your GitHub account (@{login}) is now connected',
+  'No se pudo conectar tu cuenta de GitHub': 'Could not connect your GitHub account',
+  'Conectando tu cuenta de GitHub…': 'Connecting your GitHub account…',
+  'Conecta tu cuenta de GitHub para ejecutar workflows': 'Connect your GitHub account to run workflows',
 }

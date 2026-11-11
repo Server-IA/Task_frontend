@@ -53,6 +53,18 @@ export const githubApi = {
   install: (slug) => api.post(`${workspace(slug)}/install`).then(data),
   /** @returns {Promise<WorkspaceStatus>} */
   sync: (slug) => api.post(`${workspace(slug)}/sync`, null, SLOW).then(data),
+
+  /**
+   * Mi cuenta de GitHub: si está enlazada y cuál es.
+   * @returns {Promise<{ configured: boolean, linked: boolean, login: string | null, avatarUrl: string | null,
+   *                     profileUrl: string | null, linkedAt: string | null }>}
+   */
+  me: () => api.get('/users/me/github').then(data),
+  /** @returns {Promise<{ url: string }>} a dónde ir para autorizar en GitHub */
+  linkUrl: () => api.post('/users/me/github/link').then(data),
+  /** Termina de enlazar con lo que GitHub trae de vuelta. @param {{ code: string, state: string }} body */
+  completeLink: (body) => api.post('/users/me/github/link/complete', body, SLOW).then(data),
+  unlink: () => api.delete('/users/me/github', SLOW),
   disconnect: (slug) => api.delete(workspace(slug), SLOW),
 
   /** @returns {Promise<ProjectStatus>} */
