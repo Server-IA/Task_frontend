@@ -1,7 +1,9 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   closestCenter,
+  defaultDropAnimation,
+  defaultDropAnimationSideEffects,
   DndContext,
   DragOverlay,
   getFirstCollision,
@@ -225,7 +227,7 @@ function BoardColumns({ issues, lanes = null, slug, project, meta, openIssue, on
   const [awaitingConfirm, setAwaitingConfirm] = useState(false)
   const { guard, dialog: criteriaDialog } = useCriteriaGuard()
   const serverColumnsRef = useRef(serverColumns)
-  useEffect(() => {
+  useLayoutEffect(() => {
     serverColumnsRef.current = serverColumns
   })
   if (settlingFrom && settlingFrom !== serverColumns && !awaitingConfirm) {
@@ -239,7 +241,12 @@ function BoardColumns({ issues, lanes = null, slug, project, meta, openIssue, on
   const columnsRef = useRef(columns)
   const lastOverId = useRef(null)
   const recentlyMovedToNewColumn = useRef(false)
-  useEffect(() => {
+  // El último cambio de columna de este arrastre y dónde estaba el puntero (ver `handleDragOver`)
+  const lastHop = useRef(null)
+  // La tarjeta que se asienta cuando termina de caer en su sitio (ver `dropAnimation`)
+  const settleNext = useRef(null)
+  // En un efecto de diseño: dnd-kit avisa (onDragOver) en un efecto normal, que corre después, y ya las ve al día
+  useLayoutEffect(() => {
     columnsRef.current = columns
   })
   useEffect(() => {
@@ -252,8 +259,14 @@ function BoardColumns({ issues, lanes = null, slug, project, meta, openIssue, on
   const collisionDetection = useCallback(
     (args) => {
       const pointerHits = pointerWithin(args)
-      const hits = pointerHits.length > 0 ? pointerHits : rectIntersection(args)
-      let overId = getFirstCollision(hits, 'id')
+      let overId
+      if (pointerHits.length > 0) overId = getFirstCollision(pointerHits, 'id')
+      // Con el puntero fuera de toda columna (un encabezado, el espacio entre dos, debajo de una corta) decide la
+      // columna más cercana al puntero. Con lo que toque la tarjeta arrastrada no: tocando dos columnas a la vez, al
+      // pasar a una cambian los tamaños, gana la otra, y la tarjeta va y viene sin parar
+      else if (args.pointerCoordinates) overId = nearestColumn(args)
+      // Con el teclado no hay puntero: lo que toque la tarjeta
+      else overId = getFirstCollision(rectIntersection(args), 'id')
       if (overId != null) {
         if (String(overId).startsWith('column:')) {
           const ids = columnsRef.current[String(overId).slice('column:'.length)] ?? []
@@ -272,10 +285,24 @@ function BoardColumns({ issues, lanes = null, slug, project, meta, openIssue, on
     [activeId],
   )
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    // Solo Espacio levanta la tarjeta: Enter la abre (como dice la barra de atajos)
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates, keyboardCodes: KEYBOARD_CODES }),
+  // Con opciones fijas (`POINTER_SENSOR`…): con un objeto nuevo en cada pintada, dnd-kit rehace los sensores y con
+  // ellos los manejadores de todas las tarjetas, y cada tarjeta se vuelve a pintar entera en cada paso del arrastre
+  const sensors = useSensors(useSensor(PointerSensor, POINTER_SENSOR), useSensor(KeyboardSensor, KEYBOARD_SENSOR))
+
+  // Al soltar, la copia que sigue al cursor cae a su sitio; cuando llega, la tarjeta de verdad se asienta
+  const dropAnimation = useMemo(
+    () => ({
+      ...defaultDropAnimation,
+      sideEffects: (args) => {
+        const restore = HIDE_WHILE_DROPPING(args)
+        return () => {
+          restore?.()
+          if (settleNext.current === args.active.id) flash('settled', args.active.id, 400)
+          settleNext.current = null
+        }
+      },
+    }),
+    [],
   )
 
   const columnOf = (id, source = columns) =>
@@ -311,13 +338,25 @@ function BoardColumns({ issues, lanes = null, slug, project, meta, openIssue, on
   }, [issuesById, meta.states, lanes, laneByKey, columns])
 
   const handleDragStart = ({ active }) => {
+    lastHop.current = null
+    settleNext.current = null
     setActiveId(active.id)
     setSettlingFrom(null)
     setDragColumns(serverColumns)
   }
 
-  const handleDragOver = ({ active, over }) => {
+  const handleDragOver = ({ active, over, delta }) => {
     if (!over) return
+    // Seguro contra el vaivén: volver a la columna de la que acaba de salir sin que el puntero se haya movido no es
+    // un gesto de la persona, es la pantalla reacomodándose. Sin esto, un caso así repinta sin parar y tumba la app
+    const known = columnsRef.current
+    const hopFrom = columnOf(active.id, known)
+    const hopTo = columnOf(over.id, known)
+    if (delta && hopFrom && hopTo && hopFrom !== hopTo) {
+      const hop = lastHop.current
+      if (hop && hop.from === hopTo && hop.to === hopFrom && Math.hypot(delta.x - hop.x, delta.y - hop.y) < HOP_BACK_DISTANCE) return
+      lastHop.current = { from: hopFrom, to: hopTo, x: delta.x, y: delta.y }
+    }
     setDragColumns((current) => {
       const from = columnOf(active.id, current)
       const to = columnOf(over.id, current)
@@ -394,8 +433,6 @@ function BoardColumns({ issues, lanes = null, slug, project, meta, openIssue, on
       // se pregunta si se reabre y se reintenta (el `onError` va en las variables: sobrevive a otro arrastre hecho
       // enseguida)
       const action = story ? closedStoryActions.parent(issue) : closedStoryActions.move(issue, state)
-      // La tarjeta se asienta donde se soltó (ver `IssueCard`)
-      flash('settled', active.id, 500)
       move.mutate({
         issueId: active.id,
         stateId: targetState,
@@ -425,6 +462,8 @@ function BoardColumns({ issues, lanes = null, slug, project, meta, openIssue, on
       })
       return
     }
+    // Se asienta donde se soltó, cuando la copia que sigue al cursor termine de caer (ver `dropAnimation`)
+    settleNext.current = active.id
     commit()
   }
 
@@ -446,6 +485,7 @@ function BoardColumns({ issues, lanes = null, slug, project, meta, openIssue, on
           openIssue={openIssue}
           onCreate={onCreateInState ? () => onCreateInState(state.id) : undefined}
           inLane={inLane}
+          dragging={activeId != null}
         />
       ))}
     </div>
@@ -456,7 +496,7 @@ function BoardColumns({ issues, lanes = null, slug, project, meta, openIssue, on
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}
-        measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+        measuring={MEASURING}
         accessibility={accessibility}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
@@ -475,7 +515,7 @@ function BoardColumns({ issues, lanes = null, slug, project, meta, openIssue, on
           : renderColumns(null)}
         {/* En un portal: así la tarjeta sigue al cursor aunque algún contenedor tenga transform */}
         {createPortal(
-          <DragOverlay>
+          <DragOverlay dropAnimation={dropAnimation}>
             {activeIssue && <IssueCard issue={activeIssue} slug={slug} project={project} meta={meta} overlay inLane={inLane} />}
           </DragOverlay>,
           document.body,
@@ -518,6 +558,35 @@ const sortLabel = (sort) => SORT_OPTIONS.find((option) => option.value === sort)
 
 /** Las teclas del arrastre con teclado: sin Enter para empezar (abre la tarea); Enter o Espacio la sueltan. */
 const KEYBOARD_CODES = { start: ['Space'], cancel: ['Escape'], end: ['Space', 'Enter'] }
+const POINTER_SENSOR = { activationConstraint: { distance: 6 } }
+// Solo Espacio levanta la tarjeta: Enter la abre (como dice la barra de atajos)
+const KEYBOARD_SENSOR = { coordinateGetter: sortableKeyboardCoordinates, keyboardCodes: KEYBOARD_CODES }
+const MEASURING = { droppable: { strategy: MeasuringStrategy.Always } }
+// Mientras la copia cae a su sitio, la tarjeta de verdad no se ve (lo que dnd-kit hace por defecto)
+const HIDE_WHILE_DROPPING = defaultDropAnimationSideEffects({ styles: { active: { opacity: '0' } } })
+/** Cuánto tiene que moverse el puntero (px) para que volver a la columna anterior cuente como un gesto. */
+const HOP_BACK_DISTANCE = 8
+/** Hasta qué distancia horizontal (px) de una columna el puntero cuenta como «en esa columna»: cubre el espacio entre dos. */
+const COLUMN_REACH = 48
+
+/**
+ * La columna más cercana al puntero cuando no está sobre ninguna: primero la más cercana a lo ancho (las columnas van
+ * una al lado de la otra) y, entre las de un mismo estado en distintos carriles, la más cercana a lo alto. Lejos del
+ * tablero (sobre el menú, por ejemplo) no elige ninguna: la tarjeta se queda donde estaba.
+ */
+function nearestColumn({ droppableContainers, droppableRects, pointerCoordinates }) {
+  let best = null
+  for (const container of droppableContainers) {
+    if (!String(container.id).startsWith('column:')) continue
+    const rect = droppableRects.get(container.id)
+    if (!rect) continue
+    const dx = Math.max(rect.left - pointerCoordinates.x, 0, pointerCoordinates.x - rect.right)
+    const dy = Math.max(rect.top - pointerCoordinates.y, 0, pointerCoordinates.y - rect.bottom)
+    if (dx > COLUMN_REACH) continue
+    if (!best || dx < best.dx || (dx === best.dx && dy < best.dy)) best = { id: container.id, dx, dy }
+  }
+  return best?.id ?? null
+}
 
 /**
  * Los mismos ids mientras no cambie su contenido: SortableContext avisa a todas sus tarjetas cuando cambia el
@@ -528,7 +597,7 @@ function useStableIds(ids) {
   return useMemo(() => (key ? key.split('|') : []), [key])
 }
 
-function BoardColumn({ state, columnId, ids: currentIds, issuesById, slug, project, meta, openIssue, onCreate, inLane }) {
+function BoardColumn({ state, columnId, ids: currentIds, issuesById, slug, project, meta, openIssue, onCreate, inLane, dragging = false }) {
   const { setNodeRef, isOver } = useDroppable({ id: `column:${columnId}` })
   const ids = useStableIds(currentIds)
 
@@ -562,7 +631,8 @@ function BoardColumn({ state, columnId, ids: currentIds, issuesById, slug, proje
         <h3 className="min-w-0 truncate font-semibold" title={stateName(state)}>
           {stateName(state)}
         </h3>
-        <PulseOnChange value={ids.length} className="text-muted-foreground" />
+        {/* Mientras se arrastra el número solo se actualiza; el pulso es al soltar, si la columna cambió */}
+        <PulseOnChange value={ids.length} hold={dragging} className="text-muted-foreground" />
         {onCreate && (
           <button
             type="button"

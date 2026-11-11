@@ -12,6 +12,18 @@ describe('PulseOnChange', () => {
     expect(screen.getByText('4')).toHaveClass('tf-pulse')
   })
 
+  it('en espera muestra el valor al día sin pulso; al soltar hace uno solo si quedó distinto', () => {
+    const { rerender } = render(<PulseOnChange value={3} />)
+    rerender(<PulseOnChange value={4} hold />)
+    expect(screen.getByText('4')).not.toHaveClass('tf-pulse')
+    rerender(<PulseOnChange value={3} hold />)
+    rerender(<PulseOnChange value={3} />)
+    expect(screen.getByText('3')).not.toHaveClass('tf-pulse')
+    rerender(<PulseOnChange value={5} hold />)
+    rerender(<PulseOnChange value={5} />)
+    expect(screen.getByText('5')).toHaveClass('tf-pulse')
+  })
+
   it('conocer el valor (de cargando a su número) no es un cambio', () => {
     const { rerender } = render(<PulseOnChange value={undefined} show={false} />)
     rerender(<PulseOnChange value="3" />)

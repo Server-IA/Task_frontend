@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { flash, useFlashStore, withViewTransition } from './flash'
+import { flash, useFlashStore } from './flash'
 
 describe('marcas de animación', () => {
   beforeEach(() => vi.useFakeTimers())
@@ -31,13 +31,5 @@ describe('marcas de animación', () => {
     flash('created', 'a', 1000)
     flash('closedCycle', 'c', 1000)
     expect(useFlashStore.getState()).toMatchObject({ created: 'a', closedCycle: 'c', settled: null })
-  })
-})
-
-describe('withViewTransition', () => {
-  it('sin soporte del navegador aplica el cambio de una vez', async () => {
-    const change = vi.fn()
-    await withViewTransition(change)
-    expect(change).toHaveBeenCalledTimes(1)
   })
 })

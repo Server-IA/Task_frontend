@@ -19,8 +19,8 @@ export function DailyPersonCard({ person, cycle, date, previousDate, projectId, 
   return (
     <article
       aria-label={person.user?.fullName}
-      // `morph`: es la tarjeta que crece hasta ser la pantalla de «Presentar» (mismo nombre de transición que esa)
-      style={morph ? { viewTransitionName: 'daily-person' } : undefined}
+      // `morph`: la tarjeta desde la que crece la pantalla de «Presentar» (la página mide dónde está)
+      data-daily-morph={morph ? '' : undefined}
       className="tf-enter flex min-w-0 flex-col gap-3 rounded-[18px] border bg-card px-4 py-3.5"
     >
       <header className="flex items-center gap-2.5">

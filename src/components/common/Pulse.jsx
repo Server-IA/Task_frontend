@@ -6,13 +6,15 @@ import { cn } from '@/lib/utils'
  * Un valor que hace un pulso cuando cambia (el contador de una columna del tablero, la insignia de la bandeja). La
  * primera vez que se pinta no se anima: solo los cambios. Mientras el valor no se conoce (`undefined`, por ejemplo
  * cargando) tampoco: conocerlo no es un cambio. Con `show` en falso no pinta nada, pero sigue recordando el valor,
- * así lo que aparece por un cambio (la insignia que pasa de cero a uno) sí hace el pulso.
- * @param {{ value: unknown, show?: boolean, className?: string, children?: React.ReactNode }} props
+ * así lo que aparece por un cambio (la insignia que pasa de cero a uno) sí hace el pulso. Con `hold` el valor se
+ * muestra al día pero sin pulso (mientras se arrastra una tarjeta por el tablero); al soltarlo hace uno solo, si el
+ * valor quedó distinto del que había.
+ * @param {{ value: unknown, show?: boolean, hold?: boolean, className?: string, children?: React.ReactNode }} props
  */
-export function PulseOnChange({ value, show = true, className, children }) {
+export function PulseOnChange({ value, show = true, hold = false, className, children }) {
   const [last, setLast] = useState(value)
   const [beat, setBeat] = useState(0)
-  if (value !== last) {
+  if (!hold && value !== last) {
     setLast(value)
     if (last !== undefined) setBeat((count) => count + 1)
   }

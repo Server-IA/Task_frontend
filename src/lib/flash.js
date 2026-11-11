@@ -1,4 +1,3 @@
-import { flushSync } from 'react-dom'
 import { create } from 'zustand'
 import { canAnimate } from './intro'
 
@@ -37,20 +36,17 @@ export function flyGhost(from, selector, { wait = 1600 } = {}) {
       const ghost = document.createElement('div')
       ghost.className = 'tf-ghost'
       ghost.setAttribute('aria-hidden', 'true')
+      Object.assign(ghost.style, { left: `${from.left}px`, top: `${from.top}px`, width: `${from.width}px`, height: `${from.height}px` })
       document.body.append(ghost)
-      const box = (rect, radius, opacity) => ({
-        left: `${rect.left}px`,
-        top: `${rect.top}px`,
-        width: `${rect.width}px`,
-        height: `${rect.height}px`,
-        borderRadius: radius,
-        opacity,
-      })
-      const animation = ghost.animate([box(from, '22px', 0.9), box(to, '8px', 0.2)], {
-        duration: 420,
-        easing: 'cubic-bezier(0.65, 0, 0.35, 1)',
-        fill: 'forwards',
-      })
+      // Solo transform y opacidad (el navegador la mueve sin recalcular la página): se traslada y se encoge hasta `to`
+      const landed = `translate(${to.left - from.left}px, ${to.top - from.top}px) scale(${to.width / from.width}, ${to.height / from.height})`
+      const animation = ghost.animate(
+        [
+          { transformOrigin: '0 0', transform: 'none', opacity: 0.9 },
+          { transformOrigin: '0 0', transform: landed, opacity: 0.2 },
+        ],
+        { duration: 420, easing: 'cubic-bezier(0.65, 0, 0.35, 1)', fill: 'forwards' },
+      )
       const remove = () => ghost.remove()
       animation.finished.then(remove, remove)
       return
@@ -58,20 +54,4 @@ export function flyGhost(from, selector, { wait = 1600 } = {}) {
     if (performance.now() - started < wait) requestAnimationFrame(tick)
   }
   requestAnimationFrame(tick)
-}
-
-/**
- * Aplica un cambio de estado de React como una transición de vista del navegador: lo que tenga el mismo
- * `view-transition-name` antes y después se transforma de una forma a la otra (la tarjeta que crece en «Presentar»).
- * Sin soporte, o con «menos movimiento», el cambio se aplica sin más.
- * @param {() => void} change
- * @returns {Promise<void>} cuando terminó la transición (o enseguida, si no la hubo)
- */
-export function withViewTransition(change) {
-  if (!canAnimate() || typeof document.startViewTransition !== 'function') {
-    change()
-    return Promise.resolve()
-  }
-  const transition = document.startViewTransition(() => flushSync(change))
-  return transition.finished.catch(() => {})
 }

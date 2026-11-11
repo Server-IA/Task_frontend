@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { useSearchParams } from 'react-router'
 import { Ban, Settings2, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -13,9 +14,9 @@ import { useHotkey } from '@/hooks/useHotkey'
 import { t, tn } from '@/i18n'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { projectPath } from '@/lib/paths'
-import { withViewTransition } from '@/lib/flash'
 import { cn } from '@/lib/utils'
 import { DailyAgenda } from '../components/DailyAgenda'
+import { fadeAway, growFrom } from '../presentMotion'
 import { DailyDateNav } from '../components/DailyDateNav'
 import { DailyNoteEditor } from '../components/DailyNoteEditor'
 import { DailyPersonCard } from '../components/DailyPersonCard'
@@ -75,16 +76,28 @@ export function DailyPage() {
       return next
     })
 
-  // Entrar y salir de «Presentar» es una transición de vista: la tarjeta de quien habla crece hasta ser la pantalla
-  // (y al salir vuelve a su lugar). Al entrar se empieza por la primera persona; al salir, la posición se conserva
-  // hasta que termina la transición, para que la tarjeta vuelva a la persona correcta.
+  // Al entrar a «Presentar», la tarjeta grande crece desde donde estaba la tarjeta de quien habla (se empieza por la
+  // primera persona); al salir se va con un fundido corto y vuelve la vista normal (ver `presentMotion`).
+  const leaving = useRef(false)
   const exitPresenting = useCallback(() => {
-    withViewTransition(() => setPresenting(false)).then(() => setCurrent(0))
+    if (leaving.current) return
+    const back = () => {
+      leaving.current = false
+      setPresenting(false)
+      setCurrent(0)
+    }
+    const fading = fadeAway(document.querySelector('[data-daily-presenter]'))
+    if (!fading) return back()
+    leaving.current = true
+    fading.then(back)
   }, [])
   const togglePresenting = useCallback(() => {
     if (!canPresent) return
-    if (presenting) exitPresenting()
-    else withViewTransition(() => setPresenting(true))
+    if (presenting) return exitPresenting()
+    // Dónde está la tarjeta ahora, antes de cambiar de vista; el cambio se pinta de una vez para animar desde ahí
+    const origin = document.querySelector('[data-daily-morph]')?.getBoundingClientRect()
+    flushSync(() => setPresenting(true))
+    growFrom(document.querySelector('[data-daily-presenter] > article'), origin)
   }, [canPresent, presenting, exitPresenting])
   const goPrevious = useCallback(() => setCurrent((value) => clampIndex(value - 1, people.length)), [people.length])
   const goNext = useCallback(() => setCurrent((value) => clampIndex(value + 1, people.length)), [people.length])
@@ -173,7 +186,7 @@ export function DailyPage() {
               {people.map((person, index) => (
                 <DailyPersonCard
                   key={person.user?.id}
-                  // La tarjeta que se transforma en la pantalla de «Presentar» (y a la que esta vuelve)
+                  // La tarjeta desde la que crece la pantalla de «Presentar»
                   morph={index === position}
                   person={person}
                   cycle={cycle}

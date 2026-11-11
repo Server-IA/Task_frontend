@@ -56,7 +56,7 @@ export function DailyPresenter({
   })
 
   return (
-    <div className="tf-fade flex min-h-0 flex-1 flex-col gap-3.5">
+    <div data-daily-presenter="" className="tf-fade flex min-h-0 flex-1 flex-col gap-3.5">
       <nav aria-label={t('Personas')} className="flex flex-wrap items-center gap-2">
         {people.map((item, position) => {
           const status = stepStatus(position, current)
@@ -86,9 +86,9 @@ export function DailyPresenter({
       <article
         key={person.user?.id ?? current}
         aria-label={person.user?.fullName}
-        style={{ viewTransitionName: 'daily-person' }}
-        // Al cambiar de persona la tarjeta entra desde el lado hacia el que se avanzó
-        className={cn('flex flex-1 flex-col gap-4.5 rounded-[22px] border bg-card px-5 py-5 sm:px-6.5', direction ? `tf-slide-${direction}` : 'tf-fade')}
+        // Al cambiar de persona la tarjeta entra desde el lado hacia el que se avanzó. Al abrir «Presentar» no lleva
+        // animación propia: la página la hace crecer desde la tarjeta de la persona (y todo el modo aparece con `tf-fade`)
+        className={cn('flex flex-1 flex-col gap-4.5 rounded-[22px] border bg-card px-5 py-5 sm:px-6.5', direction && `tf-slide-${direction}`)}
       >
         <header className="flex items-center gap-3.5">
           <UserAvatar user={person.user} size="lg" className="size-13 text-[17px]" />

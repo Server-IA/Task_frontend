@@ -1111,6 +1111,7 @@
   position: fixed;
   z-index: 60;
   pointer-events: none;
+  border-radius: 22px;
   border: 1px solid var(--border);
   background: var(--card);
   box-shadow: 0 18px 44px rgb(35 32 27 / 0.18);
@@ -1189,11 +1190,6 @@
 }
 .tf-slide-prev {
   animation: tf-slide-prev 320ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-/* «Presentar» en la daily: la tarjeta de quien habla crece hasta ser la pantalla (transición de vista del navegador) */
-::view-transition-group(daily-person) {
-  animation-duration: 420ms;
-  animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
 }
 
 /* Quien pide menos movimiento en su sistema ve los cambios sin animación */
