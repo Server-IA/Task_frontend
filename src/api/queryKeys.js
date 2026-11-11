@@ -61,6 +61,9 @@ export const queryKeys = {
   storageUsage: (slug) => ['storage', slug, 'usage'],
   storageReport: (slug) => ['storage', slug, 'report'],
   storageOf: (slug) => ['storage', slug],
+  /** Importaciones desde otras herramientas (pestaña «Importar» de los ajustes del workspace). */
+  imports: (slug) => ['imports', slug, 'list'],
+  importJob: (slug, jobId) => ['imports', slug, 'job', jobId],
 
   notifications: (params) => ['notifications', 'list', params],
   notificationsAll: ['notifications'],

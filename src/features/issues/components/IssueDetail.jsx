@@ -30,6 +30,7 @@ import { useCriteriaGuard } from '../useCriteriaGuard'
 import { isStory, stateOptionsFor, storyFlags, storyStateLocked, typeOf } from '../issueTypes'
 import { isOverdue, useIssueUpdater, useProjectMeta } from '../useIssueHelpers'
 import { closedStoryActions, useStoryClosedGuard } from '../useStoryClosedGuard'
+import { sourceName } from '@/features/imports/importModel'
 import { CreateIssueDialog } from './CreateIssueDialog'
 import { StoryProgressSummary, TypePill } from './IssueTypeBits'
 import { TypePicker } from './TypePicker'
@@ -251,6 +252,7 @@ export function IssueDetail({
               </p>
             )}
             <p title={formatDateTime(issue.updatedAt)}>{t('actualizada {when}', { when: formatRelative(issue.updatedAt) })}</p>
+            {issue.importSource && <ImportedFrom issue={issue} />}
             {issue.checklistUpdatedAt && (
               <p title={formatDateTime(issue.checklistUpdatedAt)}>
                 {t('checklist actualizado {when}', { when: formatRelative(issue.checklistUpdatedAt) })}
@@ -270,6 +272,20 @@ export function IssueDetail({
       {criteriaDialog}
       {storyClosedDialog}
     </div>
+  )
+}
+
+/** «importada de Jira · PORT-123 ↗»: de dónde vino una tarea importada, con el enlace a su original si lo tiene. */
+function ImportedFrom({ issue }) {
+  const where = [sourceName(issue.importSource), issue.importKey].filter(Boolean).join(' · ')
+  const text = t('importada de {source}', { source: where })
+  if (!issue.importUrl) return <p>{text}</p>
+  return (
+    <p>
+      <a href={issue.importUrl} target="_blank" rel="noreferrer" className="underline-offset-2 hover:text-foreground hover:underline">
+        {text} <span aria-hidden="true">↗</span>
+      </a>
+    </p>
   )
 }
 

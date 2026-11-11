@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
-import { AtSign, BellOff, CheckCheck, HardDrive, MousePointerClick } from 'lucide-react'
+import { AtSign, BellOff, CheckCheck, Download, HardDrive, MousePointerClick } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -48,6 +48,7 @@ const TYPE_MARKS = {
   RETRO_STARTED: { mark: '↻', className: 'bg-card text-accent-text' },
   STORY_READY: { mark: '✓', className: 'border-transparent bg-ok-soft text-ok' },
   STORAGE_WARNING: { mark: '!', className: 'border-transparent bg-soon-soft text-soon' },
+  IMPORT_FINISHED: { mark: '↓', className: 'border-transparent bg-accent-soft text-accent-text' },
 }
 const DEFAULT_MARK = { mark: '·', className: 'bg-card text-muted-foreground' }
 
@@ -341,6 +342,7 @@ function NotificationItem({ notification, fresh = false, first, current, onOpen 
   const project = notificationProject(notification)
   const workspaceSlug = notificationWorkspaceSlug(notification)
   const storage = notification.type === 'STORAGE_WARNING'
+  const imported = notification.type === 'IMPORT_FINISHED'
   return (
     <li className={cn(!first && 'border-t', fresh && 'tf-slide-in')}>
       <button
@@ -376,14 +378,18 @@ function NotificationItem({ notification, fresh = false, first, current, onOpen 
           </span>
         </span>
         <span className="min-w-0 flex-1">
-          {storage ? (
+          {storage || imported ? (
             <>
               <span className="block leading-snug">
                 <span className={cn(!notification.read && 'font-semibold')}>TaskFlow</span>{' '}
-                <span className="text-muted-foreground">{t('avisa: espacio para archivos')}</span>
+                <span className="text-muted-foreground">{storage ? t('avisa: espacio para archivos') : t('avisa: importación')}</span>
               </span>
               <span className={cn('mt-0.5 flex min-w-0 items-start gap-1.5 leading-snug', !notification.read && 'font-semibold')}>
-                <HardDrive aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-soon" />
+                {storage ? (
+                  <HardDrive aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-soon" />
+                ) : (
+                  <Download aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-accent-text" />
+                )}
                 <span>{notification.message}</span>
               </span>
             </>
@@ -419,7 +425,7 @@ function NotificationItem({ notification, fresh = false, first, current, onOpen 
                 {project} ·{' '}
               </>
             )}
-            {storage && workspaceSlug && <>{workspaceSlug} · </>}
+            {(storage || imported) && workspaceSlug && <>{workspaceSlug} · </>}
             {formatRelative(notification.createdAt)}
           </span>
         </span>

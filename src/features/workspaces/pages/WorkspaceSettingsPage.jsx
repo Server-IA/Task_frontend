@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { t } from '@/i18n'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { workspacePath } from '@/lib/paths'
+import { ImportSettings } from '@/features/imports/ImportSettings'
 import { can } from '@/lib/permissions'
 import { GeneralSettings } from '../components/GeneralSettings'
 import { InvitationsSettings } from '../components/InvitationsSettings'
@@ -11,9 +12,9 @@ import { RolesSettings } from '../components/RolesSettings'
 import { StorageSettings } from '../components/StorageSettings'
 import { useCurrentWorkspace, useMembers } from '../hooks'
 
-const TABS = ['general', 'members', 'roles', 'invitations', 'storage']
+const TABS = ['general', 'members', 'roles', 'invitations', 'storage', 'import']
 /** Pestañas que piden un permiso (sin él, la URL lleva a «General»). Los roles los ve cualquiera. */
-const TAB_PERMISSIONS = { invitations: 'MEMBER_INVITE', storage: 'STORAGE_VIEW' }
+const TAB_PERMISSIONS = { invitations: 'MEMBER_INVITE', storage: 'STORAGE_VIEW', import: 'DATA_IMPORT' }
 
 export function WorkspaceSettingsPage() {
   const workspace = useCurrentWorkspace()
@@ -21,6 +22,7 @@ export function WorkspaceSettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const canInvite = can(workspace, 'MEMBER_INVITE')
   const canSeeStorage = can(workspace, 'STORAGE_VIEW')
+  const canImport = can(workspace, 'DATA_IMPORT')
   const requested = searchParams.get('tab')
   const allowed = TABS.includes(requested) && (!TAB_PERMISSIONS[requested] || can(workspace, TAB_PERMISSIONS[requested]))
   const tab = allowed ? requested : 'general'
@@ -44,6 +46,7 @@ export function WorkspaceSettingsPage() {
           <TabsTrigger value="roles">{t('Roles')}</TabsTrigger>
           {canInvite && <TabsTrigger value="invitations">{t('Invitaciones')}</TabsTrigger>}
           {canSeeStorage && <TabsTrigger value="storage">{t('Almacenamiento')}</TabsTrigger>}
+          {canImport && <TabsTrigger value="import">{t('Importar')}</TabsTrigger>}
         </TabsList>
       </PageHeader>
       <PageBody>
@@ -65,6 +68,11 @@ export function WorkspaceSettingsPage() {
           {canSeeStorage && (
             <TabsContent value="storage">
               <StorageSettings workspace={workspace} />
+            </TabsContent>
+          )}
+          {canImport && (
+            <TabsContent value="import">
+              <ImportSettings workspace={workspace} />
             </TabsContent>
           )}
         </div>
