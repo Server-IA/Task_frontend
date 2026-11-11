@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { FullScreenLoader } from '@/components/common/Loaders'
 import { EmptyState } from '@/components/common/States'
 import { useForgetSession } from '@/features/auth/hooks'
+import { t } from '@/i18n'
 import { markFirstScreen } from '@/lib/intro'
 import { useSessionStore } from '@/stores/sessionStore'
 
@@ -57,13 +58,13 @@ function OfflineScreen() {
     <EmptyState
       className="h-full"
       icon={WifiOff}
-      title="Sin conexión con el servidor"
-      description="No pudimos recuperar tu sesión. Revisa tu conexión; reintentaremos cuando vuelva."
+      title={t('Sin conexión con el servidor')}
+      description={t('No pudimos recuperar tu sesión. Revisa tu conexión; reintentaremos cuando vuelva.')}
       action={
         <div className="flex gap-2">
-          <Button onClick={() => restoreSession()}>Reintentar</Button>
+          <Button onClick={() => restoreSession()}>{t('Reintentar')}</Button>
           <Button variant="outline" onClick={forgetSession}>
-            Iniciar sesión de nuevo
+            {t('Iniciar sesión de nuevo')}
           </Button>
         </div>
       }

@@ -5,15 +5,16 @@ import { ArrowDown, ArrowUp, GripVertical, Lock, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Segmented } from '@/components/common/Segmented'
+import { t } from '@/i18n'
 import { DND_INSTRUCTIONS, DRAG_ROLE, quoted, sortableAnnouncements } from '@/lib/dndAnnouncements'
 import { cn } from '@/lib/utils'
 import { usePreferencesStore } from '@/stores/preferencesStore'
 import { MAIN_MENU, MENU_ORDER_MODES, moveKey, orderItems, PROJECT_SECTIONS } from './menuOrder'
 
 const MODE_HINTS = {
-  default: 'El orden con el que viene TaskFlow.',
-  alpha: 'De la A a la Z.',
-  custom: 'Arrastra cada entrada, o usa las flechas (alt + ↑ ↓ sobre el asa).',
+  default: t('El orden con el que viene TaskFlow.'),
+  alpha: t('De la A a la Z.'),
+  custom: t('Arrastra cada entrada, o usa las flechas (alt + ↑ ↓ sobre el asa).'),
 }
 
 /**
@@ -46,33 +47,33 @@ export function MenuOrderDialog({ open, onOpenChange }) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[calc(100dvh_-_3rem)] gap-4 overflow-y-auto sm:max-w-[620px]">
         <DialogHeader>
-          <DialogTitle>Personalizar menú</DialogTitle>
-          <DialogDescription>Elige cómo se ordena el menú de la izquierda. Solo cambia para ti, en este navegador.</DialogDescription>
+          <DialogTitle>{t('Personalizar menú')}</DialogTitle>
+          <DialogDescription>{t('Elige cómo se ordena el menú de la izquierda. Solo cambia para ti, en este navegador.')}</DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <Segmented label="Orden del menú" value={mode} onChange={setMode} options={MENU_ORDER_MODES} className="bg-card" />
+          <Segmented label={t('Orden del menú')} value={mode} onChange={setMode} options={MENU_ORDER_MODES} className="bg-card" />
           <p className="text-[13px] text-muted-foreground">{MODE_HINTS[mode]}</p>
         </div>
 
         <p className="flex items-center gap-2 rounded-xl border border-dashed border-dash px-3 py-2 text-sm text-muted-foreground">
           <Search className="size-4 shrink-0" aria-hidden="true" />
-          <span className="flex-1">Buscar</span>
+          <span className="flex-1">{t('Buscar')}</span>
           <span className="flex items-center gap-1.5 font-mono text-[11px]">
             <Lock className="size-3" aria-hidden="true" />
-            siempre primero
+            {t('siempre primero')}
           </span>
         </p>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <OrderGroup
-            title="Menú principal"
+            title={t('Menú principal')}
             items={main.map((item) => ({ id: item.key, label: item.label }))}
             canMove={mode === 'custom'}
             onMove={moveMain}
           />
           <OrderGroup
-            title="Secciones del proyecto"
+            title={t('Secciones del proyecto')}
             items={sections.map((section) => ({ id: section.path, label: section.label, hint: section.hint }))}
             canMove={mode === 'custom'}
             onMove={moveSection}
@@ -80,7 +81,7 @@ export function MenuOrderDialog({ open, onOpenChange }) {
         </div>
 
         <DialogFooter>
-          <Button onClick={() => onOpenChange(false)}>Listo</Button>
+          <Button onClick={() => onOpenChange(false)}>{t('Listo')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -154,8 +155,8 @@ function OrderRow({ item, index, count, canMove, onMove }) {
             }
             listeners?.onKeyDown?.(event)
           }}
-          aria-label={`Mover «${item.label}»`}
-          title="Arrastra o usa alt + ↑ ↓"
+          aria-label={t('Mover «{name}»', { name: item.label })}
+          title={t('Arrastra o usa alt + ↑ ↓')}
           className={cn(
             'flex h-7 w-6 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-dash outline-none hover:bg-accent hover:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing',
             isDragging && 'bg-accent-soft text-accent-text',
@@ -167,7 +168,7 @@ function OrderRow({ item, index, count, canMove, onMove }) {
       <span className="w-4 shrink-0 text-right font-mono text-[11px] text-muted-foreground">{index + 1}</span>
       <span className="min-w-0 flex-1 truncate text-sm font-medium">{item.label}</span>
       {item.hint && !canMove && (
-        <kbd className="font-mono text-[11px] text-muted-foreground" title={`Atajo ${item.hint}`}>
+        <kbd className="font-mono text-[11px] text-muted-foreground" title={t('Atajo {key}', { key: item.hint })}>
           {item.hint}
         </kbd>
       )}
@@ -177,7 +178,7 @@ function OrderRow({ item, index, count, canMove, onMove }) {
             variant="ghost"
             size="icon"
             className="size-7 text-muted-foreground"
-            aria-label={`Subir «${item.label}»`}
+            aria-label={t('Subir «{name}»', { name: item.label })}
             disabled={index === 0}
             onClick={() => onMove(item.id, index - 1)}
           >
@@ -187,7 +188,7 @@ function OrderRow({ item, index, count, canMove, onMove }) {
             variant="ghost"
             size="icon"
             className="size-7 text-muted-foreground"
-            aria-label={`Bajar «${item.label}»`}
+            aria-label={t('Bajar «{name}»', { name: item.label })}
             disabled={index === count - 1}
             onClick={() => onMove(item.id, index + 1)}
           >

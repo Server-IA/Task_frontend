@@ -3,6 +3,7 @@ import { Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/common/States'
 import { useCurrentWorkspace } from '@/features/workspaces/hooks'
+import { t } from '@/i18n'
 import { PageHeader } from '@/layouts/PageHeader'
 import { can, myRoleName } from '@/lib/permissions'
 
@@ -24,11 +25,11 @@ export function RequirePermission({ permission, title, children }) {
       <EmptyState
         icon={Lock}
         className="flex-1"
-        title="Tu rol no incluye esta sección"
-        description={`Tienes el rol «${myRoleName(workspace)}». Si la necesitas, pídele a un project manager que te dé el permiso.`}
+        title={t('Tu rol no incluye esta sección')}
+        description={t('Tienes el rol «{role}». Si la necesitas, pídele a un project manager que te dé el permiso.', { role: myRoleName(workspace) })}
         action={
           <Button asChild variant="outline">
-            <Link to={back}>{projectId ? 'Ir a las tareas' : 'Ir a los proyectos'}</Link>
+            <Link to={back}>{projectId ? t('Ir a las tareas') : t('Ir a los proyectos')}</Link>
           </Button>
         }
       />

@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { buttonVariants } from '@/components/ui/button'
 import { Spinner } from '@/components/common/Loaders'
+import { t } from '@/i18n'
 import { focusOrigin, isFocusable } from '@/lib/focusReturn'
 
 /** El primer elemento que se puede enfocar de una ref o una lista de refs. */
@@ -34,7 +35,7 @@ export function ConfirmDialog({
   onOpenChange,
   title,
   description,
-  confirmLabel = 'Confirmar',
+  confirmLabel = t('Confirmar'),
   destructive = true,
   loading = false,
   onConfirm,
@@ -70,7 +71,7 @@ export function ConfirmDialog({
           {text.description && <AlertDialogDescription>{text.description}</AlertDialogDescription>}
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={loading}>Cancelar</AlertDialogCancel>
+          <AlertDialogCancel disabled={loading}>{t('Cancelar')}</AlertDialogCancel>
           <AlertDialogAction
             className={destructive ? buttonVariants({ variant: 'destructive' }) : undefined}
             disabled={loading}

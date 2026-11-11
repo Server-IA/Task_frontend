@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
 import { OfflineBanner } from '@/components/common/OfflineBanner'
 import { CommandPalette } from '@/features/search/CommandPalette'
+import { t } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { useLayoutStore } from '@/stores/layoutStore'
 import { usePreferencesStore } from '@/stores/preferencesStore'
@@ -33,8 +34,8 @@ export function AppLayout() {
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="w-72 border-none bg-sidebar p-0 text-sidebar-foreground">
-          <SheetTitle className="sr-only">Menú</SheetTitle>
-          <SheetDescription className="sr-only">Navegación principal</SheetDescription>
+          <SheetTitle className="sr-only">{t('Menú')}</SheetTitle>
+          <SheetDescription className="sr-only">{t('Navegación principal')}</SheetDescription>
           <Sidebar collapsed={false} />
         </SheetContent>
       </Sheet>

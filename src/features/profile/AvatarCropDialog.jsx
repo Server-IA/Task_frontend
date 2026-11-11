@@ -6,6 +6,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } fr
 import { Spinner } from '@/components/common/Loaders'
 import { Segmented } from '@/components/common/Segmented'
 import { formatSize } from '@/features/files/fileTypes'
+import { t, tx } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { MAX_ZOOM, MIN_ZOOM, clampOffset, clampZoom, cropRect, loadImage, renderCrop, zoomOffset } from './cropImage'
 
@@ -17,8 +18,8 @@ const STEP = 10
 const ZOOM_STEP = 0.1
 
 const SHAPES = [
-  { value: 'circle', label: 'Círculo' },
-  { value: 'square', label: 'Cuadrado' },
+  { value: 'circle', label: t('Círculo') },
+  { value: 'square', label: t('Cuadrado') },
 ]
 
 /** Tamaños de la vista previa (perfil, miembros, tarjetas) y su redondeo en «Cuadrado». */
@@ -117,7 +118,7 @@ function CropEditor({ file, onSave, onPickAnother, onError }) {
       const blob = await renderCrop(loaded.image, cropRect(size, { zoom: view.zoom, frame: FRAME, offset: view.offset }))
       onSave(blob)
     } catch (error) {
-      toast.error(error.message || 'No se pudo preparar la foto.')
+      toast.error(error.message || t('No se pudo preparar la foto.'))
       setSaving(false)
     }
   }
@@ -144,11 +145,11 @@ function CropEditor({ file, onSave, onPickAnother, onError }) {
     >
       <div className="flex items-center gap-2.5 border-b px-[18px] py-4">
         <div className="min-w-0 flex-1">
-          <DialogTitle className="text-[17px] font-semibold">Ajusta tu foto</DialogTitle>
+          <DialogTitle className="text-[17px] font-semibold">{t('Ajusta tu foto')}</DialogTitle>
           <DialogDescription className="mt-0.5 truncate font-mono text-[11.5px]">{meta}</DialogDescription>
         </div>
         <DialogClose asChild>
-          <Button variant="ghost" size="icon" className="size-8 text-muted-foreground" aria-label="Cerrar">
+          <Button variant="ghost" size="icon" className="size-8 text-muted-foreground" aria-label={t('Cerrar')}>
             <X className="size-4" />
           </Button>
         </DialogClose>
@@ -160,8 +161,8 @@ function CropEditor({ file, onSave, onPickAnother, onError }) {
             ref={stageRef}
             role="group"
             tabIndex={0}
-            aria-label="Área de recorte: arrastra para mover la foto"
-            aria-roledescription="recorte"
+            aria-label={t('Área de recorte: arrastra para mover la foto')}
+            aria-roledescription={t('recorte')}
             className={cn(
               'relative shrink-0 touch-none overflow-hidden rounded-[14px] bg-[#1E1C19] outline-none select-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card',
               loaded ? 'cursor-grab active:cursor-grabbing' : 'animate-pulse',
@@ -220,13 +221,13 @@ function CropEditor({ file, onSave, onPickAnother, onError }) {
             )}
           </div>
           <div className="flex items-center gap-2.5" style={{ width: STAGE }}>
-            <button type="button" className="text-muted-foreground hover:text-foreground disabled:opacity-50" aria-label="Alejar" disabled={!loaded} onClick={() => zoomTo((zoom) => zoom - ZOOM_STEP)}>
+            <button type="button" className="text-muted-foreground hover:text-foreground disabled:opacity-50" aria-label={t('Alejar')} disabled={!loaded} onClick={() => zoomTo((zoom) => zoom - ZOOM_STEP)}>
               <Minus className="size-3.5" strokeWidth={2.2} />
             </button>
             <input
               type="range"
               aria-label="Zoom"
-              aria-valuetext={`${percent} %`}
+              aria-valuetext={t('{percent} %', { percent })}
               min={MIN_ZOOM * 100}
               max={MAX_ZOOM * 100}
               step={1}
@@ -235,18 +236,18 @@ function CropEditor({ file, onSave, onPickAnother, onError }) {
               onChange={(event) => zoomTo(() => Number(event.target.value) / 100)}
               className="h-1 min-w-0 flex-1 cursor-pointer accent-ring"
             />
-            <button type="button" className="text-muted-foreground hover:text-foreground disabled:opacity-50" aria-label="Acercar" disabled={!loaded} onClick={() => zoomTo((zoom) => zoom + ZOOM_STEP)}>
+            <button type="button" className="text-muted-foreground hover:text-foreground disabled:opacity-50" aria-label={t('Acercar')} disabled={!loaded} onClick={() => zoomTo((zoom) => zoom + ZOOM_STEP)}>
               <Plus className="size-3.5" strokeWidth={2.2} />
             </button>
-            <span className="w-11 text-right font-mono text-[11.5px] text-muted-foreground">{percent} %</span>
+            <span className="w-11 text-right font-mono text-[11.5px] text-muted-foreground">{t('{percent} %', { percent })}</span>
           </div>
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col gap-3.5">
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-semibold">Forma</span>
+            <span className="text-xs font-semibold">{t('Forma')}</span>
             <Segmented
-              label="Forma de la vista previa"
+              label={t('Forma de la vista previa')}
               value={shape}
               onChange={setShape}
               options={SHAPES}
@@ -257,13 +258,13 @@ function CropEditor({ file, onSave, onPickAnother, onError }) {
             />
           </div>
           <div className="flex flex-col gap-2">
-            <span className="text-xs font-semibold">Vista previa</span>
+            <span className="text-xs font-semibold">{t('Vista previa')}</span>
             <div className="flex items-end gap-3">
               {PREVIEWS.map(({ size: side, radius }) => (
                 <span
                   key={side}
                   role="img"
-                  aria-label={`Vista previa ${side} px`}
+                  aria-label={t('Vista previa {size} px', { size: side })}
                   className="relative block shrink-0 overflow-hidden bg-muted"
                   style={{ width: side, height: side, borderRadius: shape === 'circle' ? '50%' : radius }}
                 >
@@ -273,24 +274,27 @@ function CropEditor({ file, onSave, onPickAnother, onError }) {
             </div>
           </div>
           <p className="text-xs leading-normal text-muted-foreground">
-            Arrastra para mover y usa la rueda o el control para acercar. Se guarda una copia cuadrada de 512 × 512 en WebP; la original no se sube.
+            {t('Arrastra para mover y usa la rueda o el control para acercar. Se guarda una copia cuadrada de 512 × 512 en WebP; la original no se sube.')}
           </p>
           <button type="button" className="self-start text-[12.5px] font-medium text-accent-text underline underline-offset-2 hover:no-underline" onClick={onPickAnother}>
-            Elegir otra imagen
+            {t('Elegir otra imagen')}
           </button>
         </div>
       </div>
 
       <div className="flex items-center justify-end gap-2 border-t bg-subtle px-[18px] py-3">
         <span className="mr-auto font-mono text-[11px] text-muted-foreground">
-          <kbd className="text-foreground">↵</kbd> guardar · <kbd className="text-foreground">esc</kbd> cancelar
+          {tx('{enter} guardar · {esc} cancelar', {
+            enter: <kbd className="text-foreground">↵</kbd>,
+            esc: <kbd className="text-foreground">esc</kbd>,
+          })}
         </span>
         <DialogClose asChild>
-          <Button variant="outline">Cancelar</Button>
+          <Button variant="outline">{t('Cancelar')}</Button>
         </DialogClose>
         <Button onClick={save} disabled={!loaded || saving}>
           {saving && <Spinner />}
-          Guardar foto
+          {t('Guardar foto')}
         </Button>
       </div>
     </div>

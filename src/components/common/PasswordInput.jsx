@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import { t } from '@/i18n'
 import { cn } from '@/lib/utils'
 
 export function PasswordInput({ className, ...props }) {
@@ -12,7 +13,7 @@ export function PasswordInput({ className, ...props }) {
         type="button"
         onClick={() => setVisible((value) => !value)}
         className="absolute inset-y-0 right-0 flex w-9 items-center justify-center text-muted-foreground hover:text-foreground"
-        aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+        aria-label={visible ? t('Ocultar contraseña') : t('Mostrar contraseña')}
         tabIndex={-1}
       >
         {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}

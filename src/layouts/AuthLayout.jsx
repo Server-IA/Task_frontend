@@ -4,6 +4,7 @@ import { Logo, LogoMark } from '@/components/common/Logo'
 import { SplashStage } from '@/components/common/Splash'
 import { LanguageToggle } from '@/components/common/LanguageToggle'
 import { ThemeToggle } from '@/components/common/ThemeToggle'
+import { t } from '@/i18n'
 import { INTRO, markFirstScreen, peekIntro } from '@/lib/intro'
 import { cn } from '@/lib/utils'
 
@@ -89,7 +90,7 @@ export function SplitShell({ caption, panel, children, intro = false }) {
     <div data-intro={phase ?? undefined} className="flex min-h-svh gap-3.5 p-2 sm:p-3.5">
       {cover}
       <aside className="tf-intro-aside hidden flex-[1_1_520px] flex-col rounded-[22px] bg-sidebar px-8 py-6.5 text-sidebar-foreground lg:flex">
-        <p className="font-mono text-[11px] text-sidebar-muted">~/acceso</p>
+        <p className="font-mono text-[11px] text-sidebar-muted">{t('~/acceso')}</p>
         <div className={cn('flex flex-1 flex-col items-center justify-center gap-9 py-7', !phase && 'tf-fade')}>
           <div className="flex flex-col items-center gap-4 text-center">
             <span ref={markRef} className={cn('block', markHidden && 'opacity-0')}>

@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import { Lock, SearchX, TriangleAlert } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { t } from '@/i18n'
 import { toApiError } from '@/lib/errors'
 import { cn } from '@/lib/utils'
 
@@ -31,11 +32,11 @@ export function ErrorState({ error, onRetry, homeLink = '/', className }) {
       <EmptyState
         className={className}
         icon={Lock}
-        title="No tienes acceso"
-        description="No eres miembro de este espacio o no tienes permiso para verlo."
+        title={t('No tienes acceso')}
+        description={t('No eres miembro de este espacio o no tienes permiso para verlo.')}
         action={
           <Button asChild variant="outline">
-            <Link to={homeLink}>Volver</Link>
+            <Link to={homeLink}>{t('Volver')}</Link>
           </Button>
         }
       />
@@ -46,11 +47,11 @@ export function ErrorState({ error, onRetry, homeLink = '/', className }) {
       <EmptyState
         className={className}
         icon={SearchX}
-        title="No encontrado"
+        title={t('No encontrado')}
         description={message}
         action={
           <Button asChild variant="outline">
-            <Link to={homeLink}>Volver</Link>
+            <Link to={homeLink}>{t('Volver')}</Link>
           </Button>
         }
       />
@@ -60,12 +61,12 @@ export function ErrorState({ error, onRetry, homeLink = '/', className }) {
     <EmptyState
       className={className}
       icon={TriangleAlert}
-      title="Algo salió mal"
+      title={t('Algo salió mal')}
       description={message}
       action={
         onRetry && (
           <Button variant="outline" onClick={onRetry}>
-            Reintentar
+            {t('Reintentar')}
           </Button>
         )
       }

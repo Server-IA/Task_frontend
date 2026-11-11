@@ -1,11 +1,12 @@
+import { stateName, t } from '@/i18n'
 import { cn } from '@/lib/utils'
 
 export const STATE_GROUP_LABELS = {
-  BACKLOG: 'Backlog',
-  UNSTARTED: 'Sin empezar',
-  STARTED: 'En curso',
-  COMPLETED: 'Completado',
-  CANCELLED: 'Cancelado',
+  BACKLOG: t('Backlog'),
+  UNSTARTED: t('Sin empezar'),
+  STARTED: t('En curso'),
+  COMPLETED: t('Completado'),
+  CANCELLED: t('Cancelado'),
 }
 
 /** Colores muy oscuros (luminancia relativa baja) que no se verían sobre el fondo oscuro. */
@@ -81,7 +82,7 @@ export function StateBadge({ state, className }) {
   return (
     <span className={cn('inline-flex min-w-0 items-center gap-1.5 text-sm', className)}>
       <StateIcon group={state.group} color={state.color} />
-      <span className="truncate">{state.name}</span>
+      <span className="truncate">{stateName(state)}</span>
     </span>
   )
 }

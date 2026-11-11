@@ -1,4 +1,5 @@
 import { ONLY_IMAGES, validateFile } from '@/features/files/fileTypes'
+import { t } from '@/i18n'
 
 /**
  * Recorte de la foto de perfil, sin React: qué parte de la imagen original entra en el marco (según el zoom y cuánto se
@@ -20,8 +21,8 @@ export const MIN_ZOOM = 1
 export const MAX_ZOOM = 3
 const WEBP_QUALITY = 0.9
 
-export const AVATAR_TYPE_ERROR = 'Solo se aceptan fotos PNG, JPG o WebP.'
-export const AVATAR_READ_ERROR = 'No se pudo leer la imagen. Prueba con otra.'
+export const AVATAR_TYPE_ERROR = t('Solo se aceptan fotos PNG, JPG o WebP.')
+export const AVATAR_READ_ERROR = t('No se pudo leer la imagen. Prueba con otra.')
 
 /**
  * Valida la foto elegida antes de recortarla: PNG, JPG o WebP de hasta 5 MB (`IMAGE_LIMIT`, como el backend).
@@ -115,14 +116,14 @@ const toBlob = (canvas, type, quality) => new Promise((resolve) => canvas.toBlob
 export async function renderCrop(source, rect, { size = AVATAR_SIZE, createCanvas = defaultCanvas } = {}) {
   const canvas = createCanvas(size, size)
   const context = canvas.getContext('2d')
-  if (!context) throw new Error('No se pudo preparar la foto.')
+  if (!context) throw new Error(t('No se pudo preparar la foto.'))
   context.imageSmoothingEnabled = true
   context.imageSmoothingQuality = 'high'
   context.drawImage(source, rect.sx, rect.sy, rect.size, rect.size, 0, 0, size, size)
   const webp = await toBlob(canvas, 'image/webp', WEBP_QUALITY)
   if (webp && (webp.type === 'image/webp' || webp.type === 'image/png')) return webp
   const png = await toBlob(canvas, 'image/png')
-  if (!png) throw new Error('No se pudo preparar la foto.')
+  if (!png) throw new Error(t('No se pudo preparar la foto.'))
   return png
 }
 

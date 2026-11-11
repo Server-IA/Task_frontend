@@ -2,27 +2,28 @@
  * Orden del menú lateral (funciones puras). Cada persona elige cómo lo ve: como viene, alfabético o a su gusto.
  * «Buscar» no entra aquí: siempre va primero.
  */
+import { localeTag, t } from '@/i18n'
 
 /** Entradas del menú principal en su orden de fábrica. `key` es estable (se guarda en las preferencias). */
 export const MAIN_MENU = [
-  { key: 'inbox', label: 'Bandeja' },
-  { key: 'my-work', label: 'Mi trabajo' },
-  { key: 'activity', label: 'Actividad' },
-  { key: 'projects', label: 'Proyectos' },
-  { key: 'settings', label: 'Ajustes' },
+  { key: 'inbox', label: t('Bandeja') },
+  { key: 'my-work', label: t('Mi trabajo') },
+  { key: 'activity', label: t('Actividad') },
+  { key: 'projects', label: t('Proyectos') },
+  { key: 'settings', label: t('Ajustes') },
 ]
 
 /** Secciones de un proyecto con su atajo de teclado (ver ProjectLayout). `path` es su clave y su ruta. */
 export const PROJECT_SECTIONS = [
-  { path: 'issues', label: 'Tareas', hint: 'I' },
-  { path: 'stories', label: 'Historias', hint: 'H' },
-  { path: 'cycles', label: 'Ciclos', hint: 'Y' },
-  { path: 'daily', label: 'Daily', hint: 'D' },
-  { path: 'modules', label: 'Módulos', hint: 'M' },
-  { path: 'roadmap', label: 'Hoja de ruta', hint: 'R' },
-  { path: 'stats', label: 'Estadísticas', hint: 'S' },
-  { path: 'reports', label: 'Reportes', hint: 'E' },
-  { path: 'settings', label: 'Ajustes', hint: ',' },
+  { path: 'issues', label: t('Tareas'), hint: 'I' },
+  { path: 'stories', label: t('Historias'), hint: 'H' },
+  { path: 'cycles', label: t('Ciclos'), hint: 'Y' },
+  { path: 'daily', label: t('Daily'), hint: 'D' },
+  { path: 'modules', label: t('Módulos'), hint: 'M' },
+  { path: 'roadmap', label: t('Hoja de ruta'), hint: 'R' },
+  { path: 'stats', label: t('Estadísticas'), hint: 'S' },
+  { path: 'reports', label: t('Reportes'), hint: 'E' },
+  { path: 'settings', label: t('Ajustes'), hint: ',' },
 ]
 
 /** Secciones del proyecto que solo ve quien tiene ese permiso (las demás, cualquiera del proyecto). */
@@ -32,9 +33,9 @@ export const SECTION_PERMISSIONS = {
 }
 
 export const MENU_ORDER_MODES = [
-  { value: 'default', label: 'Por defecto' },
-  { value: 'alpha', label: 'Alfabético' },
-  { value: 'custom', label: 'Personalizado' },
+  { value: 'default', label: t('Por defecto') },
+  { value: 'alpha', label: t('Alfabético') },
+  { value: 'custom', label: t('Personalizado') },
 ]
 const MODE_VALUES = new Set(MENU_ORDER_MODES.map((mode) => mode.value))
 
@@ -52,7 +53,8 @@ export function sanitizeMenuOrder(value) {
 }
 
 /**
- * Ordena `items` según el modo. En «personalizado» manda `customKeys`; lo que no esté ahí (una sección nueva que
+ * Ordena `items` según el modo. En «alfabético» se ordena por el nombre ya traducido, con las reglas del idioma
+ * elegido. En «personalizado» manda `customKeys`; lo que no esté ahí (una sección nueva que
  * todavía no existía cuando la persona ordenó) va al final en su orden de fábrica, y las claves que ya no existen se
  * ignoran.
  * @template T
@@ -65,7 +67,7 @@ export function sanitizeMenuOrder(value) {
  */
 export function orderItems(items, mode, customKeys = [], keyOf = (item) => item.key, labelOf = (item) => item.label) {
   if (mode === 'alpha') {
-    return [...items].sort((a, b) => labelOf(a).localeCompare(labelOf(b), 'es', { sensitivity: 'base' }))
+    return [...items].sort((a, b) => labelOf(a).localeCompare(labelOf(b), localeTag(), { sensitivity: 'base' }))
   }
   if (mode !== 'custom') return items
   const position = new Map(customKeys.map((key, index) => [key, index]))

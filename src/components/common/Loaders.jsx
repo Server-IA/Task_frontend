@@ -1,5 +1,6 @@
 import { Loader2 } from 'lucide-react'
 import { SplashStage } from '@/components/common/Splash'
+import { t } from '@/i18n'
 import { cn } from '@/lib/utils'
 
 export function Spinner({ className }) {
@@ -12,7 +13,7 @@ export function Spinner({ className }) {
  */
 export function FullScreenLoader() {
   return (
-    <div role="status" aria-label="Cargando" className="fixed inset-0 bg-background">
+    <div role="status" aria-label={t('Cargando')} className="fixed inset-0 bg-background">
       <SplashStage />
     </div>
   )

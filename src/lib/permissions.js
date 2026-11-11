@@ -4,11 +4,18 @@
  * - «Miembro» o un rol creado por el workspace («Líder», «Desarrollador»…): los que tenga marcados.
  * El workspace trae los permisos de quien lo pide en `myPermissions` (nombres del catálogo del backend).
  */
+import { t } from '@/i18n'
 
 export const ROLE_LABELS = {
-  OWNER: 'Project manager',
-  MEMBER: 'Miembro',
+  OWNER: t('Project manager'),
+  MEMBER: t('Miembro'),
 }
+
+/**
+ * El nombre de un rol para mostrar. El rol «Miembro» de fábrica se guarda en el backend con ese nombre: mientras lo
+ * conserve se ve en el idioma elegido. Uno renombrado o creado por el workspace se ve como lo escribieron.
+ */
+const shownRoleName = (name) => (name === 'Miembro' ? t('Miembro') : name)
 
 /** Project manager del workspace. */
 export const isManager = (role) => role === 'OWNER'
@@ -51,10 +58,10 @@ export function can(access, permission) {
 }
 
 /** Nombre del rol de quien usa la app en ese workspace («Project manager», «Miembro», «Líder»…). */
-export const myRoleName = (workspace) => workspace?.myRoleName ?? ROLE_LABELS[workspace?.myRole] ?? ''
+export const myRoleName = (workspace) => shownRoleName(workspace?.myRoleName) ?? ROLE_LABELS[workspace?.myRole] ?? ''
 
 /** Nombre del rol de un miembro o de una invitación. */
-export const roleNameOf = (member) => member?.roleName ?? ROLE_LABELS[member?.role] ?? ''
+export const roleNameOf = (member) => shownRoleName(member?.roleName) ?? ROLE_LABELS[member?.role] ?? ''
 
 /**
  * Eliminar una tarea: las propias con «eliminar sus propias tareas» y las de otros con «eliminar cualquier tarea».

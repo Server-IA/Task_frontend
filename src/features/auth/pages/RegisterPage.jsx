@@ -11,6 +11,7 @@ import { PasswordRules } from '@/components/common/PasswordRules'
 import { Spinner } from '@/components/common/Loaders'
 import { AuthCard, AuthHeader, AuthIcon, CenteredShell, SplitShell } from '@/layouts/AuthLayout'
 import { useCooldown } from '@/hooks/useCooldown'
+import { t, tx } from '@/i18n'
 import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
@@ -19,9 +20,9 @@ import { useRegister } from '../hooks'
 import { registerSchema } from '../schemas'
 
 const STEPS = [
-  { n: '01', title: 'Crea tu cuenta', body: 'Nombre, correo y contraseña.', tag: 'ahora' },
-  { n: '02', title: 'Confirma tu correo', body: 'Un clic en el enlace que te enviamos.', tag: '~1 min' },
-  { n: '03', title: 'Arma tu workspace', body: 'Invita a tu equipo y crea el primer proyecto.', tag: '~2 min' },
+  { n: '01', title: t('Crea tu cuenta'), body: t('Nombre, correo y contraseña.'), tag: t('ahora') },
+  { n: '02', title: t('Confirma tu correo'), body: t('Un clic en el enlace que te enviamos.'), tag: '~1 min' },
+  { n: '03', title: t('Arma tu workspace'), body: t('Invita a tu equipo y crea el primer proyecto.'), tag: '~2 min' },
 ]
 
 export function RegisterPage() {
@@ -43,7 +44,7 @@ export function RegisterPage() {
         onSuccess: (user) => setRegisteredEmail(user.email),
         onError: (error) => {
           if (!applyFieldErrors(error, form.setError)) {
-            cooldown.start(notifyError(error, 'No se pudo crear la cuenta'))
+            cooldown.start(notifyError(error, t('No se pudo crear la cuenta')))
           }
         },
       },
@@ -55,11 +56,11 @@ export function RegisterPage() {
   }
 
   return (
-    <SplitShell caption="registro en 3 pasos" panel={<Steps />}>
+    <SplitShell caption={t('registro en 3 pasos')} panel={<Steps />}>
       <AuthHeader
-        path="~/acceso/registro · paso 1/3"
-        title="Crea tu cuenta"
-        description="Te enviaremos un correo para confirmar que es tuyo."
+        path={t('~/acceso/registro · paso 1/3')}
+        title={t('Crea tu cuenta')}
+        description={t('Te enviaremos un correo para confirmar que es tuyo.')}
       />
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3.5" noValidate>
@@ -68,9 +69,9 @@ export function RegisterPage() {
             name="fullName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Nombre completo</FormLabel>
+                <FormLabel>{t('Nombre completo')}</FormLabel>
                 <FormControl>
-                  <Input autoComplete="name" placeholder="Ana Pérez" autoFocus className="h-10" {...field} />
+                  <Input autoComplete="name" placeholder={t('Ana Pérez')} autoFocus className="h-10" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -81,9 +82,9 @@ export function RegisterPage() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Correo</FormLabel>
+                <FormLabel>{t('Correo')}</FormLabel>
                 <FormControl>
-                  <Input type="email" autoComplete="email" placeholder="tu@correo.com" className="h-10" {...field} />
+                  <Input type="email" autoComplete="email" placeholder={t('tu@correo.com')} className="h-10" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -94,7 +95,7 @@ export function RegisterPage() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Contraseña</FormLabel>
+                <FormLabel>{t('Contraseña')}</FormLabel>
                 <FormControl>
                   <PasswordInput autoComplete="new-password" className="h-10" {...field} />
                 </FormControl>
@@ -108,9 +109,9 @@ export function RegisterPage() {
             name="confirmPassword"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Confirmar contraseña</FormLabel>
+                <FormLabel>{t('Confirmar contraseña')}</FormLabel>
                 <FormControl>
-                  <PasswordInput autoComplete="new-password" placeholder="Repite la contraseña" className="h-10" {...field} />
+                  <PasswordInput autoComplete="new-password" placeholder={t('Repite la contraseña')} className="h-10" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -118,15 +119,18 @@ export function RegisterPage() {
           />
           <Button type="submit" className="mt-1 h-11 w-full rounded-xl" disabled={register.isPending || cooldown.active}>
             {register.isPending && <Spinner />}
-            {cooldown.active ? `Espera ${cooldown.secondsLeft} s` : 'Crear cuenta'}
+            {cooldown.active ? t('Espera {seconds} s', { seconds: cooldown.secondsLeft }) : t('Crear cuenta')}
           </Button>
         </form>
       </Form>
       <p className="text-sm text-muted-foreground">
-        ¿Ya tienes cuenta?{' '}
-        <Link to="/login" state={location.state} className="font-semibold text-accent-text hover:underline">
-          Iniciar sesión
-        </Link>
+        {tx('¿Ya tienes cuenta? {link}', {
+          link: (
+            <Link to="/login" state={location.state} className="font-semibold text-accent-text hover:underline">
+              {t('Iniciar sesión')}
+            </Link>
+          ),
+        })}
       </p>
     </SplitShell>
   )
@@ -164,7 +168,7 @@ function Steps() {
 
 function CheckYourEmail({ email }) {
   return (
-    <CenteredShell meta="~/acceso/registro · paso 2/3">
+    <CenteredShell meta={t('~/acceso/registro · paso 2/3')}>
       <AuthCard aria-labelledby="revisa-titulo">
         <AuthIcon>
           <Mail className="size-7" strokeWidth={1.8} />
@@ -172,34 +176,34 @@ function CheckYourEmail({ email }) {
         <div id="revisa-titulo">
           <AuthHeader
             size="md"
-            title="Revisa tu correo"
-            description={
-              <>
-                Enviamos un enlace de confirmación a <strong className="font-semibold text-foreground">{email}</strong>. Ábrelo
-                desde este dispositivo o cualquier otro.
-              </>
-            }
+            title={t('Revisa tu correo')}
+            description={tx('Enviamos un enlace de confirmación a {email}. Ábrelo desde este dispositivo o cualquier otro.', {
+              email: <strong className="font-semibold text-foreground">{email}</strong>,
+            })}
           />
         </div>
         <dl className="grid grid-cols-[auto_1fr] gap-x-3.5 gap-y-1.5 rounded-xl bg-muted px-3.5 py-3 font-mono text-xs">
-          <dt className="text-muted-foreground">asunto</dt>
-          <dd>Verifica tu cuenta de TaskFlow</dd>
-          <dt className="text-muted-foreground">expira</dt>
-          <dd>en 24 h</dd>
+          <dt className="text-muted-foreground">{t('asunto')}</dt>
+          <dd>{t('Verifica tu cuenta de TaskFlow')}</dd>
+          <dt className="text-muted-foreground">{t('expira')}</dt>
+          <dd>{t('en 24 h')}</dd>
         </dl>
         <div className="flex flex-wrap gap-2">
           <ResendVerificationButton email={email} className="h-10 flex-[1_1_180px] rounded-xl" />
           <Button asChild className="h-10 flex-[1_1_140px] rounded-xl">
             <Link to="/login" state={{ email }}>
-              Ir a iniciar sesión
+              {t('Ir a iniciar sesión')}
             </Link>
           </Button>
         </div>
         <p className="border-t border-dashed border-dash pt-3.5 text-[13px] text-muted-foreground">
-          ¿No llega? Revisa spam o promociones. ¿Escribiste mal el correo?{' '}
-          <Link to="/register" reloadDocument className="font-semibold text-accent-text hover:underline">
-            Regístrate de nuevo
-          </Link>
+          {tx('¿No llega? Revisa spam o promociones. ¿Escribiste mal el correo? {link}', {
+            link: (
+              <Link to="/register" reloadDocument className="font-semibold text-accent-text hover:underline">
+                {t('Regístrate de nuevo')}
+              </Link>
+            ),
+          })}
         </p>
       </AuthCard>
     </CenteredShell>

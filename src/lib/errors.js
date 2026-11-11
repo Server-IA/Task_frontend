@@ -2,10 +2,14 @@
  * Errores de la API normalizados al formato del backend:
  * `{ status, message, errors?, retryAfter?, code? }`; `data` es el cuerpo tal cual (por ejemplo, el 409 de una
  * descripción que cambió trae la versión actual).
+ *
+ * El `message` del backend ya llega en el idioma elegido (cabecera `Accept-Language`); los mensajes propios del
+ * front (sin conexión, error inesperado, sesión vencida) se traducen aquí.
  */
+import { t } from '@/i18n'
 
-const NETWORK_MESSAGE = 'No se pudo conectar con el servidor. Revisa tu conexión.'
-const UNEXPECTED_MESSAGE = 'Ocurrió un error inesperado. Intenta de nuevo.'
+const NETWORK_MESSAGE = t('No se pudo conectar con el servidor. Revisa tu conexión.')
+const UNEXPECTED_MESSAGE = t('Ocurrió un error inesperado. Intenta de nuevo.')
 
 export class ApiError extends Error {
   constructor({ status, message, errors = null, retryAfter = null, code = null, data = null }) {
@@ -21,7 +25,7 @@ export class ApiError extends Error {
 
 /** Código del error de una petición que falló porque la sesión venció (el refresh ya no sirve): no se avisa con un toast. */
 export const SESSION_EXPIRED = 'SESSION_EXPIRED'
-export const SESSION_EXPIRED_MESSAGE = 'Tu sesión expiró. Vuelve a iniciar sesión.'
+export const SESSION_EXPIRED_MESSAGE = t('Tu sesión expiró. Vuelve a iniciar sesión.')
 
 /** Si el error es el de una sesión vencida (la app ya lleva al login y lo dice ahí). */
 export function isSessionExpired(error) {

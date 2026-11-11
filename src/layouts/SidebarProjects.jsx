@@ -8,13 +8,14 @@ import { CreateProjectDialog } from '@/features/projects/components/CreateProjec
 import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
 import { useProjects } from '@/features/projects/hooks'
 import { useWorkspace } from '@/features/workspaces/hooks'
+import { t, tn } from '@/i18n'
 import { can } from '@/lib/permissions'
 import { usePreferencesStore } from '@/stores/preferencesStore'
 import { orderItems, PROJECT_SECTIONS, SECTION_PERMISSIONS } from './menuOrder'
 import { SidebarLink } from './Sidebar'
 
 /** «12 abiertas» / «1 abierta». */
-const openLabel = (count = 0) => `${count} ${count === 1 ? 'abierta' : 'abiertas'}`
+const openLabel = (count = 0) => tn(count, '{count} abierta', '{count} abiertas')
 
 /** Lista «// proyectos»: el proyecto abierto se despliega con sus secciones, los demás son un enlace. */
 export function SidebarProjects({ slug, currentProjectId, collapsed }) {
@@ -28,7 +29,7 @@ export function SidebarProjects({ slug, currentProjectId, collapsed }) {
     <div className="flex flex-col gap-0.5">
       {!collapsed && (
         <div className="flex min-h-7.5 items-center justify-between pr-1 pb-1.5 pl-2.5">
-          <span className="font-mono text-[11px] text-sidebar-muted">// proyectos</span>
+          <span className="font-mono text-[11px] text-sidebar-muted">{t('// proyectos')}</span>
           {canCreate && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -37,12 +38,12 @@ export function SidebarProjects({ slug, currentProjectId, collapsed }) {
                   size="icon"
                   className="size-6 text-sidebar-muted hover:bg-sidebar-accent"
                   onClick={() => setCreateOpen(true)}
-                  aria-label="Nuevo proyecto"
+                  aria-label={t('Nuevo proyecto')}
                 >
                   <Plus className="size-3.5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="right">Nuevo proyecto</TooltipContent>
+              <TooltipContent side="right">{t('Nuevo proyecto')}</TooltipContent>
             </Tooltip>
           )}
         </div>
@@ -93,13 +94,13 @@ function CurrentProject({ slug, project, base, workspace }) {
     // «2 sin partir» (o, si están todas partidas, cuántas hay abiertas)
     stories:
       project.unsplitStoryCount > 0
-        ? `${project.unsplitStoryCount} sin partir`
+        ? t('{count} sin partir', { count: project.unsplitStoryCount })
         : project.openStoryCount > 0
           ? openLabel(project.openStoryCount)
           : undefined,
     cycles: currentCycle?.name,
-    daily: 'hoy',
-    modules: activeModules > 0 ? `${activeModules} ${activeModules === 1 ? 'activo' : 'activos'}` : undefined,
+    daily: t('hoy'),
+    modules: activeModules > 0 ? tn(activeModules, '{count} activo', '{count} activos') : undefined,
   }
 
   return (
@@ -115,7 +116,7 @@ function CurrentProject({ slug, project, base, workspace }) {
             to={`${base}/${section.path}`}
             label={section.label}
             meta={meta[section.path]}
-            title={`${section.label} · atajo ${section.hint}`}
+            title={t('{section} · atajo {key}', { section: section.label, key: section.hint })}
             className="h-8 pl-3 hover:bg-sidebar-active/60"
           />
         ))}

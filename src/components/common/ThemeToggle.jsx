@@ -9,11 +9,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useTheme } from '@/hooks/useTheme'
+import { t } from '@/i18n'
 
 export const THEME_OPTIONS = [
-  { value: 'light', label: 'Claro', icon: Sun },
-  { value: 'dark', label: 'Oscuro', icon: Moon },
-  { value: 'system', label: 'Sistema', icon: Monitor },
+  { value: 'light', label: t('Claro'), icon: Sun },
+  { value: 'dark', label: t('Oscuro'), icon: Moon },
+  { value: 'system', label: t('Sistema'), icon: Monitor },
 ]
 
 /** Opciones de tema para usar dentro de cualquier DropdownMenuContent. */
@@ -37,12 +38,12 @@ export function ThemeToggle() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Cambiar tema">
+        <Button variant="ghost" size="icon" aria-label={t('Cambiar tema')}>
           {resolvedTheme === 'dark' ? <Moon className="size-4" /> : <Sun className="size-4" />}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuLabel>Tema</DropdownMenuLabel>
+        <DropdownMenuLabel>{t('Tema')}</DropdownMenuLabel>
         <ThemeRadioItems />
       </DropdownMenuContent>
     </DropdownMenu>

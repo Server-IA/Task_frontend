@@ -24,6 +24,7 @@ import { ProjectSettingsPage } from '@/features/projects/pages/ProjectSettingsPa
 import { StatsPage } from '@/features/stats/pages/StatsPage'
 import { StoriesPage } from '@/features/stories/pages/StoriesPage'
 import { HomeRedirect } from '@/features/workspaces/pages/HomeRedirect'
+import { t } from '@/i18n'
 import { InvitationPage } from '@/features/workspaces/pages/InvitationPage'
 import { OnboardingPage } from '@/features/workspaces/pages/OnboardingPage'
 import { WorkspaceHomePage } from '@/features/workspaces/pages/WorkspaceHomePage'
@@ -76,7 +77,7 @@ export const router = createBrowserRouter([
                   {
                     path: 'activity',
                     element: (
-                      <RequirePermission permission="ACTIVITY_VIEW" title="Actividad">
+                      <RequirePermission permission="ACTIVITY_VIEW" title={t('Actividad')}>
                         <ActivityPage />
                       </RequirePermission>
                     ),
@@ -99,7 +100,7 @@ export const router = createBrowserRouter([
                       {
                         path: 'stats',
                         element: (
-                          <RequirePermission permission="STATS_VIEW" title="Estadísticas">
+                          <RequirePermission permission="STATS_VIEW" title={t('Estadísticas')}>
                             <StatsPage />
                           </RequirePermission>
                         ),
@@ -107,7 +108,7 @@ export const router = createBrowserRouter([
                       {
                         path: 'reports',
                         element: (
-                          <RequirePermission permission="REPORT_GENERATE" title="Reportes">
+                          <RequirePermission permission="REPORT_GENERATE" title={t('Reportes')}>
                             <ReportsPage />
                           </RequirePermission>
                         ),

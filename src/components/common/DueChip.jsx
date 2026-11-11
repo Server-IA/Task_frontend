@@ -1,4 +1,5 @@
 import { Clock3 } from 'lucide-react'
+import { t } from '@/i18n'
 import { describeDueDate, formatShortDate } from '@/lib/dates'
 import { cn } from '@/lib/utils'
 
@@ -11,7 +12,7 @@ export const DUE_TONES = {
 
 /** Fecha límite en lenguaje humano como pastilla de solo lectura («mañana», «venció hace 2 días», «sin fecha»). */
 export function DueChip({ value, closed = false, className }) {
-  const info = value ? describeDueDate(value, { closed }) : { text: 'sin fecha', tone: 'normal' }
+  const info = value ? describeDueDate(value, { closed }) : { text: t('sin fecha'), tone: 'normal' }
   return (
     <span
       className={cn(
@@ -19,7 +20,7 @@ export function DueChip({ value, closed = false, className }) {
         DUE_TONES[info.tone],
         className,
       )}
-      title={value ? `Fecha límite: ${formatShortDate(value)}` : undefined}
+      title={value ? t('Fecha límite: {date}', { date: formatShortDate(value) }) : undefined}
     >
       {value && <Clock3 className="size-3" aria-hidden="true" />}
       {info.text}
