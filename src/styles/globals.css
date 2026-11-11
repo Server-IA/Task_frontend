@@ -1074,7 +1074,9 @@
  * Animaciones cortas de momentos concretos (no de la navegación de todos los días):
  * - .tf-pulse: un número que cambió (contador de una columna, insignia de la bandeja).
  * - .tf-settle: la tarjeta recién soltada en el tablero.
- * - .tf-new-row: la tarea recién creada, resaltada un momento; .tf-ghost: la caja que va del diálogo a ella.
+ * - .tf-new-row: la tarea recién creada, resaltada un momento; .tf-ghost y .tf-task-chip: el diálogo que se encoge
+ *   hasta una ficha y la ficha que viaja hasta ella (`landNewTask`).
+ * - .tf-done-flash: la tarea recién completada se enciende en verde.
  * - .tf-state-done / .tf-strike-in: una tarea que pasa a completada (el check se dibuja, el título se tacha).
  * - .tf-bar-grow: la barra de avance de un ciclo recién cerrado.
  * - .tf-col / .tf-line: las columnas y la línea de los gráficos al abrir las estadísticas.
@@ -1099,13 +1101,73 @@
 .tf-settle {
   animation: tf-settle 320ms cubic-bezier(0.22, 1, 0.36, 1);
 }
+/* En una fila solo cambia el fondo: va dentro de una tarjeta de esquinas redondeadas y un borde se cortaría en ellas.
+   En una tarjeta del tablero (`article`), que tiene sus propias esquinas, además lleva un borde */
 @keyframes tf-new-row {
-  from {
+  from,
+  35% {
     background-color: var(--accent-soft);
   }
 }
+@keyframes tf-new-card {
+  from,
+  35% {
+    background-color: var(--accent-soft);
+    box-shadow: inset 0 0 0 1.5px var(--accent-text);
+  }
+}
 .tf-new-row {
-  animation: tf-new-row 1800ms ease-out;
+  animation: tf-new-row 2000ms ease-out;
+}
+article.tf-new-row {
+  animation-name: tf-new-card;
+}
+@keyframes tf-done-flash {
+  from,
+  30% {
+    background-color: var(--ok-soft);
+  }
+}
+@keyframes tf-done-card {
+  from,
+  30% {
+    background-color: var(--ok-soft);
+    box-shadow: inset 0 0 0 1.5px var(--ok-dot);
+  }
+}
+.tf-done-flash {
+  animation: tf-done-flash 1900ms ease-out;
+}
+article.tf-done-flash {
+  animation-name: tf-done-card;
+}
+/* La ficha de la tarea recién creada, en camino a su lugar: código y título en una línea */
+.tf-task-chip {
+  position: fixed;
+  z-index: 61;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  overflow: hidden;
+  pointer-events: none;
+  border: 1px solid var(--accent-text);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 0 14px 34px rgb(35 32 27 / 0.2);
+  font-size: 14px;
+  white-space: nowrap;
+}
+.tf-task-chip span {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.tf-task-chip strong {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
 }
 .tf-ghost {
   position: fixed;

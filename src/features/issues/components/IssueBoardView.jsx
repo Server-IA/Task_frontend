@@ -745,6 +745,7 @@ const IssueCard = memo(function IssueCard({
   // Recién soltada se asienta con un pequeño rebote; recién creada, aparece resaltada un momento
   const settled = useFlash('settled', issue.id)
   const created = useFlash('created', issue.id)
+  const completed = useFlash('completed', issue.id)
   const hasLabels = issue.labels?.length > 0
   // En un carril la historia ya está en el encabezado
   const storyChip = !inLane && issue.parent?.type === 'STORY'
@@ -758,6 +759,7 @@ const IssueCard = memo(function IssueCard({
         overlay && 'cursor-grabbing shadow-xl ring-1 ring-foreground/10',
         !overlay && settled && 'tf-settle',
         !overlay && created && 'tf-new-row',
+        !overlay && completed && 'tf-done-flash',
       )}
     >
       <div className="flex items-center gap-2 font-mono text-[11px]">

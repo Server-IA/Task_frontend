@@ -61,6 +61,7 @@ export default {
   'Quitar fila': 'Remove row',
   'Quitar columna': 'Remove column',
   'Quitar tabla': 'Remove table',
+  'Opciones de la tabla': 'Table options',
   'Crea una subtarea con el texto seleccionado y deja su código aquí': 'Creates a subtask from the selected text and leaves its code here',
   'Crear subtarea': 'Create subtask',
   'Pasa las casillas seleccionadas al checklist de la tarea': 'Moves the selected checkboxes to the task checklist',

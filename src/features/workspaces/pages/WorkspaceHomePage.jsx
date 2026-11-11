@@ -128,7 +128,6 @@ function ProjectCard({ slug, project }) {
       <div className="mt-auto flex items-center gap-3">
         {members.length > 0 && <AvatarStack users={members} total={project.memberCount} size="sm" max={4} />}
         <span className="font-mono text-[11px] text-muted-foreground">{t('creado el {date}', { date: formatShortDate(project.createdAt) })}</span>
-        <span className="ml-auto text-sm font-semibold text-accent-text group-hover:underline">{t('Abrir →')}</span>
       </div>
     </Link>
   )

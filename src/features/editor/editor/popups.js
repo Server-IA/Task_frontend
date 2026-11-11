@@ -50,6 +50,22 @@ function scrollParent(element) {
 }
 
 /** Rectángulo de una posición del documento (el cursor). */
+/**
+ * La tabla (su caja con borde) donde está la posición `pos` del documento, o `null`.
+ * @param {import('@tiptap/pm/view').EditorView} view
+ * @param {number} pos
+ * @returns {HTMLElement | null}
+ */
+export function tableElementAt(view, pos) {
+  try {
+    const { node } = view.domAtPos(pos)
+    const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement
+    return element?.closest('.tableWrapper') ?? element?.closest('table') ?? null
+  } catch {
+    return null
+  }
+}
+
 export function caretRect(view, pos) {
   try {
     const coords = view.coordsAtPos(pos)

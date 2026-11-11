@@ -188,6 +188,7 @@ const IssueRow = memo(function IssueRow({ issue, slug, project, meta, openIssue,
   const { update } = useIssueUpdater(slug, project.id, issue.id)
 
   const created = useFlash('created', issue.id)
+  const completed = useFlash('completed', issue.id)
 
   return (
     <li className="border-t">
@@ -202,6 +203,8 @@ const IssueRow = memo(function IssueRow({ issue, slug, project, meta, openIssue,
         className={cn(
           // Recién creada aparece resaltada un momento (ver `CreateIssueDialog`)
           created && 'tf-new-row',
+          // Recién completada se enciende en verde un momento (ver `signalCompleted`)
+          completed && 'tf-done-flash',
           'group flex cursor-pointer flex-wrap items-center gap-x-2.5 gap-y-1.5 px-4 py-2 transition-colors duration-150 hover:bg-subtle',
           ROW_FOCUS,
         )}

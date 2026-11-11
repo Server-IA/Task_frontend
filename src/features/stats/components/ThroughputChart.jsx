@@ -49,21 +49,25 @@ export function ThroughputChart({ weeks }) {
             </text>
           </g>
         ))}
-        {bars.map((bar, index) => (
-          <g key={bar.weekStart}>
-            <path
-              d={barPath(bar.cx - barWidth / 2, bar.top, barWidth, BASELINE)}
-              // `tf-col`: al abrir las estadísticas crece desde la base, una columna tras otra
-              style={{ '--i': index }}
-              className={cn('tf-col fill-chart-series transition-[fill] duration-150', active === index && 'fill-accent-text')}
-            />
-            {(index === bars.length - 1 || (bars.length - 1 - index) % labelEvery === 0) && (
-              <text x={bar.cx} y={HEIGHT - 10} textAnchor="middle" className="fill-muted-foreground font-mono text-[10px]">
-                {bar.label}
-              </text>
-            )}
-          </g>
-        ))}
+        {/* La clave es el periodo: al cambiarlo (4, 8, 12 semanas) se pintan todas de nuevo y crecen todas juntas. Con
+            cada columna por su cuenta solo crecían las semanas que entraban, y se veía una sola moviéndose */}
+        <g key={`${bars.length}:${bars[0]?.weekStart}`}>
+          {bars.map((bar, index) => (
+            <g key={bar.weekStart}>
+              <path
+                d={barPath(bar.cx - barWidth / 2, bar.top, barWidth, BASELINE)}
+                // `tf-col`: al abrir las estadísticas (o cambiar de periodo) crece desde la base, una columna tras otra
+                style={{ '--i': index }}
+                className={cn('tf-col fill-chart-series transition-[fill] duration-150', active === index && 'fill-accent-text')}
+              />
+              {(index === bars.length - 1 || (bars.length - 1 - index) % labelEvery === 0) && (
+                <text x={bar.cx} y={HEIGHT - 10} textAnchor="middle" className="fill-muted-foreground font-mono text-[10px]">
+                  {bar.label}
+                </text>
+              )}
+            </g>
+          ))}
+        </g>
         {last && active !== bars.length - 1 && (
           <text x={last.cx} y={last.top - 6} textAnchor="middle" className="fill-foreground font-mono text-[11px] font-semibold">
             {last.completed}

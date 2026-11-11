@@ -87,7 +87,9 @@ export function ImageViewer({ images, index, issueCode, onIndexChange, onClose }
             event.preventDefault()
             if (opener?.isConnected) opener.focus()
           }}
-          className="fixed inset-0 z-[70] flex flex-col bg-background/97 text-foreground outline-none backdrop-blur-sm"
+          // Fondo liso: con el fondo casi opaco, el desenfoque de lo de atrás no se veía y a pantalla completa es de
+          // lo más caro que puede pintar el navegador (se notaba al abrir y al desplazar una imagen al 100 %)
+          className="tf-fade fixed inset-0 z-[70] flex flex-col bg-background text-foreground outline-none"
         >
           <DialogTitle className="sr-only">{issueCode ? t('Visor de imágenes de {code}', { code: issueCode }) : t('Visor de imágenes')}</DialogTitle>
           <header className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3.5 border-b px-4.5 py-3.5">
@@ -219,10 +221,13 @@ function ViewerImageContent({ image, actual, onLoad }) {
     <img
       src={url}
       alt={image.name}
+      // La imagen se decodifica fuera del hilo de la página: una captura grande no la congela al abrir
+      decoding="async"
       onLoad={(event) => onLoad({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })}
       className={cn(
-        'rounded-xl shadow-[0_30px_80px_rgb(35_32_27/0.22)]',
-        actual ? 'max-w-none' : 'max-h-full max-w-full object-contain',
+        'tf-fade rounded-xl',
+        // Al 100 % la imagen puede ser enorme y se desplaza: sin la sombra grande, que habría que volver a pintar
+        actual ? 'max-w-none border' : 'max-h-full max-w-full object-contain shadow-[0_18px_44px_rgb(35_32_27/0.18)]',
       )}
     />
   )
@@ -243,7 +248,7 @@ function Thumbnail({ image, current, onClick }) {
         current ? 'border-ring opacity-100' : 'border-transparent opacity-70 hover:opacity-100',
       )}
     >
-      {url && <img src={url} alt="" className="size-full object-cover" loading="lazy" />}
+      {url && <img src={url} alt="" className="size-full object-cover" loading="lazy" decoding="async" />}
     </button>
   )
 }

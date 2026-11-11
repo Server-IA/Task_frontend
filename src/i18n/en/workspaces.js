@@ -73,7 +73,6 @@ export default {
     "You aren't in any project yet. Ask the project manager to add you to one.",
   'crea sus estados por defecto': 'creates its default states',
   'creado el {date}': 'created {date}',
-  'Abrir →': 'Open →',
 
   // ----- Workspaces: ajustes → General -----
   'Ajustes del workspace': 'Workspace settings',

@@ -353,6 +353,7 @@ export default {
   'Escribe el título y elige sus propiedades.': 'Write the title and choose its properties.',
   'La tarea se puede crear cuando termine.': 'The task can be created when it finishes.',
   '{code} creada': '{code} created',
+  '{code} completada': '{code} completed',
   'Crear otra con la misma plantilla': 'Create another with the same template',
   'Crear otra': 'Create another',
   'esc cerrar': 'esc close',

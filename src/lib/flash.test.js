@@ -5,7 +5,7 @@ describe('marcas de animación', () => {
   beforeEach(() => vi.useFakeTimers())
   afterEach(() => {
     vi.useRealTimers()
-    useFlashStore.setState({ settled: null, created: null, closedCycle: null })
+    useFlashStore.setState({ settled: null, created: null, completed: null, closedCycle: null })
   })
 
   it('una marca dura lo que se le pide y luego se quita', () => {

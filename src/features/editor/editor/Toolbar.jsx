@@ -241,13 +241,30 @@ export function Toolbar({ editor, state, variant = 'full', sticky = false, onLin
   )
 }
 
-function TableMenu({ editor, size }) {
+/**
+ * El menú de la tabla donde está el cursor: agregar o quitar filas y columnas, y quitar la tabla. En la barra de
+ * herramientas va como un grupo más; con `floating` (los editores sin barra, como el de comentarios) es un botón suelto
+ * que el editor coloca sobre la esquina de la tabla con `style`: sin él, una tabla insertada con «/» no se podía quitar.
+ * @param {{ editor: import('@tiptap/react').Editor, size: number, floating?: boolean, style?: React.CSSProperties }} props
+ */
+export function TableMenu({ editor, size, floating = false, style }) {
   const run = (action) => action(editor.chain().focus()).run()
+  const Wrapper = floating ? 'div' : Group
   return (
-    <Group>
+    <Wrapper {...(floating && { style, className: 'absolute z-30 rounded-lg bg-card shadow-[0_6px_16px_rgb(35_32_27/0.14)]' })}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button type="button" style={{ height: size }} className="flex items-center gap-1 rounded-lg bg-accent-soft px-2 text-[12.5px] font-medium text-accent-text">
+          <button
+            type="button"
+            aria-label={floating ? t('Opciones de la tabla') : undefined}
+            // El clic no le quita el cursor a la tabla
+            onMouseDown={(event) => event.preventDefault()}
+            style={{ height: size }}
+            className={cn(
+              'flex items-center gap-1 rounded-lg bg-accent-soft px-2 text-[12.5px] font-medium text-accent-text',
+              floating && 'border border-accent-text/25',
+            )}
+          >
             <EditorIcon name="table" size={14} />
             {t('Tabla')}
             <ChevronDown className="size-3" />
@@ -266,6 +283,6 @@ function TableMenu({ editor, size }) {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-    </Group>
+    </Wrapper>
   )
 }

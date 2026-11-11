@@ -28,11 +28,12 @@ import {
 import { useTemplates } from '@/features/templates/hooks'
 import { useCan } from '@/features/workspaces/hooks'
 import { applyFieldErrors } from '@/lib/errors'
-import { flash, flyGhost } from '@/lib/flash'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { useCreateIssue } from '../hooks'
+import { flash } from '@/lib/flash'
 import { firstTemplateOfType, ISSUE_TYPES, templateType, TYPE_LABELS } from '../issueTypes'
+import { landNewTask } from '../taskMotion'
 import { useProjectMeta } from '../useIssueHelpers'
 import { TypeIcon } from './IssueTypeBits'
 import { AssigneesPicker, DatePicker, LabelsPicker, PriorityPicker, StatePicker } from './PropertyPickers'
@@ -284,10 +285,10 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
     create.mutate(body, {
       onSuccess: (issue) => {
         toast.success(t('{code} creada', { code: issue.code }), { description: issue.title })
-        // La tarea nueva aparece resaltada en la lista o el tablero y, si el diálogo se cierra, una caja va de donde
-        // estaba el diálogo hasta ella
-        flash('created', issue.id, 2200)
-        if (!createMore) flyGhost(document.querySelector('[role="dialog"]')?.getBoundingClientRect(), `[data-issue-id="${issue.id}"]`)
+        // Si el diálogo se cierra, se encoge hasta una ficha que viaja al lugar de la tarea nueva, que queda resaltada
+        // en la lista o el tablero; con «crear otra» el diálogo sigue abierto y solo se resalta
+        if (createMore) flash('created', issue.id, 2200)
+        else landNewTask(document.querySelector('[role="dialog"]')?.getBoundingClientRect(), issue)
         if (createMore) {
           // Conserva las propiedades (y la plantilla) para crear varios parecidos seguidos
           caretToEnd()

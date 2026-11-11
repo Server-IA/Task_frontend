@@ -21,12 +21,12 @@ import { wordListsToHtml } from './wordPaste'
 import { codeReplacement, findText } from './findText'
 import { syncUploadingImages } from './imageExtension'
 import { LinkPopover } from './LinkPopover'
-import { caretRect, popupPosition } from './popups'
+import { caretRect, popupPosition, tableElementAt } from './popups'
 import { ShortcutsDialog } from './ShortcutsDialog'
 import { MentionMenu, slashGroups, SlashMenu } from './SuggestionMenus'
 import { TaskSearchPopover } from './TaskSearchPopover'
 import { TablePicker } from './TablePicker'
-import { currentBlockType, Toolbar } from './Toolbar'
+import { currentBlockType, TableMenu, Toolbar } from './Toolbar'
 
 /** Texto pegado que parece Markdown (títulos, listas, código, tablas, negritas, enlaces). */
 const looksLikeMarkdown = (text) =>
@@ -607,6 +607,16 @@ export default function RichEditor({
     const box = root.getBoundingClientRect()
     if (start) bubbleStyle = { left: Math.max(0, Math.min(start.left - box.left - 8, box.width - 340)), bottom: box.bottom - start.top + 10 }
   }
+  // Sin barra de herramientas (comentarios), el menú de la tabla flota sobre su esquina superior derecha
+  let tableMenuStyle = null
+  if (!toolbar && state.inTable && root) {
+    const table = tableElementAt(editor.view, state.from)
+    if (table) {
+      const box = root.getBoundingClientRect()
+      const rect = table.getBoundingClientRect()
+      tableMenuStyle = { top: Math.max(2, rect.top - box.top - 13), right: Math.max(6, box.right - rect.right + 8) }
+    }
+  }
 
   return (
     <div
@@ -664,6 +674,7 @@ export default function RichEditor({
           taskCount={taskCount}
         />
       )}
+      {tableMenuStyle && <TableMenu editor={editor} size={26} floating style={tableMenuStyle} />}
       {slash && groups.length > 0 && (
         <SlashMenu
           groups={groups}
