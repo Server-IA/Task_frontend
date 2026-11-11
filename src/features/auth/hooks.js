@@ -4,6 +4,7 @@ import { withSessionLock } from '@/api/session'
 import { pendingInvitation } from '@/lib/pendingInvitation'
 import { tokenStorage } from '@/lib/tokenStorage'
 import { usePreferencesStore } from '@/stores/preferencesStore'
+import { getLanguage } from '@/i18n'
 import { playLogoutOutro } from '@/lib/intro'
 import { useLayoutStore } from '@/stores/layoutStore'
 import { useSessionStore } from '@/stores/sessionStore'
@@ -17,6 +18,9 @@ export function useLogin() {
     onSuccess: (auth) => {
       queryClient.clear()
       setSession(auth)
+      // Una cuenta que todavía no eligió idioma se queda con el que la persona está viendo: así sus correos y sus
+      // otros navegadores lo siguen. Si falla (por ejemplo, con un backend anterior) no pasa nada.
+      if (auth?.user && !auth.user.language) userApi.updateLanguage?.(getLanguage())?.catch(() => {})
     },
   })
 }
