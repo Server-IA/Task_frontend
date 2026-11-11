@@ -1,12 +1,13 @@
 import { differenceInCalendarDays, endOfWeek, parseISO, startOfDay } from 'date-fns'
+import { t } from '@/i18n'
 
 /** Grupos de «Mi trabajo» en orden; `tone` decide el color del encabezado. */
 export const DUE_GROUPS = [
-  { key: 'overdue', label: 'Vencidas', tone: 'late' },
-  { key: 'today', label: 'Hoy', tone: 'normal' },
-  { key: 'week', label: 'Esta semana', tone: 'normal' },
-  { key: 'later', label: 'Más adelante', tone: 'normal' },
-  { key: 'none', label: 'Sin fecha', tone: 'normal' },
+  { key: 'overdue', label: t('Vencidas'), tone: 'late' },
+  { key: 'today', label: t('Hoy'), tone: 'normal' },
+  { key: 'week', label: t('Esta semana'), tone: 'normal' },
+  { key: 'later', label: t('Más adelante'), tone: 'normal' },
+  { key: 'none', label: t('Sin fecha'), tone: 'normal' },
 ]
 
 /**

@@ -14,6 +14,7 @@ import { MentionText } from '@/features/mentions/MentionText'
 import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
 import { useProjects } from '@/features/projects/hooks'
 import { useCurrentWorkspace, useMembers } from '@/features/workspaces/hooks'
+import { stateName, t, tc, tn, tx } from '@/i18n'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { formatDateTime, formatRelative, groupByDay } from '@/lib/dates'
 import { flattenUniquePages } from '@/lib/pagination'
@@ -23,10 +24,10 @@ import { SingleFilter } from '../components/SingleFilter'
 import { useActivitySummary, useStateGroups, useWorkspaceActivity } from '../hooks'
 
 const TYPES = [
-  { value: 'all', label: 'Todo' },
-  { value: 'state', label: 'Estados' },
-  { value: 'comments', label: 'Comentarios' },
-  { value: 'assignments', label: 'Asignaciones' },
+  { value: 'all', label: tc('filtro', 'Todo') },
+  { value: 'state', label: t('Estados') },
+  { value: 'comments', label: t('Comentarios') },
+  { value: 'assignments', label: t('Asignaciones') },
 ]
 
 /** Fondo y texto de la marca sobre el avatar según el tono de la entrada. */
@@ -70,13 +71,13 @@ export function ActivityPage() {
   return (
     <>
       <PageHeader
-        path={[...workspacePath(workspace), { label: 'actividad' }]}
-        title="Actividad"
-        documentTitle={['Actividad', workspace.name]}
-        description="Lo que pasó en el workspace: cambios de estado, asignaciones, comentarios y tareas nuevas."
+        path={[...workspacePath(workspace), { label: t('actividad') }]}
+        title={t('Actividad')}
+        documentTitle={[t('Actividad'), workspace.name]}
+        description={t('Lo que pasó en el workspace: cambios de estado, asignaciones, comentarios y tareas nuevas.')}
         actions={
           <Segmented
-            label="Tipo"
+            label={t('Tipo')}
             itemClassName="whitespace-nowrap px-2.5 text-[13px] sm:px-3"
             value={type}
             onChange={(value) => setParam('type', value)}
@@ -86,7 +87,9 @@ export function ActivityPage() {
       />
       <div className="flex flex-wrap items-center gap-2 px-1">
         <SingleFilter
-          title="proyecto"
+          title={t('proyecto')}
+          removeLabel={t('Quitar filtro de proyecto')}
+          searchPlaceholder={t('Filtrar por proyecto…')}
           value={projectId}
           onChange={(value) => setParam('project', value)}
           options={projects.map((project) => ({
@@ -97,7 +100,9 @@ export function ActivityPage() {
           }))}
         />
         <SingleFilter
-          title="persona"
+          title={t('persona')}
+          removeLabel={t('Quitar filtro de persona')}
+          searchPlaceholder={t('Filtrar por persona…')}
           value={actorId}
           onChange={(value) => setParam('person', value)}
           options={members.map((member) => ({
@@ -118,16 +123,16 @@ export function ActivityPage() {
             {!isLoading && !error && entries.length === 0 && (
               <EmptyState
                 icon={History}
-                title={hasFilters || type !== 'all' ? 'Nada con estos filtros' : 'Todavía no hay actividad'}
+                title={hasFilters || type !== 'all' ? t('Nada con estos filtros') : t('Todavía no hay actividad')}
                 description={
                   hasFilters || type !== 'all'
-                    ? 'Prueba con otro tipo, proyecto o persona.'
-                    : 'Cuando el equipo cree, mueva o comente tareas, aparecerá aquí.'
+                    ? t('Prueba con otro tipo, proyecto o persona.')
+                    : t('Cuando el equipo cree, mueva o comente tareas, aparecerá aquí.')
                 }
                 action={
                   hasFilters && (
                     <Button variant="outline" onClick={() => setSearchParams(type === 'all' ? {} : { type })}>
-                      Quitar filtros
+                      {t('Quitar filtros')}
                     </Button>
                   )
                 }
@@ -153,7 +158,7 @@ export function ActivityPage() {
             {hasNextPage && (
               <Button variant="outline" className="self-center" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
                 {isFetchingNextPage && <Spinner />}
-                Cargar más
+                {t('Cargar más')}
               </Button>
             )}
           </div>
@@ -204,14 +209,14 @@ function FeedEntry({ slug, entry, stateGroup }) {
               <span className="font-mono text-[13px] text-accent-text">{issue.code}</span> {issue.title}
             </Link>
           ) : (
-            <span className="text-muted-foreground">una tarea eliminada</span>
+            <span className="text-muted-foreground">{t('una tarea eliminada')}</span>
           )}
           {sentence.suffix && ` ${sentence.suffix}`}
         </p>
         {sentence.change && (
           <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
-            <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground line-through">{sentence.change.from}</span>
-            <span aria-label="a" className="text-muted-foreground">
+            <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground line-through">{stateName(sentence.change.from)}</span>
+            <span aria-label={tc('cambio', 'a')} className="text-muted-foreground">
               →
             </span>
             <span
@@ -220,7 +225,7 @@ function FeedEntry({ slug, entry, stateGroup }) {
                 sentence.change.done ? 'bg-ok-soft text-ok' : 'bg-accent-soft text-accent-text',
               )}
             >
-              {sentence.change.to}
+              {stateName(sentence.change.to)}
             </span>
           </p>
         )}
@@ -228,7 +233,7 @@ function FeedEntry({ slug, entry, stateGroup }) {
         {sentence.quote && (
           <blockquote className="mt-1.5 rounded-[10px] bg-muted px-2.5 py-2 leading-normal break-words text-muted-foreground">
             {/* El comentario se guarda en Markdown: aquí, sin «**», «##» ni listas, en una línea */}
-            «<MentionText body={markdownToPlainText(sentence.quote, { mentionTokens: true })} />»
+            {tx('«{quote}»', { quote: <MentionText body={markdownToPlainText(sentence.quote, { mentionTokens: true })} /> })}
           </blockquote>
         )}
         <p className="mt-1.5 flex items-center gap-2 font-mono text-[11px] text-muted-foreground">
@@ -248,19 +253,19 @@ function WeekSummary({ slug, selectedProjectId, onSelectProject }) {
   const byProject = [...(summary?.byProject ?? [])].sort((a, b) => b.count - a.count)
   const numbers = summary
     ? [
-        ['cambios', summary.changes],
-        ['comentarios', summary.comments],
-        ['cerradas', summary.completed],
-        ['creadas', summary.created],
+        [t('cambios'), summary.changes],
+        [t('comentarios'), summary.comments],
+        [t('cerradas'), summary.completed],
+        [t('creadas'), summary.created],
       ]
     : []
 
   return (
-    <aside aria-label="Resumen de la semana" className="flex min-w-0 flex-[1_1_240px] flex-col gap-3.5">
+    <aside aria-label={t('Resumen de la semana')} className="flex min-w-0 flex-[1_1_240px] flex-col gap-3.5">
       <section className="tf-panel flex flex-col gap-3 px-4.5 py-4">
         <div className="flex items-baseline justify-between gap-2">
-          <h2 className="text-[15px] font-semibold">Esta semana</h2>
-          <span className="font-mono text-[11px] text-muted-foreground">últimos 7 días</span>
+          <h2 className="text-[15px] font-semibold">{t('Esta semana')}</h2>
+          <span className="font-mono text-[11px] text-muted-foreground">{t('últimos 7 días')}</span>
         </div>
         {isLoading ? (
           <Skeleton className="h-28 rounded-xl" />
@@ -277,7 +282,7 @@ function WeekSummary({ slug, selectedProjectId, onSelectProject }) {
       </section>
       {byProject.length > 0 && (
         <section className="tf-panel flex flex-col gap-2.5 px-4.5 py-4">
-          <h2 className="text-[15px] font-semibold">Por proyecto</h2>
+          <h2 className="text-[15px] font-semibold">{t('Por proyecto')}</h2>
           {byProject.map((project) => (
             <button
               key={project.projectId}
@@ -285,11 +290,11 @@ function WeekSummary({ slug, selectedProjectId, onSelectProject }) {
               aria-pressed={selectedProjectId === project.projectId}
               onClick={() => onSelectProject(selectedProjectId === project.projectId ? null : project.projectId)}
               className="-mx-1.5 flex justify-between gap-2 rounded-lg px-1.5 py-1 text-left text-[13px] transition-colors hover:bg-subtle aria-pressed:bg-accent-soft/60"
-              title="Ver solo este proyecto"
+              title={t('Ver solo este proyecto')}
             >
               <span className="truncate">{project.name}</span>
               <span className="shrink-0 font-mono text-muted-foreground">
-                {project.count} {project.count === 1 ? 'cambio' : 'cambios'}
+                {tn(project.count, '{count} cambio', '{count} cambios')}
               </span>
             </button>
           ))}
@@ -301,7 +306,7 @@ function WeekSummary({ slug, selectedProjectId, onSelectProject }) {
 
 function FeedSkeleton() {
   return (
-    <div className="flex flex-col gap-2.5" aria-label="Cargando actividad">
+    <div className="flex flex-col gap-2.5" aria-label={t('Cargando actividad')}>
       <Skeleton className="mx-1 h-3 w-16" />
       <Skeleton className="h-64 rounded-2xl" />
       <Skeleton className="mx-1 h-3 w-16" />

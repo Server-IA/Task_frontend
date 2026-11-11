@@ -1,6 +1,7 @@
 import { differenceInCalendarDays, parseISO } from 'date-fns'
 import { formatShortDate } from '@/lib/dates'
-import { formatSize, MB } from './fileTypes'
+import { t, tn } from '@/i18n'
+import { decimalText, formatSize, MB } from './fileTypes'
 
 /**
  * Cálculos de la pestaña «Almacenamiento» (ajustes del workspace): barra apilada por tipo, «Libre», barras por
@@ -24,9 +25,9 @@ const GB = 1024 * MB
  * @type {Record<StorageKind, { label: string, color: string }>}
  */
 export const STORAGE_KINDS = {
-  IMAGES: { label: 'Imágenes', color: 'bg-[#2F78C4] dark:bg-[#5A93D6]' },
-  DOCUMENTS: { label: 'Documentos', color: 'bg-[#C2761A] dark:bg-[#C27A30]' },
-  OTHER: { label: 'Otros', color: 'bg-[#7B5BD6] dark:bg-[#9178E8]' },
+  IMAGES: { label: t('Imágenes'), color: 'bg-[#2F78C4] dark:bg-[#5A93D6]' },
+  DOCUMENTS: { label: t('Documentos'), color: 'bg-[#C2761A] dark:bg-[#C27A30]' },
+  OTHER: { label: t('Otros'), color: 'bg-[#7B5BD6] dark:bg-[#9178E8]' },
 }
 const KIND_ORDER = /** @type {StorageKind[]} */ (Object.keys(STORAGE_KINDS))
 
@@ -41,8 +42,8 @@ const widthOf = (value, total) => `${total > 0 ? Math.round(Math.min(100, Math.m
 export function formatPercent(usage) {
   const { usedBytes = 0, quotaBytes = 0 } = usage ?? {}
   const percent = typeof usage?.percent === 'number' ? usage.percent : quotaBytes > 0 ? (usedBytes / quotaBytes) * 100 : 0
-  if (usedBytes > 0 && percent < 1) return 'menos de 1 %'
-  return `${Math.min(100, Math.floor(percent))} %`
+  if (usedBytes > 0 && percent < 1) return t('menos de 1 %')
+  return t('{percent} %', { percent: Math.min(100, Math.floor(percent)) })
 }
 
 /**
@@ -52,7 +53,7 @@ export function formatPercent(usage) {
 export function formatGigabytes(bytes = 0) {
   if (bytes < 0.1 * GB) return formatSize(bytes)
   const rounded = Math.round((bytes / GB) * 10) / 10
-  return `${String(rounded).replace('.', ',')} GB`
+  return `${decimalText(rounded)} GB`
 }
 
 /** Lo que queda libre (nunca negativo: un workspace puede pasarse un poco si dos subidas terminan a la vez). */
@@ -74,14 +75,17 @@ export function kindSegments(report) {
 
 /** Texto de la barra para lectores de pantalla: «Imágenes 720 MB, documentos 390 MB, otros 90 MB; quedan 819 MB». */
 export function usageBarLabel(report) {
-  const parts = kindSegments(report).map((segment, index) =>
-    `${index === 0 ? segment.label : segment.label.toLowerCase()} ${segment.value}`,
-  )
-  return `${parts.join(', ')}; quedan ${formatGigabytes(freeBytes(report?.usage))}`
+  const sizes = Object.fromEntries(kindSegments(report).map((segment) => [segment.type, segment.value]))
+  return t('Imágenes {images}, documentos {documents}, otros {other}; quedan {free}', {
+    images: sizes.IMAGES,
+    documents: sizes.DOCUMENTS,
+    other: sizes.OTHER,
+    free: formatGigabytes(freeBytes(report?.usage)),
+  })
 }
 
 /** «1 archivo», «214 archivos». */
-export const filesCount = (count = 0) => `${count} ${count === 1 ? 'archivo' : 'archivos'}`
+export const filesCount = (count = 0) => tn(count, '{count} archivo', '{count} archivos')
 
 /**
  * Lo que ocupa cada proyecto, con el tamaño y la cantidad de archivos ya en texto.
@@ -95,7 +99,7 @@ export function projectRows(byProject = []) {
 export function uploadedWhen(value, now = new Date()) {
   if (!value) return ''
   const days = differenceInCalendarDays(now, typeof value === 'string' ? parseISO(value) : value)
-  if (days === 0) return 'hoy'
-  if (days === 1) return 'ayer'
+  if (days === 0) return t('hoy')
+  if (days === 1) return t('ayer')
   return formatShortDate(value)
 }

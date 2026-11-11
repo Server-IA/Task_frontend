@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { useElementWidth } from '@/hooks/useElementWidth'
+import { t, tx } from '@/i18n'
 import { formatShortDate } from '@/lib/dates'
 import { cn } from '@/lib/utils'
 import { barPath, niceScale } from '../chartMath'
@@ -35,7 +36,7 @@ export function ThroughputChart({ weeks }) {
     return { ...week, cx, top: y(week.completed), label: formatShortDate(week.weekStart) }
   })
   const last = bars.at(-1)
-  const summary = `Tareas cerradas por semana: ${bars.map((bar) => `${bar.label}, ${bar.completed}`).join('; ')}`
+  const summary = t('Tareas cerradas por semana: {weeks}', { weeks: bars.map((bar) => `${bar.label}, ${bar.completed}`).join('; ') })
 
   return (
     <div ref={containerRef} className="relative">
@@ -77,7 +78,7 @@ export function ThroughputChart({ weeks }) {
             fill="transparent"
             tabIndex={0}
             role="img"
-            aria-label={`Semana del ${bar.label}: ${bar.completed} cerradas`}
+            aria-label={t('Semana del {date}: {count} cerradas', { date: bar.label, count: bar.completed })}
             className="outline-none"
             onPointerEnter={() => setActive(index)}
             onPointerLeave={() => setActive(null)}
@@ -88,9 +89,10 @@ export function ThroughputChart({ weeks }) {
       </svg>
       {active !== null && bars[active] && (
         <ChartTooltip x={bars[active].cx} y={bars[active].top} containerWidth={width}>
-          <TooltipLabel>semana del {bars[active].label}</TooltipLabel>
-          <strong className="font-semibold">{bars[active].completed}</strong>{' '}
-          {bars[active].completed === 1 ? 'cerrada' : 'cerradas'}
+          <TooltipLabel>{t('semana del {date}', { date: bars[active].label })}</TooltipLabel>
+          {bars[active].completed === 1
+            ? tx('{count} cerrada', { count: <strong className="font-semibold">{bars[active].completed}</strong> })
+            : tx('{count} cerradas', { count: <strong className="font-semibold">{bars[active].completed}</strong> })}
         </ChartTooltip>
       )}
     </div>

@@ -15,6 +15,7 @@ import { useProjectMeta } from '@/features/issues/useIssueHelpers'
 import { usePlanningList } from '@/features/planning/hooks'
 import { useCurrentProject } from '@/features/projects/hooks'
 import { useCurrentWorkspace } from '@/features/workspaces/hooks'
+import { t } from '@/i18n'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { notifyError } from '@/lib/notify'
 import { projectPath } from '@/lib/paths'
@@ -62,8 +63,8 @@ export function ReportsPage() {
     download.mutate(
       { params: reportParams(queryFilters, options), fileName },
       {
-        onSuccess: () => toast.success('Reporte generado', { description: fileName }),
-        onError: (error) => notifyError(error, 'No se pudo generar el reporte'),
+        onSuccess: () => toast.success(t('Reporte generado'), { description: fileName }),
+        onError: (error) => notifyError(error, t('No se pudo generar el reporte')),
       },
     )
   }
@@ -73,43 +74,49 @@ export function ReportsPage() {
       className="h-10 rounded-xl px-3.5"
       onClick={generate}
       disabled={!canGenerate}
-      title={optionsError ?? (preview.isSuccess && total === 0 ? 'Ninguna tarea cumple estos filtros' : undefined)}
+      title={optionsError ?? (preview.isSuccess && total === 0 ? t('Ninguna tarea cumple estos filtros') : undefined)}
     >
       {download.isPending ? <Spinner /> : <FileDown strokeWidth={2.5} />}
-      {download.isPending ? 'Generando…' : 'Generar PDF'}
+      {download.isPending ? t('Generando…') : t('Generar PDF')}
     </Button>
   )
 
   return (
     <>
       <PageHeader
-        path={[...projectPath(workspace, project), { label: 'reportes' }]}
-        title="Reportes"
-        documentTitle={['Reportes', project.name]}
-        description="Elige las tareas y cómo presentarlas: el reporte se descarga en PDF, con el logo y los filtros que pusiste."
+        path={[...projectPath(workspace, project), { label: t('reportes') }]}
+        title={t('Reportes')}
+        documentTitle={[t('Reportes'), project.name]}
+        description={t('Elige las tareas y cómo presentarlas: el reporte se descarga en PDF, con el logo y los filtros que pusiste.')}
         actions={generateButton}
       />
       <PageBody className="flex flex-col gap-3.5">
-        <section aria-label="Qué tareas entran" className="tf-panel flex flex-col gap-3.5 px-4.5 py-4">
-          <StepTitle step="1" title="Qué tareas entran" hint="Los mismos filtros de la lista de tareas, más rangos de fechas." />
+        <section aria-label={t('Qué tareas entran')} className="tf-panel flex flex-col gap-3.5 px-4.5 py-4">
+          <StepTitle step="1" title={t('Qué tareas entran')} hint={t('Los mismos filtros de la lista de tareas, más rangos de fechas.')} />
           <IssueFiltersBar
             filters={filters}
             activeCount={activeCount}
             setFilter={issueFilters.setFilter}
             clearFilters={issueFilters.clearFilters}
             meta={meta}
-            searchPlaceholder="buscar por título o código"
+            searchPlaceholder={t('buscar por título o código')}
           />
           <div className="flex flex-wrap items-start gap-x-8 gap-y-3 border-t border-dashed px-1 pt-3.5">
             <DateRange
-              label="Creadas"
+              label={t('creadas:')}
+              fromPlaceholder={t('Creadas desde')}
+              toPlaceholder={t('Creadas hasta')}
+              clearLabel={t('Quitar el rango de creadas')}
               from={options.createdFrom}
               to={options.createdTo}
               onFrom={setOption('createdFrom')}
               onTo={setOption('createdTo')}
             />
             <DateRange
-              label="Fecha límite"
+              label={t('fecha límite:')}
+              fromPlaceholder={t('Fecha límite desde')}
+              toPlaceholder={t('Fecha límite hasta')}
+              clearLabel={t('Quitar el rango de fecha límite')}
               from={options.dueFrom}
               to={options.dueTo}
               onFrom={setOption('dueFrom')}
@@ -119,17 +126,17 @@ export function ReportsPage() {
         </section>
 
         <div className="flex flex-col gap-3.5 xl:flex-row xl:items-start">
-          <section aria-label="Vista previa" className="tf-panel flex min-w-0 flex-1 flex-col gap-3.5 px-4.5 py-4">
-            <StepTitle title="Vista previa" hint="Lo que va a traer el PDF con estos filtros." />
+          <section aria-label={t('Vista previa')} className="tf-panel flex min-w-0 flex-1 flex-col gap-3.5 px-4.5 py-4">
+            <StepTitle title={t('Vista previa')} hint={t('Lo que va a traer el PDF con estos filtros.')} />
             <ReportPreview preview={preview} rangesOk={rangesOk} />
           </section>
 
-          <section aria-label="Cómo se presenta" className="tf-panel flex flex-col gap-4 px-4.5 py-4 xl:w-[380px] xl:shrink-0">
-            <StepTitle step="2" title="Cómo se presenta" />
-            <OptionSelect label="Agrupar por" value={options.groupBy} onChange={setOption('groupBy')} options={REPORT_GROUPS} />
-            <OptionSelect label="Ordenar por" value={options.sort} onChange={setOption('sort')} options={REPORT_SORTS} />
+          <section aria-label={t('Cómo se presenta')} className="tf-panel flex flex-col gap-4 px-4.5 py-4 xl:w-[380px] xl:shrink-0">
+            <StepTitle step="2" title={t('Cómo se presenta')} />
+            <OptionSelect label={t('Agrupar por')} value={options.groupBy} onChange={setOption('groupBy')} options={REPORT_GROUPS} />
+            <OptionSelect label={t('Ordenar por')} value={options.sort} onChange={setOption('sort')} options={REPORT_SORTS} />
             <fieldset className="flex flex-col gap-2">
-              <legend className="mb-1.5 text-sm font-medium">Secciones</legend>
+              <legend className="mb-1.5 text-sm font-medium">{t('Secciones')}</legend>
               <ul className="flex flex-col overflow-hidden rounded-xl border">
                 {REPORT_SECTIONS.map((section, index) => (
                   <SectionSwitch
@@ -154,7 +161,7 @@ export function ReportsPage() {
                   {fileName}
                 </span>
               </p>
-              <p className="text-xs text-muted-foreground">PDF A4 horizontal, con el logo de TaskFlow, quién lo generó y la fecha.</p>
+              <p className="text-xs text-muted-foreground">{t('PDF A4 horizontal, con el logo de TaskFlow, quién lo generó y la fecha.')}</p>
               {generateButton}
             </div>
           </section>
@@ -183,8 +190,11 @@ function StepTitle({ step, title, hint }) {
   )
 }
 
-/** Rango de fechas «desde – hasta» (los dos opcionales); avisa si queda al revés. */
-function DateRange({ label, from, to, onFrom, onTo }) {
+/**
+ * Rango de fechas «desde – hasta» (los dos opcionales); avisa si queda al revés. Los textos llegan ya armados
+ * («creadas:», «Creadas desde»…): cada idioma ordena distinto las palabras.
+ */
+function DateRange({ label, fromPlaceholder, toPlaceholder, clearLabel, from, to, onFrom, onTo }) {
   const labelId = useId()
   const reversed = isRangeReversed(from, to)
   const chip = (empty) =>
@@ -193,13 +203,13 @@ function DateRange({ label, from, to, onFrom, onTo }) {
     <div role="group" aria-labelledby={labelId} className="flex flex-col gap-1.5">
       <div className="flex flex-wrap items-center gap-2">
         <span id={labelId} className="w-24 font-mono text-xs text-muted-foreground">
-          {label.toLowerCase()}:
+          {label}
         </span>
-        <DatePicker value={from} onChange={onFrom} placeholder={`${label} desde`} className={chip(!from)} />
+        <DatePicker value={from} onChange={onFrom} placeholder={fromPlaceholder} className={chip(!from)} />
         <span aria-hidden="true" className="text-muted-foreground">
           –
         </span>
-        <DatePicker value={to} onChange={onTo} placeholder={`${label} hasta`} className={chip(!to)} />
+        <DatePicker value={to} onChange={onTo} placeholder={toPlaceholder} className={chip(!to)} />
         {(from || to) && (
           <Button
             variant="ghost"
@@ -208,7 +218,7 @@ function DateRange({ label, from, to, onFrom, onTo }) {
               onFrom(null)
               onTo(null)
             }}
-            aria-label={`Quitar el rango de ${label.toLowerCase()}`}
+            aria-label={clearLabel}
           >
             <X />
           </Button>
@@ -216,7 +226,7 @@ function DateRange({ label, from, to, onFrom, onTo }) {
       </div>
       {reversed && (
         <p role="alert" className="text-xs text-destructive">
-          «Desde» es posterior a «hasta».
+          {t('«Desde» es posterior a «hasta».')}
         </p>
       )}
     </div>
@@ -265,11 +275,11 @@ function SectionSwitch({ section, checked, onChange, className }) {
 function ReportPreview({ preview, rangesOk }) {
   const { data, isLoading, isPlaceholderData, error, refetch } = preview
   if (!rangesOk) {
-    return <p className="rounded-xl border border-dashed border-dash px-4 py-8 text-center text-sm text-muted-foreground">Corrige el rango de fechas para ver la vista previa.</p>
+    return <p className="rounded-xl border border-dashed border-dash px-4 py-8 text-center text-sm text-muted-foreground">{t('Corrige el rango de fechas para ver la vista previa.')}</p>
   }
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-3.5" aria-label="Cargando la vista previa">
+      <div className="flex flex-col gap-3.5" aria-label={t('Cargando la vista previa')}>
         <div className="grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-3">
           {Array.from({ length: 5 }, (_, index) => (
             <Skeleton key={index} className="h-[74px] rounded-xl" />
@@ -284,11 +294,11 @@ function ReportPreview({ preview, rangesOk }) {
 
   const { totals } = data
   const tiles = [
-    { label: 'Tareas', value: totals.total },
-    { label: 'Abiertas', value: totals.open },
-    { label: 'Completadas', value: totals.completed, tone: totals.completed > 0 && 'text-ok' },
-    { label: 'Canceladas', value: totals.cancelled },
-    { label: 'Vencidas', value: totals.overdue, tone: totals.overdue > 0 && 'text-late' },
+    { label: t('Tareas'), value: totals.total },
+    { label: t('Abiertas'), value: totals.open },
+    { label: t('Completadas'), value: totals.completed, tone: totals.completed > 0 && 'text-ok' },
+    { label: t('Canceladas'), value: totals.cancelled },
+    { label: t('Vencidas'), value: totals.overdue, tone: totals.overdue > 0 && 'text-late' },
   ]
 
   return (
@@ -303,27 +313,33 @@ function ReportPreview({ preview, rangesOk }) {
       </dl>
       {data.truncated && (
         <p className="rounded-xl bg-soon-soft px-3.5 py-2 text-sm text-soon">
-          Hay {data.totalMatching} tareas con estos filtros: el reporte trae las primeras {data.maxIssues}. Afina los filtros para verlas todas.
+          {t('Hay {total} tareas con estos filtros: el reporte trae las primeras {max}. Afina los filtros para verlas todas.', {
+            total: data.totalMatching,
+            max: data.maxIssues,
+          })}
         </p>
       )}
       {totals.total === 0 ? (
         <p className="rounded-xl border border-dashed border-dash px-4 py-8 text-center text-sm text-muted-foreground">
-          Ninguna tarea cumple estos filtros. Quita alguno para generar el reporte.
+          {t('Ninguna tarea cumple estos filtros. Quita alguno para generar el reporte.')}
         </p>
       ) : (
         <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,220px),1fr))] gap-x-6 gap-y-4">
-          <Breakdown title="Por estado" counts={data.byState} total={totals.total} />
-          <Breakdown title="Por prioridad" counts={data.byPriority} total={totals.total} />
+          <Breakdown title={t('Por estado')} counts={data.byState} total={totals.total} />
+          <Breakdown title={t('Por prioridad')} counts={data.byPriority} total={totals.total} />
           {/* Una tarea con dos asignados cuenta para las dos personas: ahí un porcentaje del total engañaría */}
-          <Breakdown title="Por persona" counts={data.byAssignee} />
-          <Breakdown title="Por tipo" counts={data.byType} total={totals.total} />
+          <Breakdown title={t('Por persona')} counts={data.byAssignee} />
+          <Breakdown title={t('Por tipo')} counts={data.byType} total={totals.total} />
         </div>
       )}
     </div>
   )
 }
 
-/** Un reparto como en el PDF: cada valor con su cantidad y, con `total`, qué parte del total es. */
+/**
+ * Un reparto como en el PDF: cada valor con su cantidad y, con `total`, qué parte del total es. Los nombres (estados,
+ * prioridades, tipos, «Sin asignar») llegan del backend ya en el idioma de la persona.
+ */
 function Breakdown({ title, counts = [], total }) {
   return (
     <section className="flex min-w-0 flex-col gap-1.5">
@@ -336,7 +352,7 @@ function Breakdown({ title, counts = [], total }) {
             </span>
             <span className="shrink-0 font-mono text-xs tabular-nums">
               <span className="font-semibold">{row.count}</span>
-              {total > 0 && <span className="ml-2 text-muted-foreground">{Math.round((row.count / total) * 100)} %</span>}
+              {total > 0 && <span className="ml-2 text-muted-foreground">{t('{percent} %', { percent: Math.round((row.count / total) * 100) })}</span>}
             </span>
           </li>
         ))}

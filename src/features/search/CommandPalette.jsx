@@ -11,6 +11,7 @@ import { usePlanningList } from '@/features/planning/hooks'
 import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
 import { useProjects } from '@/features/projects/hooks'
 import { useLastWorkspaceSlug, useWorkspace } from '@/features/workspaces/hooks'
+import { stateName, t, tn, tx } from '@/i18n'
 import { PROJECT_SECTIONS, SECTION_PERMISSIONS } from '@/layouts/menuOrder'
 import { can } from '@/lib/permissions'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
@@ -57,8 +58,8 @@ export function CommandPalette() {
         showCloseButton={false}
         className="top-[12vh] translate-y-0 gap-0 overflow-hidden rounded-[18px] p-0 shadow-[0_24px_60px_rgb(35_32_27/0.28)] sm:max-w-[640px]"
       >
-        <DialogTitle className="sr-only">Buscar y comandos</DialogTitle>
-        <DialogDescription className="sr-only">Busca tareas, salta a una sección o ejecuta una acción.</DialogDescription>
+        <DialogTitle className="sr-only">{t('Buscar y comandos')}</DialogTitle>
+        <DialogDescription className="sr-only">{t('Busca tareas, salta a una sección o ejecuta una acción.')}</DialogDescription>
         <PaletteContent onClose={() => setOpen(false)} />
       </DialogContent>
     </Dialog>
@@ -102,8 +103,8 @@ function PaletteContent({ onClose }) {
       goItems.push({
         id: `section-${section.path}`,
         icon: section.hint,
-        label: `${section.label} de ${project.name}`,
-        hint: 'proyecto',
+        label: t('{section} de {project}', { section: section.label, project: project.name }),
+        hint: t('proyecto'),
         shortcut: section.hint,
         to: `${base}/${section.path}`,
       })
@@ -117,8 +118,8 @@ function PaletteContent({ onClose }) {
           goItems.push({
             id: `${kind}-${item.id}`,
             icon: kind === 'cycles' ? 'Y' : 'M',
-            label: `${kind === 'cycles' ? 'Ciclo' : 'Módulo'} «${item.name}»`,
-            hint: `${project.name} · ${item.progress.percentage} % completado`,
+            label: kind === 'cycles' ? t('Ciclo «{name}»', { name: item.name }) : t('Módulo «{name}»', { name: item.name }),
+            hint: t('{project} · {percent} % completado', { project: project.name, percent: item.progress.percentage }),
             to: `${base}/${kind}/${item.id}`,
           })
         }
@@ -126,16 +127,16 @@ function PaletteContent({ onClose }) {
     }
   }
   if (slug) {
-    goItems.push({ id: 'my-work', icon: '~', label: 'Mi trabajo', hint: 'tus tareas abiertas', to: `/${slug}/my-work` })
+    goItems.push({ id: 'my-work', icon: '~', label: t('Mi trabajo'), hint: t('tus tareas abiertas'), to: `/${slug}/my-work` })
     if (can(workspace, 'ACTIVITY_VIEW')) {
-      goItems.push({ id: 'activity', icon: '~', label: 'Actividad', hint: 'lo que pasó en el workspace', to: `/${slug}/activity` })
+      goItems.push({ id: 'activity', icon: '~', label: t('Actividad'), hint: t('lo que pasó en el workspace'), to: `/${slug}/activity` })
     }
   }
-  goItems.push({ id: 'inbox', icon: '~', label: 'Bandeja', hint: 'notificaciones', keywords: 'notificaciones', to: '/notifications' })
+  goItems.push({ id: 'inbox', icon: '~', label: t('Bandeja'), hint: t('notificaciones'), keywords: t('notificaciones'), to: '/notifications' })
   if (slug) {
     goItems.push(
-      { id: 'projects', icon: '~', label: 'Proyectos', hint: 'todos los proyectos', to: `/${slug}` },
-      { id: 'settings', icon: '~', label: 'Ajustes del workspace', hint: 'miembros e invitaciones', to: `/${slug}/settings` },
+      { id: 'projects', icon: '~', label: t('Proyectos'), hint: t('todos los proyectos'), to: `/${slug}` },
+      { id: 'settings', icon: '~', label: t('Ajustes del workspace'), hint: t('miembros e invitaciones'), to: `/${slug}/settings` },
     )
     for (const other of projects) {
       if (other.id === project?.id) continue
@@ -144,7 +145,7 @@ function PaletteContent({ onClose }) {
         project: other,
         label: other.name,
         keywords: other.identifier,
-        hint: `${other.openIssueCount ?? 0} ${other.openIssueCount === 1 ? 'abierta' : 'abiertas'}`,
+        hint: tn(other.openIssueCount ?? 0, '{count} abierta', '{count} abiertas'),
         to: `/${slug}/projects/${other.id}/issues`,
       })
     }
@@ -155,8 +156,8 @@ function PaletteContent({ onClose }) {
   const actions = createIn.map((target) => ({
     id: `create-${target.id}`,
     icon: '+',
-    label: text ? `Crear tarea «${text}»` : 'Crear tarea',
-    hint: `en ${target.name}`,
+    label: text ? t('Crear tarea «{title}»', { title: text }) : t('Crear tarea'),
+    hint: t('en {project}', { project: target.name }),
     shortcut: project ? 'C' : undefined,
     perform: () => {
       const path = `/${slug}/projects/${target.id}/issues`
@@ -171,9 +172,9 @@ function PaletteContent({ onClose }) {
   const themeAction = {
     id: 'theme',
     icon: '◐',
-    label: resolvedTheme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro',
-    hint: 'tema',
-    keywords: 'tema oscuro claro apariencia',
+    label: resolvedTheme === 'dark' ? t('Cambiar a modo claro') : t('Cambiar a modo oscuro'),
+    hint: t('tema'),
+    keywords: t('tema oscuro claro apariencia'),
     perform: () => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark'),
   }
   if (matches(themeAction, text)) actions.push(themeAction)
@@ -189,7 +190,15 @@ function PaletteContent({ onClose }) {
     setLastFirstValue(firstValue)
     setSelected(firstValue)
   }
-  const scope = projects.length === 0 ? null : projects.length <= 2 ? projects.map((item) => item.name).join(' y ') : `${projects.length} proyectos`
+  // «busca en Sitio web y App móvil» o, con más de dos, «busca en 5 proyectos»
+  const scope =
+    projects.length === 0
+      ? null
+      : projects.length === 1
+        ? t('busca en {project}', { project: projects[0].name })
+        : projects.length === 2
+          ? t('busca en {first} y {second}', { first: projects[0].name, second: projects[1].name })
+          : t('busca en {count} proyectos', { count: projects.length })
 
   return (
     <Command shouldFilter={false} loop value={selected} onValueChange={setSelected} className="rounded-none bg-card">
@@ -197,12 +206,12 @@ function PaletteContent({ onClose }) {
         <span aria-hidden="true" className="font-semibold text-accent-text">
           &gt;
         </span>
-        <span className="sr-only">Buscar tareas, secciones o acciones</span>
+        <span className="sr-only">{t('Buscar tareas, secciones o acciones')}</span>
         <CommandPrimitive.Input
           value={query}
           onValueChange={setQuery}
           autoFocus
-          placeholder="buscar tareas, ir a una sección o crear"
+          placeholder={t('buscar tareas, ir a una sección o crear')}
           className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
         />
         {searching && <Spinner className="size-3.5 text-muted-foreground" />}
@@ -211,10 +220,10 @@ function PaletteContent({ onClose }) {
 
       <CommandList className="max-h-[min(470px,60vh)] p-2">
         <CommandEmpty className="py-8 text-center text-sm text-muted-foreground">
-          {searching ? 'Buscando…' : `Nada coincide con «${text}»`}
+          {searching ? t('Buscando…') : t('Nada coincide con «{query}»', { query: text })}
         </CommandEmpty>
         {issues.length > 0 && (
-          <PaletteGroup heading="Tareas">
+          <PaletteGroup heading={t('Tareas')}>
             {issues.map((issue) => {
               const issueProject = projectsById.get(issue.projectId) ?? issue.project
               const assignee = issue.assignees?.[0]
@@ -234,13 +243,13 @@ function PaletteContent({ onClose }) {
                     <span className="flex min-w-0 items-center gap-1.5">
                       <span>{issue.code}</span>·
                       <StateIcon group={issue.state?.group} color={issue.state?.color} className="size-3" />
-                      <span className="truncate">{issue.state?.name}</span>·
+                      <span className="truncate">{stateName(issue.state)}</span>·
                       <span className="truncate">
                         {isStory(issue)
                           ? storyProgress(issue).label
                           : assignee
                             ? assignee.fullName.split(' ')[0]
-                            : 'sin asignar'}
+                            : t('sin asignar')}
                         {!isStory(issue) && issue.assignees?.length > 1 && ` +${issue.assignees.length - 1}`}
                       </span>
                     </span>
@@ -251,7 +260,7 @@ function PaletteContent({ onClose }) {
           </PaletteGroup>
         )}
         {visibleGo.length > 0 && (
-          <PaletteGroup heading="Ir a">
+          <PaletteGroup heading={t('Ir a')}>
             {visibleGo.map((item) => (
               <PaletteItem
                 key={item.id}
@@ -266,7 +275,7 @@ function PaletteContent({ onClose }) {
           </PaletteGroup>
         )}
         {actions.length > 0 && (
-          <PaletteGroup heading="Acciones">
+          <PaletteGroup heading={t('Acciones')}>
             {actions.map((action) => (
               <PaletteItem
                 key={action.id}
@@ -283,16 +292,12 @@ function PaletteContent({ onClose }) {
       </CommandList>
 
       <footer className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t bg-column px-4 py-2.5 font-mono text-[11px] text-muted-foreground">
-        <span>
-          <kbd className="text-foreground">↑ ↓</kbd> moverse
-        </span>
-        <span>
-          <kbd className="text-foreground">↵</kbd> abrir
-        </span>
+        <span>{tx('{keys} moverse', { keys: <kbd className="text-foreground">↑ ↓</kbd> })}</span>
+        <span>{tx('{key} abrir', { key: <kbd className="text-foreground">↵</kbd> })}</span>
         <span className="hidden sm:inline">
-          <kbd className="text-foreground">{IS_MAC ? '⌘ K' : 'ctrl K'}</kbd> abrir desde cualquier pantalla
+          {tx('{keys} abrir desde cualquier pantalla', { keys: <kbd className="text-foreground">{IS_MAC ? '⌘ K' : 'ctrl K'}</kbd> })}
         </span>
-        {scope && <span className="ml-auto truncate">busca en {scope}</span>}
+        {scope && <span className="ml-auto truncate">{scope}</span>}
       </footer>
     </Command>
   )

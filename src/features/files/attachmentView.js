@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 import { badgeOf, extensionOf, formatSize, isImageType } from './fileTypes'
 
 /**
@@ -83,20 +84,20 @@ export function uploadRowOf(task) {
   const percent = Math.round((task.progress ?? 0) * 100)
   switch (task.status) {
     case 'queued':
-      return { state: 'queued', label: 'En cola', percent: 0, canRetry: false, dismissLabel: 'Cancelar subida' }
+      return { state: 'queued', label: t('En cola'), percent: 0, canRetry: false, dismissLabel: t('Cancelar subida') }
     case 'uploading':
-      return { state: 'uploading', label: `Subiendo… ${percent} %`, percent, canRetry: false, dismissLabel: 'Cancelar subida' }
+      return { state: 'uploading', label: t('Subiendo… {percent} %', { percent }), percent, canRetry: false, dismissLabel: t('Cancelar subida') }
     case 'confirming':
     case 'done':
       // Ya subió: falta que el backend la registre (o que la lista de adjuntos se actualice)
-      return { state: 'uploading', label: 'Terminando…', percent: 100, canRetry: false, dismissLabel: 'Cancelar subida' }
+      return { state: 'uploading', label: t('Terminando…'), percent: 100, canRetry: false, dismissLabel: t('Cancelar subida') }
     default:
       return {
         state: 'error',
-        label: task.error || 'No se pudo subir.',
+        label: task.error || t('No se pudo subir.'),
         percent,
         canRetry: Boolean(task.retryable),
-        dismissLabel: 'Quitar de la lista',
+        dismissLabel: t('Quitar de la lista'),
       }
   }
 }

@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Spinner } from '@/components/common/Loaders'
 import { useWorkspace } from '@/features/workspaces/hooks'
+import { t, tx } from '@/i18n'
 import { formatDateTime, formatRelative } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
 import { can, canDeleteFile } from '@/lib/permissions'
@@ -71,7 +72,7 @@ export function IssueAttachments({ slug, projectId, issue, variant = 'panel' }) 
       remove.mutate(file.id, {
         onSuccess: () => {
           setConfirmingId(null)
-          toast.success(`«${file.fileName}» eliminado`)
+          toast.success(t('«{name}» eliminado', { name: file.fileName }))
         },
         onError: (deleteError) => notifyError(deleteError),
       }),
@@ -79,12 +80,22 @@ export function IssueAttachments({ slug, projectId, issue, variant = 'panel' }) 
   const pick = () => inputRef.current?.click()
   // Sin el permiso de subir adjuntos, la sección solo muestra lo que hay
   const canAttach = can(workspace, 'ISSUE_ATTACH')
+  const pickLink = (
+    <button
+      type="button"
+      onClick={pick}
+      disabled={full}
+      className="font-semibold text-accent-text hover:underline disabled:pointer-events-none disabled:opacity-50"
+    >
+      {t('elige en tu equipo')}
+    </button>
+  )
 
   return (
     <section aria-labelledby={headingId} className={cn('flex flex-col', page ? 'gap-3' : 'gap-2.5')}>
       <div className="flex flex-wrap items-center gap-2">
         <h2 id={headingId} className={cn('font-semibold', page ? 'text-[15px]' : 'text-sm')}>
-          Adjuntos
+          {t('Adjuntos')}
           {attachments.length > 0 && (
             <span className="ml-1.5 font-mono text-xs font-normal text-muted-foreground">{attachmentsSummary(attachments)}</span>
           )}
@@ -95,14 +106,14 @@ export function IssueAttachments({ slug, projectId, issue, variant = 'panel' }) 
           onClick={pick}
           disabled={full}
           hidden={!canAttach}
-          title={full ? `El workspace llegó a su límite de ${quota}` : 'Adjuntar archivos · también puedes arrastrarlos a la tarea'}
+          title={full ? t('El workspace llegó a su límite de {quota}', { quota }) : t('Adjuntar archivos · también puedes arrastrarlos a la tarea')}
           className={cn(
             'ml-auto flex items-center gap-1.5 border transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-50',
             page ? 'rounded-[10px] bg-card py-1.5 pr-3 pl-2.5 text-[13px] font-medium' : 'rounded-full py-1 pr-2.5 pl-2 text-xs',
           )}
         >
           <Paperclip className={page ? 'size-3.5' : 'size-3.25'} strokeWidth={2.2} aria-hidden="true" />
-          Adjuntar
+          {t('Adjuntar')}
         </button>
         <input
           ref={inputRef}
@@ -124,10 +135,9 @@ export function IssueAttachments({ slug, projectId, issue, variant = 'panel' }) 
         <p role="alert" className="flex items-start gap-2 rounded-xl border border-late/25 bg-late-soft/50 px-3 py-2.5 text-[12.5px] leading-snug">
           <HardDrive className="mt-0.5 size-3.5 shrink-0 text-late" aria-hidden="true" />
           <span>
-            <span className="font-semibold">El workspace llegó a su límite de {quota}.</span>{' '}
+            <span className="font-semibold">{t('El workspace llegó a su límite de {quota}.', { quota })}</span>{' '}
             <span className="text-muted-foreground">
-              No se pueden adjuntar más archivos hasta liberar espacio: elimina los adjuntos que ya no se usen o pide al PM que
-              revise el almacenamiento del workspace.
+              {t('No se pueden adjuntar más archivos hasta liberar espacio: elimina los adjuntos que ya no se usen o pide al PM que revise el almacenamiento del workspace.')}
             </span>
           </span>
         </p>
@@ -135,22 +145,22 @@ export function IssueAttachments({ slug, projectId, issue, variant = 'panel' }) 
         usage?.warning && (
           <p className="flex items-center gap-1.5 text-xs text-soon">
             <HardDrive className="size-3.5 shrink-0" aria-hidden="true" />
-            El workspace usa el {usage.percent} % de su espacio ({formatSize(usage.usedBytes)} de {quota}).
+            {t('El workspace usa el {percent} % de su espacio ({used} de {quota}).', { percent: usage.percent, used: formatSize(usage.usedBytes), quota })}
           </p>
         )
       )}
 
       {error && (
         <p className="flex items-center gap-2 text-xs text-late">
-          No se pudieron cargar los adjuntos.
+          {t('No se pudieron cargar los adjuntos.')}
           <button type="button" className="font-medium underline underline-offset-2" onClick={() => refetch()}>
-            Reintentar
+            {t('Reintentar')}
           </button>
         </p>
       )}
 
       {images.length > 0 && (
-        <ul aria-label="Imágenes" className={cn('grid', page ? 'grid-cols-4 gap-3' : 'grid-cols-3 gap-2.5')}>
+        <ul aria-label={t('Imágenes')} className={cn('grid', page ? 'grid-cols-4 gap-3' : 'grid-cols-3 gap-2.5')}>
           {images.map((file) => (
             <ImageTile key={file.id} {...fileProps(file)} />
           ))}
@@ -159,7 +169,7 @@ export function IssueAttachments({ slug, projectId, issue, variant = 'panel' }) 
       {confirmingImage && <DeleteConfirm {...confirmProps(confirmingImage)} />}
 
       {others.length > 0 && (
-        <ul aria-label="Archivos" className={cn(page ? 'grid grid-cols-2 gap-2.5' : 'overflow-hidden rounded-xl border')}>
+        <ul aria-label={t('Archivos')} className={cn(page ? 'grid grid-cols-2 gap-2.5' : 'overflow-hidden rounded-xl border')}>
           {others.map((file, index) => (
             <li key={file.id} className={cn(page ? 'min-w-0 rounded-xl border' : index > 0 && 'border-t')}>
               <FileRow {...fileProps(file)} page={page} />
@@ -170,7 +180,7 @@ export function IssueAttachments({ slug, projectId, issue, variant = 'panel' }) 
       )}
 
       {uploads.length > 0 && (
-        <ul aria-label="Subidas" className="overflow-hidden rounded-xl border">
+        <ul aria-label={t('Subidas')} className="overflow-hidden rounded-xl border">
           {uploads.map((task, index) => (
             <UploadRow key={task.id} task={task} first={index === 0} queue={queue} />
           ))}
@@ -178,27 +188,19 @@ export function IssueAttachments({ slug, projectId, issue, variant = 'panel' }) 
       )}
 
       {isLoading ? null : !canAttach ? (
-        empty && <p className="text-xs text-muted-foreground">Sin adjuntos.</p>
+        empty && <p className="text-xs text-muted-foreground">{t('Sin adjuntos.')}</p>
       ) : empty || !page ? (
         <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 rounded-xl border border-dashed border-dash px-3 py-2.25 text-xs text-muted-foreground">
           <Upload className="size-3.5" aria-hidden="true" />
-          <span>
-            Arrastra archivos {page ? 'a la página' : 'al panel'} o{' '}
-            <button
-              type="button"
-              onClick={pick}
-              disabled={full}
-              className="font-semibold text-accent-text hover:underline disabled:pointer-events-none disabled:opacity-50"
-            >
-              elige en tu equipo
-            </button>
-          </span>
-          <span className="ml-auto font-mono text-[11px]">hasta 10 MB · imágenes 5 MB</span>
+          <span>{page ? tx('Arrastra archivos a la página o {link}', { link: pickLink }) : tx('Arrastra archivos al panel o {link}', { link: pickLink })}</span>
+          <span className="ml-auto font-mono text-[11px]">{t('hasta 10 MB · imágenes 5 MB')}</span>
         </p>
       ) : (
         <p className="flex items-center gap-2 text-xs text-muted-foreground">
           <Upload className="size-3.25" aria-hidden="true" />
-          Arrastra archivos a la página para adjuntarlos ·<span className="font-mono text-[11px]">hasta 10 MB · imágenes 5 MB</span>
+          {tx('Arrastra archivos a la página para adjuntarlos ·{limits}', {
+            limits: <span className="font-mono text-[11px]">{t('hasta 10 MB · imágenes 5 MB')}</span>,
+          })}
         </p>
       )}
     </section>
@@ -219,7 +221,7 @@ function ImageTile({ file, actions, canDelete, onAskDelete }) {
         <button
           type="button"
           onClick={() => actions.open(file)}
-          aria-label={`Ver ${file.fileName}`}
+          aria-label={t('Ver {name}', { name: file.fileName })}
           className="absolute inset-0 block cursor-zoom-in outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
         >
           <FileImage
@@ -233,8 +235,8 @@ function ImageTile({ file, actions, canDelete, onAskDelete }) {
           <button
             type="button"
             onClick={() => actions.download(file.id)}
-            aria-label={`Descargar ${file.fileName}`}
-            title="Descargar"
+            aria-label={t('Descargar {name}', { name: file.fileName })}
+            title={t('Descargar')}
             className="pointer-events-auto flex size-6.5 items-center justify-center rounded-[7px] bg-card text-foreground hover:bg-muted"
           >
             <Download className="size-3.25" strokeWidth={2.2} aria-hidden="true" />
@@ -267,7 +269,7 @@ function FileRow({ file, actions, canDelete, onAskDelete, page }) {
       <button
         type="button"
         onClick={() => actions.open(file)}
-        title={action === 'tab' ? 'Se abre en una pestaña nueva' : 'Se descarga con su nombre original'}
+        title={action === 'tab' ? t('Se abre en una pestaña nueva') : t('Se descarga con su nombre original')}
         className="flex min-w-0 flex-1 flex-col gap-0.75 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <span className="flex min-w-0 items-baseline gap-2">
@@ -283,8 +285,8 @@ function FileRow({ file, actions, canDelete, onAskDelete, page }) {
         <button
           type="button"
           onClick={() => actions.download(file.id)}
-          aria-label={`Descargar ${file.fileName}`}
-          title="Descargar"
+          aria-label={t('Descargar {name}', { name: file.fileName })}
+          title={t('Descargar')}
           className="flex size-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
         >
           <Download className="size-3.75" aria-hidden="true" />
@@ -306,10 +308,11 @@ function FileMenu({ file, actions, canDelete, onAskDelete, className }) {
   const action = openActionOf(file)
   // Al elegir «Eliminar…» el foco no vuelve al botón ⋯: queda en la confirmación
   const askedRef = useRef(false)
+  const uploader = firstName(file.uploadedBy)
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button type="button" aria-label={`Más acciones para ${file.fileName}`} className={cn('flex items-center justify-center', className)}>
+        <button type="button" aria-label={t('Más acciones para {name}', { name: file.fileName })} className={cn('flex items-center justify-center', className)}>
           <MoreHorizontal className="size-3.75" aria-hidden="true" />
         </button>
       </DropdownMenuTrigger>
@@ -324,12 +327,12 @@ function FileMenu({ file, actions, canDelete, onAskDelete, className }) {
       >
         <DropdownMenuItem onSelect={() => actions.download(file.id)}>
           <Download />
-          Descargar
+          {t('Descargar')}
         </DropdownMenuItem>
         {action !== 'download' && (
           <DropdownMenuItem onSelect={() => actions.openInTab(file.id)}>
             <ExternalLink />
-            Abrir en pestaña nueva
+            {t('Abrir en pestaña nueva')}
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
@@ -342,16 +345,15 @@ function FileMenu({ file, actions, canDelete, onAskDelete, className }) {
             }}
           >
             <Trash2 />
-            Eliminar…
+            {t('Eliminar…')}
           </DropdownMenuItem>
         ) : (
           <DropdownMenuItem disabled className="items-start">
             <Lock className="mt-0.5" />
             <span className="flex flex-col gap-px">
-              <span>Eliminar</span>
+              <span>{t('Eliminar')}</span>
               <span className="text-[11.5px] leading-snug">
-                Solo {firstName(file.uploadedBy) || 'quien lo subió'}
-                {file.uploadedBy ? ' (quien lo subió)' : ''} o el PM
+                {uploader ? t('Solo {name} (quien lo subió) o el PM', { name: uploader }) : t('Solo quien lo subió o el PM')}
               </span>
             </span>
           </DropdownMenuItem>
@@ -374,18 +376,18 @@ function DeleteConfirm({ file, pending, onCancel, onConfirm, className }) {
     >
       <span className="flex min-w-0 flex-[1_1_220px] flex-col gap-0.5">
         <span id={titleId} className="truncate text-[13px] font-semibold">
-          ¿Eliminar {file.fileName}?
+          {t('¿Eliminar {name}?', { name: file.fileName })}
         </span>
         <span id={descriptionId} className="text-xs leading-snug text-muted-foreground">
-          Se borra para todo el proyecto y no se puede deshacer.
+          {t('Se borra para todo el proyecto y no se puede deshacer.')}
         </span>
       </span>
       <Button size="sm" variant="outline" className="rounded-[9px]" onClick={onCancel} autoFocus>
-        Cancelar
+        {t('Cancelar')}
       </Button>
       <Button size="sm" className="rounded-[9px] bg-late font-semibold text-card hover:bg-late/90" onClick={onConfirm} disabled={pending}>
         {pending && <Spinner />}
-        Eliminar
+        {t('Eliminar')}
       </Button>
     </div>
   )
@@ -412,7 +414,7 @@ function UploadRow({ task, first, queue }) {
           <span className="flex items-center gap-2.5">
             <span
               role="progressbar"
-              aria-label={`Subiendo ${task.name}`}
+              aria-label={t('Subiendo {name}', { name: task.name })}
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={row.percent}
@@ -430,7 +432,7 @@ function UploadRow({ task, first, queue }) {
         {row.canRetry && (
           <Button size="xs" variant="outline" className="h-7 rounded-lg px-2.25 text-xs" onClick={() => queue.retry(task.id)}>
             <RotateCw aria-hidden="true" />
-            Reintentar
+            {t('Reintentar')}
           </Button>
         )}
         <button
@@ -451,13 +453,13 @@ function UploadRow({ task, first, queue }) {
 function UploadsPill({ progress, onCancelAll }) {
   return (
     <span role="status" className="flex items-center gap-2 rounded-full bg-accent-soft py-0.75 pr-1 pl-2.5 text-xs text-accent-text">
-      <span className="font-semibold">Subiendo {progress.count} archivos</span>
+      <span className="font-semibold">{t('Subiendo {count} archivos', { count: progress.count })}</span>
       <span className="h-1 w-17.5 overflow-hidden rounded-full bg-ring/25" aria-hidden="true">
         <span className="block h-full rounded-full bg-ring transition-[width] duration-200" style={{ width: `${progress.percent}%` }} />
       </span>
-      <span className="font-mono text-[11px]">{progress.percent} %</span>
+      <span className="font-mono text-[11px]">{t('{percent} %', { percent: progress.percent })}</span>
       <button type="button" onClick={onCancelAll} className="rounded-full px-2 py-0.5 font-medium hover:bg-accent-text/10">
-        Cancelar todo
+        {t('Cancelar todo')}
       </button>
     </span>
   )

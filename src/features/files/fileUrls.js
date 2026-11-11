@@ -1,4 +1,5 @@
 import { useQueries, useQuery } from '@tanstack/react-query'
+import { t } from '@/i18n'
 import { useSessionStore } from '@/stores/sessionStore'
 import { filesApi } from './api'
 
@@ -106,7 +107,7 @@ export function useFileUrls(ids) {
  */
 export async function downloadFile(id) {
   const url = await loadFileUrl(id, { download: true })
-  if (!url) throw new Error('No tienes acceso a este archivo o ya no existe.')
+  if (!url) throw new Error(t('No tienes acceso a este archivo o ya no existe.'))
   const link = document.createElement('a')
   link.href = url.url
   link.rel = 'noopener'
@@ -124,7 +125,7 @@ export async function openFileInNewTab(id) {
   const tab = window.open('', '_blank')
   try {
     const url = await loadFileUrl(id)
-    if (!url) throw new Error('No tienes acceso a este archivo o ya no existe.')
+    if (!url) throw new Error(t('No tienes acceso a este archivo o ya no existe.'))
     if (tab) {
       tab.opener = null
       tab.location.href = url.url

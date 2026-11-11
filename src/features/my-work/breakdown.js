@@ -1,3 +1,4 @@
+import { localeTag, t } from '@/i18n'
 import { PRIORITIES } from '@/features/issues/constants'
 
 /**
@@ -15,11 +16,11 @@ export function countByProject(issues, projectsById = new Map()) {
   const rows = new Map()
   for (const issue of issues ?? []) {
     const project = projectsById.get(issue.projectId) ?? issue.project
-    const row = rows.get(issue.projectId) ?? { projectId: issue.projectId, project, name: project?.name ?? 'Proyecto', count: 0 }
+    const row = rows.get(issue.projectId) ?? { projectId: issue.projectId, project, name: project?.name ?? t('Proyecto'), count: 0 }
     row.count += 1
     rows.set(issue.projectId, row)
   }
-  return [...rows.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'es'))
+  return [...rows.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, localeTag()))
 }
 
 /**

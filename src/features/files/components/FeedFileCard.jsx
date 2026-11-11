@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { useFileActions } from '../attachmentHooks'
 import { fileReference } from '../fileRefs'
@@ -16,7 +17,7 @@ export function FeedFileCard({ file, className }) {
     <button
       type="button"
       onClick={() => actions.open(file)}
-      title={file.image ? 'Ver la imagen' : 'Abrir el archivo'}
+      title={file.image ? t('Ver la imagen') : t('Abrir el archivo')}
       className={cn(
         'flex max-w-full items-center gap-2.5 rounded-[10px] border py-1.25 pr-3 pl-1.25 text-left transition-colors hover:bg-subtle',
         className,

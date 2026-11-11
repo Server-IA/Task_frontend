@@ -1,4 +1,5 @@
 import { Inbox } from 'lucide-react'
+import { t } from '@/i18n'
 import { SidebarLink } from '@/layouts/Sidebar'
 import { useUnreadCount } from './hooks'
 
@@ -12,8 +13,8 @@ export function NotificationsLink({ collapsed }) {
       <SidebarLink
         to="/notifications"
         icon={Inbox}
-        label="Bandeja"
-        ariaLabel={collapsed && count > 0 ? `Bandeja, ${label} sin leer` : undefined}
+        label={t('Bandeja')}
+        ariaLabel={collapsed && count > 0 ? t('Bandeja, {count} sin leer', { count: label }) : undefined}
         collapsed={collapsed}
         badge={
           count > 0 && (

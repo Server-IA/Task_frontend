@@ -15,6 +15,7 @@ import { IssuePeekSheet } from '@/features/issues/components/IssuePeekSheet'
 import { MentionText } from '@/features/mentions/MentionText'
 import { useProject } from '@/features/projects/hooks'
 import { useElementWidth } from '@/hooks/useElementWidth'
+import { t, tx } from '@/i18n'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { formatDateTime, formatRelative, groupByDay } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
@@ -51,9 +52,9 @@ const TYPE_MARKS = {
 const DEFAULT_MARK = { mark: '·', className: 'bg-card text-muted-foreground' }
 
 const EMPTY = {
-  unread: { icon: BellOff, title: 'Estás al día', description: 'Te avisaremos cuando te asignen una tarea, comenten en una tuya o te mencionen.' },
-  mentions: { icon: AtSign, title: 'Nadie te ha mencionado', description: 'Cuando alguien escriba @ y tu nombre en un comentario, aparecerá aquí.' },
-  all: { icon: BellOff, title: 'Sin notificaciones', description: 'Te avisaremos cuando te asignen una tarea, comenten en una tuya o te mencionen.' },
+  unread: { icon: BellOff, title: t('Estás al día'), description: t('Te avisaremos cuando te asignen una tarea, comenten en una tuya o te mencionen.') },
+  mentions: { icon: AtSign, title: t('Nadie te ha mencionado'), description: t('Cuando alguien escriba @ y tu nombre en un comentario, aparecerá aquí.') },
+  all: { icon: BellOff, title: t('Sin notificaciones'), description: t('Te avisaremos cuando te asignen una tarea, comenten en una tuya o te mencionen.') },
 }
 
 /**
@@ -113,17 +114,17 @@ export function NotificationsPage() {
       size={split ? 'icon' : 'default'}
       className={cn(split && 'size-9 rounded-[10px] bg-card')}
       disabled={unreadCount === 0 || markAll.isPending}
-      aria-label={split ? 'Marcar todas como leídas' : undefined}
-      title={split ? 'Marcar todas como leídas' : undefined}
+      aria-label={split ? t('Marcar todas como leídas') : undefined}
+      title={split ? t('Marcar todas como leídas') : undefined}
       onClick={() =>
         markAll.mutate(undefined, {
-          onSuccess: () => toast.success('Todas las notificaciones quedaron como leídas'),
+          onSuccess: () => toast.success(t('Todas las notificaciones quedaron como leídas')),
           onError: (markError) => notifyError(markError),
         })
       }
     >
       <CheckCheck />
-      {!split && 'Marcar todas como leídas'}
+      {!split && t('Marcar todas como leídas')}
     </Button>
   )
 
@@ -131,15 +132,15 @@ export function NotificationsPage() {
     <div ref={rootRef} className="flex min-h-0 w-full flex-1 gap-3.5">
       <div className={cn('flex min-h-0 min-w-0 flex-col gap-3.5', split ? 'flex-[1_1_340px]' : 'mx-auto w-full max-w-[820px]')}>
         <PageHeader
-          path={[{ label: '~' }, { label: 'bandeja' }]}
-          title="Bandeja"
-          description="Asignaciones, comentarios en tus tareas, menciones, tareas desbloqueadas y retrospectivas."
+          path={[{ label: '~' }, { label: t('bandeja') }]}
+          title={t('Bandeja')}
+          description={t('Asignaciones, comentarios en tus tareas, menciones, tareas desbloqueadas y retrospectivas.')}
           actions={split ? undefined : markAllButton}
         />
         <PageBody className="flex flex-col gap-3.5">
           <div className="flex items-center gap-2">
             <Segmented
-              label="Filtrar"
+              label={t('Filtrar')}
               className="bg-card"
               value={tab}
               onChange={setTab}
@@ -148,7 +149,8 @@ export function NotificationsPage() {
                   value: 'unread',
                   label: (
                     <>
-                      No leídas{unreadCount > 0 && <span className="ml-1.5 font-mono">{unreadCount}</span>}
+                      {t('No leídas')}
+                      {unreadCount > 0 && <span className="ml-1.5 font-mono">{unreadCount}</span>}
                     </>
                   ),
                 },
@@ -156,19 +158,19 @@ export function NotificationsPage() {
                   value: 'mentions',
                   label: (
                     <span className="flex items-center">
-                      Menciones
+                      {t('Menciones')}
                       {counts?.mentions > 0 && <span className="ml-1.5 font-mono">{counts.mentions}</span>}
                       {counts?.unreadMentions > 0 && (
                         <span
                           className="ml-1 size-1.5 rounded-full bg-ring"
-                          title={`${counts.unreadMentions} sin leer`}
-                          aria-label={`${counts.unreadMentions} sin leer`}
+                          title={t('{count} sin leer', { count: counts.unreadMentions })}
+                          aria-label={t('{count} sin leer', { count: counts.unreadMentions })}
                         />
                       )}
                     </span>
                   ),
                 },
-                { value: 'all', label: 'Todas' },
+                { value: 'all', label: t('Todas') },
               ]}
             />
             {split && <span className="ml-auto">{markAllButton}</span>}
@@ -207,7 +209,7 @@ export function NotificationsPage() {
             <div className="flex justify-center">
               <Button variant="outline" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
                 {isFetchingNextPage && <Spinner />}
-                Cargar más
+                {t('Cargar más')}
               </Button>
             </div>
           )}
@@ -216,7 +218,7 @@ export function NotificationsPage() {
 
       {split ? (
         <section
-          aria-label={opened ? 'Tarea del aviso' : 'Ninguna tarea abierta'}
+          aria-label={opened ? t('Tarea del aviso') : t('Ninguna tarea abierta')}
           className="tf-panel flex min-h-0 min-w-0 flex-[1.5_1_520px] flex-col overflow-hidden"
         >
           {opened ? (
@@ -225,8 +227,8 @@ export function NotificationsPage() {
             <EmptyState
               className="flex-1"
               icon={MousePointerClick}
-              title="Elige un aviso"
-              description="Su tarea se abre aquí, con el comentario del aviso a la vista."
+              title={t('Elige un aviso')}
+              description={t('Su tarea se abre aquí, con el comentario del aviso a la vista.')}
             />
           )}
         </section>
@@ -282,7 +284,10 @@ function OpenedIssueSheet({ opened, onClose, onOpenIssue }) {
   )
 }
 
-/** El código de la tarea dentro del mensaje se resalta en monoespaciada (y las menciones, como «@Nombre»). */
+/**
+ * El código de la tarea dentro del mensaje se resalta en monoespaciada (y las menciones, como «@Nombre»). El mensaje
+ * lo redacta el backend (llega como texto, ya en el idioma de la persona): aquí no se traduce.
+ */
 function MessageText({ message = '', code, type }) {
   if (!code || !message.includes(code)) return <MentionText body={message} />
   const [before, ...rest] = message.split(code)
@@ -301,17 +306,17 @@ function CommentExcerpt({ excerpt }) {
   const myName = useSessionStore((state) => state.user?.fullName)
   return (
     <span className="mt-1.5 block rounded-[10px] bg-subtle px-2.5 py-1.5 leading-snug break-words text-muted-foreground">
-      «
-      {excerptSegments(markdownToPlainText(excerpt), myName).map((segment, index) =>
-        segment.me ? (
-          <span key={index} className="rounded-md bg-accent-soft px-1 font-semibold text-accent-text [box-decoration-break:clone]">
-            {segment.text}
-          </span>
-        ) : (
-          <span key={index}>{segment.text}</span>
+      {tx('«{quote}»', {
+        quote: excerptSegments(markdownToPlainText(excerpt), myName).map((segment, index) =>
+          segment.me ? (
+            <span key={index} className="rounded-md bg-accent-soft px-1 font-semibold text-accent-text [box-decoration-break:clone]">
+              {segment.text}
+            </span>
+          ) : (
+            <span key={index}>{segment.text}</span>
+          ),
         ),
-      )}
-      »
+      })}
     </span>
   )
 }
@@ -365,7 +370,7 @@ function NotificationItem({ notification, first, current, onOpen }) {
             <>
               <span className="block leading-snug">
                 <span className={cn(!notification.read && 'font-semibold')}>TaskFlow</span>{' '}
-                <span className="text-muted-foreground">avisa: espacio para archivos</span>
+                <span className="text-muted-foreground">{t('avisa: espacio para archivos')}</span>
               </span>
               <span className={cn('mt-0.5 flex min-w-0 items-start gap-1.5 leading-snug', !notification.read && 'font-semibold')}>
                 <HardDrive aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-soon" />
@@ -376,7 +381,7 @@ function NotificationItem({ notification, first, current, onOpen }) {
             <>
               <span className="block leading-snug">
                 <span className={cn(!notification.read && 'font-semibold')}>TaskFlow</span>{' '}
-                <span className="text-muted-foreground">avisa: lista para revisar</span>
+                <span className="text-muted-foreground">{t('avisa: lista para revisar')}</span>
               </span>
               <span className={cn('mt-0.5 flex min-w-0 items-center gap-1.5 leading-snug', !notification.read && 'font-semibold')}>
                 <TypeIcon type="STORY" size={14} />
@@ -408,7 +413,7 @@ function NotificationItem({ notification, first, current, onOpen }) {
             {formatRelative(notification.createdAt)}
           </span>
         </span>
-        {!notification.read && <span className="mt-1.5 size-2 shrink-0 rounded-full bg-badge" aria-label="No leída" />}
+        {!notification.read && <span className="mt-1.5 size-2 shrink-0 rounded-full bg-badge" aria-label={t('No leída')} />}
       </button>
     </li>
   )

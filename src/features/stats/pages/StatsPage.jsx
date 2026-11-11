@@ -9,6 +9,7 @@ import { IssuePeekSheet } from '@/features/issues/components/IssuePeekSheet'
 import { useIssueFilters } from '@/features/issues/useIssueFilters'
 import { useCurrentProject, useProjectMembers } from '@/features/projects/hooks'
 import { useCurrentWorkspace } from '@/features/workspaces/hooks'
+import { t } from '@/i18n'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { projectPath } from '@/lib/paths'
 import { cn } from '@/lib/utils'
@@ -60,17 +61,17 @@ export function StatsPage() {
   return (
     <>
       <PageHeader
-        path={[...projectPath(workspace, project), { label: 'estadisticas' }]}
-        title="Estadísticas"
-        documentTitle={['Estadísticas', project.name]}
-        description="Cómo avanza el proyecto: ritmo de cierre, ciclo actual y carga del equipo."
+        path={[...projectPath(workspace, project), { label: t('estadisticas') }]}
+        title={t('Estadísticas')}
+        documentTitle={[t('Estadísticas'), project.name]}
+        description={t('Cómo avanza el proyecto: ritmo de cierre, ciclo actual y carga del equipo.')}
         actions={
           <>
             <Segmented
-              label="Periodo"
+              label={t('Periodo')}
               value={String(weeks)}
               onChange={setWeeks}
-              options={RANGES.map((range) => ({ value: String(range), label: `${range} semanas` }))}
+              options={RANGES.map((range) => ({ value: String(range), label: t('{count} semanas', { count: range }) }))}
             />
             <PersonFilter users={users} selected={selected} onChange={setAssignees} />
           </>
@@ -82,11 +83,11 @@ export function StatsPage() {
         {stats && project.issueCount === 0 && (
           <EmptyState
             icon={ChartColumn}
-            title="Todavía no hay datos"
-            description="Las estadísticas se llenan a medida que el equipo crea y cierra tareas."
+            title={t('Todavía no hay datos')}
+            description={t('Las estadísticas se llenan a medida que el equipo crea y cierra tareas.')}
             action={
               <Button asChild variant="outline">
-                <Link to={`${base}/issues`}>Ir a las tareas</Link>
+                <Link to={`${base}/issues`}>{t('Ir a las tareas')}</Link>
               </Button>
             }
           />
@@ -124,7 +125,7 @@ export function StatsPage() {
 
 function StatsSkeleton() {
   return (
-    <div className="flex flex-col gap-3.5" aria-label="Cargando estadísticas">
+    <div className="flex flex-col gap-3.5" aria-label={t('Cargando estadísticas')}>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(190px,1fr))] gap-3.5">
         {Array.from({ length: 4 }, (_, index) => (
           <Skeleton key={index} className="h-[118px] rounded-2xl" />

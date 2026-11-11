@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 import { toApiError } from '@/lib/errors'
 import { UploadError, xhrPut } from './xhrUpload'
 
@@ -41,9 +42,9 @@ export function describeUploadError(error) {
   if (error instanceof UploadError) {
     if (error.reason === 'network') {
       const percent = Math.round((error.progress ?? 0) * 100)
-      return { message: percent > 0 ? `Se cortó la conexión al ${percent} %.` : 'Se cortó la conexión.', retryable: true }
+      return { message: percent > 0 ? t('Se cortó la conexión al {percent} %.', { percent }) : t('Se cortó la conexión.'), retryable: true }
     }
-    return { message: 'El almacenamiento rechazó la subida. Vuelve a intentarlo.', retryable: true }
+    return { message: t('El almacenamiento rechazó la subida. Vuelve a intentarlo.'), retryable: true }
   }
   const apiError = toApiError(error)
   const final =

@@ -4,6 +4,8 @@
  * Ejecutables, HTML y SVG no se aceptan: el navegador podría ejecutarlos.
  */
 
+import { getLanguage, t } from '@/i18n'
+
 export const MB = 1024 * 1024
 /** Imágenes (adjuntas o pegadas) y la foto de perfil. */
 export const IMAGE_LIMIT = 5 * MB
@@ -12,9 +14,9 @@ export const FILE_LIMIT = 10 * MB
 /** Espacio de cada workspace. */
 export const WORKSPACE_QUOTA = 2 * 1024 * MB
 
-export const NOT_ALLOWED = 'Este tipo de archivo no se puede adjuntar.'
-export const ONLY_IMAGES = 'Solo se pueden pegar imágenes PNG, JPG, GIF o WebP.'
-export const TYPE_MISMATCH = 'El tipo del archivo no coincide con su extensión.'
+export const NOT_ALLOWED = t('Este tipo de archivo no se puede adjuntar.')
+export const ONLY_IMAGES = t('Solo se pueden pegar imágenes PNG, JPG, GIF o WebP.')
+export const TYPE_MISMATCH = t('El tipo del archivo no coincide con su extensión.')
 
 /** @typedef {'image' | 'document' | 'archive'} FileGroup */
 
@@ -77,21 +79,27 @@ export function validateFile(file, { imagesOnly = false } = {}) {
   if (declared && declared !== 'application/octet-stream' && declared !== known.type && !known.aliases?.includes(declared)) {
     return { ok: false, error: TYPE_MISMATCH }
   }
-  if (!file.size) return { ok: false, error: 'El archivo está vacío.' }
+  if (!file.size) return { ok: false, error: t('El archivo está vacío.') }
   const limit = known.group === 'image' ? IMAGE_LIMIT : FILE_LIMIT
   if (file.size > limit) {
-    const what = known.group === 'image' ? 'La imagen pesa' : 'Pesa'
-    const hint = known.group === 'image' ? '' : ' Súbelo comprimido o pega un enlace.'
-    return { ok: false, error: `${what} ${formatSize(file.size)} y el límite es ${formatSize(limit)}.${hint}` }
+    const sizes = { size: formatSize(file.size), limit: formatSize(limit) }
+    const error =
+      known.group === 'image'
+        ? t('La imagen pesa {size} y el límite es {limit}.', sizes)
+        : t('Pesa {size} y el límite es {limit}. Súbelo comprimido o pega un enlace.', sizes)
+    return { ok: false, error }
   }
   return { ok: true, contentType: known.type, group: known.group }
 }
 
-/** «2 GB», «2,4 MB», «86 KB», «512 B»: un decimal por debajo de 10, sin «,0». */
+/** Un número con su separador decimal: coma en español, punto en inglés («2,4» / «2.4»). */
+export const decimalText = (value) => (getLanguage() === 'en' ? String(value) : String(value).replace('.', ','))
+
+/** «2 GB», «2,4 MB», «86 KB», «512 B»: un decimal por debajo de 10, sin «,0» (en inglés, «2.4 MB»). */
 export function formatSize(bytes = 0) {
   const decimal = (value) => {
     const rounded = Math.round(value * 10) / 10
-    return rounded >= 10 || Number.isInteger(rounded) ? String(Math.round(rounded)) : String(rounded).replace('.', ',')
+    return rounded >= 10 || Number.isInteger(rounded) ? String(Math.round(rounded)) : decimalText(rounded)
   }
   if (bytes >= 1024 * MB) return `${decimal(bytes / (1024 * MB))} GB`
   if (bytes >= MB) return `${decimal(bytes / MB)} MB`
@@ -101,14 +109,14 @@ export function formatSize(bytes = 0) {
 
 /** Etiqueta corta del tipo para la insignia («PDF», «DOCX», «PNG»). */
 export function badgeOf(name = '') {
-  return (extensionOf(name) || 'archivo').toUpperCase().slice(0, 4)
+  return (extensionOf(name) || t('archivo')).toUpperCase().slice(0, 4)
 }
 
 /** «imagen», «documento» o «archivo» (para «1,8 MB · imagen»). */
 export function kindLabel(contentType = '') {
-  if (isImageType(contentType)) return 'imagen'
-  if (contentType === 'application/zip') return 'comprimido'
-  return 'documento'
+  if (isImageType(contentType)) return t('imagen')
+  if (contentType === 'application/zip') return t('comprimido')
+  return t('documento')
 }
 
 /**
@@ -123,7 +131,7 @@ export function pastedName(file, now = new Date()) {
   const pad = (value) => String(value).padStart(2, '0')
   const extension = extensionOf(name) || { 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp' }[normalizeType(file?.type)] || 'png'
   const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`
-  return `captura-${stamp}.${extension}`
+  return t('captura-{stamp}.{extension}', { stamp, extension })
 }
 
 /** Un `File` con otro nombre (el contenido y el tipo no cambian). */

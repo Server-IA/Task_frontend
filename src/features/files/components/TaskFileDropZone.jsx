@@ -1,5 +1,6 @@
 import { HardDrive, Upload } from 'lucide-react'
 import { toast } from 'sonner'
+import { t, tn, tx } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { useFileDrop } from '../useFileDrop'
 
@@ -17,7 +18,7 @@ export function TaskFileDropZone({ issue, storageFull = false, quotaLabel = '2 G
     onFiles: (files) => {
       if (!issue) return
       if (storageFull) {
-        toast.error(`El workspace llegó a su límite de ${quotaLabel}`, { description: 'Libera espacio eliminando adjuntos que ya no se usen.' })
+        toast.error(t('El workspace llegó a su límite de {quota}', { quota: quotaLabel }), { description: t('Libera espacio eliminando adjuntos que ya no se usen.') })
         return
       }
       onFiles(files)
@@ -46,19 +47,21 @@ export function TaskFileDropZone({ issue, storageFull = false, quotaLabel = '2 G
             </span>
             {storageFull ? (
               <>
-                <p className="font-display text-[26px] font-extrabold tracking-[-0.01em]">No hay espacio para adjuntar</p>
-                <p className="text-muted-foreground">El workspace llegó a su límite de {quotaLabel}.</p>
+                <p className="font-display text-[26px] font-extrabold tracking-[-0.01em]">{t('No hay espacio para adjuntar')}</p>
+                <p className="text-muted-foreground">{t('El workspace llegó a su límite de {quota}.', { quota: quotaLabel })}</p>
               </>
             ) : (
               <>
                 <p className="font-display text-[26px] font-extrabold tracking-[-0.01em]">
-                  Suelta para adjuntar a <span className="font-mono text-[22px] font-semibold text-accent-text">{issue.code}</span>
+                  {tx('Suelta para adjuntar a {code}', { code: <span className="font-mono text-[22px] font-semibold text-accent-text">{issue.code}</span> })}
                 </p>
                 <p className="max-w-[60ch] text-muted-foreground">
-                  {count === 1 ? '1 archivo · va' : count ? `${count} archivos · van` : 'Van'} a Adjuntos de «{issue.title}»
+                  {count
+                    ? tn(count, '{count} archivo · va a Adjuntos de «{title}»', '{count} archivos · van a Adjuntos de «{title}»', { title: issue.title })
+                    : t('Van a Adjuntos de «{title}»', { title: issue.title })}
                 </p>
                 <p className="mt-1 rounded-full bg-muted px-2.5 py-1 font-mono text-[11.5px] text-muted-foreground">
-                  hasta 10 MB por archivo · imágenes hasta 5 MB · esc para cancelar
+                  {t('hasta 10 MB por archivo · imágenes hasta 5 MB · esc para cancelar')}
                 </p>
               </>
             )}

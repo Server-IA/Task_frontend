@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import { t } from '@/i18n'
 import { cn } from '@/lib/utils'
 
 /**
@@ -25,7 +26,7 @@ export function ChartCard({ title, meta, table, footer, children, className }) {
             onClick={() => setShowTable((value) => !value)}
             className="ml-auto rounded text-xs text-accent-text hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           >
-            {showTable ? 'Ver gráfico' : 'Ver tabla'}
+            {showTable ? t('Ver gráfico') : t('Ver tabla')}
           </button>
         )}
       </div>

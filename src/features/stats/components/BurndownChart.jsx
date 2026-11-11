@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { differenceInCalendarDays, parseISO } from 'date-fns'
 import { useElementWidth } from '@/hooks/useElementWidth'
+import { t, tn, tx } from '@/i18n'
 import { formatShortDate } from '@/lib/dates'
 import { formatDecimal, idealRemaining, linePath, nearestIndex, niceScale } from '../chartMath'
 import { ChartTooltip, TooltipLabel } from './ChartCard'
@@ -64,8 +65,13 @@ export function BurndownChart({ burndown }) {
 
   const current = active !== null ? points[active] : null
   const summary = last
-    ? `Burndown de ${burndown.name}: quedan ${last.remaining} de ${burndown.total} tareas; el ideal hoy sería ${formatDecimal(last.ideal)}`
-    : `Burndown de ${burndown.name}: todavía sin datos`
+    ? t('Burndown de {name}: quedan {remaining} de {total} tareas; el ideal hoy sería {ideal}', {
+        name: burndown.name,
+        remaining: last.remaining,
+        total: burndown.total,
+        ideal: formatDecimal(last.ideal),
+      })
+    : t('Burndown de {name}: todavía sin datos', { name: burndown.name })
 
   return (
     <div ref={containerRef} className="relative">
@@ -92,7 +98,7 @@ export function BurndownChart({ burndown }) {
           <>
             <line x1={lastX} x2={lastX} y1={TOP - 6} y2={BASELINE} className="stroke-dash" strokeWidth="1" strokeDasharray="3 3" />
             <text x={lastX} y={HEIGHT - 10} textAnchor="middle" className="fill-foreground font-mono text-[10px]">
-              hoy
+              {t('hoy')}
             </text>
           </>
         )}
@@ -138,7 +144,7 @@ export function BurndownChart({ burndown }) {
             textAnchor={labelOnLeft ? 'end' : 'start'}
             className="fill-foreground font-mono text-[11px] font-semibold"
           >
-            {last.remaining} {last.remaining === 1 ? 'restante' : 'restantes'}
+            {tn(last.remaining, '{count} restante', '{count} restantes')}
           </text>
         )}
         {/* Capa del crosshair: el puntero solo tiene que estar cerca de un día, no sobre la línea */}
@@ -151,7 +157,7 @@ export function BurndownChart({ burndown }) {
             fill="transparent"
             tabIndex={0}
             role="img"
-            aria-label="Recorrer los días con las flechas izquierda y derecha"
+            aria-label={t('Recorrer los días con las flechas izquierda y derecha')}
             className="cursor-crosshair outline-none"
             onPointerMove={(event) => moveTo(event.clientX)}
             onPointerLeave={() => setActive(null)}
@@ -164,8 +170,10 @@ export function BurndownChart({ burndown }) {
       {current && (
         <ChartTooltip x={x(current.day)} y={Math.min(y(current.remaining), y(current.ideal))} containerWidth={width}>
           <TooltipLabel>{formatShortDate(current.date)}</TooltipLabel>
-          <strong className="font-semibold">{current.remaining}</strong> {current.remaining === 1 ? 'restante' : 'restantes'}
-          <span className="opacity-75"> · ideal {formatDecimal(current.ideal)}</span>
+          {current.remaining === 1
+            ? tx('{count} restante', { count: <strong className="font-semibold">{current.remaining}</strong> })
+            : tx('{count} restantes', { count: <strong className="font-semibold">{current.remaining}</strong> })}
+          <span className="opacity-75"> · {t('ideal {value}', { value: formatDecimal(current.ideal) })}</span>
         </ChartTooltip>
       )}
     </div>
