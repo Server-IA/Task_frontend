@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ExternalLink } from 'lucide-react'
+import { t, tx } from '@/i18n'
 import { exampleCode } from '@/lib/codes'
 import { safeHref } from '../markdown/links'
 
@@ -29,7 +30,7 @@ export function LinkPopover({ initial, style, projectIdentifier, onApply, onRemo
     // Un div y no un form: el editor puede estar dentro de otro formulario (Nueva tarea, plantillas)
     <div
       role="dialog"
-      aria-label="Editar enlace"
+      aria-label={t('Editar enlace')}
       style={style}
       onKeyDown={(event) => {
         if (event.key !== 'Enter' || event.target.tagName !== 'INPUT' || event.nativeEvent.isComposing) return
@@ -40,11 +41,11 @@ export function LinkPopover({ initial, style, projectIdentifier, onApply, onRemo
       className="tf-pop absolute z-40 flex w-[380px] max-w-full flex-col gap-2.5 rounded-[14px] border bg-popover p-3 text-[13px] leading-snug text-popover-foreground shadow-[0_18px_44px_rgb(35_32_27/0.22)]"
     >
       <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-        Texto
+        {t('Texto')}
         <input value={text} onChange={(event) => setText(event.target.value)} className={field} />
       </label>
       <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-        Enlace
+        {t('Enlace')}
         <input
           value={href}
           onChange={(event) => setHref(event.target.value)}
@@ -54,22 +55,22 @@ export function LinkPopover({ initial, style, projectIdentifier, onApply, onRemo
         />
       </label>
       <span className="text-xs text-muted-foreground">
-        También puedes pegar un código como <span className="font-mono text-foreground">{exampleCode(projectIdentifier)}</span> para enlazar una tarea.
+        {tx('También puedes pegar un código como {code} para enlazar una tarea.', { code: <span className="font-mono text-foreground">{exampleCode(projectIdentifier)}</span> })}
       </span>
       <span className="flex items-center gap-1.5 border-t pt-2.5">
         {openable && (
           <a href={openable} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.25 rounded-lg px-2 py-1.5 font-medium hover:bg-muted">
             <ExternalLink className="size-3.25" />
-            Abrir
+            {t('Abrir')}
           </a>
         )}
         {initial.existing && (
           <button type="button" onClick={onRemove} className="rounded-lg px-2 py-1.5 font-medium text-destructive hover:bg-muted">
-            Quitar enlace
+            {t('Quitar enlace')}
           </button>
         )}
         <button type="button" onClick={submit} className="ml-auto flex items-center gap-1.5 rounded-[9px] bg-primary px-3 py-1.5 font-semibold text-primary-foreground hover:brightness-95">
-          Aplicar <kbd className="text-[11px]">↵</kbd>
+          {t('Aplicar')} <kbd className="text-[11px]">↵</kbd>
         </button>
       </span>
     </div>

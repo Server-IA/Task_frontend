@@ -15,6 +15,7 @@ import { useWorkspace } from '@/features/workspaces/hooks'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { useLocalEscape } from '@/hooks/useLocalEscape'
 import { exampleCode, identifierOf } from '@/lib/codes'
+import { stateName, t, tn, tx } from '@/i18n'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { can } from '@/lib/permissions'
@@ -26,16 +27,16 @@ import { mergeCandidates, projectOf, relationTarget } from '../relationCandidate
 
 /** Tipos al agregar, en el orden del selector (la API habla desde esta tarea). */
 const TYPES = [
-  { value: 'BLOCKS', label: 'Bloquea' },
-  { value: 'BLOCKED_BY', label: 'Bloqueada por' },
-  { value: 'RELATES', label: 'Relacionada con' },
+  { value: 'BLOCKS', label: t('Bloquea') },
+  { value: 'BLOCKED_BY', label: t('Bloqueada por') },
+  { value: 'RELATES', label: t('Relacionada con') },
 ]
 
 /** Grupos de la sección, en el orden en que se muestran. */
 const GROUPS = [
-  { key: 'blockedBy', label: 'Bloqueada por', icon: Ban },
-  { key: 'blocks', label: 'Bloquea', icon: ArrowRight },
-  { key: 'related', label: 'Relacionada con', icon: Link2 },
+  { key: 'blockedBy', label: t('Bloqueada por'), icon: Ban },
+  { key: 'blocks', label: t('Bloquea'), icon: ArrowRight },
+  { key: 'related', label: t('Relacionada con'), icon: Link2 },
 ]
 
 const isOpen = (issue) => issue?.state?.group !== 'COMPLETED' && issue?.state?.group !== 'CANCELLED'
@@ -83,48 +84,38 @@ export function BlockedBanner({ slug, projectId, issue, onOpenIssue }) {
   if (single) {
     const other = single.issue
     text =
-      single.accessible === false ? (
-        <>Espera a {code(other.code)}, de un proyecto al que no tienes acceso.</>
-      ) : (
-        <>
-          Espera a {code(other.code)} {other.title}, que sigue en {other.state?.name}.
-        </>
-      )
+      single.accessible === false
+        ? tx('Espera a {code}, de un proyecto al que no tienes acceso.', { code: code(other.code) })
+        : tx('Espera a {code} {title}, que sigue en {state}.', { code: code(other.code), title: other.title, state: stateName(other.state) })
   } else if (blockers.length > 1) {
-    text = (
-      <>
-        Espera a{' '}
-        {blockers.map((blocker, index) => (
-          <span key={blocker.relationId}>
-            {index > 0 && (index === blockers.length - 1 ? ' y ' : ', ')}
-            <RelatedLink relation={blocker} {...linkProps} className="underline-offset-2 hover:underline">
-              {code(blocker.issue.code)}
-            </RelatedLink>
-          </span>
-        ))}
-        , que siguen abiertas.
-      </>
-    )
+    text = tx('Espera a {tasks}, que siguen abiertas.', {
+      tasks: blockers.map((blocker, index) => (
+        <span key={blocker.relationId}>
+          {index > 0 && (index === blockers.length - 1 ? ` ${t('y')} ` : ', ')}
+          <RelatedLink relation={blocker} {...linkProps} className="underline-offset-2 hover:underline">
+            {code(blocker.issue.code)}
+          </RelatedLink>
+        </span>
+      )),
+    })
   } else if (codes.length > 0) {
-    text = (
-      <>
-        Espera a {code(joinCodes(codes))}
-        {codes.length === 1 ? '.' : ', que siguen abiertas.'}
-      </>
-    )
+    text =
+      codes.length === 1
+        ? tx('Espera a {code}.', { code: code(joinCodes(codes)) })
+        : tx('Espera a {tasks}, que siguen abiertas.', { tasks: code(joinCodes(codes)) })
   } else {
-    text = `Espera a ${count} ${count === 1 ? 'tarea abierta' : 'tareas abiertas'}.`
+    text = tn(count, 'Espera a {count} tarea abierta.', 'Espera a {count} tareas abiertas.')
   }
 
   return (
     <p role="status" className="tf-fade flex items-start gap-2.5 rounded-xl bg-late-soft px-3 py-2.5 text-sm text-late">
       <Ban className="mt-0.5 size-4 shrink-0" strokeWidth={2.3} aria-hidden="true" />
       <span className="min-w-0 flex-1 leading-relaxed">
-        <strong className="font-semibold">Bloqueada.</strong> {text}
+        <strong className="font-semibold">{t('Bloqueada.')}</strong> {text}
       </span>
       {single && single.accessible !== false && (
         <RelatedLink relation={single} {...linkProps} className="shrink-0 text-[13px] font-semibold underline-offset-2 hover:underline">
-          Abrir {single.issue.code}
+          {t('Abrir {code}', { code: single.issue.code })}
         </RelatedLink>
       )}
     </p>
@@ -155,14 +146,14 @@ export function IssueRelations({ slug, projectId, issue, onOpenIssue }) {
   const handleRemove = (relation) =>
     remove.mutate(
       { relationId: relation.relationId, otherId: relation.issue.id, otherProjectId: relation.issue.project?.id },
-      { onError: (error) => notifyError(error, 'No se pudo quitar la relación') },
+      { onError: (error) => notifyError(error, t('No se pudo quitar la relación')) },
     )
 
   return (
     <section aria-labelledby={`relations-${issue.id}`} className="flex flex-col gap-2.5">
       <div className="flex items-center gap-2">
         <h2 id={`relations-${issue.id}`} className="text-sm font-semibold">
-          Relaciones {total > 0 && <span className="font-mono text-xs font-normal text-muted-foreground">{total}</span>}
+          {t('Relaciones')} {total > 0 && <span className="font-mono text-xs font-normal text-muted-foreground">{total}</span>}
         </h2>
         <button
           ref={toggleRef}
@@ -175,7 +166,7 @@ export function IssueRelations({ slug, projectId, issue, onOpenIssue }) {
             adding ? 'border-accent-text bg-accent-soft font-semibold text-accent-text' : 'hover:bg-accent',
           )}
         >
-          + agregar relación
+          {t('+ agregar relación')}
         </button>
       </div>
 
@@ -216,7 +207,7 @@ export function IssueRelations({ slug, projectId, issue, onOpenIssue }) {
 
       {!isLoading && total === 0 && !adding && (
         <p className="rounded-xl border border-dashed border-dash px-3 py-3.5 text-center text-sm text-muted-foreground">
-          Sin relaciones con otras tareas
+          {t('Sin relaciones con otras tareas')}
         </p>
       )}
 
@@ -268,34 +259,35 @@ function RelationRow({ relation, first, slug, projectId, onOpenIssue, onRemove }
           slug={slug}
           projectId={projectId}
           onOpenIssue={onOpenIssue}
-          title={external ? `Abrir ${other.code} en ${other.project.name ?? 'su proyecto'}` : `Abrir ${other.code}`}
+          title={external ? t('Abrir {code} en {project}', { code: other.code, project: other.project.name ?? t('su proyecto') }) : t('Abrir {code}', { code: other.code })}
           className={cn('min-w-0 flex-1 truncate text-sm font-medium hover:underline', closed && 'text-muted-foreground line-through')}
         >
           {other.title}
         </RelatedLink>
       ) : (
-        <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground" title="No tienes acceso al proyecto de esta tarea">
-          sin acceso{other.project?.name ? ` · ${other.project.name}` : ''}
+        <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground" title={t('No tienes acceso al proyecto de esta tarea')}>
+          {t('sin acceso')}
+          {other.project?.name ? ` · ${other.project.name}` : ''}
         </span>
       )}
       {/* Un estado de nombre largo se corta: en un panel angosto empujaba el avatar y la «x» fuera de la fila */}
       {accessible && (
-        <span className="hidden max-w-28 shrink-0 truncate text-xs text-muted-foreground sm:block" title={other.state?.name}>
-          {other.state?.name}
+        <span className="hidden max-w-28 shrink-0 truncate text-xs text-muted-foreground sm:block" title={stateName(other.state)}>
+          {stateName(other.state)}
         </span>
       )}
       {accessible &&
         (assignee ? (
           <UserAvatar user={assignee} size="xs" className="size-5.5" />
         ) : (
-          <span title="Sin asignar" aria-label="Sin asignar" className="size-5.5 shrink-0 rounded-full border border-dashed border-dash" />
+          <span title={t('Sin asignar')} aria-label={t('Sin asignar')} className="size-5.5 shrink-0 rounded-full border border-dashed border-dash" />
         ))}
       {onRemove && (
         <button
           type="button"
           onClick={onRemove}
-          aria-label={`Quitar relación con ${other.code}`}
-          title="Quitar relación"
+          aria-label={t('Quitar relación con {code}', { code: other.code })}
+          title={t('Quitar relación')}
           className="flex size-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
         >
           <X className="size-3.5" />
@@ -309,13 +301,29 @@ function RelationRow({ relation, first, slug, projectId, onOpenIssue, onRemove }
 function UnblockNote({ issue, blockers }) {
   const codes = blockers.map((blocker) => blocker.issue.code)
   const who = (issue.assignees ?? []).map((user) => user.fullName.split(' ')[0])
+  const vars = { codes: joinCodes(codes), code: issue.code, who: joinCodes(who) }
+  let text
+  if (who.length === 0) {
+    text = tn(codes.length, 'Cuando {codes} se complete, {code} deja de estar bloqueada.', 'Cuando {codes} se completen, {code} deja de estar bloqueada.', vars)
+  } else if (who.length === 1) {
+    text = tn(
+      codes.length,
+      'Cuando {codes} se complete, {code} deja de estar bloqueada y {who} recibe un aviso en su bandeja.',
+      'Cuando {codes} se completen, {code} deja de estar bloqueada y {who} recibe un aviso en su bandeja.',
+      vars,
+    )
+  } else {
+    text = tn(
+      codes.length,
+      'Cuando {codes} se complete, {code} deja de estar bloqueada y {who} reciben un aviso en su bandeja.',
+      'Cuando {codes} se completen, {code} deja de estar bloqueada y {who} reciben un aviso en su bandeja.',
+      vars,
+    )
+  }
   return (
     <p className="flex items-start gap-2 text-xs leading-normal text-muted-foreground">
       <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-      <span>
-        Cuando {joinCodes(codes)} {codes.length === 1 ? 'se complete' : 'se completen'}, {issue.code} deja de estar bloqueada
-        {who.length > 0 ? ` y ${joinCodes(who)} ${who.length === 1 ? 'recibe' : 'reciben'} un aviso en su bandeja.` : '.'}
-      </span>
+      <span>{text}</span>
     </p>
   )
 }
@@ -361,7 +369,7 @@ function RelationAdder({ slug, projectId, issue, relatedIds, onClose }) {
       { type, otherId: candidate.id, otherProjectId: candidate.projectId },
       {
         onSuccess: () => setSearch(''),
-        onError: (error) => notifyError(error, 'No se pudo agregar la relación'),
+        onError: (error) => notifyError(error, t('No se pudo agregar la relación')),
       },
     )
   }
@@ -370,10 +378,10 @@ function RelationAdder({ slug, projectId, issue, relatedIds, onClose }) {
     <div
       ref={ref}
       role="group"
-      aria-label="Agregar relación"
+      aria-label={t('Agregar relación')}
       className="tf-pop flex flex-col overflow-hidden rounded-2xl border border-ring bg-card shadow-lg"
     >
-      <div role="radiogroup" aria-label="Tipo de relación" className="flex gap-1 px-2.5 pt-2.5">
+      <div role="radiogroup" aria-label={t('Tipo de relación')} className="flex gap-1 px-2.5 pt-2.5">
         {TYPES.map((option) => {
           const checked = option.value === type
           return (
@@ -398,12 +406,12 @@ function RelationAdder({ slug, projectId, issue, relatedIds, onClose }) {
           <span aria-hidden="true" className="font-semibold text-accent-text">
             &gt;
           </span>
-          <span className="sr-only">Buscar tarea para relacionar, en este proyecto o en otros del workspace</span>
+          <span className="sr-only">{t('Buscar tarea para relacionar, en este proyecto o en otros del workspace')}</span>
           <CommandPrimitive.Input
             autoFocus
             value={search}
             onValueChange={setSearch}
-            placeholder={`buscar por título o ${exampleCode(identifierOf(issue.code))}`}
+            placeholder={t('buscar por título o {code}', { code: exampleCode(identifierOf(issue.code)) })}
             className="min-w-0 flex-1 bg-transparent py-0.5 outline-none placeholder:text-muted-foreground"
             onKeyDown={(event) => {
               if (event.key === 'Tab') {
@@ -416,7 +424,7 @@ function RelationAdder({ slug, projectId, issue, relatedIds, onClose }) {
         </label>
         <CommandList className="max-h-[260px] px-1.5 pb-1.5">
           {!isFetching && candidates.length === 0 && (
-            <p className="px-3 py-4 text-center text-sm text-muted-foreground">Ninguna tarea coincide</p>
+            <p className="px-3 py-4 text-center text-sm text-muted-foreground">{t('Ninguna tarea coincide')}</p>
           )}
           {candidates.map((candidate) => {
             const already = relatedIds.has(candidate.id)
@@ -436,7 +444,7 @@ function RelationAdder({ slug, projectId, issue, relatedIds, onClose }) {
                   {candidate.title}
                 </span>
                 {already ? (
-                  <span className="shrink-0 font-mono text-[11px] text-muted-foreground">ya relacionada</span>
+                  <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{t('ya relacionada')}</span>
                 ) : (
                   <span className="hidden font-mono text-[11px] text-muted-foreground group-data-[selected=true]:inline">↵</span>
                 )}
@@ -447,16 +455,16 @@ function RelationAdder({ slug, projectId, issue, relatedIds, onClose }) {
       </Command>
       <p className="flex flex-wrap gap-3.5 border-t bg-subtle px-3 py-2 font-mono text-[11px] text-muted-foreground">
         <span>
-          <kbd className="text-foreground">↑ ↓</kbd> elegir
+          <kbd className="text-foreground">↑ ↓</kbd> {t('elegir')}
         </span>
         <span>
-          <kbd className="text-foreground">↵</kbd> agregar
+          <kbd className="text-foreground">↵</kbd> {t('agregar')}
         </span>
         <span>
-          <kbd className="text-foreground">tab</kbd> cambiar tipo
+          <kbd className="text-foreground">tab</kbd> {t('cambiar tipo')}
         </span>
         <span>
-          <kbd className="text-foreground">esc</kbd> cerrar
+          <kbd className="text-foreground">esc</kbd> {t('cerrar')}
         </span>
       </p>
     </div>

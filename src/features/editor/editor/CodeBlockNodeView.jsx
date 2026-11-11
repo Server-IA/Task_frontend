@@ -1,4 +1,5 @@
 import { NodeViewContent, NodeViewWrapper } from '@tiptap/react'
+import { t } from '@/i18n'
 import { CopyButton } from '../components/MarkdownView'
 
 /**
@@ -12,8 +13,8 @@ export function CodeBlockNodeView({ node, updateAttributes, editor }) {
         <input
           value={node.attrs.language ?? ''}
           onChange={(event) => updateAttributes({ language: event.target.value.replace(/\s/g, '').slice(0, 20) || null })}
-          placeholder="lenguaje"
-          aria-label="Lenguaje del código"
+          placeholder={t('lenguaje')}
+          aria-label={t('Lenguaje del código')}
           disabled={!editor.isEditable}
           className="w-28 bg-transparent font-mono text-[11px] text-muted-foreground outline-none placeholder:text-muted-foreground/60"
         />

@@ -1,3 +1,5 @@
+import { t } from '@/i18n'
+
 /**
  * Menciones en los comentarios. En el cuerpo que se guarda van como `@[Nombre Visible](id-del-usuario)`
  * (el backend las lee para avisar a esas personas); en pantalla se ven como «@Nombre Visible».
@@ -59,7 +61,7 @@ export function toPlainText(body = '') {
 /** «Luis», «Luis y Ana», «Luis, Ana y Carlos». */
 export function joinNames(names) {
   if (names.length <= 1) return names[0] ?? ''
-  return `${names.slice(0, -1).join(', ')} y ${names.at(-1)}`
+  return t('{names} y {last}', { names: names.slice(0, -1).join(', '), last: names.at(-1) })
 }
 
 /** Minúsculas y sin tildes, para buscar «jose» y encontrar «José». */

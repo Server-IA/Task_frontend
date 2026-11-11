@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { t } from '@/i18n'
 import { cn } from '@/lib/utils'
 
 /** Cuadrícula para elegir el tamaño con el mouse; con los campos se puede pedir una tabla más grande. */
@@ -32,7 +33,7 @@ export function TablePicker({ style, onInsert, onClose }) {
     // Un div y no un form: el editor puede estar dentro de otro formulario (Nueva tarea, plantillas)
     <div
       role="dialog"
-      aria-label="Insertar tabla"
+      aria-label={t('Insertar tabla')}
       style={style}
       onKeyDown={(event) => {
         if (event.key === 'Escape') {
@@ -76,7 +77,7 @@ export function TablePicker({ style, onInsert, onClose }) {
       </div>
       <div className="flex items-end gap-2">
         <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-          Columnas
+          {t('Columnas')}
           <input
             inputMode="numeric"
             autoFocus
@@ -91,7 +92,7 @@ export function TablePicker({ style, onInsert, onClose }) {
           ×
         </span>
         <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-          Filas
+          {t('Filas')}
           <input
             inputMode="numeric"
             value={text.rows}
@@ -107,11 +108,11 @@ export function TablePicker({ style, onInsert, onClose }) {
           onClick={insert}
           className="ml-auto flex h-8 items-center gap-1.5 rounded-[9px] bg-primary px-3 font-semibold text-primary-foreground hover:brightness-95 disabled:opacity-50"
         >
-          Insertar <kbd className="text-[11px]">↵</kbd>
+          {t('Insertar')} <kbd className="text-[11px]">↵</kbd>
         </button>
       </div>
       <p className="text-xs text-muted-foreground">
-        La primera fila es el encabezado. Hasta {TABLE_MAX.cols} columnas y {TABLE_MAX.rows} filas; después puedes agregar o quitar desde «Tabla».
+        {t('La primera fila es el encabezado. Hasta {cols} columnas y {rows} filas; después puedes agregar o quitar desde «Tabla».', { cols: TABLE_MAX.cols, rows: TABLE_MAX.rows })}
       </p>
     </div>
   )

@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { IMAGE_ACCEPT, isImageFile, pastedName, renameFile, validateFile } from '@/features/files/fileTypes'
 import { uploadQueue } from '@/features/files/uploadQueue'
 import { filterPeople, mentionName } from '@/features/mentions/mentions'
+import { t } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { useSessionStore } from '@/stores/sessionStore'
 import { normalizeHref } from '../markdown/links'
@@ -118,7 +119,7 @@ export default function RichEditor({
   size = 'md',
   toolbar = false,
   stickyToolbar = false,
-  placeholder = 'Escribe, o pulsa / para insertar',
+  placeholder = t('Escribe, o pulsa / para insertar'),
   people = [],
   slug,
   projectIdentifier,
@@ -132,7 +133,7 @@ export default function RichEditor({
   onCommandChange,
   imageUpload,
   onUploadsChange,
-  ariaLabel = 'Descripción',
+  ariaLabel = t('Descripción'),
   className,
   contentClassName,
 }) {
@@ -477,7 +478,7 @@ export default function RichEditor({
           const file = renameFile(original, pastedName(original))
           const check = validateFile(file, { imagesOnly: true })
           if (!check.ok) {
-            toast.error(`${check.error} No se pegó.`)
+            toast.error(t('{error} No se pegó.', { error: check.error }))
             continue
           }
           const uploadId = uploadQueue.add(file, { target: imageUpload.target, scope: uploadScope, contentType: check.contentType })
@@ -491,7 +492,7 @@ export default function RichEditor({
         const others = list.filter((file) => !isImageFile(file))
         if (others.length) {
           if (imageUpload.onOtherFiles) imageUpload.onOtherFiles(others)
-          else toast.error(others.length === 1 ? `«${others[0].name}» no es una imagen` : 'Algunos archivos no son imágenes', { description: 'Aquí solo se pueden pegar imágenes PNG, JPG, GIF o WebP.' })
+          else toast.error(others.length === 1 ? t('«{name}» no es una imagen', { name: others[0].name }) : t('Algunos archivos no son imágenes'), { description: t('Aquí solo se pueden pegar imágenes PNG, JPG, GIF o WebP.') })
         }
         return true
       },

@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useProjectMembers } from '@/features/projects/hooks'
 import { useMembers } from '@/features/workspaces/hooks'
+import { localeTag } from '@/i18n'
 import { roleNameOf } from '@/lib/permissions'
 
 /**
@@ -23,6 +24,6 @@ export function useMentionPeople(slug, projectId) {
       const membership = byUser.get(member.user.id)
       people.set(member.user.id, { ...member.user, role: membership?.role ?? 'MEMBER', roleName: roleNameOf(membership ?? { role: 'MEMBER' }) })
     }
-    return [...people.values()].sort((a, b) => a.fullName.localeCompare(b.fullName, 'es'))
+    return [...people.values()].sort((a, b) => a.fullName.localeCompare(b.fullName, localeTag()))
   }, [projectMembers, workspaceMembers])
 }

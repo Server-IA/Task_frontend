@@ -4,7 +4,8 @@
  * pueden ir en una línea o en varias, y la negrita puede seguir con el texto («**Como persona registrada**»).
  */
 
-const KEYWORDS = ['como', 'quiero', 'para']
+// Cada palabra en español o en inglés («**As a** … **I want** … **so that** …»): quien escribe en inglés usa las suyas
+const KEYWORDS = ['como|as(?:\\s+an?)?', 'quiero|i\\s+want', 'para|so(?:\\s+that)?']
 
 /** Trozos de texto de la cita, con si van en negrita. Las menciones quedan como «@Nombre». */
 function pieces(blockquote) {
@@ -35,7 +36,7 @@ export function parseUserStory(blockquote) {
   const values = []
   for (const piece of parts) {
     const next = KEYWORDS[values.length]
-    const match = next && piece.bold ? new RegExp(`^\\s*${next}(?![\\p{L}\\p{N}])`, 'iu').exec(piece.text) : null
+    const match = next && piece.bold ? new RegExp(`^\\s*(?:${next})(?![\\p{L}\\p{N}])`, 'iu').exec(piece.text) : null
     if (match) {
       values.push(piece.text.slice(match[0].length))
     } else if (values.length === 0) {

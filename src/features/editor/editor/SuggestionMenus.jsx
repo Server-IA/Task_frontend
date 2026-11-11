@@ -1,5 +1,6 @@
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { normalizeForSearch } from '@/features/mentions/mentions'
+import { t } from '@/i18n'
 import { ROLE_LABELS } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { EditorIcon, ICON_STROKE } from './icons'
@@ -10,26 +11,26 @@ import { EditorIcon, ICON_STROKE } from './icons'
  */
 const SLASH_GROUPS = [
   {
-    title: 'Bloques',
+    title: t('Bloques'),
     items: [
-      { id: 'h1', label: 'Título 1', desc: 'Sección grande', hint: '#', glyph: 'H1', keywords: 'titulo encabezado heading', run: (chain) => chain.setHeading({ level: 1 }) },
-      { id: 'h2', label: 'Título 2', desc: 'Sección', hint: '##', glyph: 'H2', keywords: 'titulo encabezado heading', run: (chain) => chain.setHeading({ level: 2 }) },
-      { id: 'h3', label: 'Título 3', desc: 'Subsección', hint: '###', glyph: 'H3', keywords: 'titulo encabezado heading', run: (chain) => chain.setHeading({ level: 3 }) },
-      { id: 'bullet', label: 'Lista', desc: 'Puntos simples', hint: '-', icon: 'bullet', keywords: 'vinetas puntos', run: (chain) => chain.toggleBulletList() },
-      { id: 'ordered', label: 'Lista numerada', desc: 'Pasos en orden', hint: '1.', icon: 'ordered', keywords: 'numeros pasos', run: (chain) => chain.toggleOrderedList() },
-      { id: 'task', label: 'Lista de tareas', desc: 'Casillas para marcar', hint: '[ ]', icon: 'task', keywords: 'casillas todo checklist', run: (chain) => chain.toggleTaskList() },
-      { id: 'quote', label: 'Cita', desc: 'Texto citado o decisión', hint: '>', icon: 'quote', keywords: 'historia usuario', run: (chain) => chain.toggleBlockquote() },
-      { id: 'code', label: 'Código', desc: 'Bloque con lenguaje', hint: '```', icon: 'codeBlock', keywords: 'code bloque', run: (chain) => chain.toggleCodeBlock() },
-      { id: 'table', label: 'Tabla', desc: 'Eliges columnas y filas', hint: '', icon: 'table', keywords: 'table cuadro filas columnas' },
-      { id: 'divider', label: 'Separador', desc: 'Línea horizontal', hint: '---', icon: 'divider', keywords: 'linea hr', run: (chain) => chain.setHorizontalRule() },
+      { id: 'h1', label: t('Título 1'), desc: t('Sección grande'), hint: '#', glyph: 'H1', keywords: 'titulo encabezado heading title', run: (chain) => chain.setHeading({ level: 1 }) },
+      { id: 'h2', label: t('Título 2'), desc: t('Sección'), hint: '##', glyph: 'H2', keywords: 'titulo encabezado heading title', run: (chain) => chain.setHeading({ level: 2 }) },
+      { id: 'h3', label: t('Título 3'), desc: t('Subsección'), hint: '###', glyph: 'H3', keywords: 'titulo encabezado heading title', run: (chain) => chain.setHeading({ level: 3 }) },
+      { id: 'bullet', label: t('Lista'), desc: t('Puntos simples'), hint: '-', icon: 'bullet', keywords: 'lista vinetas puntos list bullets bulleted unordered', run: (chain) => chain.toggleBulletList() },
+      { id: 'ordered', label: t('Lista numerada'), desc: t('Pasos en orden'), hint: '1.', icon: 'ordered', keywords: 'lista numerada numeros pasos numbered ordered list steps', run: (chain) => chain.toggleOrderedList() },
+      { id: 'task', label: t('Lista de tareas'), desc: t('Casillas para marcar'), hint: '[ ]', icon: 'task', keywords: 'lista de tareas casillas todo checklist task list checkboxes', run: (chain) => chain.toggleTaskList() },
+      { id: 'quote', label: t('Cita'), desc: t('Texto citado o decisión'), hint: '>', icon: 'quote', keywords: 'cita historia usuario quote blockquote user story', run: (chain) => chain.toggleBlockquote() },
+      { id: 'code', label: t('Código'), desc: t('Bloque con lenguaje'), hint: '```', icon: 'codeBlock', keywords: 'codigo code bloque block snippet', run: (chain) => chain.toggleCodeBlock() },
+      { id: 'table', label: t('Tabla'), desc: t('Eliges columnas y filas'), hint: '', icon: 'table', keywords: 'tabla table cuadro filas columnas grid rows columns' },
+      { id: 'divider', label: t('Separador'), desc: t('Línea horizontal'), hint: '---', icon: 'divider', keywords: 'separador linea hr divider line rule horizontal', run: (chain) => chain.setHorizontalRule() },
     ],
   },
   {
-    title: 'Insertar',
+    title: t('Insertar'),
     items: [
-      { id: 'mention', label: 'Mencionar persona', desc: 'Le llega a su bandeja', hint: '@', icon: 'mention', needs: 'people', keywords: 'persona arroba' },
-      { id: 'taskLink', label: 'Enlazar tarea', desc: 'Busca por código o título', hint: 'WEB-', icon: 'taskLink', needs: 'tasks', keywords: 'referencia codigo' },
-      { id: 'image', label: 'Imagen', desc: 'Elige una, o pega una captura', icon: 'image', needs: 'images', keywords: 'foto captura subir' },
+      { id: 'mention', label: t('Mencionar persona'), desc: t('Le llega a su bandeja'), hint: '@', icon: 'mention', needs: 'people', keywords: 'mencionar persona arroba mention person people at' },
+      { id: 'taskLink', label: t('Enlazar tarea'), desc: t('Busca por código o título'), hint: 'WEB-', icon: 'taskLink', needs: 'tasks', keywords: 'enlazar tarea referencia codigo link task reference code' },
+      { id: 'image', label: t('Imagen'), desc: t('Elige una, o pega una captura'), icon: 'image', needs: 'images', keywords: 'imagen foto captura subir image picture photo screenshot upload' },
     ],
   },
 ]
@@ -53,13 +54,13 @@ export function slashGroups(query, features) {
 const footer = (action) => (
   <p className="flex gap-3 border-t px-3.5 py-2 font-mono text-[11px] text-muted-foreground">
     <span>
-      <kbd className="text-foreground">↑↓</kbd> elegir
+      <kbd className="text-foreground">↑↓</kbd> {t('elegir')}
     </span>
     <span>
       <kbd className="text-foreground">↵</kbd> {action}
     </span>
     <span>
-      <kbd className="text-foreground">esc</kbd> cerrar
+      <kbd className="text-foreground">esc</kbd> {t('cerrar')}
     </span>
   </p>
 )
@@ -69,7 +70,7 @@ export function SlashMenu({ groups, active, onSelect, onHover, style }) {
   return (
     <div
       role="listbox"
-      aria-label="Insertar bloque"
+      aria-label={t('Insertar bloque')}
       style={style}
       onMouseDown={(event) => event.preventDefault()}
       className="tf-pop absolute z-40 flex max-h-[min(420px,60vh)] w-[330px] max-w-full flex-col overflow-hidden rounded-[14px] border bg-popover text-popover-foreground shadow-[0_18px_44px_rgb(35_32_27/0.22)]"
@@ -87,7 +88,7 @@ export function SlashMenu({ groups, active, onSelect, onHover, style }) {
                   role="option"
                   aria-selected={selected}
                   aria-disabled={item.disabled || undefined}
-                  title={item.disabled ? 'Imágenes: llega con la subida de archivos' : undefined}
+                  title={item.disabled ? t('Imágenes: llega con la subida de archivos') : undefined}
                   onClick={() => !item.disabled && onSelect(item)}
                   onMouseMove={() => !item.disabled && !selected && onHover(item.id)}
                   className={cn(
@@ -116,7 +117,7 @@ export function SlashMenu({ groups, active, onSelect, onHover, style }) {
           </div>
         ))}
       </div>
-      {footer('insertar')}
+      {footer(t('insertar'))}
     </div>
   )
 }
@@ -129,8 +130,8 @@ export function MentionMenu({ people, active, onSelect, onHover, style }) {
       onMouseDown={(event) => event.preventDefault()}
       className="tf-pop absolute z-40 w-[300px] max-w-full overflow-hidden rounded-[14px] border bg-popover text-popover-foreground shadow-[0_18px_44px_rgb(35_32_27/0.22)]"
     >
-      <p className="px-3 pt-2 pb-1 font-mono text-[11px] tracking-[0.06em] text-muted-foreground uppercase">Personas del proyecto</p>
-      <ul role="listbox" aria-label="Mencionar a" className="flex flex-col gap-0.5 px-1.5 pb-1.5">
+      <p className="px-3 pt-2 pb-1 font-mono text-[11px] tracking-[0.06em] text-muted-foreground uppercase">{t('Personas del proyecto')}</p>
+      <ul role="listbox" aria-label={t('Mencionar a')} className="flex flex-col gap-0.5 px-1.5 pb-1.5">
         {people.map((person, index) => (
           <li
             key={person.id}
@@ -146,7 +147,7 @@ export function MentionMenu({ people, active, onSelect, onHover, style }) {
           </li>
         ))}
       </ul>
-      {footer('mencionar')}
+      {footer(t('mencionar'))}
     </div>
   )
 }

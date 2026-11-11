@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { StateIcon } from '@/components/common/StateIcon'
 import { useIssueSearch } from '@/features/search/hooks'
+import { t } from '@/i18n'
 import { exampleCode } from '@/lib/codes'
 import { cn } from '@/lib/utils'
 
@@ -34,7 +35,7 @@ export function TaskSearchPopover({ slug, style, projectIdentifier, onSelect, on
   return (
     <div
       role="dialog"
-      aria-label="Enlazar tarea"
+      aria-label={t('Enlazar tarea')}
       style={style}
       className="tf-pop absolute z-40 flex w-[360px] max-w-full flex-col overflow-hidden rounded-[14px] border bg-popover text-popover-foreground shadow-[0_18px_44px_rgb(35_32_27/0.22)]"
     >
@@ -46,11 +47,11 @@ export function TaskSearchPopover({ slug, style, projectIdentifier, onSelect, on
           setActive(0)
         }}
         onKeyDown={onKeyDown}
-        placeholder="Busca por código o título…"
-        aria-label="Buscar tarea"
+        placeholder={t('Busca por código o título…')}
+        aria-label={t('Buscar tarea')}
         className="border-b bg-transparent px-3.5 py-2.5 text-[13.5px] outline-none placeholder:text-muted-foreground"
       />
-      <ul role="listbox" aria-label="Tareas" className="flex max-h-64 flex-col gap-0.5 overflow-y-auto p-1.5">
+      <ul role="listbox" aria-label={t('Tareas')} className="flex max-h-64 flex-col gap-0.5 overflow-y-auto p-1.5">
         {shown.map((issue, itemIndex) => (
           <li
             key={issue.id}
@@ -66,18 +67,18 @@ export function TaskSearchPopover({ slug, style, projectIdentifier, onSelect, on
             <span className="min-w-0 flex-1 truncate">{issue.title}</span>
           </li>
         ))}
-        {query.trim() && !isFetching && shown.length === 0 && <li className="px-2 py-1.5 text-[13px] text-muted-foreground">Sin resultados</li>}
-        {!query.trim() && <li className="px-2 py-1.5 text-[13px] text-muted-foreground">Escribe un código («{exampleCode(projectIdentifier)}») o parte del título</li>}
+        {query.trim() && !isFetching && shown.length === 0 && <li className="px-2 py-1.5 text-[13px] text-muted-foreground">{t('Sin resultados')}</li>}
+        {!query.trim() && <li className="px-2 py-1.5 text-[13px] text-muted-foreground">{t('Escribe un código («{code}») o parte del título', { code: exampleCode(projectIdentifier) })}</li>}
       </ul>
       <p className="flex gap-3 border-t px-3.5 py-2 font-mono text-[11px] text-muted-foreground">
         <span>
-          <kbd className="text-foreground">↑↓</kbd> elegir
+          <kbd className="text-foreground">↑↓</kbd> {t('elegir')}
         </span>
         <span>
-          <kbd className="text-foreground">↵</kbd> enlazar
+          <kbd className="text-foreground">↵</kbd> {t('enlazar')}
         </span>
         <span>
-          <kbd className="text-foreground">esc</kbd> cerrar
+          <kbd className="text-foreground">esc</kbd> {t('cerrar')}
         </span>
       </p>
     </div>
