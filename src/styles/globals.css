@@ -961,8 +961,23 @@
 }
 
 /*
- * Entrada de la app (layouts/AppLayout, `data-app-intro`): la tapa con el logo de carga se desvanece mientras el logo
- * crece y se va; debajo, el menú entra desde la izquierda y la página sube un poco después.
+ * Al iniciar sesión el login sale (layouts/AuthLayout, `data-login-out`): el panel de marca y el formulario se
+ * desvanecen mientras el logo va al centro.
+ */
+@keyframes tf-login-out {
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+[data-login-out='go'] .tf-intro-aside,
+[data-login-out='go'] .tf-login-main {
+  animation: tf-login-out 320ms ease-in forwards;
+}
+
+/*
+ * Entrada de la app (layouts/AppLayout, `data-app-intro`): el logo de carga se desvanece en el centro y la app
+ * aparece por orden: el menú (y dentro, sus partes), después la página de arriba abajo.
  */
 @keyframes tf-app-cover {
   to {
@@ -972,7 +987,7 @@
 @keyframes tf-app-logo {
   to {
     opacity: 0;
-    transform: scale(1.45);
+    transform: scale(0.92);
   }
 }
 @keyframes tf-app-aside {
@@ -986,16 +1001,33 @@
   }
 }
 .tf-app-cover {
-  animation: tf-app-cover 420ms ease-out 120ms forwards;
+  animation: tf-app-cover 220ms ease-out forwards;
 }
 .tf-app-logo {
-  animation: tf-app-logo 480ms cubic-bezier(0.65, 0, 0.35, 1) 60ms forwards;
+  animation: tf-app-logo 340ms ease-in forwards;
 }
 [data-app-intro='go'] .tf-app-aside {
-  animation: tf-app-aside 520ms cubic-bezier(0.22, 1, 0.36, 1) 220ms backwards;
+  animation: tf-app-aside 480ms cubic-bezier(0.22, 1, 0.36, 1) 280ms backwards;
 }
-[data-app-intro='go'] .tf-app-main {
-  animation: tf-intro-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) 340ms backwards;
+[data-app-intro='go'] .tf-app-aside > div > * {
+  animation: tf-intro-rise 420ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: calc(400ms + var(--i, 0) * 80ms);
+}
+[data-app-intro='go'] .tf-app-page > * {
+  animation: tf-intro-rise 460ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: calc(640ms + var(--i, 0) * 120ms);
+}
+.tf-app-aside > div > :nth-child(2),
+.tf-app-page > :nth-child(2) {
+  --i: 1;
+}
+.tf-app-aside > div > :nth-child(3),
+.tf-app-page > :nth-child(3) {
+  --i: 2;
+}
+.tf-app-aside > div > :nth-child(n + 4),
+.tf-app-page > :nth-child(n + 4) {
+  --i: 3;
 }
 
 /*

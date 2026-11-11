@@ -5,7 +5,7 @@ import { pendingInvitation } from '@/lib/pendingInvitation'
 import { tokenStorage } from '@/lib/tokenStorage'
 import { usePreferencesStore } from '@/stores/preferencesStore'
 import { getLanguage } from '@/i18n'
-import { playLogoutOutro } from '@/lib/intro'
+import { playLoginOutro, playLogoutOutro, requestAppIntro } from '@/lib/intro'
 import { useLayoutStore } from '@/stores/layoutStore'
 import { useSessionStore } from '@/stores/sessionStore'
 import { authApi, userApi } from './api'
@@ -15,7 +15,11 @@ export function useLogin() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: authApi.login,
-    onSuccess: (auth) => {
+    // Asíncrono: la sesión no se guarda (y la app no se abre) hasta que el login terminó de salir
+    onSuccess: async (auth) => {
+      await playLoginOutro(() => useLayoutStore.getState().setEnteringApp(true))
+      // La app que viene entra animada (ver `lib/intro`)
+      requestAppIntro()
       queryClient.clear()
       setSession(auth)
       // Una cuenta que todavía no eligió idioma se queda con el que la persona está viendo: así sus correos y sus

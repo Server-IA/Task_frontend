@@ -16,8 +16,10 @@ export const INTRO = {
   fly: 520,
   /** Desde que despega hasta que terminó de entrar todo el contenido. */
   settle: 1800,
-  /** Entrada de la app: lo que tarda en abrirse el logo y entrar el menú y la página. */
-  app: 1300,
+  /** Al pulsar «Entrar»: el login se desvanece y el logo va de su lugar en el panel al centro. */
+  enter: 700,
+  /** Entrada de la app: el logo se desvanece y entran el menú, la página y lo demás, en ese orden. */
+  app: 1800,
   /** Salida al cerrar sesión: la app se va y el logo vuelve al centro antes de pasar al login. */
   out: 460,
   /** Cuánto vale el pedido de entrada del login después de cerrar sesión (si el login no llega, se olvida). */
@@ -97,6 +99,19 @@ let appShown = false
 /** El login la pide al entrar: la próxima vez que se monte la app, entra animada. */
 export function requestAppIntro() {
   appIntroRequested = true
+}
+
+/**
+ * Al iniciar sesión, antes de pasar a la app: el login se desvanece y su logo va al centro, donde lo recibe la pantalla
+ * de carga y después la entrada de la app. `start` pone el login en modo salida; avisa cuando terminó. Sin
+ * animaciones, o si el login no está a la vista, termina de una vez.
+ * @param {() => void} start
+ * @returns {Promise<void>}
+ */
+export function playLoginOutro(start) {
+  if (!canAnimate() || !document.querySelector('[data-login-shell]')) return Promise.resolve()
+  start()
+  return new Promise((resolve) => setTimeout(resolve, INTRO.enter))
 }
 
 /** Si a la app que se está montando le toca entrar animada (se puede consultar varias veces durante el render). */

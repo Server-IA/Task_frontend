@@ -79,7 +79,7 @@ export function AppLayout() {
       <main tabIndex={-1} className="tf-app-main flex min-w-0 flex-1 flex-col outline-none">
         <OfflineBanner />
         {/* Cada página entra con una transición corta (la clave es la ruta, sin los parámetros de búsqueda) */}
-        <div key={location.pathname} className="tf-enter flex min-h-0 flex-1 flex-col gap-3.5">
+        <div key={location.pathname} className="tf-app-page tf-enter flex min-h-0 flex-1 flex-col gap-3.5">
           <Outlet />
         </div>
       </main>

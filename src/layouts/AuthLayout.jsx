@@ -6,6 +6,7 @@ import { LanguageToggle } from '@/components/common/LanguageToggle'
 import { ThemeToggle } from '@/components/common/ThemeToggle'
 import { t } from '@/i18n'
 import { INTRO, markFirstScreen, markLoginIntroShown, peekIntro } from '@/lib/intro'
+import { useLayoutStore } from '@/stores/layoutStore'
 import { cn } from '@/lib/utils'
 
 /** Pantallas públicas: cada página elige su marco (`SplitShell` o `CenteredShell`). */
@@ -73,6 +74,32 @@ function useLoginIntro(enabled) {
     }
   }, [phase])
 
+  // Al iniciar sesión el login sale: todo se desvanece (CSS, `data-login-out`) y el logo va de su lugar al centro,
+  // donde lo reciben la pantalla de carga y la entrada de la app
+  const leaving = useLayoutStore((state) => state.enteringApp)
+  const setEnteringApp = useLayoutStore((state) => state.setEnteringApp)
+  const outRef = useRef(null)
+  useEffect(() => () => setEnteringApp(false), [setEnteringApp])
+  useLayoutEffect(() => {
+    if (!leaving) return undefined
+    const fly = outRef.current
+    const slot = markRef.current?.getBoundingClientRect()
+    if (!fly || !slot || slot.width === 0) return undefined
+    const center = fly.getBoundingClientRect()
+    const dx = slot.left + slot.width / 2 - (center.left + center.width / 2)
+    const dy = slot.top + slot.height / 2 - (center.top + center.height / 2)
+    const animation = fly.animate(
+      [{ transform: `translate(${dx}px, ${dy}px) scale(${slot.width / center.width})` }, { transform: 'none' }],
+      { duration: INTRO.fly, delay: 120, easing: 'cubic-bezier(0.65, 0, 0.35, 1)', fill: 'both' },
+    )
+    return () => animation.cancel()
+  }, [leaving])
+  const outro = leaving && (
+    <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-50">
+      <SplashStage markRef={outRef} line={false} />
+    </div>
+  )
+
   const cover = phase && phase !== 'done' && !landed && (
     <div ref={coverRef} aria-hidden="true" className="pointer-events-none fixed inset-0 z-50">
       <div ref={groundRef} className="absolute inset-0 bg-background" />
@@ -80,7 +107,7 @@ function useLoginIntro(enabled) {
       <SplashStage markRef={flyRef} line={phase === 'wait' && !intro.fromLogout} />
     </div>
   )
-  return { phase, cover, markRef, markHidden: Boolean(phase) && !landed }
+  return { phase, cover, outro, leaving, markRef, markHidden: (Boolean(phase) && !landed) || leaving }
 }
 
 /**
@@ -89,10 +116,16 @@ function useLoginIntro(enabled) {
  * (`useLoginIntro`): lo que lleva `tf-intro-item` y los hijos del formulario aparecen por partes, en el orden de `--i`.
  */
 export function SplitShell({ caption, panel, children, intro = false }) {
-  const { phase, cover, markRef, markHidden } = useLoginIntro(intro)
+  const { phase, cover, outro, leaving, markRef, markHidden } = useLoginIntro(intro)
   return (
-    <div data-intro={phase ?? undefined} className="flex min-h-svh gap-3.5 p-2 sm:p-3.5">
+    <div
+      data-login-shell=""
+      data-intro={phase ?? undefined}
+      data-login-out={leaving ? 'go' : undefined}
+      className="flex min-h-svh gap-3.5 p-2 sm:p-3.5"
+    >
       {cover}
+      {outro}
       <aside className="tf-intro-aside hidden flex-[1_1_520px] flex-col rounded-[22px] bg-sidebar px-8 py-6.5 text-sidebar-foreground lg:flex">
         <p className="font-mono text-[11px] text-sidebar-muted">{t('~/acceso')}</p>
         <div className={cn('flex flex-1 flex-col items-center justify-center gap-9 py-7', !phase && 'tf-fade')}>
@@ -113,7 +146,7 @@ export function SplitShell({ caption, panel, children, intro = false }) {
         </div>
         <p className="text-center font-mono text-[11px] text-sidebar-muted">© 2026 TaskFlow</p>
       </aside>
-      <main className="relative flex flex-[1_1_480px] items-center justify-center px-4 py-16">
+      <main className="tf-login-main relative flex flex-[1_1_480px] items-center justify-center px-4 py-16">
         <Link to="/" aria-label="TaskFlow" className="absolute top-3 left-3 lg:hidden">
           <Logo />
         </Link>
