@@ -25,6 +25,8 @@ export function AppLayout() {
 
   // Entrada de la app tras iniciar sesión o al abrirla: el logo de carga se abre y entran el menú y la página
   const [intro, setIntro] = useState(peekAppIntro)
+  // Si entró animada no lleva además el fundido normal (ni al terminar: agregarlo ahí la haría parpadear)
+  const [plainEnter] = useState(!intro)
   useEffect(() => {
     markAppShown()
     if (!intro) return undefined
@@ -33,7 +35,7 @@ export function AppLayout() {
   }, [intro])
 
   return (
-    <div data-app-intro={intro ? 'go' : undefined} className={cn('flex h-full gap-3.5 bg-background p-2 sm:p-3.5', !intro && 'tf-fade')}>
+    <div data-app-intro={intro ? 'go' : undefined} className={cn('flex h-full gap-3.5 bg-background p-2 sm:p-3.5', plainEnter && 'tf-fade')}>
       {intro && (
         <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-50">
           <div className="tf-app-cover absolute inset-0 bg-background" />
