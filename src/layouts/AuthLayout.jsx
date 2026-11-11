@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, Outlet } from 'react-router'
 import { Logo, LogoMark } from '@/components/common/Logo'
 import { SplashStage } from '@/components/common/Splash'
+import { LanguageToggle } from '@/components/common/LanguageToggle'
 import { ThemeToggle } from '@/components/common/ThemeToggle'
 import { INTRO, markFirstScreen, peekIntro } from '@/lib/intro'
 import { cn } from '@/lib/utils'
@@ -111,7 +112,8 @@ export function SplitShell({ caption, panel, children, intro = false }) {
         <Link to="/" aria-label="TaskFlow" className="absolute top-3 left-3 lg:hidden">
           <Logo />
         </Link>
-        <div className="tf-intro-item absolute top-2 right-2" style={{ '--i': 0 }}>
+        <div className="tf-intro-item absolute top-2 right-2 flex items-center gap-0.5" style={{ '--i': 0 }}>
+          <LanguageToggle />
           <ThemeToggle />
         </div>
         {/* La clase no cambia al terminar la entrada: si pasara a `tf-enter`, el formulario volvería a animarse */}
@@ -134,6 +136,7 @@ export function CenteredShell({ meta, children, footer }) {
         </Link>
         <div className="flex items-center gap-3">
           {meta && <div className="font-mono text-xs text-muted-foreground">{meta}</div>}
+          <LanguageToggle />
           <ThemeToggle />
         </div>
       </header>

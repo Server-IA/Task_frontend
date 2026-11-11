@@ -33,6 +33,12 @@ export const userApi = {
   /** @returns {Promise<UserResponse>} */
   updateProfile: (body) => api.patch('/users/me', body).then(data),
 
+  /**
+   * Guarda el idioma de la cuenta («es» o «en»): el de la interfaz en cualquier navegador y el de sus correos.
+   * @returns {Promise<UserResponse>}
+   */
+  updateLanguage: (language) => api.patch('/users/me/language', { language }).then(data),
+
   /** @returns {Promise<AuthResponse>} */
   changePassword: (body) => api.patch('/users/me/password', body).then(data),
 }

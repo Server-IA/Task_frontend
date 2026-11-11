@@ -16,7 +16,8 @@ import { PasswordRules } from '@/components/common/PasswordRules'
 import { Segmented } from '@/components/common/Segmented'
 import { THEME_OPTIONS } from '@/components/common/ThemeToggle'
 import { AvatarPhoto, avatarColor, initials } from '@/components/common/UserAvatar'
-import { useChangePassword, useLogout, useMe, useUpdateProfile } from '@/features/auth/hooks'
+import { useChangePassword, useLogout, useMe, useUpdateLanguage, useUpdateProfile } from '@/features/auth/hooks'
+import { getLanguage, LANGUAGES, t } from '@/i18n'
 import { changePasswordSchema, profileSchema } from '@/features/auth/schemas'
 import { useWorkspaces } from '@/features/workspaces/hooks'
 import { useCooldown } from '@/hooks/useCooldown'
@@ -94,6 +95,7 @@ function ProfileHeader({ user }) {
 
 function ProfileCard({ user }) {
   const update = useUpdateProfile()
+  const updateLanguage = useUpdateLanguage()
   const { theme, setTheme } = useTheme()
   const form = useForm({
     resolver: zodResolver(profileSchema),
@@ -152,6 +154,20 @@ function ProfileCard({ user }) {
                 itemClassName="flex-1 rounded-[9px] text-foreground/70"
                 thumbClassName="rounded-[9px] bg-card shadow-sm"
               />
+            </div>
+            <div className="space-y-2">
+              <span className="text-sm font-medium">{t('Idioma')}</span>
+              <Segmented
+                label={t('Idioma de la interfaz')}
+                value={getLanguage()}
+                // Se guarda en la cuenta; al volver la respuesta, la página se recarga en el idioma nuevo
+                onChange={(code) => updateLanguage.mutate(code, { onError: (error) => notifyError(error, t('No se pudo cambiar el idioma')) })}
+                options={LANGUAGES.map(({ code, label }) => ({ value: code, label }))}
+                className="rounded-xl border-transparent bg-muted p-1"
+                itemClassName="flex-1 rounded-[9px] text-foreground/70"
+                thumbClassName="rounded-[9px] bg-card shadow-sm"
+              />
+              <p className="text-xs text-muted-foreground">{t('El idioma en el que ves TaskFlow. Al cambiarlo la página se recarga.')}</p>
             </div>
             <div className="flex justify-end">
               <Button type="submit" disabled={update.isPending || !form.formState.isDirty}>

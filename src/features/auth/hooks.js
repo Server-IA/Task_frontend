@@ -119,6 +119,15 @@ export function useUpdateProfile() {
   })
 }
 
+/**
+ * Cambia el idioma de la cuenta. Al guardarse, la sesión toma el usuario nuevo y la página se recarga en ese idioma
+ * (ver `followAccountLanguage` en la sesión).
+ */
+export function useUpdateLanguage() {
+  const setUser = useSessionStore((state) => state.setUser)
+  return useMutation({ mutationFn: userApi.updateLanguage, onSuccess: (user) => setUser(user) })
+}
+
 /** El backend cierra las demás sesiones y devuelve tokens nuevos para esta. */
 export function useChangePassword() {
   const setSession = useSessionStore((state) => state.setSession)
