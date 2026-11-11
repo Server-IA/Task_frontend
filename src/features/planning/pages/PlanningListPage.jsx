@@ -139,6 +139,7 @@ export function PlanningListPage({ kind }) {
                       </div>
                       <ProgressSummary
                         progress={item.progress}
+                        cycleId={kind === 'cycles' ? item.id : null}
                         className="w-full"
                         barClassName={
                           kind === 'cycles'

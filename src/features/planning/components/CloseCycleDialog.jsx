@@ -98,7 +98,7 @@ function CloseCycleForm({ slug, projectId, cycle: initialCycle, onClose }) {
       { id: cycle.id, ...body },
       {
         onSuccess: (result) => {
-          // El avance del ciclo recién cerrado se anima donde se vea (su página o su tarjeta en la lista)
+          // El avance del ciclo recién cerrado se anima donde se vea: su página, su tarjeta en la lista o la retro
           flash('closedCycle', cycle.id, 4000)
           const name = targetCycle?.name ?? t('otro ciclo')
           const toCycle = tn(result.movedToCycle, '{count} tarea a {name}', '{count} tareas a {name}', { name })

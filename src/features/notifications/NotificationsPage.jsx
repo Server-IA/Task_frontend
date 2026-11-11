@@ -83,6 +83,13 @@ export function NotificationsPage() {
   const rootRef = useRef(null)
   const split = useElementWidth(rootRef, 0) >= SPLIT_MIN_WIDTH
 
+  // Lo más reciente que había al abrir la pestaña: un aviso posterior a eso llegó con la bandeja abierta y entra
+  // deslizándose (la lista se actualiza sola cuando llega algo). Lo que ya estaba, lo que trae «Cargar más» o lo
+  // que se ve al cambiar de pestaña, no.
+  const [atOpen, setAtOpen] = useState({ tab: null, newest: null })
+  if (atOpen.tab !== tab && !isLoading && notifications) setAtOpen({ tab, newest: notifications[0]?.createdAt ?? '' })
+  const newestAtOpen = atOpen.tab === tab ? atOpen.newest : null
+
   // Agrupadas por día, en el orden en que llegan (más recientes primero)
   const days = groupByDay(notifications, (notification) => notification.createdAt)
 
@@ -197,6 +204,7 @@ export function NotificationsPage() {
                   <NotificationItem
                     key={notification.id}
                     notification={notification}
+                    fresh={newestAtOpen !== null && notification.createdAt > newestAtOpen}
                     first={index === 0}
                     current={isOpenedNotification(notification, opened)}
                     onOpen={() => openNotification(notification)}
@@ -327,15 +335,12 @@ function CommentExcerpt({ excerpt }) {
  * @param {{ notification: import('@/api/types').NotificationResponse, first: boolean, current: boolean,
  *           onOpen: () => void }} props
  */
-function NotificationItem({ notification, first, current, onOpen }) {
+function NotificationItem({ notification, fresh = false, first, current, onOpen }) {
   const issue = notification.issue
   const mark = TYPE_MARKS[notification.type] ?? DEFAULT_MARK
   const project = notificationProject(notification)
   const workspaceSlug = notificationWorkspaceSlug(notification)
   const storage = notification.type === 'STORAGE_WARNING'
-  // Un aviso que acaba de llegar (creado hace unos segundos) entra deslizándose; los que ya estaban, no
-  const [fresh] = useState(() => Date.now() - new Date(notification.createdAt).getTime() < 20_000)
-
   return (
     <li className={cn(!first && 'border-t', fresh && 'tf-slide-in')}>
       <button

@@ -11,6 +11,19 @@ describe('PulseOnChange', () => {
     rerender(<PulseOnChange value={4} />)
     expect(screen.getByText('4')).toHaveClass('tf-pulse')
   })
+
+  it('conocer el valor (de cargando a su número) no es un cambio', () => {
+    const { rerender } = render(<PulseOnChange value={undefined} show={false} />)
+    rerender(<PulseOnChange value="3" />)
+    expect(screen.getByText('3')).not.toHaveClass('tf-pulse')
+  })
+
+  it('oculto no pinta nada, pero lo que aparece por un cambio sí hace el pulso', () => {
+    const { rerender, container } = render(<PulseOnChange value="0" show={false} />)
+    expect(container).toBeEmptyDOMElement()
+    rerender(<PulseOnChange value="1" show />)
+    expect(screen.getByText('1')).toHaveClass('tf-pulse')
+  })
 })
 
 describe('CountUp', () => {

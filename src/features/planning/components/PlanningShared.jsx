@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { CheckMark } from '@/components/common/CheckMark'
+import { CountUp } from '@/components/common/Pulse'
 import { LockNote } from '@/components/common/LockNote'
 import { Spinner } from '@/components/common/Loaders'
 import { StateIcon } from '@/components/common/StateIcon'
@@ -22,6 +23,7 @@ import { differenceInCalendarDays, parseISO, startOfToday } from 'date-fns'
 import { t, tn } from '@/i18n'
 import { formatShortDate } from '@/lib/dates'
 import { applyFieldErrors } from '@/lib/errors'
+import { useFlash } from '@/lib/flash'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { addableIssues } from '../addableIssues'
@@ -188,8 +190,13 @@ export function DateRange({ start, end }) {
   )
 }
 
-/** @param {{ progress: { totalIssues: number, completedIssues: number, percentage: number }, barClassName?: string }} props */
-export function ProgressSummary({ progress, className, barClassName = 'bg-accent-text' }) {
+/**
+ * `cycleId`: si ese ciclo se acaba de cerrar, la barra se llena hasta su valor y el porcentaje cuenta hacia arriba.
+ * @param {{ progress: { totalIssues: number, completedIssues: number, percentage: number }, barClassName?: string,
+ *   cycleId?: string | null }} props
+ */
+export function ProgressSummary({ progress, className, barClassName = 'bg-accent-text', cycleId = null }) {
+  const justClosed = useFlash('closedCycle', cycleId)
   return (
     <div className={cn('space-y-1.5', className)}>
       <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -198,9 +205,11 @@ export function ProgressSummary({ progress, className, barClassName = 'bg-accent
             ? t('Sin tareas')
             : t('{completed} de {total} completadas', { completed: progress.completedIssues, total: progress.totalIssues })}
         </span>
-        <span className="font-mono font-semibold text-foreground">{progress.percentage}%</span>
+        <span className="font-mono font-semibold text-foreground">
+          <CountUp value={progress.percentage} animate={justClosed} />%
+        </span>
       </div>
-      <ProgressBar value={progress.percentage} className={barClassName} />
+      <ProgressBar value={progress.percentage} className={barClassName} grow={justClosed} />
     </div>
   )
 }

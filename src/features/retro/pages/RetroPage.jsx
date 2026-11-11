@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
+import { CountUp } from '@/components/common/Pulse'
 import { Spinner } from '@/components/common/Loaders'
 import { LockNote } from '@/components/common/LockNote'
 import { EmptyState, ErrorState } from '@/components/common/States'
@@ -20,6 +21,7 @@ import { useCan, useCurrentWorkspace } from '@/features/workspaces/hooks'
 import { stateName, t, tn, tx } from '@/i18n'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { formatShortDate } from '@/lib/dates'
+import { useFlash } from '@/lib/flash'
 import { notifyError } from '@/lib/notify'
 import { projectPath } from '@/lib/paths'
 import { slugify } from '@/lib/slug'
@@ -182,7 +184,7 @@ export function RetroPage() {
         }
       />
       <PageBody className="flex flex-col gap-3.5">
-        <RetroSummary summary={retro.summary} />
+        <RetroSummary summary={retro.summary} cycleId={cycleId} />
 
         {phase === 'NOT_STARTED' ? (
           <div className="tf-panel">
@@ -267,7 +269,9 @@ export function RetroPage() {
 }
 
 /** Resumen automático del ciclo: completadas, lo que pasó a otro ciclo o al backlog y el tiempo de ciclo. */
-function RetroSummary({ summary }) {
+function RetroSummary({ summary, cycleId }) {
+  // Si se llega aquí al cerrar el ciclo, lo completado cuenta hacia arriba (es la misma animación del cierre)
+  const justClosed = useFlash('closedCycle', cycleId)
   if (!summary) return null
   const { completedCount = 0, totalCount = 0, carriedToCycle = 0, carriedToBacklog = 0, cycleTimeDays } = summary
   const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
@@ -277,7 +281,7 @@ function RetroSummary({ summary }) {
       <SummaryTile
         className="flex-[1_1_180px]"
         label={t('Completadas')}
-        value={completedCount}
+        value={<CountUp value={completedCount} animate={justClosed} />}
         unit={tn(totalCount, 'de {count} tarea', 'de {count} tareas')}
         note={t('{percentage} % de lo planificado', { percentage })}
       />
