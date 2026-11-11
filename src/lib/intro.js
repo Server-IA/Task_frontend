@@ -16,6 +16,8 @@ export const INTRO = {
   fly: 520,
   /** Desde que despega hasta que terminó de entrar todo el contenido. */
   settle: 1800,
+  /** Entrada de la app: lo que tarda en abrirse el logo y entrar el menú y la página. */
+  app: 1300,
 }
 
 let splashAt = null
@@ -53,8 +55,35 @@ export function peekIntro() {
   return { elapsed: splashElapsed() }
 }
 
+/*
+ * Entrada de la app: al iniciar sesión (o al abrir la app con la sesión ya iniciada) el logo de carga se abre y deja
+ * ver la app, que entra por partes: primero el menú y luego la página. Pasa una vez por cada entrada: al iniciar
+ * sesión la pide el login (`requestAppIntro`); al abrir la página, vale por haber mostrado el logo de carga.
+ */
+let appIntroRequested = false
+let appShown = false
+
+/** El login la pide al entrar: la próxima vez que se monte la app, entra animada. */
+export function requestAppIntro() {
+  appIntroRequested = true
+}
+
+/** Si a la app que se está montando le toca entrar animada (se puede consultar varias veces durante el render). */
+export function peekAppIntro() {
+  if (!canAnimate()) return false
+  return appIntroRequested || (splashAt != null && !appShown)
+}
+
+/** La app ya se mostró: hasta el próximo inicio de sesión no vuelve a entrar animada. */
+export function markAppShown() {
+  appIntroRequested = false
+  appShown = true
+}
+
 /** Solo para pruebas: como si la página se acabara de abrir. */
 export function resetIntro() {
   splashAt = null
   firstScreenShown = false
+  appIntroRequested = false
+  appShown = false
 }

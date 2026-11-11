@@ -14,6 +14,7 @@ import { AuthHeader, SplitShell } from '@/layouts/AuthLayout'
 import { useCooldown } from '@/hooks/useCooldown'
 import { t, tx } from '@/i18n'
 import { applyFieldErrors, toApiError } from '@/lib/errors'
+import { requestAppIntro } from '@/lib/intro'
 import { notifyError } from '@/lib/notify'
 import { getPostLoginPath } from '@/lib/pendingInvitation'
 import { useSessionStore } from '@/stores/sessionStore'
@@ -41,7 +42,11 @@ export function LoginPage() {
   const onSubmit = (values) => {
     setUnverifiedEmail(null)
     login.mutate(values, {
-      onSuccess: () => navigate(getPostLoginPath(location), { replace: true }),
+      onSuccess: () => {
+        // La app entra animada después de iniciar sesión (ver `lib/intro`)
+        requestAppIntro()
+        navigate(getPostLoginPath(location), { replace: true })
+      },
       onError: (error) => {
         const apiError = toApiError(error)
         // El backend lo dice con `code`; el texto (que puede llegar en inglés) queda por un backend anterior

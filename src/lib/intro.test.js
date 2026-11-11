@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { markFirstScreen, markSplash, peekIntro, resetIntro, splashElapsed } from './intro'
+import { markAppShown, markFirstScreen, markSplash, peekAppIntro, peekIntro, requestAppIntro, resetIntro, splashElapsed } from './intro'
 
 describe('entrada animada del login', () => {
   const originalAnimate = Element.prototype.animate
@@ -39,5 +39,19 @@ describe('entrada animada del login', () => {
     Element.prototype.animate = () => ({})
     vi.spyOn(window, 'matchMedia').mockReturnValue({ matches: true })
     expect(peekIntro()).toBeNull()
+  })
+
+  it('la app entra animada al abrirla con el logo de carga a la vista y después de cada inicio de sesión', () => {
+    // Sin logo de carga ni inicio de sesión, la app aparece sin más
+    expect(peekAppIntro()).toBe(false)
+    markSplash()
+    expect(peekAppIntro()).toBe(true)
+    markAppShown()
+    expect(peekAppIntro()).toBe(false)
+    // Cerrar sesión y volver a entrar la pide otra vez
+    requestAppIntro()
+    expect(peekAppIntro()).toBe(true)
+    markAppShown()
+    expect(peekAppIntro()).toBe(false)
   })
 })
