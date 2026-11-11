@@ -19,7 +19,8 @@ export function SplashStage({ line = true, markRef, className }) {
     <div className={cn('absolute inset-0 flex items-center justify-center', className)} style={{ '--splash-delay': `${delay}ms` }}>
       <span ref={markRef} className="block size-28">
         <svg viewBox="0 0 32 32" className="tf-splash size-full" aria-hidden="true">
-          <rect width="32" height="32" rx="9" fill="#23201B" />
+          {/* Igual que LogoMark: más claro y con borde en tema oscuro, para que se vea sobre el fondo */}
+          <rect x="0.5" y="0.5" width="31" height="31" rx="8.5" strokeWidth="1" className="fill-[#23201B] dark:fill-[#38332b] dark:stroke-[#5a5246]" />
           <path
             className="tf-splash-check"
             pathLength="1"

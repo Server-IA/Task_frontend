@@ -1,5 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { markAppShown, markFirstScreen, markSplash, peekAppIntro, peekIntro, requestAppIntro, resetIntro, splashElapsed } from './intro'
+import {
+  INTRO,
+  markAppShown,
+  markFirstScreen,
+  markLoginIntroShown,
+  markSplash,
+  peekAppIntro,
+  peekIntro,
+  playLogoutOutro,
+  requestAppIntro,
+  resetIntro,
+  splashElapsed,
+} from './intro'
 
 describe('entrada animada del login', () => {
   const originalAnimate = Element.prototype.animate
@@ -15,8 +27,8 @@ describe('entrada animada del login', () => {
   })
 
   it('le toca a la primera pantalla de la carga, y se puede consultar varias veces sin gastarla', () => {
-    expect(peekIntro()).toEqual({ elapsed: 0 })
-    expect(peekIntro()).toEqual({ elapsed: 0 })
+    expect(peekIntro()).toEqual({ elapsed: 0, fromLogout: false })
+    expect(peekIntro()).toEqual({ elapsed: 0, fromLogout: false })
   })
 
   it('después de mostrar una pantalla, las siguientes no la llevan', () => {
@@ -30,7 +42,7 @@ describe('entrada animada del login', () => {
     clock.mockReturnValue(1400)
     markSplash()
     expect(splashElapsed()).toBe(400)
-    expect(peekIntro()).toEqual({ elapsed: 400 })
+    expect(peekIntro()).toEqual({ elapsed: 400, fromLogout: false })
   })
 
   it('sin animaciones por script o con «menos movimiento» no hay entrada', () => {
@@ -53,5 +65,40 @@ describe('entrada animada del login', () => {
     expect(peekAppIntro()).toBe(true)
     markAppShown()
     expect(peekAppIntro()).toBe(false)
+  })
+
+  it('al cerrar sesión la app sale primero y el login que llega entra animado, con el logo ya dibujado', async () => {
+    vi.useFakeTimers()
+    markFirstScreen()
+    const shell = document.createElement('div')
+    shell.setAttribute('data-app-shell', '')
+    document.body.append(shell)
+    const start = vi.fn()
+
+    let done = false
+    const outro = playLogoutOutro(start).then(() => {
+      done = true
+    })
+    expect(start).toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(INTRO.out - 10)
+    expect(done).toBe(false)
+    await vi.advanceTimersByTimeAsync(20)
+    await outro
+    expect(done).toBe(true)
+
+    // Aunque ya se mostraron otras pantallas, este login sí entra animado; después, como siempre
+    expect(peekIntro()).toEqual({ elapsed: INTRO.draw, fromLogout: true })
+    markLoginIntroShown()
+    expect(peekIntro()).toBeNull()
+    shell.remove()
+    vi.useRealTimers()
+  })
+
+  it('sin la app a la vista no hay salida: se cierra sesión de una vez', async () => {
+    const start = vi.fn()
+    await playLogoutOutro(start)
+    expect(start).not.toHaveBeenCalled()
+    markFirstScreen()
+    expect(peekIntro()).toBeNull()
   })
 })

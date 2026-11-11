@@ -18,6 +18,10 @@ export const INTRO = {
   settle: 1800,
   /** Entrada de la app: lo que tarda en abrirse el logo y entrar el menú y la página. */
   app: 1300,
+  /** Salida al cerrar sesión: la app se va y el logo vuelve al centro antes de pasar al login. */
+  out: 460,
+  /** Cuánto vale el pedido de entrada del login después de cerrar sesión (si el login no llega, se olvida). */
+  loginRequest: 4000,
 }
 
 let splashAt = null
@@ -48,11 +52,38 @@ function canAnimate() {
 /**
  * La entrada que le toca a la pantalla que se está montando, sin consumirla (se puede llamar varias veces durante el
  * render): `null` si ya se mostró otra pantalla o no se puede animar; si no, cuánto lleva el logo de carga a la vista.
- * @returns {{ elapsed: number } | null}
+ * @returns {{ elapsed: number, fromLogout: boolean } | null}
  */
 export function peekIntro() {
-  if (firstScreenShown || !canAnimate()) return null
-  return { elapsed: splashElapsed() }
+  if (!canAnimate()) return null
+  // Después de cerrar sesión: el logo ya está dibujado en el centro y solo falta que vuele a su lugar
+  if (loginIntroAt != null && now() - loginIntroAt < INTRO.loginRequest) return { elapsed: INTRO.draw, fromLogout: true }
+  if (firstScreenShown) return null
+  return { elapsed: splashElapsed(), fromLogout: false }
+}
+
+/*
+ * Salida al cerrar sesión: la app se va, el logo vuelve al centro y el login que viene lo recibe ahí y entra animado
+ * (`peekIntro` con `fromLogout`).
+ */
+let loginIntroAt = null
+
+/** El login ya tomó su entrada: la siguiente vez aparece como siempre. */
+export function markLoginIntroShown() {
+  loginIntroAt = null
+}
+
+/**
+ * Arranca la salida y avisa cuando terminó (para cerrar la sesión de verdad). `start` pone la app en modo salida.
+ * Sin animaciones, o si la app no está a la vista, termina de una vez y no pide nada.
+ * @param {() => void} start
+ * @returns {Promise<void>}
+ */
+export function playLogoutOutro(start) {
+  if (!canAnimate() || !document.querySelector('[data-app-shell]')) return Promise.resolve()
+  loginIntroAt = now()
+  start()
+  return new Promise((resolve) => setTimeout(resolve, INTRO.out))
 }
 
 /*
@@ -86,4 +117,5 @@ export function resetIntro() {
   firstScreenShown = false
   appIntroRequested = false
   appShown = false
+  loginIntroAt = null
 }

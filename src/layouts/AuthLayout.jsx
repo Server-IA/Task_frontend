@@ -5,7 +5,7 @@ import { SplashStage } from '@/components/common/Splash'
 import { LanguageToggle } from '@/components/common/LanguageToggle'
 import { ThemeToggle } from '@/components/common/ThemeToggle'
 import { t } from '@/i18n'
-import { INTRO, markFirstScreen, peekIntro } from '@/lib/intro'
+import { INTRO, markFirstScreen, markLoginIntroShown, peekIntro } from '@/lib/intro'
 import { cn } from '@/lib/utils'
 
 /** Pantallas públicas: cada página elige su marco (`SplitShell` o `CenteredShell`). */
@@ -33,7 +33,10 @@ function useLoginIntro(enabled) {
   const groundRef = useRef(null)
   const flyRef = useRef(null)
 
-  useEffect(() => markFirstScreen(), [])
+  useEffect(() => {
+    markFirstScreen()
+    markLoginIntroShown()
+  }, [])
 
   useEffect(() => {
     if (!intro) return undefined
@@ -73,7 +76,8 @@ function useLoginIntro(enabled) {
   const cover = phase && phase !== 'done' && !landed && (
     <div ref={coverRef} aria-hidden="true" className="pointer-events-none fixed inset-0 z-50">
       <div ref={groundRef} className="absolute inset-0 bg-background" />
-      <SplashStage markRef={flyRef} line={phase === 'wait'} />
+      {/* Tras cerrar sesión no hay nada cargando: el logo espera en el centro sin la línea */}
+      <SplashStage markRef={flyRef} line={phase === 'wait' && !intro.fromLogout} />
     </div>
   )
   return { phase, cover, markRef, markHidden: Boolean(phase) && !landed }

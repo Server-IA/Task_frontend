@@ -4,6 +4,8 @@ import { withSessionLock } from '@/api/session'
 import { pendingInvitation } from '@/lib/pendingInvitation'
 import { tokenStorage } from '@/lib/tokenStorage'
 import { usePreferencesStore } from '@/stores/preferencesStore'
+import { playLogoutOutro } from '@/lib/intro'
+import { useLayoutStore } from '@/stores/layoutStore'
 import { useSessionStore } from '@/stores/sessionStore'
 import { authApi, userApi } from './api'
 
@@ -64,14 +66,17 @@ export function useVerifyEmail() {
 export function useLogout() {
   const forgetSession = useForgetSession()
   return useMutation({
-    // Bajo el mismo lock que el refresh: se revoca el token vigente, no uno que se esté rotando
-    mutationFn: () =>
-      withSessionLock(async () => {
+    mutationFn: async () => {
+      // Primero la salida animada (la app se va y queda el logo en el centro); después se cierra de verdad
+      await playLogoutOutro(() => useLayoutStore.getState().setLeaving(true))
+      // Bajo el mismo lock que el refresh: se revoca el token vigente, no uno que se esté rotando
+      return withSessionLock(async () => {
         const refreshToken = tokenStorage.get()
         if (refreshToken) {
           await authApi.logout(refreshToken).catch(() => {})
         }
-      }),
+      })
+    },
     onSettled: forgetSession,
   })
 }

@@ -7,4 +7,8 @@ export const useLayoutStore = create((set) => ({
 
   commandOpen: false,
   setCommandOpen: (commandOpen) => set({ commandOpen }),
+
+  /** La app está saliendo (animación de cerrar sesión): el layout tapa todo con el logo. */
+  leaving: false,
+  setLeaving: (leaving) => set({ leaving }),
 }))

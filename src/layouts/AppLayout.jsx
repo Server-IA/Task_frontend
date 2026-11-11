@@ -16,6 +16,8 @@ export function AppLayout() {
   const collapsed = usePreferencesStore((state) => state.sidebarCollapsed)
   const mobileOpen = useLayoutStore((state) => state.mobileSidebarOpen)
   const setMobileOpen = useLayoutStore((state) => state.setMobileSidebarOpen)
+  const leaving = useLayoutStore((state) => state.leaving)
+  const setLeaving = useLayoutStore((state) => state.setLeaving)
   const location = useLocation()
 
   // Al navegar en móvil se cierra el drawer
@@ -34,8 +36,23 @@ export function AppLayout() {
     return () => clearTimeout(timer)
   }, [intro])
 
+  // Al desmontarse (ya sin sesión) la salida terminó
+  useEffect(() => () => setLeaving(false), [setLeaving])
+
   return (
-    <div data-app-intro={intro ? 'go' : undefined} className={cn('flex h-full gap-3.5 bg-background p-2 sm:p-3.5', plainEnter && 'tf-fade')}>
+    <div
+      data-app-shell=""
+      data-app-intro={intro ? 'go' : undefined}
+      data-app-outro={leaving ? 'go' : undefined}
+      className={cn('flex h-full gap-3.5 bg-background p-2 sm:p-3.5', plainEnter && 'tf-fade')}
+    >
+      {/* Salida al cerrar sesión: la app se va y el logo vuelve al centro, donde lo recibe el login */}
+      {leaving && (
+        <div aria-hidden="true" className="fixed inset-0 z-50">
+          <div className="tf-out-cover absolute inset-0 bg-background" />
+          <SplashStage line={false} className="tf-out-logo" />
+        </div>
+      )}
       {intro && (
         <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-50">
           <div className="tf-app-cover absolute inset-0 bg-background" />
