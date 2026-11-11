@@ -331,9 +331,11 @@ export function StoriesPage() {
               <span>{tx('{key} expandir', { key: <kbd className="text-foreground">→</kbd> })}</span>
               {manager && <span>{tx('{key} partir en tareas', { key: <kbd className="text-foreground">P</kbd> })}</span>}
               <span>{tx('{key} abrir', { key: <kbd className="text-foreground">Enter</kbd> })}</span>
-              <span className="ml-auto font-sans text-xs">
-                {t('Tu rol no permite crear historias ni partirlas en tareas: las ves aquí y en el tablero.')}
-              </span>
+              {!manager && (
+                <span className="ml-auto font-sans text-xs">
+                  {t('Tu rol no permite crear historias ni partirlas en tareas: las ves aquí y en el tablero.')}
+                </span>
+              )}
             </footer>
           </div>
         )}

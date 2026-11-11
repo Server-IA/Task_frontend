@@ -271,7 +271,6 @@ export default {
   'Sus tareas y criterios quedan como documentación. Lo nuevo va en una tarea o una historia relacionada.':
     'Its tasks and criteria stay as documentation. New work goes in a related task or story.',
   Reabrir: 'Reopen',
-  'tu rol no la reabre': 'your role does not reopen it',
   'tu rol no permite reabrirla': 'your role does not allow reopening it',
   'relacionada:': 'related:',
   'relacionada: {code}': 'related: {code}',

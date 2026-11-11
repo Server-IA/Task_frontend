@@ -123,13 +123,10 @@ export function StoryBanner({ slug, project, issue, onOpenIssue, onAddTask }) {
             </p>
           </div>
           {manager ? (
-            <div className="flex flex-col items-end gap-1">
-              <Button variant="outline" size="sm" className="bg-card" onClick={doReopen} disabled={reopen.isPending}>
-                <RotateCcw />
-                {t('Reabrir')}
-              </Button>
-              <span className="font-mono text-[10px] text-muted-foreground">{t('tu rol no la reabre')}</span>
-            </div>
+            <Button variant="outline" size="sm" className="bg-card" onClick={doReopen} disabled={reopen.isPending}>
+              <RotateCcw />
+              {t('Reabrir')}
+            </Button>
           ) : (
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
               <Lock className="size-3" aria-hidden="true" />
