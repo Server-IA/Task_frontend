@@ -17,6 +17,7 @@ import { ErrorState } from '@/components/common/States'
 import { StateIcon } from '@/components/common/StateIcon'
 import { MarkdownView } from '@/features/editor/components/MarkdownView'
 import { useWorkspace } from '@/features/workspaces/hooks'
+import { stateName, t } from '@/i18n'
 import { formatDateTime, formatRelative, formatShortDate } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
 import { can, canDeleteIssue } from '@/lib/permissions'
@@ -126,7 +127,7 @@ export function IssueDetail({
               disabled={!canEdit}
               onSave={(title) => update({ title })}
               className="-mx-2 text-2xl leading-tight font-semibold tracking-[-0.01em]"
-              placeholder="Título de la tarea"
+              placeholder={t('Título de la tarea')}
             />
           </div>
           {renderUnderTitle?.(issue)}
@@ -154,11 +155,11 @@ export function IssueDetail({
         </div>
 
         <aside className="flex flex-[1_1_240px] flex-col gap-1 border-l bg-column px-4.5 py-5">
-          <p className="mb-2 font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase">Propiedades</p>
-          <PropertyRow label="Tipo">
+          <p className="mb-2 font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase">{t('Propiedades')}</p>
+          <PropertyRow label={t('Tipo')}>
             <TypePill type={typeOf(issue)} className="ml-2" />
           </PropertyRow>
-          <PropertyRow label="Estado">
+          <PropertyRow label={t('Estado')}>
             <span className="flex min-w-0 flex-col items-start">
             <StatePicker
               states={stateOptions}
@@ -170,28 +171,28 @@ export function IssueDetail({
               }}
             />
             {story && (
-              <span className="-mt-1 pl-2 font-mono text-[10.5px] text-muted-foreground" title="El estado de la historia sigue a sus tareas">
-                {flags.closed ? 'cerrada' : 'automático'}
+              <span className="-mt-1 pl-2 font-mono text-[10.5px] text-muted-foreground" title={t('El estado de la historia sigue a sus tareas')}>
+                {flags.closed ? t('cerrada') : t('automático')}
               </span>
             )}
             </span>
           </PropertyRow>
           {story && (
-            <PropertyRow label="Progreso">
+            <PropertyRow label={t('Progreso')}>
               <StoryProgressSummary story={issue} />
             </PropertyRow>
           )}
           {story && issue.closedAt && (
-            <PropertyRow label="Cerrada por">
+            <PropertyRow label={t('Cerrada por')}>
               <span className="truncate px-2 text-xs">
                 {issue.closedBy?.fullName.split(' ')[0] ?? '—'} · {formatShortDate(issue.closedAt)}
               </span>
             </PropertyRow>
           )}
-          <PropertyRow label="Prioridad">
+          <PropertyRow label={t('Prioridad')}>
             <PriorityPicker disabled={!canEdit} value={issue.priority} onChange={(priority) => update({ priority })} />
           </PropertyRow>
-          <PropertyRow label="Asignados">
+          <PropertyRow label={t('Asignados')}>
             <AssigneesPicker
               disabled={!canEdit}
               members={meta.users}
@@ -199,7 +200,7 @@ export function IssueDetail({
               onChange={(assigneeIds) => update({ assigneeIds })}
             />
           </PropertyRow>
-          <PropertyRow label="Etiquetas">
+          <PropertyRow label={t('Etiquetas')}>
             <LabelsPicker
               disabled={!canEdit}
               labels={meta.labels}
@@ -207,26 +208,26 @@ export function IssueDetail({
               onChange={(labelIds) => update({ labelIds })}
             />
           </PropertyRow>
-          <PropertyRow label="Inicio">
+          <PropertyRow label={t('Inicio')}>
             <DatePicker
               disabled={!canEdit}
               value={issue.startDate}
-              placeholder="Sin fecha"
+              placeholder={t('Sin fecha')}
               maxDate={issue.dueDate}
               onChange={(startDate) => update(startDate ? { startDate } : { clearStartDate: true })}
             />
           </PropertyRow>
-          <PropertyRow label="Fecha límite">
+          <PropertyRow label={t('Fecha límite')}>
             <DatePicker
               disabled={!canEdit}
               value={issue.dueDate}
-              placeholder="Sin fecha"
+              placeholder={t('Sin fecha')}
               minDate={issue.startDate}
               isOverdue={isOverdue(issue)}
               onChange={(dueDate) => update(dueDate ? { dueDate } : { clearDueDate: true })}
             />
           </PropertyRow>
-          <PropertyRow label={issue.parent?.type === 'STORY' ? 'Historia' : 'Padre'}>
+          <PropertyRow label={issue.parent?.type === 'STORY' ? t('Historia') : t('Padre')}>
             <ParentPicker
               disabled={!canEdit}
               slug={slug}
@@ -239,18 +240,19 @@ export function IssueDetail({
           </PropertyRow>
           {renderProperties?.(issue)}
           <div className="mt-3.5 space-y-0.5 border-t pt-3.5 font-mono text-[11px] leading-relaxed text-muted-foreground">
-            <p title={formatDateTime(issue.createdAt)}>
-              {story ? 'escrita' : 'creada'}
-              {issue.createdBy ? ` por ${issue.createdBy.fullName.split(' ')[0]}` : ''} · {formatRelative(issue.createdAt)}
-            </p>
+            <p title={formatDateTime(issue.createdAt)}>{createdLine(issue, story)}</p>
             {story && issue.closedAt && (
               <p title={formatDateTime(issue.closedAt)}>
-                cerrada{issue.closedBy ? ` por ${issue.closedBy.fullName.split(' ')[0]}` : ''} · {formatShortDate(issue.closedAt)}
+                {issue.closedBy
+                  ? t('cerrada por {name} · {when}', { name: issue.closedBy.fullName.split(' ')[0], when: formatShortDate(issue.closedAt) })
+                  : t('cerrada · {when}', { when: formatShortDate(issue.closedAt) })}
               </p>
             )}
-            <p title={formatDateTime(issue.updatedAt)}>actualizada {formatRelative(issue.updatedAt)}</p>
+            <p title={formatDateTime(issue.updatedAt)}>{t('actualizada {when}', { when: formatRelative(issue.updatedAt) })}</p>
             {issue.checklistUpdatedAt && (
-              <p title={formatDateTime(issue.checklistUpdatedAt)}>checklist actualizado {formatRelative(issue.checklistUpdatedAt)}</p>
+              <p title={formatDateTime(issue.checklistUpdatedAt)}>
+                {t('checklist actualizado {when}', { when: formatRelative(issue.checklistUpdatedAt) })}
+              </p>
             )}
           </div>
         </aside>
@@ -267,6 +269,14 @@ export function IssueDetail({
       {storyClosedDialog}
     </div>
   )
+}
+
+/** «creada por Luis · hace 2 días» (una historia se «escribe»); sin autor, «creada · hace 2 días». */
+function createdLine(issue, story) {
+  const when = formatRelative(issue.createdAt)
+  const name = issue.createdBy?.fullName.split(' ')[0]
+  if (story) return name ? t('escrita por {name} · {when}', { name, when }) : t('escrita · {when}', { when })
+  return name ? t('creada por {name} · {when}', { name, when }) : t('creada · {when}', { when })
 }
 
 export function PropertyRow({ label, children }) {
@@ -291,16 +301,16 @@ function IssueTopBar({ slug, project, issue, variant, pageUrl, onClose, showMark
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(`${window.location.origin}${pageUrl}`)
-      toast.success('Enlace copiado')
+      toast.success(t('Enlace copiado'))
     } catch {
-      toast.error('No se pudo copiar el enlace')
+      toast.error(t('No se pudo copiar el enlace'))
     }
   }
 
   const handleDelete = () => {
     remove.mutate(issue.id, {
       onSuccess: () => {
-        toast.success(`${issue.code} eliminada`)
+        toast.success(t('{code} eliminada', { code: issue.code }))
         setConfirmDelete(false)
         if (variant === 'panel') onClose?.()
         else navigate(`/${slug}/projects/${project.id}/issues`, { replace: true })
@@ -317,20 +327,20 @@ function IssueTopBar({ slug, project, issue, variant, pageUrl, onClose, showMark
       {/* El código no se parte (en el panel quedaba «QAVISUALLONG-» / «1»); un estado de nombre largo se corta */}
       <span className="shrink-0 font-mono text-[13px] whitespace-nowrap text-muted-foreground">{issue.code}</span>
       <span className="hidden truncate font-mono text-xs text-muted-foreground sm:inline">· {project.name.toLowerCase()}</span>
-      <span className="flex max-w-60 shrink-0 items-center gap-1.5 text-[13px]" title={issue.state?.name}>
+      <span className="flex max-w-60 shrink-0 items-center gap-1.5 text-[13px]" title={stateName(issue.state)}>
         <StateIcon group={issue.state?.group} color={issue.state?.color} />
-        <span className="truncate">{issue.state?.name}</span>
+        <span className="truncate">{stateName(issue.state)}</span>
         {isStory(issue) && issue.state?.group !== 'COMPLETED' && issue.state?.group !== 'CANCELLED' && (
-          <span className="shrink-0 font-mono text-[11px] text-muted-foreground">automático</span>
+          <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{t('automático')}</span>
         )}
       </span>
       {issue.assignees?.length > 0 && <AvatarStack users={issue.assignees} size="xs" className="ml-1" />}
       <div className="ml-auto flex items-center gap-1">
-        <Button variant="ghost" size="icon" className={iconButton} onClick={copyLink} aria-label="Copiar enlace" title="Copiar enlace">
+        <Button variant="ghost" size="icon" className={iconButton} onClick={copyLink} aria-label={t('Copiar enlace')} title={t('Copiar enlace')}>
           <Link2 />
         </Button>
         {variant === 'panel' && (
-          <Button asChild variant="ghost" size="icon" className={iconButton} aria-label="Abrir en página completa" title="Abrir en página completa">
+          <Button asChild variant="ghost" size="icon" className={iconButton} aria-label={t('Abrir en página completa')} title={t('Abrir en página completa')}>
             <Link to={pageUrl}>
               <Maximize2 />
             </Link>
@@ -338,28 +348,28 @@ function IssueTopBar({ slug, project, issue, variant, pageUrl, onClose, showMark
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className={iconButton} aria-label="Más acciones">
+            <Button variant="ghost" size="icon" className={iconButton} aria-label={t('Más acciones')}>
               <MoreHorizontal />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onSelect={onToggleMarkdown}>
               <FileCode2 />
-              {showMarkdown ? 'Ver la descripción con formato' : 'Ver Markdown'}
+              {showMarkdown ? t('Ver la descripción con formato') : t('Ver Markdown')}
             </DropdownMenuItem>
             {canDelete && (
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(true)}>
                   <Trash2 />
-                  Eliminar tarea
+                  {t('Eliminar tarea')}
                 </DropdownMenuItem>
               </>
             )}
           </DropdownMenuContent>
         </DropdownMenu>
         {variant === 'panel' && (
-          <Button variant="ghost" size="icon" className={iconButton} onClick={onClose} aria-label="Cerrar">
+          <Button variant="ghost" size="icon" className={iconButton} onClick={onClose} aria-label={t('Cerrar')}>
             <X />
           </Button>
         )}
@@ -367,9 +377,9 @@ function IssueTopBar({ slug, project, issue, variant, pageUrl, onClose, showMark
       <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
-        title={`¿Eliminar ${issue.code}?`}
-        description="Se borrarán sus comentarios e historial. Sus subtareas se conservan sin padre."
-        confirmLabel="Eliminar"
+        title={t('¿Eliminar {code}?', { code: issue.code })}
+        description={t('Se borrarán sus comentarios e historial. Sus subtareas se conservan sin padre.')}
+        confirmLabel={t('Eliminar')}
         loading={remove.isPending}
         onConfirm={handleDelete}
       />
@@ -386,7 +396,7 @@ function SubIssues({ slug, projectId, issueId, onOpenIssue, onAdd }) {
     <section className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold">
-          Subtareas{' '}
+          {t('Subtareas')}{' '}
           {total > 0 && (
             <span className="font-mono text-xs font-normal text-muted-foreground">
               {done}/{total}
@@ -395,7 +405,7 @@ function SubIssues({ slug, projectId, issueId, onOpenIssue, onAdd }) {
         </h2>
         {onAdd && (
           <button type="button" className="rounded-full border px-2.5 py-1 text-xs hover:bg-accent" onClick={onAdd}>
-            + agregar
+            {t('+ agregar')}
           </button>
         )}
       </div>
@@ -403,7 +413,7 @@ function SubIssues({ slug, projectId, issueId, onOpenIssue, onAdd }) {
         <CenteredSpinner className="p-4" />
       ) : total === 0 ? (
         <p className="rounded-xl border border-dashed border-dash px-3 py-3.5 text-center text-sm text-muted-foreground">
-          Sin subtareas
+          {t('Sin subtareas')}
         </p>
       ) : (
         <>

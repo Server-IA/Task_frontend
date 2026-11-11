@@ -2,6 +2,7 @@ import { memo } from 'react'
 import { Bug } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState, ErrorState } from '@/components/common/States'
+import { t } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { focusRowMain } from '@/lib/focusReturn'
 import { BOARD_PAGE_SIZE, PRIORITY_LABELS, ROW_FOCUS } from '../constants'
@@ -53,7 +54,7 @@ export function BugsView({ slug, project, meta, filters, openIssue, openIssueId 
 
   const groups = bugGroups(data.content)
   if (groups.length === 0) {
-    return <EmptyState icon={Bug} title="No hay bugs abiertos" description="Cuando alguien reporte uno, aparece aquí por prioridad." />
+    return <EmptyState icon={Bug} title={t('No hay bugs abiertos')} description={t('Cuando alguien reporte uno, aparece aquí por prioridad.')} />
   }
 
   return (
@@ -61,16 +62,16 @@ export function BugsView({ slug, project, meta, filters, openIssue, openIssueId 
       {groups.map((group) => (
         <section
           key={group.key}
-          aria-label={group.triage ? 'Por triar' : PRIORITY_LABELS[group.priority]}
+          aria-label={group.triage ? t('Por triar') : PRIORITY_LABELS[group.priority]}
           className={cn('overflow-hidden rounded-2xl border bg-card', group.triage && 'border-dashed border-dash bg-transparent')}
         >
           <header className={cn('flex items-center gap-2 px-4 py-2.5 font-mono text-[11px]', group.triage ? 'border-b border-dashed' : 'bg-column')}>
             {group.triage ? (
               <>
                 <PriorityIcon priority="NONE" />
-                <h2 className="font-semibold tracking-[0.08em] uppercase">Por triar</h2>
+                <h2 className="font-semibold tracking-[0.08em] uppercase">{t('Por triar')}</h2>
                 <span className="text-muted-foreground">{String(group.issues.length).padStart(2, '0')}</span>
-                <span className="font-sans text-xs text-muted-foreground">sin prioridad o sin asignar: decide qué pasa con ellos</span>
+                <span className="font-sans text-xs text-muted-foreground">{t('sin prioridad o sin asignar: decide qué pasa con ellos')}</span>
               </>
             ) : (
               <>
@@ -155,7 +156,7 @@ const BugRow = memo(function BugRow({ bug, slug, project, meta, triage, first, a
           {bug.title}
         </button>
         <BlockedChip issue={bug} codes="inline" />
-        {bug.parent?.type === 'STORY' && <ParentStoryChip parent={bug.parent} label="apareció en" onOpen={openIssue} />}
+        {bug.parent?.type === 'STORY' && <ParentStoryChip parent={bug.parent} label={t('apareció en')} onOpen={openIssue} />}
         <span className="flex items-center gap-1.5" onClick={stop}>
           {triage && (
             <PriorityPicker disabled={locked}
@@ -165,7 +166,7 @@ const BugRow = memo(function BugRow({ bug, slug, project, meta, triage, first, a
               className={noPriority ? 'h-7 rounded-full border border-dashed border-dash px-2.5' : undefined}
             />
           )}
-          {unassigned && !triage && <span className="text-xs text-muted-foreground">sin asignar</span>}
+          {unassigned && !triage && <span className="text-xs text-muted-foreground">{t('sin asignar')}</span>}
           <AssigneesPicker disabled={locked}
             members={meta.users}
             value={bug.assignees?.map((user) => user.id) ?? []}

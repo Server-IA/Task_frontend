@@ -120,7 +120,8 @@ describe('CreateIssueDialog: estado y asignados de la plantilla', () => {
     renderDialog()
     const state = screen.getByRole('button', { name: 'Estado' })
     const assignees = screen.getByRole('button', { name: 'Asignados' })
-    expect(state).toHaveTextContent('Backlog')
+    // «Backlog» es un estado de fábrica: en español se ve «Pendiente»
+    expect(state).toHaveTextContent('Pendiente')
     expect(assignees).toHaveTextContent('Asignar')
 
     await user.click(screen.getByRole('radio', { name: 'Triage' }))
@@ -129,7 +130,7 @@ describe('CreateIssueDialog: estado y asignados de la plantilla', () => {
     expect(screen.getByText(/Se aplicó «Triage»: estado y asignado\./)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Deshacer' }))
-    expect(state).toHaveTextContent('Backlog')
+    expect(state).toHaveTextContent('Pendiente')
     expect(assignees).toHaveTextContent('Asignar')
   })
 

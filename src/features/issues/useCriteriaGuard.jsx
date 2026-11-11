@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
+import { stateName, t, tn } from '@/i18n'
 import { needsCriteriaConfirm, pendingCriteria } from './issueFlags'
 
 /**
@@ -24,13 +25,15 @@ export function useCriteriaGuard() {
         pending?.cancel?.()
         setPending(null)
       }}
-      title={pending ? `¿Mover ${pending.issue.code} a ${pending.state.name}?` : ''}
+      title={pending ? t('¿Mover {code} a {state}?', { code: pending.issue.code, state: stateName(pending.state) }) : ''}
       description={
         pending
-          ? `Tiene ${missing} ${missing === 1 ? 'criterio' : 'criterios'} de aceptación sin marcar (de ${pending.issue.criteriaTotal}).`
+          ? tn(missing, 'Tiene {count} criterio de aceptación sin marcar (de {total}).', 'Tiene {count} criterios de aceptación sin marcar (de {total}).', {
+              total: pending.issue.criteriaTotal,
+            })
           : ''
       }
-      confirmLabel="Mover igual"
+      confirmLabel={t('Mover igual')}
       destructive={false}
       onConfirm={() => {
         pending?.proceed()

@@ -6,6 +6,7 @@ import { ColorDot } from '@/components/common/LabelChip'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { StateIcon } from '@/components/common/StateIcon'
 import { UserAvatar } from '@/components/common/UserAvatar'
+import { stateName, t, tn } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { focusRowMain } from '@/lib/focusReturn'
 import { BOARD_GROUP_STORY, GROUP_BY_DEFAULT, LIST_PAGE_SIZE, ROW_FOCUS } from '../constants'
@@ -58,13 +59,13 @@ export function IssueListView({
 
   if (data.totalElements === 0) {
     return hasFilters ? (
-      <EmptyState icon={CircleDot} title="Ninguna tarea coincide" description="Prueba con otros filtros o búsqueda." />
+      <EmptyState icon={CircleDot} title={t('Ninguna tarea coincide')} description={t('Prueba con otros filtros o búsqueda.')} />
     ) : (
       <EmptyState
         icon={CircleDot}
-        title="Todavía no hay tareas"
-        description={onCreate ? 'Crea la primera con el botón «Nueva tarea» o la tecla C.' : 'Cuando alguien cree una, aparecerá aquí.'}
-        action={onCreate && <Button onClick={onCreate}>Crear tarea</Button>}
+        title={t('Todavía no hay tareas')}
+        description={onCreate ? t('Crea la primera con el botón «Nueva tarea» o la tecla C.') : t('Cuando alguien cree una, aparecerá aquí.')}
+        action={onCreate && <Button onClick={onCreate}>{t('Crear tarea')}</Button>}
       />
     )
   }
@@ -98,21 +99,19 @@ export function IssueListView({
       ))}
 
       <footer className="mt-auto flex flex-wrap items-center gap-4 rounded-xl border bg-card px-3.5 py-1.5 font-mono text-[11px] text-muted-foreground">
+        <span>{t('{from}–{to} de {total}', { from, to, total: data.totalElements })}</span>
         <span>
-          {from}–{to} de {data.totalElements}
-        </span>
-        <span>
-          <kbd className="text-foreground">Enter</kbd> abrir
+          <kbd className="text-foreground">Enter</kbd> {t('abrir')}
         </span>
         {data.totalPages > 1 && (
           <div className="ml-auto flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="size-7" disabled={data.first} onClick={() => setPage(page - 1)} aria-label="Página anterior">
+            <Button variant="ghost" size="icon" className="size-7" disabled={data.first} onClick={() => setPage(page - 1)} aria-label={t('Página anterior')}>
               <ChevronLeft />
             </Button>
             <span className="px-1">
               {data.page + 1} / {data.totalPages}
             </span>
-            <Button variant="ghost" size="icon" className="size-7" disabled={data.last} onClick={() => setPage(page + 1)} aria-label="Página siguiente">
+            <Button variant="ghost" size="icon" className="size-7" disabled={data.last} onClick={() => setPage(page + 1)} aria-label={t('Página siguiente')}>
               <ChevronRight />
             </Button>
           </div>
@@ -145,9 +144,7 @@ function GroupHeader({ group, onCreateInState }) {
           <span aria-hidden="true" className="size-2.5 rounded-full border border-dashed border-dash" />
         )}
         <h2 className="min-w-0 truncate text-[13px] font-semibold">{group.label}</h2>
-        <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
-          {count} {count === 1 ? 'tarea' : 'tareas'}
-        </span>
+        <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{tn(count, '{count} tarea', '{count} tareas')}</span>
       </header>
     )
   }
@@ -167,7 +164,7 @@ function GroupHeader({ group, onCreateInState }) {
           type="button"
           className="ml-auto flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-card hover:text-foreground"
           onClick={() => onCreateInState(group.state.id)}
-          aria-label={`Nueva tarea en ${group.state.name}`}
+          aria-label={t('Nueva tarea en {state}', { state: stateName(group.state) })}
         >
           <Plus className="size-3.5" />
         </button>
@@ -234,7 +231,7 @@ const IssueRow = memo(function IssueRow({ issue, slug, project, meta, openIssue,
         <span className="min-w-16 shrink-0 font-mono text-xs whitespace-nowrap text-muted-foreground">{issue.code}</span>
         <span className="flex min-w-0 flex-[1_1_260px] items-center gap-2">
           {issue.parent && issue.parent.type !== 'STORY' && (
-            <span className="hidden shrink-0 items-center gap-1 font-mono text-[11px] text-muted-foreground lg:flex" title={`Subtarea de ${issue.parent.code}`}>
+            <span className="hidden shrink-0 items-center gap-1 font-mono text-[11px] text-muted-foreground lg:flex" title={t('Subtarea de {code}', { code: issue.parent.code })}>
               <CornerDownRight className="size-3" />
               {issue.parent.code}
             </span>
@@ -254,7 +251,7 @@ const IssueRow = memo(function IssueRow({ issue, slug, project, meta, openIssue,
           <BlockedChip issue={issue} codes="inline" />
           <BlockingChip issue={issue} />
           {issue.subIssueCount > 0 && (
-            <span className="shrink-0 font-mono text-[11px] text-muted-foreground" title="Subtareas completadas">
+            <span className="shrink-0 font-mono text-[11px] text-muted-foreground" title={t('Subtareas completadas')}>
               ↳ {issue.completedSubIssueCount}/{issue.subIssueCount}
             </span>
           )}
@@ -272,7 +269,7 @@ const IssueRow = memo(function IssueRow({ issue, slug, project, meta, openIssue,
           )}
           <DatePicker disabled={locked}
             value={issue.dueDate}
-            placeholder="Fecha límite"
+            placeholder={t('Fecha límite')}
             due={{ closed: isClosed(issue) }}
             minDate={issue.startDate}
             onChange={(dueDate) => update(dueDate ? { dueDate } : { clearDueDate: true })}

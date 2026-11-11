@@ -1,4 +1,5 @@
 import { CircleCheck, CornerLeftUp, TriangleAlert } from 'lucide-react'
+import { t, tn } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { bugsAfterCloseLabel, openBugsLabel, storyFlags, storyProgress, TYPE_LABELS, typeOf } from '../issueTypes'
 
@@ -76,7 +77,8 @@ export function ParentStoryChip({ parent, onOpen, label, className }) {
     story ? 'bg-ty-story-soft text-ty-story-text' : 'bg-muted text-muted-foreground',
     className,
   )
-  const title = `${story ? 'Historia' : 'Subtarea de'} ${parent.code}${parent.title ? ` · ${parent.title}` : ''}`
+  const ref = parent.title ? `${parent.code} · ${parent.title}` : parent.code
+  const title = story ? t('Historia {ref}', { ref }) : t('Subtarea de {ref}', { ref })
   if (!onOpen) {
     return (
       <span className={classes} title={title}>
@@ -111,7 +113,7 @@ export function StoryProgress({ story, className, barClassName, compact = false 
       <span
         className={cn('flex h-1 w-full overflow-hidden rounded-full bg-column', barClassName)}
         role="progressbar"
-        aria-label={`Progreso: ${progress.label}`}
+        aria-label={t('Progreso: {progress}', { progress: progress.label })}
         aria-valuemin={0}
         aria-valuemax={progress.total}
         aria-valuenow={progress.done}
@@ -130,7 +132,7 @@ export function UnsplitBadge({ className }) {
   return (
     <span className={cn(BADGE, 'bg-soon-soft text-soon', className)}>
       <TriangleAlert className="size-3" strokeWidth={2.5} aria-hidden="true" />
-      sin partir
+      {t('sin partir')}
     </span>
   )
 }
@@ -143,10 +145,10 @@ export function ReadyBadge({ className, wrap = false }) {
   return (
     <span
       className={cn(BADGE, 'bg-ok-soft text-ok', wrap && 'min-w-0 shrink whitespace-normal', className)}
-      title="Todas sus tareas terminadas y ningún bug ligado abierto"
+      title={t('Todas sus tareas terminadas y ningún bug ligado abierto')}
     >
       <CircleCheck className="size-3" strokeWidth={2.5} aria-hidden="true" />
-      lista para revisar
+      {t('lista para revisar')}
     </span>
   )
 }
@@ -157,7 +159,7 @@ export function BugCountBadge({ count, afterClose = false, className, title }) {
   return (
     <span
       className={cn(BADGE, 'bg-ty-bug-soft pl-1 text-ty-bug-text', className)}
-      title={title ?? (afterClose ? 'Bugs reportados después de cerrar la historia; no la reabren' : 'Bugs ligados abiertos: frenan «lista para revisar»')}
+      title={title ?? (afterClose ? t('Bugs reportados después de cerrar la historia; no la reabren') : t('Bugs ligados abiertos: frenan «lista para revisar»'))}
     >
       <TypeIcon type="BUG" size={14} />
       {afterClose ? bugsAfterCloseLabel(count) : openBugsLabel(count)}
@@ -181,9 +183,7 @@ export function StoryProgressSummary({ story }) {
       {flags.ready && <ReadyBadge wrap />}
       <BugCountBadge count={flags.openBugs} className="min-w-0 shrink whitespace-normal" />
       {flags.bugsAfterClose > 0 && (
-        <span className="font-mono text-[11px] text-late">
-          +{flags.bugsAfterClose} {flags.bugsAfterClose === 1 ? 'bug' : 'bugs'}
-        </span>
+        <span className="font-mono text-[11px] text-late">{tn(flags.bugsAfterClose, '+{count} bug', '+{count} bugs')}</span>
       )}
     </span>
   )

@@ -10,6 +10,7 @@ import { DUE_TONES } from '@/components/common/DueChip'
 import { ColorDot, LabelChip } from '@/components/common/LabelChip'
 import { StateIcon } from '@/components/common/StateIcon'
 import { UserAvatar } from '@/components/common/UserAvatar'
+import { stateName, t } from '@/i18n'
 import { describeDueDate, formatShortDate, toIsoDate } from '@/lib/dates'
 import { cn } from '@/lib/utils'
 import { PRIORITIES, PRIORITY_LABELS } from '../constants'
@@ -75,7 +76,7 @@ function OptionsPicker({ trigger, options, value, onChange, multiple = false, pl
         <Command className="min-h-0">
           <CommandInput placeholder={placeholder} />
           <CommandList className="min-h-0">
-            <CommandEmpty>{emptyText ?? 'Sin resultados'}</CommandEmpty>
+            <CommandEmpty>{emptyText ?? t('Sin resultados')}</CommandEmpty>
             <CommandGroup>
               {options.map((option) => (
                 <CommandItem
@@ -108,7 +109,7 @@ export function StatePicker({ states = [], value, onChange, disabled, showLabel 
   const current = states.find((state) => state.id === value)
   const options = states.map((state) => ({
     value: state.id,
-    label: state.name,
+    label: stateName(state),
     icon: <StateIcon group={state.group} color={state.color} />,
   }))
   if (noneLabel) {
@@ -121,14 +122,14 @@ export function StatePicker({ states = [], value, onChange, disabled, showLabel 
   return (
     <OptionsPicker
       disabled={disabled}
-      placeholder="Cambiar estado…"
+      placeholder={t('Cambiar estado…')}
       value={current ? value : noneLabel ? NO_STATE : value}
       onChange={(next) => onChange(next === NO_STATE ? null : next)}
       options={options}
       trigger={
-        <PropertyButton className={className} aria-label="Estado">
+        <PropertyButton className={className} aria-label={t('Estado')}>
           {current ? <StateIcon group={current.group} color={current.color} /> : <StateIcon group="UNSTARTED" />}
-          {showLabel && <span className="truncate">{current?.name ?? 'Estado'}</span>}
+          {showLabel && <span className="truncate">{current?.name ? stateName(current) : t('Estado')}</span>}
         </PropertyButton>
       }
     />
@@ -148,7 +149,7 @@ export function PriorityPicker({
   return (
     <OptionsPicker
       disabled={disabled}
-      placeholder="Cambiar prioridad…"
+      placeholder={t('Cambiar prioridad…')}
       value={value}
       onChange={onChange}
       options={PRIORITIES.map((priority) => ({
@@ -158,11 +159,11 @@ export function PriorityPicker({
       }))}
       trigger={
         chip ? (
-          <PropertyButton className={cn('h-auto p-0 hover:bg-transparent hover:opacity-80', className)} aria-label="Prioridad">
+          <PropertyButton className={cn('h-auto p-0 hover:bg-transparent hover:opacity-80', className)} aria-label={t('Prioridad')}>
             <PriorityChip priority={value} iconOnlyWhenEmpty={iconOnlyWhenEmpty} />
           </PropertyButton>
         ) : (
-          <PropertyButton className={className} aria-label="Prioridad">
+          <PropertyButton className={className} aria-label={t('Prioridad')}>
             <PriorityIcon priority={value} />
             {showLabel && <span className="truncate">{PRIORITY_LABELS[value]}</span>}
           </PropertyButton>
@@ -181,8 +182,8 @@ export function AssigneesPicker({ members = [], value = [], onChange, disabled, 
     <OptionsPicker
       multiple
       disabled={disabled}
-      placeholder="Asignar a…"
-      emptyText="Nadie con ese nombre en el proyecto"
+      placeholder={t('Asignar a…')}
+      emptyText={t('Nadie con ese nombre en el proyecto')}
       value={value}
       onChange={onChange}
       options={members.map((user) => ({
@@ -192,7 +193,7 @@ export function AssigneesPicker({ members = [], value = [], onChange, disabled, 
         icon: <UserAvatar user={user} size="xs" />,
       }))}
       trigger={
-        <PropertyButton className={className} aria-label="Asignados">
+        <PropertyButton className={className} aria-label={t('Asignados')}>
           {selectedUsers.length ? (
             <>
               <AvatarStack users={selectedUsers} size={avatarSize} />
@@ -201,7 +202,7 @@ export function AssigneesPicker({ members = [], value = [], onChange, disabled, 
           ) : (
             <>
               <UserRound className="size-3.5 text-muted-foreground" />
-              {showLabel && <span className="text-muted-foreground">Asignar</span>}
+              {showLabel && <span className="text-muted-foreground">{t('Asignar')}</span>}
             </>
           )}
         </PropertyButton>
@@ -217,17 +218,17 @@ export function LabelsPicker({ labels = [], value = [], onChange, disabled, clas
     <OptionsPicker
       multiple
       disabled={disabled}
-      placeholder="Etiquetas…"
-      emptyText="No hay etiquetas (créalas en Ajustes)"
+      placeholder={t('Etiquetas…')}
+      emptyText={t('No hay etiquetas (créalas en Ajustes)')}
       value={value}
       onChange={onChange}
       options={labels.map((label) => ({ value: label.id, label: label.name, icon: <ColorDot color={label.color} /> }))}
       trigger={
-        <PropertyButton className={cn('h-auto min-h-7 flex-wrap py-1', className)} aria-label="Etiquetas">
+        <PropertyButton className={cn('h-auto min-h-7 flex-wrap py-1', className)} aria-label={t('Etiquetas')}>
           {selected.length === 0 && (
             <>
               <Tag className="size-3.5 text-muted-foreground" />
-              <span className="text-muted-foreground">Etiquetas</span>
+              <span className="text-muted-foreground">{t('Etiquetas')}</span>
             </>
           )}
           {selected.length > 0 && compact && (
@@ -254,7 +255,7 @@ export function LabelsPicker({ labels = [], value = [], onChange, disabled, clas
 export function DatePicker({
   value,
   onChange,
-  placeholder = 'Fecha',
+  placeholder = t('Fecha'),
   disabled,
   className,
   isOverdue = false,
@@ -324,7 +325,7 @@ export function DatePicker({
               }}
             >
               <X />
-              Quitar fecha
+              {t('Quitar fecha')}
             </Button>
           </div>
         )}

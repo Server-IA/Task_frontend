@@ -1,3 +1,4 @@
+import { localeTag, stateName, t } from '@/i18n'
 import { PRIORITIES } from './constants'
 import { ISSUE_TYPES, TYPE_LABELS, typeOf } from './issueTypes'
 
@@ -35,23 +36,23 @@ export function groupIssues(issues, groupBy, meta) {
       add(priority, () => ({ kind: 'priority', priority, label: PRIORITIES.find((item) => item.value === priority)?.label ?? priority }), issue)
     } else if (groupBy === 'assignee') {
       const people = issue.assignees ?? []
-      if (people.length === 0) add(NONE, () => ({ kind: 'assignee', user: null, label: 'Sin asignar' }), issue)
+      if (people.length === 0) add(NONE, () => ({ kind: 'assignee', user: null, label: t('Sin asignar') }), issue)
       for (const user of people) add(user.id, () => ({ kind: 'assignee', user, label: user.fullName }), issue)
     } else if (groupBy === 'type') {
       const type = typeOf(issue)
       add(type, () => ({ kind: 'type', type, label: TYPE_LABELS[type] }), issue)
     } else if (groupBy === 'label') {
       const labels = issue.labels ?? []
-      if (labels.length === 0) add(NONE, () => ({ kind: 'label', labelItem: null, label: 'Sin etiqueta' }), issue)
+      if (labels.length === 0) add(NONE, () => ({ kind: 'label', labelItem: null, label: t('Sin etiqueta') }), issue)
       for (const labelItem of labels) add(labelItem.id, () => ({ kind: 'label', labelItem, label: labelItem.name }), issue)
     } else {
-      add(issue.state.id, () => ({ kind: 'state', state: issue.state, label: issue.state.name }), issue)
+      add(issue.state.id, () => ({ kind: 'state', state: issue.state, label: stateName(issue.state) }), issue)
     }
   }
 
   const order = groupOrder(groupBy, meta)
   const rank = (group) => (group.key === NONE ? Infinity : (order.get(group.key) ?? order.size))
-  return [...groups.values()].sort((a, b) => rank(a) - rank(b) || a.label.localeCompare(b.label, 'es'))
+  return [...groups.values()].sort((a, b) => rank(a) - rank(b) || a.label.localeCompare(b.label, localeTag()))
 }
 
 /** Posición de cada grupo: columnas del tablero, de urgente a sin prioridad, miembros y etiquetas del proyecto. */
@@ -60,7 +61,7 @@ function groupOrder(groupBy, meta) {
     groupBy === 'priority'
       ? PRIORITIES.map((item) => item.value)
       : groupBy === 'assignee'
-        ? [...meta.users].sort((a, b) => a.fullName.localeCompare(b.fullName, 'es')).map((user) => user.id)
+        ? [...meta.users].sort((a, b) => a.fullName.localeCompare(b.fullName, localeTag())).map((user) => user.id)
         : groupBy === 'label'
           ? meta.labels.map((label) => label.id)
           : groupBy === 'type'

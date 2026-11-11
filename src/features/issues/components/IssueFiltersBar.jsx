@@ -9,6 +9,7 @@ import { StateIcon } from '@/components/common/StateIcon'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { useHotkey } from '@/hooks/useHotkey'
+import { stateName, t } from '@/i18n'
 import { exampleCode } from '@/lib/codes'
 import { cn } from '@/lib/utils'
 import { PRIORITIES } from '../constants'
@@ -23,7 +24,7 @@ const KINDS = Object.fromEntries(FILTER_KINDS.map((kind) => [kind.key, kind]))
 const KIND_ICONS = { state: CircleDot, priority: Flag, assignee: UserRound, label: Tag, type: Shapes, cycle: RefreshCw, module: Layers, blocked: Ban }
 
 /** Explicación de «bloqueadas» (en la pastilla y en el menú). */
-const BLOCKED_HINT = 'Solo las tareas que esperan a otra tarea abierta'
+const BLOCKED_HINT = t('Solo las tareas que esperan a otra tarea abierta')
 
 /**
  * Búsqueda tipo consola («> buscar o saltar a WEB-12»: Enter con un código abre esa tarea) y filtros como pastillas: punteadas cuando están vacías
@@ -70,7 +71,7 @@ export function IssueFiltersBar({
       case 'state':
         return meta.states.map((state) => ({
           value: state.id,
-          label: state.name,
+          label: stateName(state),
           icon: <StateIcon group={state.group} color={state.color} />,
         }))
       case 'priority':
@@ -93,8 +94,8 @@ export function IssueFiltersBar({
         return cycles.map((cycle) => ({
           value: cycle.id,
           label: cycle.name,
-          keywords: cycle.status === 'CURRENT' ? 'actual en curso' : '',
-          hint: cycle.status === 'CURRENT' ? 'actual' : cycle.status === 'COMPLETED' ? 'cerrado' : '',
+          keywords: cycle.status === 'CURRENT' ? t('actual en curso') : '',
+          hint: cycle.status === 'CURRENT' ? t('actual') : cycle.status === 'COMPLETED' ? t('cerrado') : '',
           icon: <RefreshCw className="size-3.5 text-muted-foreground" />,
         }))
       case 'module':
@@ -122,7 +123,7 @@ export function IssueFiltersBar({
         value={filters.search}
         onChange={(value) => setFilter('search', value, { replace: true })}
         onJump={onJumpToCode}
-        placeholder={searchPlaceholder ?? `buscar o saltar a ${codeExample}`}
+        placeholder={searchPlaceholder ?? t('buscar o saltar a {code}', { code: codeExample })}
       />
       {fixedChips}
       {pills.map((key) =>
@@ -168,7 +169,7 @@ export function IssueFiltersBar({
       )}
       {activeCount > 1 && (
         <button type="button" className="px-2 text-[13px] text-muted-foreground hover:text-foreground hover:underline" onClick={clearFilters}>
-          limpiar todo
+          {t('limpiar todo')}
         </button>
       )}
       </div>
@@ -207,7 +208,7 @@ function SearchBox({ value, onChange, onJump, placeholder }) {
       <span aria-hidden="true" className="font-semibold text-accent-text">
         &gt;
       </span>
-      <span className="sr-only">Buscar tareas</span>
+      <span className="sr-only">{t('Buscar tareas')}</span>
       <input
         ref={inputRef}
         type="search"
@@ -233,7 +234,7 @@ function SearchBox({ value, onChange, onJump, placeholder }) {
 /** Marca «cambiado» respecto de la vista guardada activa. */
 function ChangedMark() {
   return (
-    <span className="tf-pop rounded-full bg-primary px-1.5 font-mono text-[10px] font-semibold text-primary-foreground">cambiado</span>
+    <span className="tf-pop rounded-full bg-primary px-1.5 font-mono text-[10px] font-semibold text-primary-foreground">{t('cambiado')}</span>
   )
 }
 
@@ -261,9 +262,9 @@ function FilterOptions({ title, options, values, onChange, single = false, onDon
 
   return (
     <Command>
-      <CommandInput placeholder={`Filtrar por ${title}…`} />
+      <CommandInput placeholder={t('Filtrar por {title}…', { title })} />
       <CommandList>
-        <CommandEmpty>Sin resultados</CommandEmpty>
+        <CommandEmpty>{t('Sin resultados')}</CommandEmpty>
         <CommandGroup>
           {options.map((option) => (
             <CommandItem key={option.value} value={`${option.label} ${option.keywords ?? ''} ${option.value}`} onSelect={() => toggle(option.value)}>
@@ -292,7 +293,7 @@ function MultiFilter({ title, options, values, onChange, changed = false, single
   const chosen = options.filter((option) => selected.has(option.value))
   // Un valor de la URL que ya no existe (un ciclo borrado) se muestra igual, para poder quitarlo
   const missing = chosen.length === 0 && values.length > 0
-  const summary = missing ? 'otro' : chosen.length === 1 ? (chosen[0].short ?? chosen[0].label) : `${chosen.length}`
+  const summary = missing ? t('otro') : chosen.length === 1 ? (chosen[0].short ?? chosen[0].label) : `${chosen.length}`
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -309,7 +310,7 @@ function MultiFilter({ title, options, values, onChange, changed = false, single
             type="button"
             className="rounded-r-full py-1.5 pr-3 pl-1 opacity-80 hover:opacity-100"
             onClick={() => onChange([])}
-            aria-label={`Quitar filtro de ${title}`}
+            aria-label={t('Quitar filtro de {title}', { title })}
           >
             <X className="size-3.5" />
           </button>
@@ -344,7 +345,7 @@ function AddFilterMenu({ kinds, optionsFor, valuesOf, onChange, onToggle, types,
 
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
-      <PopoverTrigger className={DASHED_PILL}>+ filtro</PopoverTrigger>
+      <PopoverTrigger className={DASHED_PILL}>{t('+ filtro')}</PopoverTrigger>
       <PopoverContent className="w-60 p-0" align="start">
         {kind?.type === 'types' ? (
           <div className="tf-fade">
@@ -379,9 +380,9 @@ function AddFilterMenu({ kinds, optionsFor, valuesOf, onChange, onToggle, types,
           </div>
         ) : (
           <Command>
-            <CommandInput placeholder="Agregar filtro…" />
+            <CommandInput placeholder={t('Agregar filtro…')} />
             <CommandList>
-              <CommandEmpty>Sin resultados</CommandEmpty>
+              <CommandEmpty>{t('Sin resultados')}</CommandEmpty>
               <CommandGroup>
                 {kinds.map((key) => {
                   const Icon = KIND_ICONS[key]
@@ -400,7 +401,7 @@ function AddFilterMenu({ kinds, optionsFor, valuesOf, onChange, onToggle, types,
                       <span className="min-w-0 flex-1 truncate first-letter:uppercase">{KINDS[key].title}</span>
                       {toggle ? (
                         <span className="text-[11px] text-muted-foreground" title={BLOCKED_HINT}>
-                          solo esas
+                          {t('solo esas')}
                         </span>
                       ) : (
                         <span aria-hidden="true" className="text-muted-foreground">
@@ -433,7 +434,7 @@ function ToggleFilter({ title, hint, active, onChange, changed = false }) {
           type="button"
           className="rounded-r-full py-1.5 pr-3 pl-1 opacity-80 outline-none hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
           onClick={() => onChange(false)}
-          aria-label={`Quitar filtro ${title}`}
+          aria-label={t('Quitar filtro {title}', { title })}
         >
           <X className="size-3.5" />
         </button>
@@ -466,7 +467,7 @@ function TypeOptions({ types, onChange }) {
     if (next.size > 0) onChange(ISSUE_TYPES.map((type) => type.value).filter((type) => next.has(type)))
   }
   return (
-    <div role="group" aria-label="Tipos" className="flex flex-col p-1">
+    <div role="group" aria-label={t('Tipos')} className="flex flex-col p-1">
       {ISSUE_TYPES.map((type) => {
         const checked = selected.has(type.value)
         return (
@@ -482,7 +483,7 @@ function TypeOptions({ types, onChange }) {
             <TypeIcon type={type.value} />
             <span className="flex min-w-0 flex-1 flex-col">
               <span>{type.label}</span>
-              {type.value === 'STORY' && <span className="text-xs text-muted-foreground">no se mueven en el tablero</span>}
+              {type.value === 'STORY' && <span className="text-xs text-muted-foreground">{t('no se mueven en el tablero')}</span>}
             </span>
           </button>
         )
@@ -501,18 +502,18 @@ function TypeFilter({ types, changed, onChange, storiesUrl }) {
   const isDefault = !all && types.length === DEFAULT_TYPES.length && DEFAULT_TYPES.every((type) => types.includes(type))
   const content = (
     <PopoverContent className="w-64 p-0" align="start">
-      <p className="px-3 pt-2.5 font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase">Tipo</p>
+      <p className="px-3 pt-2.5 font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase">{t('Tipo')}</p>
       <TypeOptions types={types} onChange={onChange} />
       <div className="flex items-center justify-between gap-2 border-t px-3 py-2 text-xs">
         {storiesUrl ? (
           <Link to={storiesUrl} className="font-semibold text-accent-text underline underline-offset-2" onClick={() => setOpen(false)}>
-            Solo historias →
+            {t('Solo historias →')}
           </Link>
         ) : (
           <span />
         )}
         <button type="button" className="text-muted-foreground hover:text-foreground" onClick={() => onChange(DEFAULT_TYPES)}>
-          Limpiar
+          {t('Limpiar')}
         </button>
       </div>
     </PopoverContent>
@@ -522,7 +523,7 @@ function TypeFilter({ types, changed, onChange, storiesUrl }) {
     return (
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger className={cn(DASHED_PILL, changed && 'border-accent-text')}>
-          + tipo
+          {t('+ tipo')}
           {changed && <ChangedMark />}
         </PopoverTrigger>
         {content}
@@ -538,7 +539,7 @@ function TypeFilter({ types, changed, onChange, storiesUrl }) {
         )}
       >
         <PopoverTrigger className="flex min-w-0 items-center gap-1.5 rounded-l-full py-1.5 pr-1 pl-3 outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <span className={cn('font-mono text-xs', isDefault ? 'text-muted-foreground' : 'opacity-80')}>tipo:</span>
+          <span className={cn('font-mono text-xs', isDefault ? 'text-muted-foreground' : 'opacity-80')}>{t('tipo:')}</span>
           {ISSUE_TYPES.filter((type) => types.includes(type.value)).map((type, index, list) => (
             <span key={type.value} className="flex items-center gap-1">
               <TypeIcon type={type.value} size={14} />
@@ -552,8 +553,8 @@ function TypeFilter({ types, changed, onChange, storiesUrl }) {
           type="button"
           className="rounded-r-full py-1.5 pr-3 pl-1 opacity-70 hover:opacity-100"
           onClick={() => onChange(ISSUE_TYPES.map((type) => type.value))}
-          aria-label="Quitar filtro de tipo (ver todos)"
-          title="Ver los tres tipos"
+          aria-label={t('Quitar filtro de tipo (ver todos)')}
+          title={t('Ver los tres tipos')}
         >
           <X className="size-3.5" />
         </button>

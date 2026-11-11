@@ -13,6 +13,7 @@ import { searchApi } from '@/features/search/api'
 import { useActiveSavedView } from '@/features/saved-views/hooks'
 import { useCan, useCurrentWorkspace } from '@/features/workspaces/hooks'
 import { useHotkey } from '@/hooks/useHotkey'
+import { t, tn, tx } from '@/i18n'
 import { notifyError } from '@/lib/notify'
 import { projectPath } from '@/lib/paths'
 import { slugify } from '@/lib/slug'
@@ -72,7 +73,7 @@ export function IssuesPage() {
       const results = await searchApi.issues(workspace.slug, code, 5)
       const match = results.find((issue) => issue.code.toUpperCase() === code)
       if (!match) {
-        toast(`No encontramos la tarea ${code}`, { description: 'Revisa el código o busca por el título.' })
+        toast(t('No encontramos la tarea {code}', { code }), { description: t('Revisa el código o busca por el título.') })
         return
       }
       const projectId = match.project?.id ?? project.id
@@ -91,7 +92,7 @@ export function IssuesPage() {
         { replace: true },
       )
     } catch (error) {
-      notifyError(error, 'No se pudo buscar la tarea')
+      notifyError(error, t('No se pudo buscar la tarea'))
     }
   }
 
@@ -119,12 +120,12 @@ export function IssuesPage() {
       <PageHeader
         path={[
           ...projectPath(workspace, project),
-          { label: 'tareas' },
-          ...(activeView ? [{ label: 'vistas' }, { label: slugify(activeView.name) || 'vista' }] : []),
-          ...(bugsView ? [{ label: 'vistas' }, { label: 'bugs' }] : []),
+          { label: t('tareas') },
+          ...(activeView ? [{ label: t('vistas') }, { label: slugify(activeView.name) || t('vista') }] : []),
+          ...(bugsView ? [{ label: t('vistas') }, { label: t('bugs') }] : []),
         ]}
-        title="Tareas"
-        documentTitle={['Tareas', project.name]}
+        title={t('Tareas')}
+        documentTitle={[t('Tareas'), project.name]}
         description={
           bugsView ? (
             <BugsCounts slug={workspace.slug} project={project} states={meta.states} />
@@ -146,7 +147,7 @@ export function IssuesPage() {
             canCreate && (
               <Button className="h-10 rounded-xl px-3.5" onClick={reportBug}>
                 <Plus strokeWidth={3} />
-                Reportar bug
+                {t('Reportar bug')}
                 <kbd className="rounded-[5px] bg-foreground/10 px-1.5 text-[11px] font-normal">C</kbd>
               </Button>
             )
@@ -156,7 +157,7 @@ export function IssuesPage() {
               {canCreate && (
                 <Button className="h-10 rounded-xl px-3.5" onClick={() => openCreate()}>
                   <Plus strokeWidth={3} />
-                  Nueva tarea
+                  {t('Nueva tarea')}
                   <kbd className="rounded-[5px] bg-foreground/10 px-1.5 text-[11px] font-normal">C</kbd>
                 </Button>
               )}
@@ -182,19 +183,19 @@ export function IssuesPage() {
           bugsView && (
             <>
               <span className="flex items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-[13px]">
-                <span className="font-mono text-xs text-muted-foreground">tipo:</span>
+                <span className="font-mono text-xs text-muted-foreground">{t('tipo:')}</span>
                 <TypeIcon type="BUG" size={14} />
-                Bug
+                {t('Bug')}
               </span>
               <span className="flex items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-[13px]">
-                <span className="font-mono text-xs text-muted-foreground">estado:</span>
-                abiertas
+                <span className="font-mono text-xs text-muted-foreground">{t('estado:')}</span>
+                {t('abiertas')}
               </span>
             </>
           )
         }
       >
-        {bugsView && <span className="rounded-full border bg-card px-3 py-1.5 font-mono text-xs text-muted-foreground">agrupar: prioridad</span>}
+        {bugsView && <span className="rounded-full border bg-card px-3 py-1.5 font-mono text-xs text-muted-foreground">{t('agrupar: prioridad')}</span>}
         {view === 'board' && !bugsView && (
           <Select value={groupBy === 'story' ? 'story' : 'state'} onValueChange={issueFilters.setGroupBy}>
             <SelectTrigger
@@ -204,9 +205,9 @@ export function IssuesPage() {
                 groupBy === 'story' && 'border-accent-text bg-accent-soft text-accent-text',
                 changedFromView.includes('groupBy') && 'border-accent-text',
               )}
-              aria-label="Agrupar el tablero"
+              aria-label={t('Agrupar el tablero')}
             >
-              <span className={groupBy === 'story' ? '' : 'text-muted-foreground'}>agrupar:</span>
+              <span className={groupBy === 'story' ? '' : 'text-muted-foreground'}>{t('agrupar:')}</span>
               <SelectValue />
             </SelectTrigger>
             <SelectContent align="end">
@@ -223,12 +224,12 @@ export function IssuesPage() {
             <SelectTrigger
               size="sm"
               className={cn('h-8 rounded-full bg-card font-mono text-xs', changedFromView.includes('groupBy') && 'border-accent-text')}
-              aria-label="Agrupar"
+              aria-label={t('Agrupar')}
             >
-              <span className="text-muted-foreground">agrupar:</span>
+              <span className="text-muted-foreground">{t('agrupar:')}</span>
               <SelectValue />
               {changedFromView.includes('groupBy') && (
-                <span className="rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">cambiado</span>
+                <span className="rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">{t('cambiado')}</span>
               )}
             </SelectTrigger>
             <SelectContent align="end">
@@ -243,8 +244,8 @@ export function IssuesPage() {
         {/* El mismo orden en la lista y en el tablero (ahí cada columna lo sigue; «manual» deja acomodar a mano) */}
         {!bugsView && (
           <Select value={sort} onValueChange={issueFilters.setSort}>
-            <SelectTrigger size="sm" className="h-8 rounded-full bg-card font-mono text-xs" aria-label="Ordenar">
-              <span className="text-muted-foreground">orden:</span>
+            <SelectTrigger size="sm" className="h-8 rounded-full bg-card font-mono text-xs" aria-label={t('Ordenar')}>
+              <span className="text-muted-foreground">{t('orden:')}</span>
               <SelectValue />
             </SelectTrigger>
             <SelectContent align="end">
@@ -347,30 +348,28 @@ export function IssueCounts({ slug, project, filters, activeView, filtered = fal
   const open = project.openIssueCount ?? 0
   const overdue = project.overdueIssueCount ?? 0
   const shown = shownPage?.totalElements
-  const tasks = (count) => `${count} ${count === 1 ? 'tarea' : 'tareas'}`
+  const viewName = activeView?.name
+  const blockedText = tn(blocked, '{count} bloqueada', '{count} bloqueadas')
 
   return (
     <>
       {activeView ? (
-        <>
-          Vista «{activeView.name}»
-          {shown != null && ` · ${tasks(shown)}`}
-        </>
+        shown != null ? (
+          tn(shown, 'Vista «{name}» · {count} tarea', 'Vista «{name}» · {count} tareas', { name: viewName })
+        ) : (
+          t('Vista «{name}»', { name: viewName })
+        )
       ) : filtered ? (
-        <span title="Cuentan solo las tareas que pasan los filtros y la búsqueda">
-          {shown != null ? `${tasks(shown)} con estos filtros` : 'Con estos filtros'}
+        <span title={t('Cuentan solo las tareas que pasan los filtros y la búsqueda')}>
+          {shown != null ? tn(shown, '{count} tarea con estos filtros', '{count} tareas con estos filtros') : t('Con estos filtros')}
         </span>
       ) : (
         <>
-          <span title="En todo el proyecto">
-            {open} {open === 1 ? 'tarea abierta' : 'tareas abiertas'}
-          </span>
+          <span title={t('En todo el proyecto')}>{tn(open, '{count} tarea abierta', '{count} tareas abiertas')}</span>
           {overdue > 0 && (
             <>
               {' · '}
-              <span className="font-semibold text-late">
-                {overdue} {overdue === 1 ? 'vencida' : 'vencidas'}
-              </span>
+              <span className="font-semibold text-late">{tn(overdue, '{count} vencida', '{count} vencidas')}</span>
             </>
           )}
         </>
@@ -379,27 +378,29 @@ export function IssueCounts({ slug, project, filters, activeView, filtered = fal
         <>
           {' · '}
           {filters.blocked ? (
-            <span className="font-semibold text-late">
-              {blocked} {blocked === 1 ? 'bloqueada' : 'bloqueadas'}
-            </span>
+            <span className="font-semibold text-late">{blockedText}</span>
           ) : (
             <button
               type="button"
               onClick={onShowBlocked}
-              title="Ver solo las bloqueadas"
+              title={t('Ver solo las bloqueadas')}
               className="tf-fade rounded-sm font-semibold text-late underline-offset-2 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
             >
-              {blocked} {blocked === 1 ? 'bloqueada' : 'bloqueadas'}
+              {blockedText}
             </button>
           )}
         </>
       )}
       {storiesHidden && project.openStoryCount > 0 && (
         <>
-          {' · las historias se ven en '}
-          <Link to={storiesUrl} className="font-medium underline underline-offset-2 hover:text-foreground">
-            Historias
-          </Link>
+          {' · '}
+          {tx('las historias se ven en {link}', {
+            link: (
+              <Link to={storiesUrl} className="font-medium underline underline-offset-2 hover:text-foreground">
+                {t('Historias')}
+              </Link>
+            ),
+          })}
         </>
       )}
     </>
@@ -418,11 +419,11 @@ function BugsCounts({ slug, project, states }) {
   const triage = bugGroups(bugs).find((group) => group.triage)?.issues.length ?? 0
   return (
     <>
-      Vista «Bugs» · {bugs.length} {bugs.length === 1 ? 'abierto' : 'abiertos'}
+      {tn(bugs.length, 'Vista «Bugs» · {count} abierto', 'Vista «Bugs» · {count} abiertos')}
       {triage > 0 && (
         <>
           {' · '}
-          <span className="font-semibold text-soon">{triage} por triar</span>
+          <span className="font-semibold text-soon">{t('{count} por triar', { count: triage })}</span>
         </>
       )}
     </>
@@ -433,12 +434,12 @@ function BugsCounts({ slug, project, states }) {
 function ViewSwitch({ value, onChange }) {
   return (
     <Segmented
-      label="Vista"
+      label={t('Vista')}
       value={value}
       onChange={onChange}
       options={[
-        { value: 'list', label: 'Lista' },
-        { value: 'board', label: 'Tablero' },
+        { value: 'list', label: t('Lista') },
+        { value: 'board', label: t('Tablero') },
       ]}
     />
   )
@@ -450,20 +451,20 @@ function ShortcutsBar() {
   return (
     <footer className="hidden shrink-0 flex-wrap items-center gap-4 rounded-xl border bg-card px-3.5 py-2 font-mono text-[11px] text-muted-foreground md:flex">
       <span>
-        <kbd className="text-foreground">C</kbd> crear
+        <kbd className="text-foreground">C</kbd> {t('crear')}
       </span>
       <span>
-        <kbd className="text-foreground">/</kbd> buscar
+        <kbd className="text-foreground">/</kbd> {t('buscar')}
       </span>
       <span>
-        <kbd className="text-foreground">Enter</kbd> abrir
+        <kbd className="text-foreground">Enter</kbd> {t('abrir')}
       </span>
       <span>
-        <kbd className="text-foreground">I H Y D M R S E</kbd> secciones
+        <kbd className="text-foreground">I H Y D M R S E</kbd> {t('secciones')}
       </span>
       <span className="ml-auto flex items-center gap-1.5">
         <span aria-hidden="true" className={cn('size-1.5 rounded-full bg-ok-dot', fetching && 'animate-pulse bg-soon')} />
-        {fetching ? 'sincronizando…' : 'sincronizado'}
+        {fetching ? t('sincronizando…') : t('sincronizado')}
       </span>
     </footer>
   )

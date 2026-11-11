@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Check, ChevronDown, Lock } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { t } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { ISSUE_TYPES, TYPE_LABELS, typeChangeBlock, typeOf } from '../issueTypes'
 import { TypeIcon } from './IssueTypeBits'
@@ -29,7 +30,7 @@ export function TypePicker({ issue, isManager, onChange, disabled = false }) {
       <PopoverTrigger
         // Sin el permiso de editar tareas, la pastilla solo dice el tipo
         disabled={disabled}
-        aria-label={disabled ? `Tipo: ${TYPE_LABELS[current]}` : `Tipo: ${TYPE_LABELS[current]}. Cambiar tipo`}
+        aria-label={disabled ? t('Tipo: {type}', { type: TYPE_LABELS[current] }) : t('Tipo: {type}. Cambiar tipo', { type: TYPE_LABELS[current] })}
         className={cn(
           'flex shrink-0 items-center gap-1.5 rounded-lg py-1 pr-2 pl-1 text-[13px] font-semibold outline-none hover:brightness-95 focus-visible:ring-2 focus-visible:ring-ring',
           PILL[current],
@@ -40,7 +41,7 @@ export function TypePicker({ issue, isManager, onChange, disabled = false }) {
         {!disabled && <ChevronDown className="size-3.5" strokeWidth={2.5} />}
       </PopoverTrigger>
       <PopoverContent className="w-80 p-1.5" align="start">
-        <p className="px-2 pt-1 pb-1.5 font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase">Cambiar tipo</p>
+        <p className="px-2 pt-1 pb-1.5 font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase">{t('Cambiar tipo')}</p>
         {options.map((option) => {
           const selected = option.value === current
           const disabled = Boolean(option.block)

@@ -1,4 +1,5 @@
 import { ArrowRight, Ban, Paperclip, SquareCheck } from 'lucide-react'
+import { t, tn } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { blockedBySummary, blockingSummary, checklistProgress, joinCodes } from '../issueFlags'
 
@@ -14,8 +15,8 @@ export function BlockedChip({ issue, codes, className }) {
   const { count, first, more } = summary
   const title =
     summary.codes.length > 0
-      ? `Bloqueada por ${joinCodes(summary.codes)}`
-      : `Bloqueada por ${count} ${count === 1 ? 'tarea abierta' : 'tareas abiertas'}`
+      ? t('Bloqueada por {codes}', { codes: joinCodes(summary.codes) })
+      : tn(count, 'Bloqueada por {count} tarea abierta', 'Bloqueada por {count} tareas abiertas')
   const showCode = Boolean(codes && first)
 
   return (
@@ -29,13 +30,13 @@ export function BlockedChip({ issue, codes, className }) {
       <Ban className="size-3" strokeWidth={2.5} aria-hidden="true" />
       {showCode ? (
         <>
-          {codes === 'by' ? 'bloqueada por' : 'bloqueada ·'}
+          {codes === 'by' ? t('bloqueada por') : t('bloqueada ·')}
           <span className="font-mono text-[11px]">{first}</span>
           {more > 0 && <span className="font-mono text-[11px] opacity-80">+{more}</span>}
         </>
       ) : (
         <>
-          bloqueada
+          {t('bloqueada')}
           {count > 1 && <span className="font-mono text-[11px]">· {count}</span>}
         </>
       )}
@@ -49,14 +50,14 @@ export function BlockingChip({ issue, className }) {
   if (!summary) return null
   return (
     <span
-      title={`Bloquea a ${joinCodes(summary.codes)}`}
+      title={t('Bloquea a {codes}', { codes: joinCodes(summary.codes) })}
       className={cn(
         'inline-flex shrink-0 items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs font-medium whitespace-nowrap text-muted-foreground',
         className,
       )}
     >
       <ArrowRight className="size-3" strokeWidth={2.5} aria-hidden="true" />
-      bloquea
+      {t('bloquea')}
       <span className="font-mono text-[11px] text-foreground">{summary.label}</span>
     </span>
   )
@@ -69,7 +70,7 @@ export function ChecklistChip({ issue, className }) {
   return (
     <span
       title={progress.label}
-      aria-label={`Checklist: ${progress.label}`}
+      aria-label={t('Checklist: {progress}', { progress: progress.label })}
       className={cn(
         'inline-flex shrink-0 items-center gap-1 font-mono text-[11px] text-muted-foreground',
         progress.complete && 'text-ok',
@@ -90,10 +91,10 @@ export function ChecklistChip({ issue, className }) {
 export function AttachmentsChip({ issue, reserve = false, className }) {
   const count = issue?.attachmentCount ?? 0
   if (count <= 0 && !reserve) return null
-  const label = count === 1 ? '1 adjunto' : `${count} adjuntos`
+  const label = tn(count, '{count} adjunto', '{count} adjuntos')
   return (
     <span
-      title={count > 0 ? label : 'Sin adjuntos'}
+      title={count > 0 ? label : t('Sin adjuntos')}
       aria-label={count > 0 ? label : undefined}
       aria-hidden={count > 0 ? undefined : true}
       className={cn('inline-flex shrink-0 items-center gap-0.75 font-mono text-[11px] text-muted-foreground', className)}

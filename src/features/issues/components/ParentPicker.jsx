@@ -5,6 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Spinner } from '@/components/common/Loaders'
 import { StateIcon } from '@/components/common/StateIcon'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
+import { t } from '@/i18n'
 import { useIssues } from '../hooks'
 import { IssueTypeIcon } from './IssueTypeBits'
 import { PropertyButton } from './PropertyPickers'
@@ -29,27 +30,27 @@ export function ParentPicker({ slug, projectId, issue, onChange, disabled }) {
     <Popover open={open} onOpenChange={setOpen}>
       {/* Una historia no tiene padre */}
       <PopoverTrigger asChild disabled={disabled || issue.type === 'STORY'}>
-        <PropertyButton aria-label="Tarea padre">
+        <PropertyButton aria-label={t('Tarea padre')}>
           <CornerUpLeft className="size-3.5 text-muted-foreground" />
           {issue.parent ? (
             <span className="truncate">
               <span className="font-mono text-muted-foreground">{issue.parent.code}</span> {issue.parent.title}
             </span>
           ) : (
-            <span className="text-muted-foreground">Sin padre</span>
+            <span className="text-muted-foreground">{t('Sin padre')}</span>
           )}
         </PropertyButton>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="start">
         <Command shouldFilter={false}>
-          <CommandInput placeholder="Buscar tarea padre…" value={search} onValueChange={setSearch} />
+          <CommandInput placeholder={t('Buscar tarea padre…')} value={search} onValueChange={setSearch} />
           <CommandList>
             {isFetching && (
               <div className="flex justify-center py-3">
                 <Spinner className="text-muted-foreground" />
               </div>
             )}
-            {!isFetching && <CommandEmpty>Sin resultados</CommandEmpty>}
+            {!isFetching && <CommandEmpty>{t('Sin resultados')}</CommandEmpty>}
             <CommandGroup>
               {issue.parent && (
                 <CommandItem
@@ -60,7 +61,7 @@ export function ParentPicker({ slug, projectId, issue, onChange, disabled }) {
                   }}
                 >
                   <X />
-                  Quitar padre
+                  {t('Quitar padre')}
                 </CommandItem>
               )}
               {candidates.map((candidate) => (

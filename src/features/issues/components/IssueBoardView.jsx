@@ -23,6 +23,7 @@ import { AvatarStack } from '@/components/common/AvatarStack'
 import { ErrorState } from '@/components/common/States'
 import { StateIcon } from '@/components/common/StateIcon'
 import { useStories } from '@/features/stories/hooks'
+import { stateName, t, tn } from '@/i18n'
 import { DND_INSTRUCTIONS, DRAG_ROLE, dndAnnouncements, quoted } from '@/lib/dndAnnouncements'
 import {
   columnKey,
@@ -87,7 +88,7 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
   const tooMany = data.totalElements > BOARD_PAGE_SIZE && (
     <div className="mb-3 flex items-center gap-2 rounded-xl bg-soon-soft px-4 py-2 text-sm text-soon">
       <TriangleAlert className="size-4" />
-      Se muestran {BOARD_PAGE_SIZE} de {data.totalElements} tareas. Usa los filtros o la vista de lista para ver el resto.
+      {t('Se muestran {shown} de {total} tareas. Usa los filtros o la vista de lista para ver el resto.', { shown: BOARD_PAGE_SIZE, total: data.totalElements })}
     </div>
   )
   const common = { slug, project, meta, openIssue, onStoryClosed, sort: manual ? null : sort }
@@ -112,8 +113,8 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
             {meta.states.map((state) => (
               <div key={state.id} className="flex w-[284px] shrink-0 items-center gap-2 px-1.5 font-mono text-[11px] tracking-[0.08em] uppercase">
                 <StateIcon group={state.group} color={state.color} className="size-3.5" />
-                <span className="min-w-0 truncate font-semibold" title={state.name}>
-                  {state.name}
+                <span className="min-w-0 truncate font-semibold" title={stateName(state)}>
+                  {stateName(state)}
                 </span>
                 {/* Sin ceros a la izquierda, como en el tablero normal */}
                 <span className="text-muted-foreground">{countOf(state.id)}</span>
@@ -123,7 +124,7 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
                     type="button"
                     className="ml-auto flex size-6.5 items-center justify-center rounded-lg border bg-card text-muted-foreground transition-colors hover:border-dash hover:text-foreground"
                     onClick={() => onCreateInState(state.id)}
-                    aria-label={`Nueva tarea en ${state.name}`}
+                    aria-label={t('Nueva tarea en {state}', { state: stateName(state) })}
                   >
                     <Plus className="size-3" strokeWidth={3} />
                   </button>
@@ -150,13 +151,13 @@ function StoryLane({ lane, openIssue, children }) {
   const where = story ? [story.cycle?.name, ...(story.modules ?? []).map((module) => module.name)].filter(Boolean).join(' · ') : ''
 
   return (
-    <section className="rounded-2xl bg-column p-2" aria-label={story ? `${story.code} ${story.title}` : 'Sin historia'}>
+    <section className="rounded-2xl bg-column p-2" aria-label={story ? `${story.code} ${story.title}` : t('Sin historia')}>
       <header className="flex min-w-0 items-center gap-2.5 px-1.5 py-1">
         <button
           type="button"
           onClick={() => setOpen((current) => !current)}
           aria-expanded={open}
-          aria-label={open ? 'Plegar carril' : 'Desplegar carril'}
+          aria-label={open ? t('Plegar carril') : t('Desplegar carril')}
           className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-card hover:text-foreground"
         >
           {open ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
@@ -185,11 +186,9 @@ function StoryLane({ lane, openIssue, children }) {
         ) : (
           <>
             <span aria-hidden="true" className="size-4 shrink-0 rounded-[4px] border-[1.5px] border-dashed border-dash" />
-            <span className="text-sm font-semibold">Sin historia</span>
-            <span className="font-mono text-xs text-muted-foreground">
-              {lane.issues.length} {lane.issues.length === 1 ? 'tarea suelta' : 'tareas sueltas'}
-            </span>
-            <span className="ml-auto shrink-0 pr-1 font-mono text-[11px] text-muted-foreground">tareas técnicas y bugs sin historia</span>
+            <span className="text-sm font-semibold">{t('Sin historia')}</span>
+            <span className="font-mono text-xs text-muted-foreground">{tn(lane.issues.length, '{count} tarea suelta', '{count} tareas sueltas')}</span>
+            <span className="ml-auto shrink-0 pr-1 font-mono text-[11px] text-muted-foreground">{t('tareas técnicas y bugs sin historia')}</span>
           </>
         )}
       </header>
@@ -285,17 +284,17 @@ function BoardColumns({ issues, lanes = null, slug, project, meta, openIssue, on
   const accessibility = useMemo(() => {
     const columnName = (key) => {
       const state = meta.states.find((item) => item.id === stateOfColumn(key))
-      const name = `la columna ${quoted(state?.name ?? 'sin nombre')}`
-      if (!lanes) return name
+      const name = quoted(stateName(state) || t('sin nombre'))
+      if (!lanes) return t('la columna {name}', { name })
       const story = laneByKey.get(laneOfColumn(key))?.story
-      return story ? `${name} de la historia ${story.code}` : `${name} de «Sin historia»`
+      return story ? t('la columna {name} de la historia {code}', { name, code: story.code }) : t('la columna {name} de «Sin historia»', { name })
     }
     return {
       screenReaderInstructions: DND_INSTRUCTIONS,
       announcements: dndAnnouncements({
         itemLabel: (id) => {
           const issue = issuesById[id]
-          return issue ? `${issue.code} ${quoted(issue.title)}` : 'la tarjeta'
+          return issue ? `${issue.code} ${quoted(issue.title)}` : t('la tarjeta')
         },
         placeLabel: (overId) => {
           const source = columns
@@ -303,7 +302,7 @@ function BoardColumns({ issues, lanes = null, slug, project, meta, openIssue, on
           if (!key) return null
           const ids = source[key] ?? []
           const index = ids.indexOf(overId)
-          return index >= 0 ? `${columnName(key)}, posición ${index + 1} de ${ids.length}` : columnName(key)
+          return index >= 0 ? t('{place}, posición {position} de {total}', { place: columnName(key), position: index + 1, total: ids.length }) : columnName(key)
         },
       }),
     }
@@ -358,9 +357,9 @@ function BoardColumns({ issues, lanes = null, slug, project, meta, openIssue, on
       setDragColumns(null)
       // Ordenado por prioridad, fecha…: dentro de la columna manda ese orden, no dónde se suelte
       if (!unchanged) {
-        toast.info(`El tablero está ordenado por ${sortLabel(sort)}`, {
+        toast.info(t('El tablero está ordenado por {criterion}', { criterion: sortLabel(sort) }), {
           id: 'board-sorted',
-          description: 'Para acomodar las tarjetas a mano, cambia el orden a «manual».',
+          description: t('Para acomodar las tarjetas a mano, cambia el orden a «manual».'),
         })
       }
       return
@@ -408,7 +407,7 @@ function BoardColumns({ issues, lanes = null, slug, project, meta, openIssue, on
           issue,
           action,
           () => commit({ reopenParent: true }),
-          laneChanged ? 'No se pudo cambiar la historia de la tarea' : 'No se pudo mover la tarea',
+          laneChanged ? t('No se pudo cambiar la historia de la tarea') : t('No se pudo mover la tarea'),
         ),
       })
     }
@@ -501,16 +500,17 @@ function laneParentChange(story, lane) {
 /** Aviso al cambiar de historia arrastrando: un bug queda como bug de la historia; una tarea cuenta en su avance. */
 function announceLaneChange(issue, story) {
   if (!story) {
-    toast.success(`${issue.code} quedó sin historia`, { description: issue.title })
+    toast.success(t('{code} quedó sin historia', { code: issue.code }), { description: issue.title })
     return
   }
-  toast.success(`${issue.code} ahora es de ${story.code}`, {
-    description: issue.type === 'BUG' ? `Queda como bug de «${story.title}».` : `Cuenta en el avance de «${story.title}».`,
+  toast.success(t('{code} ahora es de {story}', { code: issue.code, story: story.code }), {
+    description:
+      issue.type === 'BUG' ? t('Queda como bug de «{title}».', { title: story.title }) : t('Cuenta en el avance de «{title}».', { title: story.title }),
   })
 }
 
 /** «prioridad», «más recientes»…: el nombre del orden como se lee en el selector. */
-const sortLabel = (sort) => SORT_OPTIONS.find((option) => option.value === sort)?.label.toLowerCase() ?? 'otro criterio'
+const sortLabel = (sort) => SORT_OPTIONS.find((option) => option.value === sort)?.label.toLowerCase() ?? t('otro criterio')
 
 /** Las teclas del arrastre con teclado: sin Enter para empezar (abre la tarea); Enter o Espacio la sueltan. */
 const KEYBOARD_CODES = { start: ['Space'], cancel: ['Escape'], end: ['Space', 'Enter'] }
@@ -533,7 +533,7 @@ function BoardColumn({ state, columnId, ids: currentIds, issuesById, slug, proje
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
         <div
           ref={setNodeRef}
-          aria-label={state.name}
+          aria-label={stateName(state)}
           className={cn(
             'flex min-h-24 w-[284px] shrink-0 flex-col gap-2 rounded-xl p-0.5 transition-colors duration-200',
             ids.length === 0 && 'border border-dashed border-dash/70',
@@ -551,12 +551,12 @@ function BoardColumn({ state, columnId, ids: currentIds, issuesById, slug, proje
   }
 
   return (
-    <section className="flex max-h-full w-[284px] shrink-0 flex-col gap-2 rounded-2xl bg-column p-2" aria-label={state.name}>
+    <section className="flex max-h-full w-[284px] shrink-0 flex-col gap-2 rounded-2xl bg-column p-2" aria-label={stateName(state)}>
       <header className="flex items-center gap-2 px-1.5 pt-1.5 pb-1 font-mono text-[11px] tracking-[0.08em] uppercase">
         <StateIcon group={state.group} color={state.color} className="size-3.5" />
         {/* Un estado de nombre largo se corta: completo al pasar el mouse */}
-        <h3 className="min-w-0 truncate font-semibold" title={state.name}>
-          {state.name}
+        <h3 className="min-w-0 truncate font-semibold" title={stateName(state)}>
+          {stateName(state)}
         </h3>
         <span className="text-muted-foreground">{ids.length}</span>
         {onCreate && (
@@ -564,7 +564,7 @@ function BoardColumn({ state, columnId, ids: currentIds, issuesById, slug, proje
             type="button"
             className="ml-auto flex size-6.5 items-center justify-center rounded-lg border bg-card text-muted-foreground transition-colors hover:border-dash hover:text-foreground"
             onClick={onCreate}
-            aria-label={`Nueva tarea en ${state.name}`}
+            aria-label={t('Nueva tarea en {state}', { state: stateName(state) })}
           >
             <Plus className="size-3" strokeWidth={3} />
           </button>
@@ -727,14 +727,14 @@ const IssueCard = memo(function IssueCard({
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs" onPointerDown={stop} onClick={stop}>
         <DatePicker disabled={locked}
           value={issue.dueDate}
-          placeholder="Fecha límite"
+          placeholder={t('Fecha límite')}
           due={{ closed: isClosed(issue) }}
           minDate={issue.startDate}
           onChange={(dueDate) => update(dueDate ? { dueDate } : { clearDueDate: true })}
           className={cn(!issue.dueDate && cn('-ml-2', revealOnHover))}
         />
         {issue.subIssueCount > 0 && (
-          <span className="font-mono text-[11px] text-muted-foreground" title="Subtareas completadas">
+          <span className="font-mono text-[11px] text-muted-foreground" title={t('Subtareas completadas')}>
             ↳ {issue.completedSubIssueCount}/{issue.subIssueCount}
           </span>
         )}
