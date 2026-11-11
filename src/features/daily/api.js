@@ -23,13 +23,13 @@ export const dailyApi = {
     api.put(`${base(slug, projectId)}/note`, { text }, { params: { date } }).then((response) => (response.status === 204 ? null : response.data)),
 
   /**
-   * Ajustes de la daily: tiempo por persona (general y propio), bloques que se exponen y puntos a tratar.
+   * Ajustes de la daily: bloques que se exponen y puntos a tratar.
    * @returns {Promise<DailySettings>}
    */
   getSettings: (slug, projectId) => api.get(`${base(slug, projectId)}/settings`).then(data),
 
   /**
-   * Reemplaza los ajustes (solo el project manager).
+   * Reemplaza los ajustes (pide el permiso de configurar la daily).
    * @returns {Promise<DailySettings>}
    */
   saveSettings: (slug, projectId, body) => api.put(`${base(slug, projectId)}/settings`, body).then(data),

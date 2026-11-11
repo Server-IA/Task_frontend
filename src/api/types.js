@@ -96,8 +96,7 @@
  */
 /**
  * Ajustes de la daily de un proyecto.
- * @typedef {{ secondsPerPerson: number, personTimes: { userId: string, seconds: number }[],
- *             sections: { summary: boolean, yesterday: boolean, today: boolean, blockers: boolean, note: boolean },
+ * @typedef {{ sections: { summary: boolean, yesterday: boolean, today: boolean, blockers: boolean, note: boolean },
  *             agenda: string[] }} DailySettings
  */
 

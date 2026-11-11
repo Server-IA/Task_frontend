@@ -18,13 +18,10 @@ beforeAll(() => {
   }
 })
 
-const ana = { id: 'ana', fullName: 'Ana Ruiz' }
-const luis = { id: 'luis', fullName: 'Luis Muñoz' }
-
 function renderDialog(settings = DEFAULT_DAILY_SETTINGS, onOpenChange = () => {}) {
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-      <DailySettingsDialog slug="equipo" projectId="p1" settings={settings} people={[ana, luis]} open onOpenChange={onOpenChange} />
+      <DailySettingsDialog slug="equipo" projectId="p1" settings={settings} open onOpenChange={onOpenChange} />
     </QueryClientProvider>,
   )
 }
@@ -35,18 +32,9 @@ describe('DailySettingsDialog', () => {
     dailyApi.saveSettings.mockImplementation((_slug, _projectId, body) => Promise.resolve(body))
   })
 
-  it('guarda el tiempo general, un tiempo propio, los bloques y los puntos', async () => {
+  it('guarda los bloques y los puntos', async () => {
     const onOpenChange = vi.fn()
     renderDialog(DEFAULT_DAILY_SETTINGS, onOpenChange)
-
-    const minutes = screen.getByRole('textbox', { name: 'Tiempo general: minutos' })
-    await userEvent.clear(minutes)
-    await userEvent.type(minutes, '3')
-
-    await userEvent.click(screen.getByRole('button', { name: 'Dar un tiempo propio a Luis Muñoz' }))
-    const own = screen.getByRole('textbox', { name: 'Tiempo de Luis Muñoz: minutos' })
-    await userEvent.clear(own)
-    await userEvent.type(own, '5')
 
     await userEvent.click(screen.getByRole('switch', { name: 'Notas del día' }))
     await userEvent.click(screen.getByRole('button', { name: 'Agregar punto' }))
@@ -55,20 +43,16 @@ describe('DailySettingsDialog', () => {
 
     await waitFor(() => expect(dailyApi.saveSettings).toHaveBeenCalled())
     expect(dailyApi.saveSettings).toHaveBeenCalledWith('equipo', 'p1', {
-      secondsPerPerson: 180,
-      personTimes: [{ userId: 'luis', seconds: 300 }],
       sections: { summary: true, yesterday: true, today: true, blockers: true, note: false },
       agenda: ['Demo'],
     })
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
   })
 
-  it('no deja guardar un tiempo por debajo del mínimo', async () => {
+  it('ya no pregunta por tiempos', () => {
     renderDialog()
-    const minutes = screen.getByRole('textbox', { name: 'Tiempo general: minutos' })
-    await userEvent.clear(minutes)
-    expect(screen.getByRole('alert')).toHaveTextContent('El mínimo es 15 segundos')
-    expect(screen.getByRole('button', { name: 'Guardar ajustes' })).toBeDisabled()
+    expect(screen.queryByText(/tiempo/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: /minutos/ })).not.toBeInTheDocument()
   })
 
   it('exige dejar visible al menos Ayer, Hoy o Bloqueos', async () => {
@@ -78,13 +62,12 @@ describe('DailySettingsDialog', () => {
     expect(screen.getByRole('button', { name: 'Guardar ajustes' })).toBeDisabled()
   })
 
-  it('muestra el tiempo propio guardado y lo quita con la X', async () => {
-    renderDialog({ ...DEFAULT_DAILY_SETTINGS, personTimes: [{ userId: 'ana', seconds: 90 }] })
-    expect(screen.getByRole('textbox', { name: 'Tiempo de Ana Ruiz: minutos' })).toHaveValue('1')
-    expect(screen.getByRole('textbox', { name: 'Tiempo de Ana Ruiz: segundos' })).toHaveValue('30')
-    await userEvent.click(screen.getByRole('button', { name: 'Quitar el tiempo propio de Ana Ruiz' }))
+  it('muestra los puntos guardados y deja quitarlos', async () => {
+    renderDialog({ ...DEFAULT_DAILY_SETTINGS, agenda: ['Demo', 'Riesgos'] })
+    expect(screen.getByRole('textbox', { name: 'Punto 2' })).toHaveValue('Riesgos')
+    await userEvent.click(screen.getByRole('button', { name: 'Quitar el punto 1' }))
     await userEvent.click(screen.getByRole('button', { name: 'Guardar ajustes' }))
     await waitFor(() => expect(dailyApi.saveSettings).toHaveBeenCalled())
-    expect(dailyApi.saveSettings.mock.calls[0][2].personTimes).toEqual([])
+    expect(dailyApi.saveSettings.mock.calls[0][2].agenda).toEqual(['Riesgos'])
   })
 })

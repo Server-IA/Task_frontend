@@ -113,8 +113,8 @@ export function DailyPage() {
                     size="icon-lg"
                     className="rounded-xl bg-card"
                     onClick={() => setSettingsOpen(true)}
-                    // Hasta tener los ajustes guardados y las personas: abrirlo antes guardaría los de por defecto
-                    disabled={!savedSettings || !daily}
+                    // Hasta tener los ajustes guardados: abrirlo antes guardaría los de por defecto
+                    disabled={!savedSettings}
                     aria-label="Ajustes de la daily"
                   >
                     <Settings2 />
@@ -203,7 +203,6 @@ export function DailyPage() {
           slug={workspace.slug}
           projectId={project.id}
           settings={settings}
-          people={people.map((person) => person.user).filter(Boolean)}
           open={settingsOpen}
           onOpenChange={setSettingsOpen}
         />
