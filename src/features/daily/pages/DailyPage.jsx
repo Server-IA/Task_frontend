@@ -13,6 +13,7 @@ import { useHotkey } from '@/hooks/useHotkey'
 import { t, tn } from '@/i18n'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { projectPath } from '@/lib/paths'
+import { withViewTransition } from '@/lib/flash'
 import { cn } from '@/lib/utils'
 import { DailyAgenda } from '../components/DailyAgenda'
 import { DailyDateNav } from '../components/DailyDateNav'
@@ -74,12 +75,17 @@ export function DailyPage() {
       return next
     })
 
+  // Entrar y salir de «Presentar» es una transición de vista: la tarjeta de quien habla crece hasta ser la pantalla
+  // (y al salir vuelve a su lugar). Al entrar se empieza por la primera persona; al salir, la posición se conserva
+  // hasta que termina la transición, para que la tarjeta vuelva a la persona correcta.
+  const exitPresenting = useCallback(() => {
+    withViewTransition(() => setPresenting(false)).then(() => setCurrent(0))
+  }, [])
   const togglePresenting = useCallback(() => {
     if (!canPresent) return
-    setPresenting((value) => !value)
-    setCurrent(0)
-  }, [canPresent])
-  const exitPresenting = useCallback(() => setPresenting(false), [])
+    if (presenting) exitPresenting()
+    else withViewTransition(() => setPresenting(true))
+  }, [canPresent, presenting, exitPresenting])
   const goPrevious = useCallback(() => setCurrent((value) => clampIndex(value - 1, people.length)), [people.length])
   const goNext = useCallback(() => setCurrent((value) => clampIndex(value + 1, people.length)), [people.length])
 
@@ -164,9 +170,11 @@ export function DailyPage() {
             {sections.summary && <DailySummaryStrip daily={daily} />}
             <DailyAgenda agenda={settings.agenda} />
             <div className="grid grid-cols-[repeat(auto-fit,minmax(270px,1fr))] items-start gap-3.5">
-              {people.map((person) => (
+              {people.map((person, index) => (
                 <DailyPersonCard
                   key={person.user?.id}
+                  // La tarjeta que se transforma en la pantalla de «Presentar» (y a la que esta vuelve)
+                  morph={index === position}
                   person={person}
                   cycle={cycle}
                   date={daily.date}

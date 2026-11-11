@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { UserAvatar } from '@/components/common/UserAvatar'
@@ -32,6 +33,13 @@ export function DailyPresenter({
   blocking,
   onOpenIssue,
 }) {
+  // Hacia dónde se avanzó la última vez (para la entrada de la tarjeta); al abrir «Presentar», ninguno
+  const [lastIndex, setLastIndex] = useState(current)
+  const [direction, setDirection] = useState(null)
+  if (current !== lastIndex) {
+    setDirection(current > lastIndex ? 'next' : 'prev')
+    setLastIndex(current)
+  }
   const person = people[current]
   if (!person) return null
   const previous = people[current - 1]
@@ -78,7 +86,9 @@ export function DailyPresenter({
       <article
         key={person.user?.id ?? current}
         aria-label={person.user?.fullName}
-        className="tf-fade flex flex-1 flex-col gap-4.5 rounded-[22px] border bg-card px-5 py-5 sm:px-6.5"
+        style={{ viewTransitionName: 'daily-person' }}
+        // Al cambiar de persona la tarjeta entra desde el lado hacia el que se avanzó
+        className={cn('flex flex-1 flex-col gap-4.5 rounded-[22px] border bg-card px-5 py-5 sm:px-6.5', direction ? `tf-slide-${direction}` : 'tf-fade')}
       >
         <header className="flex items-center gap-3.5">
           <UserAvatar user={person.user} size="lg" className="size-13 text-[17px]" />

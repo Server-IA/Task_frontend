@@ -8,6 +8,7 @@ import { StateIcon } from '@/components/common/StateIcon'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { stateName, t, tn } from '@/i18n'
 import { cn } from '@/lib/utils'
+import { useFlash } from '@/lib/flash'
 import { focusRowMain } from '@/lib/focusReturn'
 import { BOARD_GROUP_STORY, GROUP_BY_DEFAULT, LIST_PAGE_SIZE, ROW_FOCUS } from '../constants'
 import { groupIssues } from '../groupIssues'
@@ -186,16 +187,21 @@ const IssueRow = memo(function IssueRow({ issue, slug, project, meta, openIssue,
   const locked = !useCanEditIssues()
   const { update } = useIssueUpdater(slug, project.id, issue.id)
 
+  const created = useFlash('created', issue.id)
+
   return (
     <li className="border-t">
       {/* Con el mouse, un clic en la fila la abre; con el teclado, el título es el botón (nombre corto: código y título)
           y los selectores van aparte, cada uno con su nombre */}
       <div
+        data-issue-id={issue.id}
         onClick={(event) => {
           focusRowMain(event.currentTarget)
           openIssue(issue.id)
         }}
         className={cn(
+          // Recién creada aparece resaltada un momento (ver `CreateIssueDialog`)
+          created && 'tf-new-row',
           'group flex cursor-pointer flex-wrap items-center gap-x-2.5 gap-y-1.5 px-4 py-2 transition-colors duration-150 hover:bg-subtle',
           ROW_FOCUS,
         )}

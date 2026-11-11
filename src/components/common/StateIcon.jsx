@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { stateName, t } from '@/i18n'
 import { cn } from '@/lib/utils'
 
@@ -25,6 +26,13 @@ export function isTooDark(hex) {
  * @param {{ group: string, color?: string, className?: string }} props
  */
 export function StateIcon({ group, color: stateColor = 'currentColor', className }) {
+  // Cuando el estado pasa a completado estando en pantalla, el check se dibuja (lo que ya estaba completado, no)
+  const [lastGroup, setLastGroup] = useState(group)
+  const [completedNow, setCompletedNow] = useState(0)
+  if (group !== lastGroup) {
+    setLastGroup(group)
+    if (group === 'COMPLETED') setCompletedNow((count) => count + 1)
+  }
   // El color va en currentColor; en modo oscuro los colores casi negros se cambian por el gris del texto
   const common = {
     className: cn('size-4 shrink-0 text-(--state)', isTooDark(stateColor) && 'dark:text-muted-foreground', className),
@@ -55,9 +63,9 @@ export function StateIcon({ group, color: stateColor = 'currentColor', className
       )
     case 'COMPLETED':
       return (
-        <svg {...common}>
+        <svg {...common} key={completedNow} className={cn(common.className, completedNow > 0 && 'tf-state-done')}>
           <circle cx="8" cy="8" r="7" fill={color} />
-          <path d="M5 8.2l2 2 4-4.2" fill="none" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M5 8.2l2 2 4-4.2" pathLength="1" fill="none" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       )
     case 'CANCELLED':

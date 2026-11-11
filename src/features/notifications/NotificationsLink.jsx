@@ -1,4 +1,5 @@
 import { Inbox } from 'lucide-react'
+import { PulseOnChange } from '@/components/common/Pulse'
 import { t } from '@/i18n'
 import { SidebarLink } from '@/layouts/Sidebar'
 import { useUnreadCount } from './hooks'
@@ -18,12 +19,11 @@ export function NotificationsLink({ collapsed }) {
         collapsed={collapsed}
         badge={
           count > 0 && (
-            <span
-              key={label}
-              className="tf-pop min-w-5 rounded-full bg-badge px-1.5 text-center font-mono text-[11px] leading-5 font-semibold text-badge-foreground"
-            >
-              {label}
-            </span>
+            // Hace un pulso cada vez que cambia el número
+            <PulseOnChange
+              value={label}
+              className="min-w-5 rounded-full bg-badge px-1.5 text-center font-mono text-[11px] leading-5 font-semibold text-badge-foreground"
+            />
           )
         }
       />

@@ -6,6 +6,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CheckMark } from '@/components/common/CheckMark'
+import { StrikeText } from '@/components/common/Pulse'
 import { AvatarStack } from '@/components/common/AvatarStack'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { StateIcon } from '@/components/common/StateIcon'
@@ -524,7 +525,9 @@ function ChildRow({ child, onOpen }) {
       <TypeIcon type={typeOf(child)} size={14} />
       <StateIcon group={child.state?.group} color={child.state?.color} />
       <span className="min-w-14 shrink-0 font-mono text-xs whitespace-nowrap text-muted-foreground">{child.code}</span>
-      <span className={cn('min-w-0 flex-1 truncate', done && 'text-muted-foreground line-through')}>{child.title}</span>
+      <StrikeText done={done} className={cn('min-w-0 flex-1 truncate', done && 'text-muted-foreground')}>
+        {child.title}
+      </StrikeText>
       {child.afterClose && <span className="shrink-0 font-mono text-[11px] font-semibold text-late">{t('después de cerrar')}</span>}
       <span className="w-24 shrink-0 text-xs text-muted-foreground">{stateName(child.state)}</span>
       <span className="w-6">{child.assignees?.[0] && <UserAvatar user={child.assignees[0]} size="xs" />}</span>

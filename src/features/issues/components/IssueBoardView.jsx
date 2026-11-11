@@ -46,6 +46,8 @@ import { useCriteriaGuard } from '../useCriteriaGuard'
 import { useCanEditIssues } from '../editPermission'
 import { isClosed, useIssueUpdater } from '../useIssueHelpers'
 import { closedStoryActions, useStoryClosedGuard } from '../useStoryClosedGuard'
+import { PulseOnChange } from '@/components/common/Pulse'
+import { flash, useFlash } from '@/lib/flash'
 import { AttachmentsChip, BlockedChip, BlockingChip, ChecklistChip } from './IssueBadges'
 import { BugCountBadge, IssueTypeIcon, ParentStoryChip, ReadyBadge, StoryProgress, TypeIcon } from './IssueTypeBits'
 import { AssigneesPicker, DatePicker, LabelsPicker, PriorityPicker } from './PropertyPickers'
@@ -117,7 +119,7 @@ export function IssueBoardView({ slug, project, meta, filters, openIssue, onCrea
                   {stateName(state)}
                 </span>
                 {/* Sin ceros a la izquierda, como en el tablero normal */}
-                <span className="text-muted-foreground">{countOf(state.id)}</span>
+                <PulseOnChange value={countOf(state.id)} className="text-muted-foreground" />
                 {/* Sin el permiso de crear tareas no hay «+» */}
                 {onCreateInState && (
                   <button
@@ -392,6 +394,8 @@ function BoardColumns({ issues, lanes = null, slug, project, meta, openIssue, on
       // se pregunta si se reabre y se reintenta (el `onError` va en las variables: sobrevive a otro arrastre hecho
       // enseguida)
       const action = story ? closedStoryActions.parent(issue) : closedStoryActions.move(issue, state)
+      // La tarjeta se asienta donde se soltó (ver `IssueCard`)
+      flash('settled', active.id, 500)
       move.mutate({
         issueId: active.id,
         stateId: targetState,
@@ -558,7 +562,7 @@ function BoardColumn({ state, columnId, ids: currentIds, issuesById, slug, proje
         <h3 className="min-w-0 truncate font-semibold" title={stateName(state)}>
           {stateName(state)}
         </h3>
-        <span className="text-muted-foreground">{ids.length}</span>
+        <PulseOnChange value={ids.length} className="text-muted-foreground" />
         {onCreate && (
           <button
             type="button"
@@ -668,16 +672,22 @@ const IssueCard = memo(function IssueCard({
 }) {
   const { update } = useIssueUpdater(slug, project.id, issue.id)
   const locked = !useCanEditIssues()
+  // Recién soltada se asienta con un pequeño rebote; recién creada, aparece resaltada un momento
+  const settled = useFlash('settled', issue.id)
+  const created = useFlash('created', issue.id)
   const hasLabels = issue.labels?.length > 0
   // En un carril la historia ya está en el encabezado
   const storyChip = !inLane && issue.parent?.type === 'STORY'
 
   return (
     <article
+      data-issue-id={overlay ? undefined : issue.id}
       className={cn(
         'group flex flex-col gap-2.5 rounded-xl border bg-card p-3 shadow-card transition-[box-shadow,border-color] duration-200 hover:border-dash hover:shadow-md',
         isStory(issue) || locked ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing',
         overlay && 'cursor-grabbing shadow-xl ring-1 ring-foreground/10',
+        !overlay && settled && 'tf-settle',
+        !overlay && created && 'tf-new-row',
       )}
     >
       <div className="flex items-center gap-2 font-mono text-[11px]">

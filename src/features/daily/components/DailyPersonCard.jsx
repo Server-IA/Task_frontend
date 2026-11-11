@@ -12,12 +12,17 @@ import { DailyBlock, personBlocks } from './DailyBlocks'
  *           blocking?: { code: string, blockedCode: string, ownerName: string }[], onOpenIssue: (issueId: string) => void,
  *           sections?: { yesterday?: boolean, today?: boolean, blockers?: boolean } }} props
  */
-export function DailyPersonCard({ person, cycle, date, previousDate, projectId, blocking, onOpenIssue, sections }) {
+export function DailyPersonCard({ person, cycle, date, previousDate, projectId, blocking, onOpenIssue, sections, morph = false }) {
   const me = useSessionStore((state) => state.user?.id) === person.user?.id
   const blocks = personBlocks({ person, date, previousDate, projectId, blocking, onOpenIssue, sections })
   const open = person.openCount ?? 0
   return (
-    <article aria-label={person.user?.fullName} className="tf-enter flex min-w-0 flex-col gap-3 rounded-[18px] border bg-card px-4 py-3.5">
+    <article
+      aria-label={person.user?.fullName}
+      // `morph`: es la tarjeta que crece hasta ser la pantalla de «Presentar» (mismo nombre de transición que esa)
+      style={morph ? { viewTransitionName: 'daily-person' } : undefined}
+      className="tf-enter flex min-w-0 flex-col gap-3 rounded-[18px] border bg-card px-4 py-3.5"
+    >
       <header className="flex items-center gap-2.5">
         <UserAvatar user={person.user} size="md" />
         <span className="min-w-0 flex-1">

@@ -14,6 +14,7 @@ import { BlockedChip } from '@/features/issues/components/IssueBadges'
 import { formatDecimal } from '@/features/stats/chartMath'
 import { t, tn, tx } from '@/i18n'
 import { formatShortDate } from '@/lib/dates'
+import { flash } from '@/lib/flash'
 import { toApiError } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { IS_MAC } from '@/lib/shortcuts'
@@ -97,6 +98,8 @@ function CloseCycleForm({ slug, projectId, cycle: initialCycle, onClose }) {
       { id: cycle.id, ...body },
       {
         onSuccess: (result) => {
+          // El avance del ciclo recién cerrado se anima donde se vea (su página o su tarjeta en la lista)
+          flash('closedCycle', cycle.id, 4000)
           const name = targetCycle?.name ?? t('otro ciclo')
           const toCycle = tn(result.movedToCycle, '{count} tarea a {name}', '{count} tareas a {name}', { name })
           const toBacklog = tn(result.movedToBacklog, '{count} tarea al backlog', '{count} tareas al backlog')

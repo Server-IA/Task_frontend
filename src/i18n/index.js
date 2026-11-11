@@ -1,5 +1,6 @@
 import { createElement, Fragment } from 'react'
 import { enUS, es } from 'date-fns/locale'
+import { keepSplashOnReload } from '@/lib/intro'
 import en from './en'
 
 /**
@@ -59,7 +60,30 @@ export function setLanguage(code, { reload = true } = {}) {
   } catch {
     // Sin almacenamiento el cambio dura lo que dure la página
   }
-  if (reload) window.location.reload()
+  if (reload) reloadWithSplash()
+}
+
+/**
+ * Recarga la página tapándola antes con el logo de carga (en vez de un salto en blanco): la tapa aparece, se anota que
+ * la carga siguiente debe empezar con el logo puesto (`index.html` y `lib/intro` lo leen) y entonces se recarga.
+ */
+function reloadWithSplash() {
+  try {
+    keepSplashOnReload()
+    const dark = document.documentElement.classList.contains('dark')
+    const cover = document.createElement('div')
+    cover.setAttribute('aria-hidden', 'true')
+    cover.className = 'tf-fade fixed inset-0 z-[100] flex items-center justify-center bg-background'
+    cover.innerHTML =
+      '<svg viewBox="0 0 32 32" width="112" height="112">' +
+      `<rect x="0.5" y="0.5" width="31" height="31" rx="8.5" fill="${dark ? '#38332b' : '#23201B'}" stroke="${dark ? '#5a5246' : 'none'}"/>` +
+      '<path d="M8.5 16.5l5 5L23.5 11 M17.5 11h6v6" fill="none" stroke="#EAD9B0" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    document.body.append(cover)
+    // Un momento para que la tapa se vea antes de recargar
+    window.setTimeout(() => window.location.reload(), 220)
+  } catch {
+    window.location.reload()
+  }
 }
 
 /** Solo para pruebas: cambia el idioma en memoria, sin guardar ni recargar. */

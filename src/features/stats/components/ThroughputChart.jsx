@@ -53,7 +53,9 @@ export function ThroughputChart({ weeks }) {
           <g key={bar.weekStart}>
             <path
               d={barPath(bar.cx - barWidth / 2, bar.top, barWidth, BASELINE)}
-              className={cn('fill-chart-series transition-[fill] duration-150', active === index && 'fill-accent-text')}
+              // `tf-col`: al abrir las estadísticas crece desde la base, una columna tras otra
+              style={{ '--i': index }}
+              className={cn('tf-col fill-chart-series transition-[fill] duration-150', active === index && 'fill-accent-text')}
             />
             {(index === bars.length - 1 || (bars.length - 1 - index) % labelEvery === 0) && (
               <text x={bar.cx} y={HEIGHT - 10} textAnchor="middle" className="fill-muted-foreground font-mono text-[10px]">

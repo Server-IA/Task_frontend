@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { AvatarStack } from '@/components/common/AvatarStack'
+import { StrikeText } from '@/components/common/Pulse'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { CenteredSpinner } from '@/components/common/Loaders'
 import { ErrorState } from '@/components/common/States'
@@ -432,7 +433,9 @@ function SubIssues({ slug, projectId, issueId, onOpenIssue, onAdd }) {
                   >
                     <StateIcon group={sub.state?.group} color={sub.state?.color} />
                     <span className="shrink-0 font-mono text-xs text-muted-foreground">{sub.code}</span>
-                    <span className={cn('min-w-0 flex-1 truncate', closed && 'text-muted-foreground line-through')}>{sub.title}</span>
+                    <StrikeText done={closed} className={cn('min-w-0 flex-1 truncate', closed && 'text-muted-foreground')}>
+                      {sub.title}
+                    </StrikeText>
                     {sub.assignees?.length > 0 && <AvatarStack users={sub.assignees} size="xs" />}
                   </button>
                 </li>

@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AvatarStack } from '@/components/common/AvatarStack'
+import { CountUp, StrikeText } from '@/components/common/Pulse'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { CenteredSpinner } from '@/components/common/Loaders'
 import { EmptyState, ErrorState } from '@/components/common/States'
@@ -19,6 +20,7 @@ import { useCan, useCurrentWorkspace } from '@/features/workspaces/hooks'
 import { t, tn } from '@/i18n'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { notifyError } from '@/lib/notify'
+import { useFlash } from '@/lib/flash'
 import { projectPath } from '@/lib/paths'
 import { slugify } from '@/lib/slug'
 import { cn } from '@/lib/utils'
@@ -222,16 +224,20 @@ function ProgressBlock({ kind, item, issues }) {
   const { completedIssues, totalIssues, percentage } = item.progress
   const { started, pending } = progressBreakdown(issues)
   const bar = kind === 'cycles' ? (CYCLE_STATUS[cycleStatusKey(item)] ?? CYCLE_STATUS.DRAFT).bar : 'bg-accent-text'
+  // Recién cerrado: la barra se llena hasta su valor y el porcentaje cuenta hacia arriba
+  const justClosed = useFlash('closedCycle', kind === 'cycles' ? item.id : null)
 
   return (
     <div>
       <p className="mb-1.5 flex items-baseline justify-between gap-2">
-        <span className="font-display text-[28px] leading-none font-extrabold">{percentage}%</span>
+        <span className="font-display text-[28px] leading-none font-extrabold tabular-nums">
+          <CountUp value={percentage} animate={justClosed} />%
+        </span>
         <span className="text-xs text-muted-foreground">
           {totalIssues === 0 ? t('Sin tareas') : t('{completed} de {total} completadas', { completed: completedIssues, total: totalIssues })}
         </span>
       </p>
-      <ProgressBar value={percentage} className={bar} />
+      <ProgressBar value={percentage} className={bar} grow={justClosed} />
       <p className="mt-1.5 flex justify-between gap-2 font-mono text-[11px] text-muted-foreground">
         <span>{t('○ {count} por hacer', { count: pending })}</span>
         <span>{t('◐ {count} en curso', { count: started })}</span>
@@ -283,9 +289,9 @@ export function PlanningIssues({ kind, slug, projectId, item, issues, isLoading,
               <button type="button" onClick={() => onOpenIssue(issue.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
                 <StateIcon group={issue.state?.group} color={issue.state?.color} />
                 <span className="min-w-16 shrink-0 font-mono text-xs whitespace-nowrap text-muted-foreground">{issue.code}</span>
-                <span className={cn('min-w-0 flex-1 truncate text-sm font-medium', closed && 'text-muted-foreground line-through')}>
+                <StrikeText done={closed} className={cn('min-w-0 flex-1 truncate text-sm font-medium', closed && 'text-muted-foreground')}>
                   {issue.title}
-                </span>
+                </StrikeText>
                 {issue.priority !== 'NONE' && <PriorityChip priority={issue.priority} className="hidden sm:inline-flex" />}
                 {issue.assignees?.length > 0 && <AvatarStack users={issue.assignees} size="sm" />}
               </button>

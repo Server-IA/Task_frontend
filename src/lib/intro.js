@@ -33,7 +33,32 @@ const now = () => (typeof performance === 'undefined' ? Date.now() : performance
 
 /** El logo de carga apareció: cuenta desde la primera vez en esta carga de la página. */
 export function markSplash() {
-  if (splashAt == null) splashAt = now()
+  if (splashAt != null) return
+  splashAt = now()
+  // Tras cambiar de idioma la página se recarga con el logo ya a la vista (`index.html` lo pinta antes de que cargue
+  // la app): cuenta como dibujado, para que no vuelva a dibujarse
+  if (takeReloadSplash()) splashAt -= INTRO.draw + 200
+}
+
+const RELOAD_SPLASH = 'taskflow-splash'
+
+/** Antes de recargar la página a propósito (cambio de idioma): que la carga siguiente empiece con el logo puesto. */
+export function keepSplashOnReload() {
+  try {
+    window.sessionStorage.setItem(RELOAD_SPLASH, '1')
+  } catch {
+    // Sin almacenamiento la recarga se ve como cualquier otra
+  }
+}
+
+function takeReloadSplash() {
+  try {
+    const kept = window.sessionStorage.getItem(RELOAD_SPLASH) === '1'
+    window.sessionStorage.removeItem(RELOAD_SPLASH)
+    return kept
+  } catch {
+    return false
+  }
 }
 
 /** Milisegundos que lleva en pantalla el logo de carga (0 si todavía no apareció). */
@@ -45,7 +70,7 @@ export function markFirstScreen() {
 }
 
 /** Si el navegador puede hacer la entrada: tiene animaciones por script y la persona no pidió menos movimiento. */
-function canAnimate() {
+export function canAnimate() {
   if (typeof window === 'undefined' || typeof Element === 'undefined') return false
   if (typeof Element.prototype.animate !== 'function') return false
   return !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches

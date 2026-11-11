@@ -28,6 +28,7 @@ import {
 import { useTemplates } from '@/features/templates/hooks'
 import { useCan } from '@/features/workspaces/hooks'
 import { applyFieldErrors } from '@/lib/errors'
+import { flash, flyGhost } from '@/lib/flash'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { useCreateIssue } from '../hooks'
@@ -283,6 +284,10 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
     create.mutate(body, {
       onSuccess: (issue) => {
         toast.success(t('{code} creada', { code: issue.code }), { description: issue.title })
+        // La tarea nueva aparece resaltada en la lista o el tablero y, si el diálogo se cierra, una caja va de donde
+        // estaba el diálogo hasta ella
+        flash('created', issue.id, 2200)
+        if (!createMore) flyGhost(document.querySelector('[role="dialog"]')?.getBoundingClientRect(), `[data-issue-id="${issue.id}"]`)
         if (createMore) {
           // Conserva las propiedades (y la plantilla) para crear varios parecidos seguidos
           caretToEnd()

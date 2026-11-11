@@ -333,9 +333,11 @@ function NotificationItem({ notification, first, current, onOpen }) {
   const project = notificationProject(notification)
   const workspaceSlug = notificationWorkspaceSlug(notification)
   const storage = notification.type === 'STORAGE_WARNING'
+  // Un aviso que acaba de llegar (creado hace unos segundos) entra deslizándose; los que ya estaban, no
+  const [fresh] = useState(() => Date.now() - new Date(notification.createdAt).getTime() < 20_000)
 
   return (
-    <li className={cn(!first && 'border-t')}>
+    <li className={cn(!first && 'border-t', fresh && 'tf-slide-in')}>
       <button
         type="button"
         onClick={onOpen}

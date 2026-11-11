@@ -206,7 +206,7 @@ export function ProgressSummary({ progress, className, barClassName = 'bg-accent
 }
 
 /** Barra de avance: riel con el color de las columnas y relleno según el estado. */
-export function ProgressBar({ value, className, trackClassName }) {
+export function ProgressBar({ value, className, trackClassName, grow = false }) {
   return (
     <div
       role="progressbar"
@@ -215,7 +215,8 @@ export function ProgressBar({ value, className, trackClassName }) {
       aria-valuemax={100}
       className={cn('h-1.5 overflow-hidden rounded-full bg-column', trackClassName)}
     >
-      <div className={cn('h-full rounded-full transition-[width]', className)} style={{ width: `${value}%` }} />
+      {/* `grow`: se llena desde cero hasta su valor (al cerrar un ciclo) */}
+      <div className={cn('h-full rounded-full transition-[width]', grow && 'tf-bar-grow', className)} style={{ width: `${value}%` }} />
     </div>
   )
 }

@@ -1070,6 +1070,132 @@
   animation: tf-app-main-out 280ms ease-in 40ms forwards;
 }
 
+/*
+ * Animaciones cortas de momentos concretos (no de la navegación de todos los días):
+ * - .tf-pulse: un número que cambió (contador de una columna, insignia de la bandeja).
+ * - .tf-settle: la tarjeta recién soltada en el tablero.
+ * - .tf-new-row: la tarea recién creada, resaltada un momento; .tf-ghost: la caja que va del diálogo a ella.
+ * - .tf-state-done / .tf-strike-in: una tarea que pasa a completada (el check se dibuja, el título se tacha).
+ * - .tf-bar-grow: la barra de avance de un ciclo recién cerrado.
+ * - .tf-col / .tf-line: las columnas y la línea de los gráficos al abrir las estadísticas.
+ * - .tf-slide-in: un aviso que acaba de llegar a la bandeja; .tf-slide-next / -prev: cambiar de persona en la daily.
+ */
+@keyframes tf-pulse {
+  50% {
+    transform: scale(1.3);
+  }
+}
+.tf-pulse {
+  animation: tf-pulse 380ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes tf-settle {
+  from {
+    transform: scale(1.04);
+  }
+  60% {
+    transform: scale(0.99);
+  }
+}
+.tf-settle {
+  animation: tf-settle 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes tf-new-row {
+  from {
+    background-color: var(--accent-soft);
+  }
+}
+.tf-new-row {
+  animation: tf-new-row 1800ms ease-out;
+}
+.tf-ghost {
+  position: fixed;
+  z-index: 60;
+  pointer-events: none;
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: 0 18px 44px rgb(35 32 27 / 0.18);
+}
+@keyframes tf-state-pop {
+  from {
+    transform: scale(0.6);
+  }
+  60% {
+    transform: scale(1.12);
+  }
+}
+.tf-state-done {
+  animation: tf-state-pop 340ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.tf-state-done path {
+  stroke-dasharray: 1;
+  animation: tf-splash-draw 380ms cubic-bezier(0.65, 0, 0.35, 1) 80ms both;
+}
+@keyframes tf-strike-in {
+  from {
+    text-decoration-color: transparent;
+  }
+}
+.tf-strike-in {
+  text-decoration-line: line-through;
+  animation: tf-strike-in 420ms ease-out;
+}
+@keyframes tf-bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+.tf-bar-grow {
+  transform-origin: 0 50%;
+  animation: tf-bar-grow 900ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+@keyframes tf-col-grow {
+  from {
+    transform: scaleY(0);
+  }
+}
+.tf-col {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: tf-col-grow 520ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: calc(120ms + var(--i, 0) * 60ms);
+}
+.tf-line {
+  stroke-dasharray: 1;
+  animation: tf-splash-draw 1100ms cubic-bezier(0.65, 0, 0.35, 1) 200ms both;
+}
+@keyframes tf-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+}
+.tf-slide-in {
+  animation: tf-slide-in 380ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes tf-slide-next {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+}
+@keyframes tf-slide-prev {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+}
+.tf-slide-next {
+  animation: tf-slide-next 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.tf-slide-prev {
+  animation: tf-slide-prev 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* «Presentar» en la daily: la tarjeta de quien habla crece hasta ser la pantalla (transición de vista del navegador) */
+::view-transition-group(daily-person) {
+  animation-duration: 420ms;
+  animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
 /* Quien pide menos movimiento en su sistema ve los cambios sin animación */
 @media (prefers-reduced-motion: reduce) {
   *,

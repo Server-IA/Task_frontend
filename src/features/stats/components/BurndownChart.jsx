@@ -115,8 +115,10 @@ export function BurndownChart({ burndown }) {
         {points.length > 0 && (
           <path
             d={linePath(points.map((point) => [x(point.day), y(point.remaining)]))}
+            // `tf-line`: al abrir las estadísticas se dibuja de izquierda a derecha
+            pathLength="1"
             fill="none"
-            className="stroke-chart-series"
+            className="tf-line stroke-chart-series"
             strokeWidth="2"
             strokeLinejoin="round"
             strokeLinecap="round"
