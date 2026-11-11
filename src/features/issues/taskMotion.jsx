@@ -20,11 +20,11 @@ const SHRINK = 300
 const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve))
 const finished = (animation) => animation.finished.then(() => {}, () => {})
 
-/** Espera a que `selector` exista en la página, hasta `ms`; `null` si no llega (la tarea no entra en la vista actual). */
-async function waitFor(selector, ms) {
+/** Espera a que `selector` exista dentro de `root`, hasta `ms`; `null` si no llega (la tarea no entra en la vista actual). */
+async function waitFor(root, selector, ms) {
   const start = performance.now()
   for (;;) {
-    const element = document.querySelector(selector)
+    const element = root.isConnected ? root.querySelector(selector) : null
     if (element) return element
     if (performance.now() - start > ms) return null
     await nextFrame()
@@ -60,8 +60,10 @@ function reveal(element) {
  * desvanece: el aviso de «creada» ya lo dice.
  * @param {DOMRect | null | undefined} from dónde estaba el diálogo
  * @param {{ id: string, code: string, title: string }} issue
+ * @param {ParentNode | null} [within] dónde buscar la tarea: el panel que queda abierto debajo del diálogo (una subtarea
+ *   creada desde el detalle de su tarea va a su fila en ese panel, no a la lista que el panel tapa); sin él, la página
  */
-export async function landNewTask(from, issue) {
+export async function landNewTask(from, issue, within = null) {
   const selector = `[data-issue-id="${issue.id}"]`
   if (!canAnimate() || !from || from.width === 0) {
     flash('created', issue.id, 2200)
@@ -110,7 +112,7 @@ export async function landNewTask(from, issue) {
     { duration: SHRINK, easing: EASE, fill: 'both' },
   )
 
-  const [target] = await Promise.all([waitFor(selector, WAIT_FOR_ROW), finished(appear)])
+  const [target] = await Promise.all([waitFor(within ?? document, selector, WAIT_FOR_ROW), finished(appear)])
   if (!target || !target.isConnected) {
     // No está en esta vista: la ficha se va hacia abajo
     await finished(chip.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(12px)' }], { duration: 220, easing: 'ease-in', fill: 'forwards' }))

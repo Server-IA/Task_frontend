@@ -20,6 +20,7 @@ import { MarkdownView } from '@/features/editor/components/MarkdownView'
 import { useWorkspace } from '@/features/workspaces/hooks'
 import { stateName, t } from '@/i18n'
 import { formatDateTime, formatRelative, formatShortDate } from '@/lib/dates'
+import { useFlashed } from '@/lib/flash'
 import { notifyError } from '@/lib/notify'
 import { can, canDeleteIssue } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
@@ -392,6 +393,8 @@ function SubIssues({ slug, projectId, issueId, onOpenIssue, onAdd }) {
   const { data: subIssues, isLoading } = useSubIssues(slug, projectId, issueId)
   const total = subIssues?.length ?? 0
   const done = subIssues?.filter((sub) => sub.state?.group === 'COMPLETED').length ?? 0
+  // La subtarea recién creada desde aquí queda resaltada un momento (la ficha de `landNewTask` llega a su fila)
+  const createdId = useFlashed('created')
 
   return (
     <section className="flex flex-col gap-2">
@@ -429,7 +432,8 @@ function SubIssues({ slug, projectId, issueId, onOpenIssue, onAdd }) {
                   <button
                     type="button"
                     onClick={() => onOpenIssue(sub.id)}
-                    className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-subtle"
+                    data-issue-id={sub.id}
+                    className={cn('flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-subtle', createdId === sub.id && 'tf-new-row')}
                   >
                     <StateIcon group={sub.state?.group} color={sub.state?.color} />
                     <span className="shrink-0 font-mono text-xs text-muted-foreground">{sub.code}</span>

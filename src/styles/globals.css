@@ -1141,6 +1141,13 @@ article.tf-new-row {
 article.tf-done-flash {
   animation-name: tf-done-card;
 }
+/* Soltada en una columna de completadas: se asienta y se enciende a la vez. Sin esta regla una animación pisa a la
+   otra, y si el «completada» llega a mitad del rebote la tarjeta da un salto */
+article.tf-settle.tf-done-flash {
+  animation:
+    tf-settle 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    tf-done-card 1900ms ease-out;
+}
 /* La ficha de la tarea recién creada, en camino a su lugar: código y título en una línea */
 .tf-task-chip {
   position: fixed;

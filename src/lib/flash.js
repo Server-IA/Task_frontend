@@ -19,3 +19,6 @@ export function flash(kind, id, ms = 1500) {
 
 /** Si `id` es lo que se acaba de marcar. */
 export const useFlash = (kind, id) => useFlashStore((state) => id != null && state[kind] === id)
+
+/** Lo que está marcado ahora (o `null`): para una lista corta que resalta una de sus filas sin un componente por fila. */
+export const useFlashed = (kind) => useFlashStore((state) => state[kind])

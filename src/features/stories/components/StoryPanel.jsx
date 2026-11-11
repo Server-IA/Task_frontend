@@ -18,6 +18,7 @@ import { useRelations } from '@/features/relations/hooks'
 import { useWorkspace } from '@/features/workspaces/hooks'
 import { stateName, t, tn, tx } from '@/i18n'
 import { formatShortDate } from '@/lib/dates'
+import { useFlashed } from '@/lib/flash'
 import { notifyError } from '@/lib/notify'
 import { can } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
@@ -309,6 +310,8 @@ export function StorySections({ slug, project, issue, onOpenIssue, onAdd, onRepo
 }
 
 function ChildList({ items, onOpenIssue, note, highlight }) {
+  // La tarea o el bug recién creado desde la historia queda resaltado un momento (ver `landNewTask`)
+  const createdId = useFlashed('created')
   return (
     <ul className="overflow-hidden rounded-xl border">
       {items.map((child, index) => {
@@ -318,7 +321,8 @@ function ChildList({ items, onOpenIssue, note, highlight }) {
             <button
               type="button"
               onClick={() => onOpenIssue(child.id)}
-              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-subtle"
+              data-issue-id={child.id}
+              className={cn('flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-subtle', createdId === child.id && 'tf-new-row')}
             >
               <StateIcon group={child.state?.group} color={child.state?.color} />
               <TypeIcon type={typeOf(child)} size={14} />

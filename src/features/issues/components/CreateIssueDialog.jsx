@@ -56,6 +56,8 @@ const issueSchema = z
 
 /** Máximo de criterios y pasos que acepta el backend al crear una tarea. */
 const CHECKLIST_ON_CREATE = 50
+/** Los diálogos y paneles laterales de la app (no los menús desplegables, que también son `role="dialog"`). */
+const PANELS = '[data-slot="dialog-content"], [data-slot="sheet-content"]'
 
 /** Título del diálogo según el tipo y, si tiene, la historia (o tarea) padre. */
 function dialogTitle(type, defaults) {
@@ -288,7 +290,13 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
         // Si el diálogo se cierra, se encoge hasta una ficha que viaja al lugar de la tarea nueva, que queda resaltada
         // en la lista o el tablero; con «crear otra» el diálogo sigue abierto y solo se resalta
         if (createMore) flash('created', issue.id, 2200)
-        else landNewTask(document.querySelector('[role="dialog"]')?.getBoundingClientRect(), issue)
+        else {
+          // Este diálogo (no el primero de la página: puede haberse abierto encima del detalle de una tarea o de una
+          // historia). Si debajo queda un panel abierto, la tarea nueva se busca en él, que es lo que se ve
+          const dialog = titleRef.current?.closest(PANELS)
+          const under = [...document.querySelectorAll(PANELS)].filter((panel) => panel !== dialog).at(-1)
+          landNewTask(dialog?.getBoundingClientRect(), issue, under)
+        }
         if (createMore) {
           // Conserva las propiedades (y la plantilla) para crear varios parecidos seguidos
           caretToEnd()
