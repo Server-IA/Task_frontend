@@ -1,6 +1,7 @@
 import { isRouteErrorResponse, Link, useRouteError } from 'react-router'
 import { TriangleAlert } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { t } from '@/i18n'
 import { NotFoundPage } from './NotFoundPage'
 
 /** Pantalla para errores inesperados de renderizado (en lugar de la pantalla técnica de React Router). */
@@ -20,14 +21,14 @@ export function RouteErrorPage() {
       <div className="flex size-14 items-center justify-center rounded-[18px] bg-late-soft text-late">
         <TriangleAlert className="size-6" />
       </div>
-      <h1 className="font-display text-[34px] leading-tight font-extrabold tracking-[-0.02em]">Algo salió mal</h1>
+      <h1 className="font-display text-[34px] leading-tight font-extrabold tracking-[-0.02em]">{t('Algo salió mal')}</h1>
       <p className="max-w-sm text-sm text-muted-foreground">
-        Ocurrió un error inesperado al mostrar esta página. Recarga para intentarlo de nuevo.
+        {t('Ocurrió un error inesperado al mostrar esta página. Recarga para intentarlo de nuevo.')}
       </p>
       <div className="mt-2 flex gap-2">
-        <Button onClick={() => window.location.reload()}>Recargar</Button>
+        <Button onClick={() => window.location.reload()}>{t('Recargar')}</Button>
         <Button asChild variant="outline">
-          <Link to="/">Ir al inicio</Link>
+          <Link to="/">{t('Ir al inicio')}</Link>
         </Button>
       </div>
     </div>
