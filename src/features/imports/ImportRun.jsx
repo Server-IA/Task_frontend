@@ -229,7 +229,9 @@ function PersonRow({ row, members, mayInvite, value, onChange }) {
       <span className="min-w-0 flex-[1_1_150px]">
         <span className="block truncate font-medium">{row.name}</span>
         <span className="block truncate font-mono text-[11px] text-muted-foreground">
-          {[row.email, row.count > 0 && tn(row.count, '{count} tarea', '{count} tareas')].filter(Boolean).join(' · ') || t('sin tareas asignadas')}
+          {[row.email !== row.name && row.email, row.count > 0 ? tn(row.count, '{count} tarea', '{count} tareas') : t('sin tareas asignadas')]
+            .filter(Boolean)
+            .join(' · ')}
         </span>
       </span>
       {ARROW}
@@ -295,18 +297,57 @@ export function ReviewStep({ workspace, job, onBack }) {
     wantsFiles && !attachmentsAvailable && [
       totals.attachments + totals.tooBig + totals.notAllowed,
       job.via === 'FILE'
-        ? t('adjuntos no se traen: un archivo no da con qué descargarlos. Quedan listados en el informe.')
-        : t('adjuntos no se pueden traer ahora (no hay conexión con el origen o el almacenamiento no está configurado). Quedan listados en el informe.'),
+        ? tn(
+            totals.attachments + totals.tooBig + totals.notAllowed,
+            'adjunto no se trae: un archivo no da con qué descargarlo. Queda listado en el informe.',
+            'adjuntos no se traen: un archivo no da con qué descargarlos. Quedan listados en el informe.',
+          )
+        : tn(
+            totals.attachments + totals.tooBig + totals.notAllowed,
+            'adjunto no se puede traer ahora (no hay conexión con el origen o el almacenamiento no está configurado). Queda listado en el informe.',
+            'adjuntos no se pueden traer ahora (no hay conexión con el origen o el almacenamiento no está configurado). Quedan listados en el informe.',
+          ),
     ],
     wantsFiles && attachmentsAvailable && totals.attachmentBytes > freeBytes && [
       formatSize(totals.attachmentBytes),
       t('de adjuntos no caben en los {free} libres del workspace: entran los que quepan y el resto queda en el informe.', { free: formatSize(freeBytes) }),
     ],
-    totals.tooBig > 0 && [totals.tooBig, t('adjuntos pasan del límite por archivo y no se traen. Quedan listados en el informe.')],
-    totals.notAllowed > 0 && [totals.notAllowed, t('adjuntos son de un tipo que TaskFlow no acepta y no se traen.')],
-    totals.withPoints > 0 && [totals.withPoints, t('tareas tienen story points u horas registradas: quedan como una línea al final de la descripción.')],
-    totals.unassigned > 0 && [totals.unassigned, t('tareas pierden a alguien asignado que no entra a TaskFlow; su nombre queda anotado en cada una.')],
-    totals.invitations > 0 && [totals.invitations, t('personas reciben una invitación al workspace. Sus tareas se les asignan cuando acepten.')],
+    totals.tooBig > 0 && [
+      totals.tooBig,
+      tn(
+        totals.tooBig,
+        'adjunto pasa del límite por archivo y no se trae. Queda listado en el informe.',
+        'adjuntos pasan del límite por archivo y no se traen. Quedan listados en el informe.',
+      ),
+    ],
+    totals.notAllowed > 0 && [
+      totals.notAllowed,
+      tn(totals.notAllowed, 'adjunto es de un tipo que TaskFlow no acepta y no se trae.', 'adjuntos son de un tipo que TaskFlow no acepta y no se traen.'),
+    ],
+    totals.withPoints > 0 && [
+      totals.withPoints,
+      tn(
+        totals.withPoints,
+        'tarea tiene story points u horas registradas: quedan como una línea al final de la descripción.',
+        'tareas tienen story points u horas registradas: quedan como una línea al final de la descripción.',
+      ),
+    ],
+    totals.unassigned > 0 && [
+      totals.unassigned,
+      tn(
+        totals.unassigned,
+        'tarea pierde a alguien asignado que no entra a TaskFlow; su nombre queda anotado en ella.',
+        'tareas pierden a alguien asignado que no entra a TaskFlow; su nombre queda anotado en cada una.',
+      ),
+    ],
+    totals.invitations > 0 && [
+      totals.invitations,
+      tn(
+        totals.invitations,
+        'persona recibe una invitación al workspace. Sus tareas se le asignan cuando acepte.',
+        'personas reciben una invitación al workspace. Sus tareas se les asignan cuando acepten.',
+      ),
+    ],
   ].filter(Boolean)
 
   const submit = () => start.mutate(undefined, { onError: (error) => notifyError(error, t('No se pudo empezar la importación')) })

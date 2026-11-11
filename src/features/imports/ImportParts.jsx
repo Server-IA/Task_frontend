@@ -58,12 +58,13 @@ const STEPS = ['origin', 'connect', 'choose', 'mapping', 'review', 'run']
 /**
  * El marco de una importación en curso: de dónde es, los pasos (los anteriores hechos, el actual resaltado) y cómo
  * salir.
- * @param {{ source: ReturnType<typeof sourceOf>, sub?: string, step: string, exitLabel?: string, onExit: () => void,
+ * `file`: si la importación es por archivo (el segundo paso se llama «Archivo» en vez de «Conectar»).
+ * @param {{ source: object, sub?: string, step: string, file?: boolean, exitLabel?: string, onExit: () => void,
  *           children: React.ReactNode }} props
  */
-export function WizardShell({ source, sub, step, exitLabel = t('Cancelar'), onExit, children }) {
+export function WizardShell({ source, sub, step, file = !source.api, exitLabel = t('Cancelar'), onExit, children }) {
   const at = step === 'done' ? STEPS.length : STEPS.indexOf(step)
-  const labels = [t('Origen'), source.api ? t('Conectar') : t('Archivo'), t('Qué importar'), t('Equivalencias'), t('Revisar'), t('Importar')]
+  const labels = [t('Origen'), file ? t('Archivo') : t('Conectar'), t('Qué importar'), t('Equivalencias'), t('Revisar'), t('Importar')]
   return (
     <div className="flex flex-col gap-3.5">
       <section aria-label={t('Pasos de la importación')} className="tf-panel flex flex-col gap-3.5 px-5 pt-3.5 pb-4">

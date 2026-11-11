@@ -205,6 +205,19 @@ export default {
     'tasks lose an assignee who does not come into TaskFlow; their name is noted in each one.',
   'personas reciben una invitación al workspace. Sus tareas se les asignan cuando acepten.':
     'people get an invitation to the workspace. Their tasks are assigned to them when they accept.',
+  'adjunto no se trae: un archivo no da con qué descargarlo. Queda listado en el informe.':
+    'attachment is not brought: a file gives no way to download it. It is listed in the report.',
+  'adjunto no se puede traer ahora (no hay conexión con el origen o el almacenamiento no está configurado). Queda listado en el informe.':
+    'attachment cannot be brought right now (there is no connection to the source or storage is not set up). It is listed in the report.',
+  'adjunto pasa del límite por archivo y no se trae. Queda listado en el informe.':
+    'attachment is over the per-file limit and is not brought. It is listed in the report.',
+  'adjunto es de un tipo que TaskFlow no acepta y no se trae.': 'attachment is of a type TaskFlow does not accept and is not brought.',
+  'tarea tiene story points u horas registradas: quedan como una línea al final de la descripción.':
+    'task has story points or logged hours: they are kept as a line at the end of the description.',
+  'tarea pierde a alguien asignado que no entra a TaskFlow; su nombre queda anotado en ella.':
+    'task loses an assignee who does not come into TaskFlow; their name is noted in it.',
+  'persona recibe una invitación al workspace. Sus tareas se le asignan cuando acepte.':
+    'person gets an invitation to the workspace. Their tasks are assigned to them when they accept.',
   'No se pudo empezar la importación': 'The import could not be started',
   'Se va a crear': 'This will be created',
   'Con lo elegido no entra nada. Vuelve atrás y revisa los tipos y las opciones.': 'Nothing comes in with these choices. Go back and check the types and the options.',

@@ -227,7 +227,7 @@ function ImportJobView({ workspace, jobId, onHome }) {
     if (job.status === 'DRAFT' || job.status === 'READY') discard.mutate(job.id)
     onHome()
   }
-  const shell = { source, sub: job.sourceLabel }
+  const shell = { source, sub: job.sourceLabel, file: job.via === 'FILE' }
 
   if (job.status === 'DRAFT' || (job.status === 'READY' && view === 'choose')) {
     return (
