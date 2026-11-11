@@ -13,6 +13,13 @@ const sources = import.meta.glob(['../**/*.{js,jsx}', '!../**/*.test.{js,jsx}', 
   import: 'default',
 })
 
+// Mientras se traduce por partes: `I18N_ONLY=src/features/issues,src/lib npx vitest run src/i18n/coverage.test.js`
+// limita las comprobaciones del código a esas carpetas.
+const only = (process.env.I18N_ONLY ?? '').split(',').map((prefix) => prefix.trim()).filter(Boolean)
+for (const path of Object.keys(sources)) {
+  if (only.length && !only.some((prefix) => path.replace('../', 'src/').startsWith(prefix))) delete sources[path]
+}
+
 const LITERAL = String.raw`'((?:[^'\\\n]|\\.)*)'|"((?:[^"\\\n]|\\.)*)"|` + '`((?:[^`\\\\$]|\\\\.)*)`'
 const literal = () => `(?:${LITERAL})`
 const unescape = (raw) => raw.replace(/\\(n|.)/g, (match, char) => (char === 'n' ? '\n' : char))
