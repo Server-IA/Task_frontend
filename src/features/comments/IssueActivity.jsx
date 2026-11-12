@@ -8,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { GithubIcon } from '@/components/common/BrandIcons'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { CenteredSpinner, Spinner } from '@/components/common/Loaders'
 import { Segmented } from '@/components/common/Segmented'
@@ -162,8 +163,8 @@ function ActivityLine({ entry }) {
     <div className="flex items-start gap-3">
       <span className="flex w-8 shrink-0 justify-center pt-0.5">
         {mark === 'GH' ? (
-          <span aria-hidden="true" className="flex size-6 items-center justify-center rounded-md bg-foreground font-mono text-[9px] font-bold text-background">
-            GH
+          <span aria-hidden="true" className="flex size-6 items-center justify-center rounded-md bg-foreground text-background">
+            <GithubIcon className="size-3.5" />
           </span>
         ) : mark ? (
           <span aria-hidden="true" className="flex size-6 items-center justify-center rounded-full bg-primary font-mono text-[9px] font-bold text-primary-foreground">

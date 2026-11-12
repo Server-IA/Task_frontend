@@ -35,6 +35,7 @@ export function useGithubPulls(slug, projectId, state, { enabled = true, live = 
     queryKey: queryKeys.githubPulls(slug, projectId, state),
     queryFn: () => githubApi.pulls(slug, projectId, state),
     enabled: Boolean(slug && projectId) && enabled,
+    placeholderData: keepPreviousData,
     refetchInterval: live ? LIVE_MS : false,
   })
 }

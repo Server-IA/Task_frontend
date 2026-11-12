@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { Check, ChevronDown, GitBranch, GitMerge, GitPullRequest, GitPullRequestClosed } from 'lucide-react'
+import { GithubIcon } from '@/components/common/BrandIcons'
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { stateName, t } from '@/i18n'
@@ -10,18 +11,18 @@ import { useIssueGithubSummary } from './hooks'
 
 /** Piezas que comparten las pantallas de GitHub: la marca, las píldoras de estado, los iconos y el indicador de tarea. */
 
-/** La marca de GitHub: sus siglas sobre el color del texto (no se usa su logo). */
+/** La marca de GitHub: su logo sobre el color del texto. */
 export function GhMark({ size = 'lg', className }) {
   return (
     <span
       aria-hidden="true"
       className={cn(
-        'bg-foreground text-background flex shrink-0 items-center justify-center font-mono font-semibold',
-        size === 'lg' ? 'size-11 rounded-xl text-sm' : 'size-6 rounded-md text-[10px]',
+        'bg-foreground text-background flex shrink-0 items-center justify-center',
+        size === 'lg' ? 'size-11 rounded-xl' : 'size-6 rounded-md',
         className,
       )}
     >
-      GH
+      <GithubIcon className={size === 'lg' ? 'size-6' : 'size-3.5'} />
     </span>
   )
 }

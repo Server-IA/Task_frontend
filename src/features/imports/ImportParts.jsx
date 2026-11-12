@@ -1,4 +1,5 @@
-import { Check } from 'lucide-react'
+import { Check, FileSpreadsheet } from 'lucide-react'
+import { AsanaIcon, JiraIcon, LinearIcon, TrelloIcon } from '@/components/common/BrandIcons'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { t } from '@/i18n'
@@ -7,14 +8,17 @@ import { statusLabel } from './importModel'
 
 /** Piezas que comparten los pasos de una importación: la marca del origen, el estado, el marco con los pasos y la confirmación de deshacer. */
 
-/** La marca de un origen: su letra sobre su color (no se usan los logos de las otras herramientas). */
+const LOGOS = { JIRA: JiraIcon, TRELLO: TrelloIcon, LINEAR: LinearIcon, ASANA: AsanaIcon, CSV: FileSpreadsheet }
+
+/** La marca de un origen: su logo sobre su color (un CSV, el icono de una hoja de cálculo). */
 export function SourceMark({ source, className }) {
+  const Logo = LOGOS[source.key]
   return (
     <span
       aria-hidden="true"
       className={cn('flex h-8.5 min-w-8.5 shrink-0 items-center justify-center rounded-[10px] px-1.5 font-mono text-xs font-semibold', source.tint, className)}
     >
-      {source.mark}
+      {Logo ? <Logo className="size-4.5" /> : source.mark}
     </span>
   )
 }

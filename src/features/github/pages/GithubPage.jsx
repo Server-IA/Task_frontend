@@ -3,7 +3,6 @@ import { Link, useSearchParams } from 'react-router'
 import { GitBranch, GitPullRequest, Play, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Segmented } from '@/components/common/Segmented'
@@ -233,7 +232,8 @@ function PullsView({ workspace, project, status }) {
   const [state, setState] = useState('open')
   const [repository, setRepository] = useState(ALL)
   const [author, setAuthor] = useState(ALL)
-  const { data: pulls, error, refetch } = useGithubPulls(slug, project.id, state)
+  // Al cambiar entre abiertos, fusionados y todos, la lista anterior se queda (atenuada) hasta que llega la nueva
+  const { data: pulls, error, refetch, isPlaceholderData: switching } = useGithubPulls(slug, project.id, state)
   const link = useLinkPullRequest(slug, project.id)
   const linked = useGithubLinked()
   // Enlazar un PR a una tarea es editarla, y se hace con la cuenta de GitHub de la persona
@@ -310,7 +310,14 @@ function PullsView({ workspace, project, status }) {
           />
         )}
       </div>
-      <section aria-label={t('Pull requests')} className="bg-card overflow-hidden rounded-2xl border">
+      <section
+        aria-label={t('Pull requests')}
+        aria-busy={switching}
+        className={cn(
+          'bg-card overflow-hidden rounded-2xl border transition-opacity duration-200',
+          switching && 'opacity-60',
+        )}
+      >
         {!pulls && !error ? (
           <div className="space-y-2 p-4">
             <Skeleton className="h-11 rounded-lg" />
@@ -336,7 +343,7 @@ function PullsView({ workspace, project, status }) {
                 <li
                   key={pull.id}
                   className={cn(
-                    'grid grid-cols-[auto_minmax(0,1fr)_176px_138px_auto_166px] items-center gap-x-3.5 px-4 py-3',
+                    'grid grid-cols-[auto_minmax(0,1fr)_176px_138px_auto_200px] items-center gap-x-3.5 px-4 py-3',
                     index > 0 && 'border-t',
                   )}
                 >
@@ -439,12 +446,12 @@ function BranchesView({ workspace, project, branches }) {
   return (
     <div className="flex flex-col gap-3">
       {branches?.length > 0 && (
-        <div className="relative w-full max-w-[340px]">
-          <Search
-            className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
-            aria-hidden="true"
-          />
-          <Input
+        // Como el buscador de la lista de tareas: una cápsula estilo consola, sin brillo al enfocarla (solo el borde)
+        <label className="bg-card focus-within:border-foreground/35 flex w-full max-w-[340px] items-center gap-2 rounded-full border px-3.5 py-1.5 font-mono text-[13px] transition-colors">
+          <span aria-hidden="true" className="text-accent-text font-semibold">
+            &gt;
+          </span>
+          <input
             type="search"
             value={query}
             onChange={(event) => {
@@ -453,9 +460,9 @@ function BranchesView({ workspace, project, branches }) {
             }}
             placeholder={t('Buscar rama o tarea')}
             aria-label={t('Buscar rama o tarea')}
-            className="h-8.5 pl-9 text-[13px]"
+            className="placeholder:text-muted-foreground min-w-0 flex-1 bg-transparent outline-none [&::-webkit-search-cancel-button]:hidden"
           />
-        </div>
+        </label>
       )}
       <section aria-label={t('Ramas')} className="bg-card overflow-hidden rounded-2xl border">
         {!branches ? (
@@ -508,7 +515,7 @@ function BranchesView({ workspace, project, branches }) {
                   issueId={branch.issueId}
                   code={branch.issueCode}
                 />
-                <span className="text-muted-foreground w-[166px] shrink-0 truncate text-right font-mono text-[11.5px]">
+                <span className="text-muted-foreground w-[200px] shrink-0 truncate text-right font-mono text-[11.5px]">
                   {formatRelative(branch.createdAt)}
                 </span>
               </li>
