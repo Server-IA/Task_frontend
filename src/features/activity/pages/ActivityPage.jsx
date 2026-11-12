@@ -21,7 +21,7 @@ import { formatDateTime, formatRelative, groupByDay } from '@/lib/dates'
 import { flattenUniquePages } from '@/lib/pagination'
 import { workspacePath } from '@/lib/paths'
 import { cn } from '@/lib/utils'
-import { SingleFilter } from '../components/SingleFilter'
+import { SingleFilter } from '@/components/common/SingleFilter'
 import { useActivitySummary, useStateGroups, useWorkspaceActivity } from '../hooks'
 
 const TYPES = [

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Check, FileSpreadsheet } from 'lucide-react'
 import { AsanaIcon, JiraIcon, LinearIcon, TrelloIcon } from '@/components/common/BrandIcons'
 import { Button } from '@/components/ui/button'
@@ -68,9 +69,13 @@ const STEPS = ['origin', 'connect', 'choose', 'mapping', 'review', 'run']
  */
 export function WizardShell({ source, sub, step, file = !source.api, exitLabel = t('Cancelar'), onExit, children }) {
   const at = step === 'done' ? STEPS.length : STEPS.indexOf(step)
+  // El paso nuevo entra desde la derecha al avanzar y desde la izquierda al volver. Al montarse (de «Conectar» a «Qué
+  // importar» son pantallas distintas) siempre se va hacia adelante
+  const [motion, setMotion] = useState({ at, back: false })
+  if (motion.at !== at) setMotion({ at, back: at < motion.at })
   const labels = [t('Origen'), file ? t('Archivo') : t('Conectar'), t('Qué importar'), t('Equivalencias'), t('Revisar'), t('Importar')]
   return (
-    <div className="flex flex-col gap-3.5">
+    <div className="flex flex-col gap-3.5 overflow-x-clip">
       <section aria-label={t('Pasos de la importación')} className="tf-panel flex flex-col gap-3.5 px-5 pt-3.5 pb-4">
         <div className="flex flex-wrap items-center gap-3">
           <SourceMark source={source} />
@@ -91,18 +96,18 @@ export function WizardShell({ source, sub, step, file = !source.api, exitLabel =
                 key={label}
                 aria-current={current ? 'step' : undefined}
                 className={cn(
-                  'flex items-center gap-2 rounded-full py-1.25 pr-3 pl-1.5 text-[13px] font-medium',
+                  'flex items-center gap-2 rounded-full py-1.25 pr-3 pl-1.5 text-[13px] font-medium transition-colors duration-300',
                   current ? 'bg-accent-soft font-semibold text-accent-text' : done ? 'text-foreground' : 'text-muted-foreground',
                 )}
               >
                 <span
                   aria-hidden="true"
                   className={cn(
-                    'flex size-5.5 items-center justify-center rounded-full font-mono text-[11px] font-semibold',
+                    'flex size-5.5 items-center justify-center rounded-full font-mono text-[11px] font-semibold transition-colors duration-300',
                     done ? 'bg-ok-soft text-ok' : current ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
                   )}
                 >
-                  {done ? <Check className="size-3" strokeWidth={3} /> : index + 1}
+                  {done ? <Check className="tf-pop size-3" strokeWidth={3} /> : index + 1}
                 </span>
                 {label}
               </li>
@@ -110,7 +115,9 @@ export function WizardShell({ source, sub, step, file = !source.api, exitLabel =
           })}
         </ol>
       </section>
-      {children}
+      <div key={step} className={cn('flex min-w-0 flex-col gap-3.5', motion.back ? 'tf-slide-prev' : 'tf-slide-next')}>
+        {children}
+      </div>
     </div>
   )
 }

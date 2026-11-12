@@ -140,7 +140,7 @@ function ImportHistory({ workspace, onOpen }) {
           className="border-t py-8"
         />
       ) : (
-        <table className="w-full min-w-[720px] border-collapse text-sm">
+        <table className="tf-fade w-full min-w-[720px] border-collapse text-sm">
           <thead>
             <tr className="bg-subtle font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase">
               <th scope="col" className="px-4 py-2.25 text-left font-semibold">

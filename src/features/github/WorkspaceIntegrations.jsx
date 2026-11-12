@@ -83,7 +83,7 @@ export function WorkspaceIntegrations({ workspace }) {
   }
 
   return (
-    <div className="mx-auto flex max-w-[940px] flex-col gap-3.5">
+    <div className="tf-fade mx-auto flex max-w-[940px] flex-col gap-3.5">
       {status.connected ? (
         <Connected workspace={workspace} status={status} canManage={canManage} />
       ) : (

@@ -429,15 +429,15 @@ function CreateBranchDialog({ open, onOpenChange, slug, project, issue, dev }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[calc(100dvh-3rem)] overflow-y-auto sm:max-w-[520px]">
-        {open && (
-          <CreateBranchForm
-            slug={slug}
-            project={project}
-            issue={issue}
-            dev={dev}
-            onDone={() => onOpenChange(false)}
-          />
-        )}
+        {/* Radix desmonta el contenido al terminar de cerrarse: el formulario sigue visible mientras se va y cada vez que se
+            abre empieza limpio */}
+        <CreateBranchForm
+          slug={slug}
+          project={project}
+          issue={issue}
+          dev={dev}
+          onDone={() => onOpenChange(false)}
+        />
       </DialogContent>
     </Dialog>
   )
@@ -581,15 +581,9 @@ function LinkDialog({ open, onOpenChange, slug, project, issue, dev }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[calc(100dvh-3rem)] overflow-y-auto sm:max-w-[520px]">
-        {open && (
-          <LinkForm
-            slug={slug}
-            project={project}
-            issue={issue}
-            dev={dev}
-            onDone={() => onOpenChange(false)}
-          />
-        )}
+        {/* Radix desmonta el contenido al terminar de cerrarse: el formulario sigue visible mientras se va y cada vez que se
+            abre empieza limpio */}
+        <LinkForm slug={slug} project={project} issue={issue} dev={dev} onDone={() => onOpenChange(false)} />
       </DialogContent>
     </Dialog>
   )
