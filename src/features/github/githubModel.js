@@ -27,6 +27,20 @@ export const branchUrl = (fullName, branch) =>
 export const shortSha = (sha) => (sha ?? '').slice(0, 7)
 
 /**
+ * La pantalla de GitHub para abrir un pull request desde esa rama (hacia la rama por defecto), con el título ya puesto:
+ * el código de la tarea en el título lo enlaza solo.
+ */
+export const newPullUrl = (fullName, branch, title) =>
+  `${GITHUB}/${fullName}/compare/${branch.split('/').map(encodeURIComponent).join('/')}?expand=1&title=${encodeURIComponent(title)}`
+
+/** Si la rama ya tiene un pull request abierto, en borrador o fusionado (uno cerrado sin fusionar no cuenta). */
+export const hasPull = (pulls, branch) =>
+  pulls.some(
+    (pull) =>
+      pull.repository === branch.repository && pull.headBranch === branch.name && pull.state !== 'CLOSED',
+  )
+
+/**
  * @param {string} state OPEN, DRAFT, MERGED o CLOSED
  * @returns {{ label: string, tone: keyof typeof TONE, icon: 'pr' | 'merge' | 'closed' }}
  */

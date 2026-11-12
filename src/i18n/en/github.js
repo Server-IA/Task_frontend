@@ -246,6 +246,9 @@ export default {
   'Enlazar una que ya existe': 'Link an existing one',
   'Crear rama': 'Create branch',
   'Nombre de la rama copiado': 'Branch name copied',
+  'Abrir PR': 'Open PR',
+  'Abrir el pull request en GitHub, con {code} en el título':
+    'Open the pull request on GitHub, with {code} in the title',
   'Copiar nombre': 'Copy name',
   'No se pudo copiar': 'Could not copy',
   'abierto por {name}': 'opened by {name}',
