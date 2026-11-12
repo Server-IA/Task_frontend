@@ -1,0 +1,55 @@
+# Plantilla de nginx de la imagen (ver Dockerfile): al arrancar, ${BACKEND_URL} se cambia por su valor. Las demás
+# variables de nginx ($uri, $host…) quedan como están.
+
+# Detrás de Dokploy, Traefik dice si la petición llegó por HTTPS; si no lo dice, vale lo de esta conexión
+map $http_x_forwarded_proto $forwarded_proto {
+    default $http_x_forwarded_proto;
+    ''      $scheme;
+}
+
+server {
+    listen 5446;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Detrás de Dokploy/Traefik (HTTPS en el proxy) una redirección absoluta saldría como http://host:5446/…
+    absolute_redirect off;
+    server_tokens off;
+
+    # La importación sube archivos de hasta 14 MB (los adjuntos e imágenes van directo a R2, no pasan por aquí)
+    client_max_body_size 20m;
+
+    # La API: misma dirección, se reenvía al backend tal cual (/api/v1/…)
+    location /api/ {
+        proxy_pass ${BACKEND_URL};
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
+        proxy_set_header X-Forwarded-Host $host;
+        # Reportes en PDF e importaciones grandes pueden tardar
+        proxy_read_timeout 120s;
+        proxy_send_timeout 120s;
+    }
+
+    # Archivos con hash en el nombre: caché larga (un solo Cache-Control: expires agregaría otro)
+    location /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        include /etc/nginx/conf.d/security-headers.inc;
+        try_files $uri =404;
+    }
+
+    # SPA: cualquier otra ruta devuelve index.html y la resuelve React Router. Sin $uri/: una ruta que coincide con
+    # una carpeta de public/ (por ejemplo /email) no redirige a /email/ ni responde 403
+    location / {
+        add_header Cache-Control "no-cache";
+        include /etc/nginx/conf.d/security-headers.inc;
+        try_files $uri /index.html;
+    }
+
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css text/javascript application/javascript application/json image/svg+xml;
+}
