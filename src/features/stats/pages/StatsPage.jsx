@@ -13,8 +13,9 @@ import { t } from '@/i18n'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { projectPath } from '@/lib/paths'
 import { cn } from '@/lib/utils'
-import { useProjectStats } from '../hooks'
+import { useDevelopmentStats, useProjectStats } from '../hooks'
 import { assigneesFromParams, resolveAssignees, withAssignees } from '../personFilter'
+import { DevelopmentSection } from '../components/DevelopmentSection'
 import { PersonFilter } from '../components/PersonFilter'
 import { BurndownCard, KpiTiles, StaleCard, StatesCard, ThroughputCard, WorkloadCard } from '../components/StatsSections'
 
@@ -23,8 +24,8 @@ const RANGES = [4, 8, 12]
 const DEFAULT_RANGE = 8
 
 /**
- * Estadísticas del proyecto: indicadores, ritmo de cierre, burndown del ciclo, estados, carga y tareas quietas.
- * El periodo (`?weeks=`) y las personas de «+ persona» (`?assignee=`, repetible) viven en la URL.
+ * Estadísticas del proyecto: indicadores, ritmo de cierre, burndown del ciclo, estados, carga y tareas quietas y, si
+ * el proyecto tiene repositorios de GitHub, el desarrollo (pull requests y Actions) del mismo periodo. El periodo (`?weeks=`) y las personas de «+ persona» (`?assignee=`, repetible) viven en la URL.
  */
 export function StatsPage() {
   const workspace = useCurrentWorkspace()
@@ -39,6 +40,8 @@ export function StatsPage() {
     weeks,
     assignees,
   )
+  // Solo aparece con repositorios enlazados; si falla, el resto de la página sigue igual
+  const { data: development } = useDevelopmentStats(workspace.slug, project.id, weeks)
   const { data: members } = useProjectMembers(workspace.slug, project.id)
   const users = useMemo(() => (members ?? []).map((member) => member.user), [members])
   // Quien ya no es miembro se reconoce por la carga, que con el filtro trae solo a esas personas
@@ -108,6 +111,14 @@ export function StatsPage() {
               <WorkloadCard className="flex-[1.3_1_320px]" workload={stats.workload ?? []} />
               <StaleCard className="flex-[1.3_1_320px]" stale={stats.stale ?? []} onOpenIssue={issueFilters.openIssue} />
             </div>
+            {development?.repositories > 0 && (
+              <DevelopmentSection
+                stats={development}
+                githubUrl={`${base}/github`}
+                filtered={assignees.length > 0}
+                onOpenIssue={issueFilters.openIssue}
+              />
+            )}
           </div>
         )}
       </PageBody>

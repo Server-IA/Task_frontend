@@ -109,7 +109,8 @@ export function KpiTiles({ stats, onOpenIssue }) {
   )
 }
 
-function KpiTile({ label, value, unit, detail, alert = false, valueClassName }) {
+/** Un indicador: nombre en monoespaciada, la cifra grande (con su unidad) y una línea que la explica. */
+export function KpiTile({ label, value, unit, detail, alert = false, valueClassName }) {
   return (
     <article className="tf-panel flex flex-col gap-1.5 px-4.5 py-4">
       <h3 className="flex items-center gap-1.5 font-mono text-[11px] tracking-[0.06em] text-muted-foreground uppercase">

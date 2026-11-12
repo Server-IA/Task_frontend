@@ -25,11 +25,24 @@ export const REPORT_SORTS = [
   { value: 'MANUAL', label: t('Orden del tablero') },
 ]
 
-/** Secciones del PDF que se pueden quitar. */
+/**
+ * Secciones del PDF que se pueden quitar. La de desarrollo (`github`) solo se ofrece si el proyecto tiene repositorios
+ * de GitHub enlazados.
+ */
 export const REPORT_SECTIONS = [
   { key: 'summary', label: t('Resumen'), hint: t('Totales y reparto por estado, prioridad, persona y tipo.') },
   { key: 'issues', label: t('Listado de tareas'), hint: t('La tabla con código, título, estado, prioridad, asignados, etiquetas y fecha.') },
+  {
+    key: 'development',
+    label: t('Desarrollo (GitHub)'),
+    hint: t('Pull requests y ejecuciones de Actions de los repositorios enlazados.'),
+    github: true,
+  },
 ]
+
+/** Semanas que puede cubrir la sección de desarrollo (las mismas de Estadísticas). */
+export const DEVELOPMENT_WEEKS = [4, 8, 12]
+const DEFAULT_DEVELOPMENT_WEEKS = 8
 
 export const DEFAULT_REPORT_OPTIONS = {
   createdFrom: null,
@@ -40,6 +53,9 @@ export const DEFAULT_REPORT_OPTIONS = {
   sort: 'PRIORITY',
   summary: true,
   issues: true,
+  // Opcional: solo los proyectos con GitHub la tienen
+  development: false,
+  developmentWeeks: DEFAULT_DEVELOPMENT_WEEKS,
 }
 
 /** Un rango al revés («desde» después de «hasta»): las fechas son «2026-11-10», que se comparan como texto. */
@@ -48,11 +64,16 @@ export const isRangeReversed = (from, to) => Boolean(from && to && from > to)
 /**
  * Por qué no se puede generar el reporte con esas opciones, o null si se puede.
  * @param {typeof DEFAULT_REPORT_OPTIONS} options
+ * @param {{ github?: boolean }} [project] `github`: el proyecto tiene repositorios (se puede elegir el desarrollo)
  */
-export function reportOptionsError(options) {
+export function reportOptionsError(options, { github = false } = {}) {
   if (isRangeReversed(options.createdFrom, options.createdTo)) return t('En «Creadas», la fecha «desde» es posterior a «hasta».')
   if (isRangeReversed(options.dueFrom, options.dueTo)) return t('En «Fecha límite», la fecha «desde» es posterior a «hasta».')
-  if (!options.summary && !options.issues) return t('Deja al menos una sección: el resumen o el listado.')
+  if (!options.summary && !options.issues && !(github && options.development)) {
+    return github
+      ? t('Deja al menos una sección: el resumen, el listado o el desarrollo.')
+      : t('Deja al menos una sección: el resumen o el listado.')
+  }
   return null
 }
 
@@ -74,12 +95,24 @@ export function reportParams(queryFilters, options) {
   params.sort = options.sort
   if (!options.summary) params.summary = false
   if (!options.issues) params.issues = false
+  if (options.development) params.development = true
+  if (options.developmentWeeks && options.developmentWeeks !== DEFAULT_DEVELOPMENT_WEEKS) params.developmentWeeks = options.developmentWeeks
   return params
 }
 
-/** Solo lo que decide qué tareas entran (la vista previa no depende de cómo se agrupa ni de las secciones). */
+/**
+ * Solo lo que decide qué trae la vista previa: qué tareas entran y las semanas del desarrollo (que llega aunque la
+ * sección esté apagada). No depende de cómo se agrupa ni de las secciones.
+ */
 export function previewParams(queryFilters, options) {
-  const { groupBy: _groupBy, sort: _sort, summary: _summary, issues: _issues, ...params } = reportParams(queryFilters, options)
+  const {
+    groupBy: _groupBy,
+    sort: _sort,
+    summary: _summary,
+    issues: _issues,
+    development: _development,
+    ...params
+  } = reportParams(queryFilters, options)
   return params
 }
 

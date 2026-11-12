@@ -14,13 +14,33 @@ const RIGHT = 6
 /** Barras finas: nunca llenan el espacio de su semana. */
 const MAX_BAR_WIDTH = 24
 
+/** Qué se cuenta por semana: tareas cerradas (`completed`) o pull requests fusionados (`merged`). */
+const KINDS = {
+  completed: {
+    count: (week) => week.completed,
+    summary: (weeks) => t('Tareas cerradas por semana: {weeks}', { weeks }),
+    bar: (date, count) => t('Semana del {date}: {count} cerradas', { date, count }),
+    tooltip: (count, strong) =>
+      count === 1 ? tx('{count} cerrada', { count: strong }) : tx('{count} cerradas', { count: strong }),
+  },
+  merged: {
+    count: (week) => week.merged,
+    summary: (weeks) => t('Pull requests fusionados por semana: {weeks}', { weeks }),
+    bar: (date, count) => t('Semana del {date}: {count} fusionados', { date, count }),
+    tooltip: (count, strong) =>
+      count === 1 ? tx('{count} fusionado', { count: strong }) : tx('{count} fusionados', { count: strong }),
+  },
+}
+
 /**
- * Columnas de tareas cerradas por semana. Una sola serie (sin leyenda): el título dice qué se mide.
- * Etiqueta directa solo en la última semana; el resto está en el eje, en el globo al pasar el puntero
- * (o con el foco del teclado) y en la tabla.
- * @param {{ weeks: import('@/api/types').ThroughputWeek[] }} props
+ * Columnas por semana: tareas cerradas o, con `kind="merged"`, pull requests fusionados. Una sola serie (sin
+ * leyenda): el título dice qué se mide. Etiqueta directa solo en la última semana; el resto está en el eje, en el
+ * globo al pasar el puntero (o con el foco del teclado) y en la tabla.
+ * @param {{ weeks: { weekStart: string, completed?: number, merged?: number }[], kind?: 'completed' | 'merged' }} props
  */
-export function ThroughputChart({ weeks }) {
+export function ThroughputChart({ weeks: data, kind = 'completed' }) {
+  const texts = KINDS[kind]
+  const weeks = data.map((week) => ({ weekStart: week.weekStart, completed: texts.count(week) }))
   const containerRef = useRef(null)
   const width = useElementWidth(containerRef)
   const [active, setActive] = useState(null)
@@ -36,7 +56,7 @@ export function ThroughputChart({ weeks }) {
     return { ...week, cx, top: y(week.completed), label: formatShortDate(week.weekStart) }
   })
   const last = bars.at(-1)
-  const summary = t('Tareas cerradas por semana: {weeks}', { weeks: bars.map((bar) => `${bar.label}, ${bar.completed}`).join('; ') })
+  const summary = texts.summary(bars.map((bar) => `${bar.label}, ${bar.completed}`).join('; '))
 
   return (
     <div ref={containerRef} className="relative">
@@ -84,7 +104,7 @@ export function ThroughputChart({ weeks }) {
             fill="transparent"
             tabIndex={0}
             role="img"
-            aria-label={t('Semana del {date}: {count} cerradas', { date: bar.label, count: bar.completed })}
+            aria-label={texts.bar(bar.label, bar.completed)}
             className="outline-none"
             onPointerEnter={() => setActive(index)}
             onPointerLeave={() => setActive(null)}
@@ -96,9 +116,7 @@ export function ThroughputChart({ weeks }) {
       {active !== null && bars[active] && (
         <ChartTooltip x={bars[active].cx} y={bars[active].top} containerWidth={width}>
           <TooltipLabel>{t('semana del {date}', { date: bars[active].label })}</TooltipLabel>
-          {bars[active].completed === 1
-            ? tx('{count} cerrada', { count: <strong className="font-semibold">{bars[active].completed}</strong> })
-            : tx('{count} cerradas', { count: <strong className="font-semibold">{bars[active].completed}</strong> })}
+          {texts.tooltip(bars[active].completed, <strong className="font-semibold">{bars[active].completed}</strong>)}
         </ChartTooltip>
       )}
     </div>
