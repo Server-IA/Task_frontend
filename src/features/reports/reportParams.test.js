@@ -37,6 +37,21 @@ describe('opciones del reporte', () => {
     expect(reportOptionsError({ ...DEFAULT_REPORT_OPTIONS, summary: false, issues: false })).toMatch(/al menos una sección/)
   })
 
+  it('el desarrollo (GitHub) viaja solo si se pide y sus semanas solo si no son las de siempre', () => {
+    expect(reportParams({}, { ...DEFAULT_REPORT_OPTIONS, development: true })).toMatchObject({ development: true })
+    expect(reportParams({}, { ...DEFAULT_REPORT_OPTIONS, development: true })).not.toHaveProperty('developmentWeeks')
+    expect(reportParams({}, { ...DEFAULT_REPORT_OPTIONS, development: true, developmentWeeks: 4 })).toMatchObject({ developmentWeeks: 4 })
+    // La vista previa trae el desarrollo aunque la sección esté apagada: encenderla no la vuelve a pedir
+    expect(previewParams({}, { ...DEFAULT_REPORT_OPTIONS, development: true, developmentWeeks: 12 })).toEqual({ developmentWeeks: 12 })
+  })
+
+  it('con GitHub, el desarrollo solo también es una sección', () => {
+    const onlyDevelopment = { ...DEFAULT_REPORT_OPTIONS, summary: false, issues: false, development: true }
+    expect(reportOptionsError(onlyDevelopment, { github: true })).toBeNull()
+    expect(reportOptionsError(onlyDevelopment)).toMatch(/el resumen o el listado/)
+    expect(reportOptionsError({ ...onlyDevelopment, development: false }, { github: true })).toMatch(/o el desarrollo/)
+  })
+
   it('nombra el archivo con el identificador y el día', () => {
     expect(reportFileName('PORT', '2026-11-10')).toBe('reporte-tareas-PORT-2026-11-10.pdf')
   })

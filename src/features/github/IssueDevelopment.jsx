@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowUpRight, GitBranch } from 'lucide-react'
+import { ArrowUpRight, GitBranch, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -41,6 +41,7 @@ import {
   useGithubRepoBranches,
   useLinkBranch,
   useLinkPullRequest,
+  useUnlinkBranch,
 } from './hooks'
 
 async function copy(text, done) {
@@ -67,8 +68,8 @@ export function IssueDevelopment({ slug, project, issue }) {
   if (!dev?.available) return null
 
   const canEdit = can(workspace, 'ISSUE_EDIT')
-  // La rama la crea la persona con su cuenta de GitHub; enlazar una que ya existe no la necesita
-  const canCreate = canEdit && linked === true
+  // Crear, enlazar o quitar ramas y pull requests se hace con la cuenta de GitHub de la persona (modo estricto)
+  const canLink = canEdit && linked === true
   const empty = dev.branches.length === 0 && dev.pullRequests.length === 0
   const onlyRuns = empty && dev.runs.length > 0
   const titleId = `development-${issue.id}`
@@ -83,13 +84,11 @@ export function IssueDevelopment({ slug, project, issue }) {
             <span className="text-muted-foreground font-mono text-xs font-normal">{devCount(dev)}</span>
           )}
         </h2>
-        {canEdit && !empty && (
+        {canLink && !empty && (
           <span className="ml-auto flex gap-1.5">
-            {canCreate && (
-              <button type="button" className={action} onClick={() => setCreating(true)}>
-                {t('+ crear rama')}
-              </button>
-            )}
+            <button type="button" className={action} onClick={() => setCreating(true)}>
+              {t('+ crear rama')}
+            </button>
             <button type="button" className={action} onClick={() => setLinking(true)}>
               {t('+ enlazar otra rama o PR')}
             </button>
@@ -101,7 +100,7 @@ export function IssueDevelopment({ slug, project, issue }) {
         <div className="border-dash flex flex-wrap items-center gap-3 rounded-[14px] border border-dashed px-4 py-3.5">
           <span className="text-muted-foreground min-w-0 flex-[1_1_260px] text-[13px] leading-normal">
             {tx(
-              canCreate
+              canLink
                 ? 'Todavía no hay rama ni pull request. Crea la rama aquí, o nombra {code} en la tuya y se enlaza sola.'
                 : 'Todavía no hay rama ni pull request. Nombra {code} en la tuya y se enlaza sola.',
               {
@@ -109,51 +108,39 @@ export function IssueDevelopment({ slug, project, issue }) {
               },
             )}
           </span>
-          {canEdit && (
+          {canLink && (
             <span className="flex flex-wrap gap-2">
               <Button variant="ghost" size="sm" onClick={() => setLinking(true)}>
                 {t('Enlazar una que ya existe')}
               </Button>
-              {canCreate && (
-                <Button size="sm" className="gap-2" onClick={() => setCreating(true)}>
-                  <GitBranch className="size-3.5" aria-hidden="true" />
-                  {t('Crear rama')}
-                </Button>
-              )}
+              <Button size="sm" className="gap-2" onClick={() => setCreating(true)}>
+                <GitBranch className="size-3.5" aria-hidden="true" />
+                {t('Crear rama')}
+              </Button>
             </span>
           )}
         </div>
       ) : (
         <>
           {dev.branches.map((branch) => (
-            <div
+            <BranchRow
               key={branch.id}
-              className="bg-muted grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2.5 gap-y-0.5 rounded-xl px-3 py-2"
-            >
-              <GitBranch className="text-muted-foreground size-3.5 shrink-0" aria-hidden="true" />
-              <a
-                href={branchUrl(branch.repository, branch.name)}
-                target="_blank"
-                rel="noreferrer"
-                title={branch.name}
-                className="min-w-0 truncate font-mono text-[13px] font-semibold hover:underline"
-              >
-                {branch.name}
-              </a>
-              <span className="text-muted-foreground col-start-2 row-start-2 min-w-0 truncate font-mono text-[11.5px]">
-                {branch.repository} · {formatRelative(branch.createdAt)}
-              </span>
-              <button
-                type="button"
-                className="text-muted-foreground hover:bg-background hover:text-foreground focus-visible:ring-ring rounded-md px-1.5 py-0.5 text-xs focus-visible:ring-2 focus-visible:outline-none"
-                onClick={() => copy(branch.name, t('Nombre de la rama copiado'))}
-              >
-                {t('Copiar nombre')}
-              </button>
-            </div>
+              slug={slug}
+              projectId={project.id}
+              issue={issue}
+              branch={branch}
+              canLink={canLink}
+            />
           ))}
           {dev.pullRequests.map((pull) => (
-            <PullCard key={pull.id} slug={slug} projectId={project.id} issueId={issue.id} pull={pull} />
+            <PullCard
+              key={pull.id}
+              slug={slug}
+              projectId={project.id}
+              issue={issue}
+              pull={pull}
+              canLink={canLink}
+            />
           ))}
           {dev.runs.length > 0 && <Runs runs={dev.runs} />}
         </>
@@ -162,10 +149,12 @@ export function IssueDevelopment({ slug, project, issue }) {
       {onlyRuns && <Runs runs={dev.runs} />}
       {canEdit && (
         <ConnectAccountNotice short>
-          {t('Para crear la rama desde aquí, conecta tu cuenta de GitHub: la rama se crea a tu nombre.')}
+          {t(
+            'Para crear, enlazar o quitar ramas y pull requests desde aquí, conecta tu cuenta de GitHub: se hace a tu nombre.',
+          )}
         </ConnectAccountNotice>
       )}
-      {canEdit && (
+      {canLink && (
         <CreateBranchDialog
           open={creating}
           onOpenChange={setCreating}
@@ -175,7 +164,7 @@ export function IssueDevelopment({ slug, project, issue }) {
           dev={dev}
         />
       )}
-      {canEdit && (
+      {canLink && (
         <LinkDialog
           open={linking}
           onOpenChange={setLinking}
@@ -189,11 +178,81 @@ export function IssueDevelopment({ slug, project, issue }) {
   )
 }
 
+const iconButton =
+  'text-muted-foreground hover:bg-background hover:text-foreground focus-visible:ring-ring flex size-7 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50'
+
+/** Una rama de la tarea: su nombre (enlace a GitHub), su repositorio y cuándo se enlazó; se copia o se quita de la tarea. */
+function BranchRow({ slug, projectId, issue, branch, canLink }) {
+  const unlink = useUnlinkBranch(slug, projectId, issue.id)
+  const handleUnlink = () =>
+    unlink.mutate(branch.id, {
+      onSuccess: () =>
+        toast.success(t('Rama {branch} quitada de {code}', { branch: branch.name, code: issue.code })),
+      onError: (unlinkError) => notifyError(unlinkError, t('No se pudo quitar')),
+    })
+  return (
+    <div className="bg-muted flex items-center gap-2.5 rounded-xl py-2 pr-1.5 pl-3">
+      <GitBranch className="text-muted-foreground size-3.5 shrink-0" aria-hidden="true" />
+      <div className="min-w-0 flex-1">
+        <a
+          href={branchUrl(branch.repository, branch.name)}
+          target="_blank"
+          rel="noreferrer"
+          title={branch.name}
+          className="block truncate font-mono text-[13px] font-semibold hover:underline"
+        >
+          {branch.name}
+        </a>
+        <span className="text-muted-foreground mt-0.5 flex min-w-0 gap-1.5 font-mono text-[11.5px]">
+          <span className="min-w-0 truncate" title={branch.repository}>
+            {repoName(branch.repository)}
+          </span>
+          <span aria-hidden="true">·</span>
+          <span className="shrink-0">{formatRelative(branch.createdAt)}</span>
+        </span>
+      </div>
+      <button
+        type="button"
+        aria-label={t('Copiar el nombre de la rama')}
+        className="text-muted-foreground hover:bg-background hover:text-foreground focus-visible:ring-ring shrink-0 rounded-md px-2 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none"
+        onClick={() => copy(branch.name, t('Nombre de la rama copiado'))}
+      >
+        {t('Copiar')}
+      </button>
+      {canLink && (
+        <button
+          type="button"
+          aria-label={t('Quitar la rama {branch} de la tarea', { branch: branch.name })}
+          title={t('Quitar de la tarea (la rama sigue en GitHub)')}
+          disabled={unlink.isPending}
+          onClick={handleUnlink}
+          className={iconButton}
+        >
+          <X className="size-4" aria-hidden="true" />
+        </button>
+      )}
+    </div>
+  )
+}
+
 /** Un pull request de la tarea: quién lo abrió, a quién se le pidió revisión, su estado y sus checks. */
-function PullCard({ slug, projectId, issueId, pull }) {
+function PullCard({ slug, projectId, issue, pull, canLink }) {
+  const issueId = issue.id
   const info = pullState(pull.state)
   const live = pull.state === 'OPEN' || pull.state === 'DRAFT'
   const { data: checks } = useGithubChecks(slug, projectId, issueId, live ? pull : null)
+  const unlink = useLinkPullRequest(slug, projectId)
+  const handleUnlink = () =>
+    unlink.mutate(
+      { pullRequestId: pull.id, issueId: null },
+      {
+        onSuccess: () =>
+          toast.success(
+            t('Pull request #{number} quitado de {code}', { number: pull.number, code: issue.code }),
+          ),
+        onError: (unlinkError) => notifyError(unlinkError, t('No se pudo quitar')),
+      },
+    )
   const facts = [
     pull.authorLogin && t('abierto por {name}', { name: pull.authorName ?? pull.authorLogin }),
     pull.reviewers && live && t('revisión pedida a {names}', { names: pull.reviewers }),
@@ -202,7 +261,14 @@ function PullCard({ slug, projectId, issueId, pull }) {
   ]
   return (
     <div className="overflow-hidden rounded-[14px] border">
-      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 px-3.5 py-3">
+      <div
+        className={cn(
+          'grid items-center gap-x-3 py-3 pl-3.5',
+          canLink
+            ? 'grid-cols-[auto_minmax(0,1fr)_auto_auto] pr-1.5'
+            : 'grid-cols-[auto_minmax(0,1fr)_auto] pr-3.5',
+        )}
+      >
         <PullMark state={pull.state} />
         <span className="min-w-0">
           <span className="flex min-w-0 items-baseline gap-x-1.5">
@@ -233,6 +299,18 @@ function PullCard({ slug, projectId, issueId, pull }) {
             <ArrowUpRight className="size-3.5" aria-hidden="true" />
           </a>
         </span>
+        {canLink && (
+          <button
+            type="button"
+            aria-label={t('Quitar el pull request #{number} de la tarea', { number: pull.number })}
+            title={t('Quitar de la tarea')}
+            disabled={unlink.isPending}
+            onClick={handleUnlink}
+            className={cn(iconButton, 'hover:bg-muted self-start')}
+          >
+            <X className="size-4" aria-hidden="true" />
+          </button>
+        )}
       </div>
       {checks?.length > 0 && (
         <ul aria-label={t('Checks del pull request')} className="border-t">
@@ -602,7 +680,13 @@ function LinkForm({ slug, project, issue, dev, onDone }) {
             value={branch}
             onChange={setBranch}
             options={branchOptions}
-            placeholder={loadingBranches ? t('Leyendo ramas…') : t('Elige una rama')}
+            placeholder={
+              loadingBranches
+                ? t('Leyendo ramas…')
+                : branchOptions.length === 0
+                  ? t('No hay otras ramas')
+                  : t('Elige una rama')
+            }
             disabled={branchOptions.length === 0}
             mono
             className="w-full"

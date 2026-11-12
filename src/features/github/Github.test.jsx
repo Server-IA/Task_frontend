@@ -38,6 +38,7 @@ vi.mock('./api', () => ({
     checks: vi.fn(),
     createBranch: vi.fn(),
     linkBranch: vi.fn(),
+    unlinkBranch: vi.fn(),
     me: vi.fn(),
     linkUrl: vi.fn(),
     completeLink: vi.fn(),
@@ -471,6 +472,36 @@ describe('Desarrollo de la tarea', () => {
     expect(await screen.findByRole('link', { name: 'web-23-rate-limit' })).toBeInTheDocument()
   })
 
+  it('quitar una rama o un pull request de la tarea', async () => {
+    const withBoth = {
+      ...emptyDev,
+      branches: [
+        {
+          id: 'b1',
+          repositoryId: 'r-api',
+          repository: 'acme/sitio-web-api',
+          name: 'web-22-rotacion',
+          createdAt: '2026-11-11T08:00:00Z',
+        },
+      ],
+      pullRequests: [pull],
+    }
+    githubApi.issue.mockResolvedValue(withBoth)
+    githubApi.unlinkBranch.mockResolvedValue({ ...withBoth, branches: [] })
+    githubApi.linkPull.mockResolvedValue({ ...pull, issueId: null })
+    renderWith(<IssueDevelopment slug="equipo" project={project} issue={issue} />)
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Quitar la rama web-22-rotacion de la tarea' }),
+    )
+    await waitFor(() => expect(githubApi.unlinkBranch).toHaveBeenCalledWith('equipo', 'p-web', 'i-23', 'b1'))
+
+    await userEvent.click(
+      screen.getByRole('button', { name: `Quitar el pull request #${pull.number} de la tarea` }),
+    )
+    await waitFor(() => expect(githubApi.linkPull).toHaveBeenCalledWith('equipo', 'p-web', pull.id, null))
+  })
+
   it('un nombre que no sirve como rama no se puede crear', async () => {
     githubApi.issue.mockResolvedValue(emptyDev)
     githubApi.project.mockResolvedValue(projectStatus)
@@ -752,17 +783,19 @@ describe('la cuenta de GitHub de cada persona (modo estricto)', () => {
     expect(toast.error).toHaveBeenCalledWith('No autorizaste la conexión en GitHub')
   })
 
-  it('sin mi cuenta no puedo crear la rama, pero sí enlazar una que ya existe', async () => {
+  it('sin mi cuenta no puedo crear, enlazar ni quitar ramas (modo estricto)', async () => {
     githubApi.me.mockResolvedValue(noAccount)
     githubApi.issue.mockResolvedValue(emptyDev)
     renderWith(<IssueDevelopment slug="equipo" project={project} issue={issue} />)
 
     expect(
-      await screen.findByText(/Para crear la rama desde aquí, conecta tu cuenta de GitHub/),
+      await screen.findByText(
+        /Para crear, enlazar o quitar ramas y pull requests desde aquí, conecta tu cuenta de GitHub/,
+      ),
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Conectar mi cuenta/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Crear rama' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Enlazar una que ya existe' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Enlazar una que ya existe' })).not.toBeInTheDocument()
     expect(screen.queryByText(/Crea la rama aquí/)).not.toBeInTheDocument()
   })
 

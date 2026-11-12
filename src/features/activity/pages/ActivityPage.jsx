@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { History } from 'lucide-react'
+import { GithubIcon } from '@/components/common/BrandIcons'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/common/Loaders'
@@ -185,8 +186,8 @@ function FeedEntry({ slug, entry, stateGroup }) {
       <span className="relative shrink-0">
         {activityAutoMark(entry) === 'GH' ? (
           // Pasó en GitHub
-          <span aria-hidden="true" className="flex size-8 items-center justify-center rounded-lg bg-foreground font-mono text-[11px] font-bold text-background">
-            GH
+          <span aria-hidden="true" className="flex size-8 items-center justify-center rounded-lg bg-foreground text-background">
+            <GithubIcon className="size-4.5" />
           </span>
         ) : activityAutoMark(entry) ? (
           // Lo hizo TaskFlow (sin autor)

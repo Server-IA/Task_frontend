@@ -17,3 +17,16 @@ export function useProjectStats(slug, projectId, weeks, assignees = []) {
     placeholderData: keepPreviousData,
   })
 }
+
+/**
+ * Estadísticas de desarrollo (GitHub) del periodo. No dependen del filtro de personas: un pull request no siempre
+ * tiene a alguien de TaskFlow detrás.
+ */
+export function useDevelopmentStats(slug, projectId, weeks) {
+  return useQuery({
+    queryKey: [...queryKeys.stats(projectId, weeks), 'development'],
+    queryFn: () => statsApi.development(slug, projectId, { weeks }),
+    enabled: Boolean(slug && projectId),
+    placeholderData: keepPreviousData,
+  })
+}

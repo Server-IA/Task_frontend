@@ -152,12 +152,16 @@ sin dejar de ser JavaScript.
 
 ## Docker / despliegue
 
-El `Dockerfile` construye la app con Node 22 y la sirve con nginx 1.27 (`nginx.conf`: caché larga para `/assets`,
-*fallback* a `index.html` para las rutas de la SPA y gzip). En **Dokploy** este contenedor es el único expuesto
-(puerto 5446): sirve la SPA y reenvía `/api` al contenedor del backend, así el navegador y la API comparten origen.
+El `Dockerfile` construye la app con Node 22 y la sirve con nginx 1.27 sin privilegios en el puerto 5446
+(`nginx/default.conf.template`: caché larga para `/assets`, *fallback* a `index.html` para las rutas de la SPA, gzip,
+cabeceras de seguridad de `nginx/security-headers.inc` y subidas de hasta 20 MB). En **Dokploy** este contenedor es el
+único con dominio: sirve la SPA y reenvía `/api` a la API, así el navegador y la API comparten origen. La dirección
+interna de la API va en la variable `BACKEND_URL` (por ejemplo `http://taskflow-backend:8080`); la app llama a la API
+con la ruta relativa `/api/v1`. Los pasos completos están en `DESPLIEGUE.md` del repositorio del backend.
 
 ```bash
-docker build --build-arg VITE_API_URL=/api/v1 -t taskflow-frontend .
+docker build -t taskflow-frontend .
+docker run -p 5446:5446 -e BACKEND_URL=http://<api>:8080 taskflow-frontend
 ```
 
 ## Convenciones

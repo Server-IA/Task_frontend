@@ -116,7 +116,6 @@ function CurrentProject({ slug, project, base, workspace }) {
             to={`${base}/${section.path}`}
             label={section.label}
             meta={meta[section.path]}
-            title={t('{section} · atajo {key}', { section: section.label, key: section.hint })}
             className="h-8 pl-3 hover:bg-sidebar-active/60"
           />
         ))}

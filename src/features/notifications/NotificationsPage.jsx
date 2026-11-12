@@ -351,12 +351,13 @@ function NotificationItem({ notification, fresh = false, first, current, onOpen 
         onClick={onOpen}
         aria-current={current ? 'true' : undefined}
         className={cn(
-          'flex w-full items-start gap-3 px-4 py-3.5 text-left transition-colors duration-300 hover:bg-subtle',
-          // El primero y el último llevan las esquinas de la tarjeta (16 px menos su borde): así el borde del aviso
-          // abierto las sigue en vez de cortarse en ellas
+          'relative flex w-full items-start gap-3 px-4 py-3.5 text-left transition-colors duration-300 outline-none hover:bg-subtle focus-visible:bg-subtle',
+          // El primero y el último llevan las esquinas de la tarjeta (16 px menos su borde)
           '[li:first-child>&]:rounded-t-[15px] [li:last-child>&]:rounded-b-[15px]',
           !notification.read && 'bg-accent-soft/35',
-          current && 'bg-accent-soft shadow-[inset_0_0_0_1px_var(--accent-text)] hover:bg-accent-soft',
+          // El aviso abierto: su fondo y una raya a la izquierda. Sin contorno: junto al borde de la tarjeta se veía doble
+          current &&
+            'bg-accent-soft before:absolute before:inset-y-3 before:left-0 before:w-[3px] before:rounded-r-full before:bg-accent-text hover:bg-accent-soft focus-visible:bg-accent-soft',
         )}
       >
         <span className="relative shrink-0">

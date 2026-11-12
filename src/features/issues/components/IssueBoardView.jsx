@@ -257,6 +257,14 @@ function BoardColumns({ issues, lanes = null, slug, project, meta, openIssue, on
     return () => cancelAnimationFrame(frame)
   }, [columns])
 
+  // dnd-kit pide la colisión en cada movimiento del puntero y, si el resultado es un arreglo nuevo, avisa a todo lo
+  // que hay dentro del tablero (React recorre cada tarjeta buscando quién escucha). Mientras la tarjeta siga sobre lo
+  // mismo, se devuelve el mismo arreglo y ese recorrido no pasa
+  const lastCollision = useRef(NO_COLLISIONS)
+  const sameCollision = (id) => {
+    if (lastCollision.current[0]?.id !== id) lastCollision.current = [{ id }]
+    return lastCollision.current
+  }
   const collisionDetection = useCallback(
     (args) => {
       const pointerHits = pointerWithin(args)
@@ -277,11 +285,11 @@ function BoardColumns({ issues, lanes = null, slug, project, meta, openIssue, on
           }
         }
         lastOverId.current = overId
-        return [{ id: overId }]
+        return sameCollision(overId)
       }
       // Recién movida a otra columna, sus medidas aún no están al día: se mantiene donde está
       if (recentlyMovedToNewColumn.current) lastOverId.current = activeId
-      return lastOverId.current ? [{ id: lastOverId.current }] : []
+      return lastOverId.current ? sameCollision(lastOverId.current) : NO_COLLISIONS
     },
     [activeId],
   )
@@ -478,13 +486,13 @@ function BoardColumns({ issues, lanes = null, slug, project, meta, openIssue, on
           key={state.id}
           state={state}
           columnId={columnKey(laneKey, state.id)}
-          ids={columns[columnKey(laneKey, state.id)] ?? []}
+          ids={columns[columnKey(laneKey, state.id)] ?? NO_IDS}
           issuesById={issuesById}
           slug={slug}
           project={project}
           meta={meta}
           openIssue={openIssue}
-          onCreate={onCreateInState ? () => onCreateInState(state.id) : undefined}
+          onCreateInState={onCreateInState}
           inLane={inLane}
           dragging={activeId != null}
         />
@@ -593,13 +601,25 @@ function nearestColumn({ droppableContainers, droppableRects, pointerCoordinates
  * Los mismos ids mientras no cambie su contenido: SortableContext avisa a todas sus tarjetas cuando cambia el
  * arreglo, y reagrupar (por ejemplo al guardar la descripción de una tarea) arma arreglos nuevos.
  */
+/** Sin colisión: siempre el mismo arreglo (ver `sameCollision`). */
+const NO_COLLISIONS = []
+
+/** Una columna vacía: siempre el mismo arreglo, para que la columna memorizada no se vuelva a pintar por él. */
+const NO_IDS = []
+
 function useStableIds(ids) {
   const key = ids.join('|')
   return useMemo(() => (key ? key.split('|') : []), [key])
 }
 
-function BoardColumn({ state, columnId, ids: currentIds, issuesById, slug, project, meta, openIssue, onCreate, inLane, dragging = false }) {
+/**
+ * Memorizada: al pasar la tarjeta de una columna a otra solo se vuelven a pintar esas dos (sus `ids` cambian); las
+ * demás reciben lo mismo y se saltan. Por eso todo lo que recibe es estable (`NO_IDS`, `onCreateInState` en vez de una
+ * función nueva por columna).
+ */
+const BoardColumn = memo(function BoardColumn({ state, columnId, ids: currentIds, issuesById, slug, project, meta, openIssue, onCreateInState, inLane, dragging = false }) {
   const { setNodeRef, isOver } = useDroppable({ id: `column:${columnId}` })
+  const onCreate = onCreateInState ? () => onCreateInState(state.id) : undefined
   const ids = useStableIds(currentIds)
 
   if (inLane) {
@@ -662,7 +682,7 @@ function BoardColumn({ state, columnId, ids: currentIds, issuesById, slug, proje
       </SortableContext>
     </section>
   )
-}
+})
 
 /**
  * Tarjeta arrastrable. Memorizada (como `IssueCard`): al reemplazarse una tarea en la caché solo se vuelve a pintar

@@ -120,8 +120,6 @@ export default {
   en: 'in',
   sobre: 'on',
   'Quitar la regla «{name}»': 'Remove the rule “{name}”',
-  'Si el workflow ya corre solo al hacer push a main, no hace falta una regla: GitHub lo lanza al fusionar y TaskFlow lo muestra en la tarea. Las reglas sirven para lo que GitHub no sabe, como «la tarea quedó completada». Solo se pueden elegir workflows que acepten ejecución manual (workflow_dispatch).':
-    'If the workflow already runs by itself on push to main, no rule is needed: GitHub starts it on merge and TaskFlow shows it on the task. Rules are for what GitHub does not know, like “the task was completed”. Only workflows that accept manual runs (workflow_dispatch) can be chosen.',
   'Regla creada': 'Rule created',
   'No se pudo crear la regla': 'Could not create the rule',
   'Cuándo se ejecuta': 'When it runs',
@@ -344,12 +342,8 @@ export default {
     'To run, re-run or cancel workflows, connect your GitHub account. Viewing runs does not need it.',
   'cada ejecución abre su registro en GitHub · reintentar y cancelar piden el permiso «Ejecutar workflows» y tu cuenta de GitHub conectada':
     'each run opens its log on GitHub · re-running and cancelling require the “Run workflows” permission and your GitHub account connected',
-  'Para crear la rama desde aquí, conecta tu cuenta de GitHub: la rama se crea a tu nombre.':
-    'To create the branch from here, connect your GitHub account: the branch is created in your name.',
   'Conecta primero tu cuenta de GitHub y vuelve a pulsar «Conectar con GitHub».':
     'Connect your GitHub account first and press “Connect to GitHub” again.',
-  'Tu cuenta de GitHub no ve esa instalación. Instala la app en una organización o cuenta a la que tengas acceso.':
-    'Your GitHub account cannot see that installation. Install the app on an organization or account you have access to.',
   'Primero conecta tu cuenta de GitHub. Así TaskFlow comprueba que la instalación es de alguien de este workspace y no de otra persona.':
     'Connect your GitHub account first. That way TaskFlow checks the installation belongs to someone in this workspace and not to someone else.',
   'A este servidor le falta la configuración de la GitHub App (identificador, clave privada, secreto de los avisos y cliente de OAuth). Cuando esté, aquí aparece el botón para conectar.':
@@ -364,4 +358,31 @@ export default {
   'No se pudo conectar tu cuenta de GitHub': 'Could not connect your GitHub account',
   'Conectando tu cuenta de GitHub…': 'Connecting your GitHub account…',
   'Conecta tu cuenta de GitHub para ejecutar workflows': 'Connect your GitHub account to run workflows',
+
+  // Quitar ramas y PR, listas largas, ir a GitHub
+  'Abriendo GitHub para conectar tu cuenta…': 'Opening GitHub to connect your account…',
+  'Abriendo GitHub para instalar la app…': 'Opening GitHub to install the app…',
+  'Buscar…': 'Search…',
+  '{shown} de {total} · escribe para buscar': '{shown} of {total} · type to search',
+  '{shown} de {total}': '{shown} of {total}',
+  'Mostrar más': 'Show more',
+  'Para crear, enlazar o quitar ramas y pull requests desde aquí, conecta tu cuenta de GitHub: se hace a tu nombre.':
+    'To create, link or remove branches and pull requests from here, connect your GitHub account: it is done in your name.',
+  'Rama {branch} quitada de {code}': 'Branch {branch} removed from {code}',
+  'Copiar el nombre de la rama': 'Copy the branch name',
+  'Quitar la rama {branch} de la tarea': 'Remove branch {branch} from the task',
+  'Quitar de la tarea (la rama sigue en GitHub)': 'Remove from the task (the branch stays on GitHub)',
+  'Pull request #{number} quitado de {code}': 'Pull request #{number} removed from {code}',
+  'Quitar el pull request #{number} de la tarea': 'Remove pull request #{number} from the task',
+  'Quitar de la tarea': 'Remove from the task',
+  'No hay otras ramas': 'No other branches',
+  'Conecta tu cuenta de GitHub para crear reglas': 'Connect your GitHub account to create rules',
+  'Cada regla ejecuta su workflow con la cuenta de GitHub de quien la crea: conecta la tuya para crear reglas (tiene que poder escribir en el repositorio).':
+    'Each rule runs its workflow with the GitHub account of whoever creates it: connect yours to create rules (it must be able to write to the repository).',
+  'Si el workflow ya corre solo al hacer push a main, no hace falta una regla: GitHub lo lanza al fusionar y TaskFlow lo muestra en la tarea. Las reglas sirven para lo que GitHub no sabe, como «la tarea quedó completada». Solo se pueden elegir workflows que acepten ejecución manual (workflow_dispatch). Cada regla corre a nombre de quien la creó; si esa persona sale del workspace, la regla deja de ejecutarse.':
+    'If the workflow already runs on its own when pushing to main, you don’t need a rule: GitHub starts it on merge and TaskFlow shows it in the task. Rules are for what GitHub doesn’t know, like “the task was completed”. Only workflows that accept manual runs (workflow_dispatch) can be chosen. Each rule runs on behalf of whoever created it; if that person leaves the workspace, the rule stops running.',
+  'Esa instalación no es tuya: para conectarla tienes que ser la cuenta de GitHub donde se instaló o dueño de esa organización.':
+    'That installation is not yours: to connect it you must be the GitHub account where it was installed or an owner of that organization.',
+  'Buscar rama o tarea': 'Search branch or task',
+  'Ninguna rama coincide con «{query}»': 'No branch matches “{query}”',
 }

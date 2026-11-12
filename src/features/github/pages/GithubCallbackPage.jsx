@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
-import { CenteredSpinner } from '@/components/common/Loaders'
+import { SplashStage } from '@/components/common/Splash'
 import { t } from '@/i18n'
 import { notifyError } from '@/lib/notify'
 import { takeReturn } from '../GithubAccount'
@@ -44,10 +44,13 @@ export function GithubCallbackPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // El logo de carga de la app (el mismo que sigue al entrar a ella), con lo que está pasando debajo
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-3" role="status">
-      <CenteredSpinner className="p-0" />
-      <p className="text-muted-foreground text-sm">{t('Conectando tu cuenta de GitHub…')}</p>
+    <div className="bg-background relative min-h-dvh" role="status">
+      <SplashStage />
+      <p className="text-muted-foreground absolute inset-x-0 top-[calc(50%+108px)] text-center text-sm">
+        {t('Conectando tu cuenta de GitHub…')}
+      </p>
     </div>
   )
 }

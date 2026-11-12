@@ -35,6 +35,7 @@ export function useGithubPulls(slug, projectId, state, { enabled = true, live = 
     queryKey: queryKeys.githubPulls(slug, projectId, state),
     queryFn: () => githubApi.pulls(slug, projectId, state),
     enabled: Boolean(slug && projectId) && enabled,
+    placeholderData: keepPreviousData,
     refetchInterval: live ? LIVE_MS : false,
   })
 }
@@ -327,3 +328,8 @@ export const useCreateBranch = (slug, projectId, issueId) =>
   )
 export const useLinkBranch = (slug, projectId, issueId) =>
   useIssueDevAction(slug, projectId, issueId, (body) => githubApi.linkBranch(slug, projectId, issueId, body))
+/** `mutate(branchId)`: quita la rama de la tarea; en GitHub sigue como estaba. */
+export const useUnlinkBranch = (slug, projectId, issueId) =>
+  useIssueDevAction(slug, projectId, issueId, (branchId) =>
+    githubApi.unlinkBranch(slug, projectId, issueId, branchId),
+  )

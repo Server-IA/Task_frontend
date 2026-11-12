@@ -40,15 +40,38 @@ export function takeReturn() {
  */
 export function useConnectGithub() {
   const link = useLinkGithub()
+  const [leaving, setLeaving] = useState(false)
   const connect = () =>
     link.mutate(undefined, {
       onSuccess: ({ url }) => {
         rememberReturn(window.location.pathname + window.location.search)
+        setLeaving(true)
         window.location.assign(url)
       },
       onError: (error) => notifyError(error, t('No se pudo conectar')),
     })
-  return { connect, pending: link.isPending }
+  return { connect, pending: link.isPending || leaving, leaving }
+}
+
+/**
+ * Mientras el navegador se va a GitHub (tarda un momento en cambiar de página): una capa tranquila que dice a dónde
+ * va, en vez de dejar la pantalla quieta con el botón apagado.
+ * @param {{ show: boolean, children: React.ReactNode }} props
+ */
+export function LeavingForGithub({ show, children }) {
+  if (!show) return null
+  return (
+    <div
+      role="status"
+      className="bg-background/85 animate-in fade-in-0 fixed inset-0 z-[60] flex flex-col items-center justify-center gap-3.5 backdrop-blur-sm duration-200"
+    >
+      <GhMark />
+      <p className="text-sm font-medium">{children}</p>
+      <span aria-hidden="true" className="bg-foreground/10 h-1 w-36 overflow-hidden rounded-full">
+        <span className="tf-splash-line bg-ring block h-full w-2/5 rounded-full" />
+      </span>
+    </div>
+  )
 }
 
 /**
@@ -58,7 +81,7 @@ export function useConnectGithub() {
  */
 export function ConnectAccountNotice({ children, short = false, className }) {
   const { data: account } = useMyGithub()
-  const { connect, pending } = useConnectGithub()
+  const { connect, pending, leaving } = useConnectGithub()
   if (!account || account.linked || !account.configured) return null
   return (
     <div
@@ -74,6 +97,7 @@ export function ConnectAccountNotice({ children, short = false, className }) {
         {short ? t('Conectar mi cuenta') : t('Conectar mi cuenta de GitHub')}
         <ArrowUpRight className="size-3.5" aria-hidden="true" />
       </Button>
+      <LeavingForGithub show={leaving}>{t('Abriendo GitHub para conectar tu cuenta…')}</LeavingForGithub>
     </div>
   )
 }

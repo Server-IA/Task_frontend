@@ -49,6 +49,16 @@ export function dayLabel(value) {
 }
 
 /**
+ * La hora de algo dentro de su día: de hoy, «hace 20 minutos»; de otro día (ya dicho en el título del grupo), «14:05»
+ * («2:05 PM» en inglés).
+ */
+export function timeInDay(value) {
+  if (!value) return ''
+  const date = toDate(value)
+  return isToday(date) ? formatRelative(date) : format(date, pattern('HH:mm', 'h:mm a'), { locale: dateLocale() })
+}
+
+/**
  * Agrupa por día una lista ya ordenada (más recientes primero), conservando el orden.
  * @template T
  * @param {T[]} items

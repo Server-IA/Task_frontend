@@ -2,18 +2,23 @@ import { useId, useMemo, useState } from 'react'
 import { format } from 'date-fns'
 import { FileDown, FileText, X } from 'lucide-react'
 import { toast } from 'sonner'
+import { Segmented } from '@/components/common/Segmented'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { Spinner } from '@/components/common/Loaders'
 import { ErrorState } from '@/components/common/States'
+import { GhMark } from '@/features/github/GithubParts'
 import { IssueFiltersBar } from '@/features/issues/components/IssueFiltersBar'
 import { DatePicker } from '@/features/issues/components/PropertyPickers'
 import { useIssueFilters } from '@/features/issues/useIssueFilters'
 import { useProjectMeta } from '@/features/issues/useIssueHelpers'
 import { usePlanningList } from '@/features/planning/hooks'
 import { useCurrentProject } from '@/features/projects/hooks'
+import { DataTable } from '@/features/stats/components/ChartCard'
+import { percent } from '@/features/stats/chartMath'
+import { developmentFigures, formatDuration } from '@/features/stats/developmentModel'
 import { useCurrentWorkspace } from '@/features/workspaces/hooks'
 import { t } from '@/i18n'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
@@ -23,6 +28,7 @@ import { cn } from '@/lib/utils'
 import { useDownloadReport, useReportPreview } from '../hooks'
 import {
   DEFAULT_REPORT_OPTIONS,
+  DEVELOPMENT_WEEKS,
   isRangeReversed,
   previewParams,
   REPORT_GROUPS,
@@ -50,18 +56,22 @@ export function ReportsPage() {
   const [options, setOptions] = useState(DEFAULT_REPORT_OPTIONS)
   const setOption = (key) => (value) => setOptions((current) => ({ ...current, [key]: value }))
 
-  const optionsError = reportOptionsError(options)
   const rangesOk = !isRangeReversed(options.createdFrom, options.createdTo) && !isRangeReversed(options.dueFrom, options.dueTo)
   const preview = useReportPreview(workspace.slug, project.id, previewParams(queryFilters, options), { enabled: rangesOk })
   const download = useDownloadReport(workspace.slug, project.id)
+  // La sección de desarrollo solo se ofrece (y solo viaja) si el proyecto tiene repositorios de GitHub
+  const github = (preview.data?.githubRepositories ?? 0) > 0
+  const effective = github ? options : { ...options, development: false }
+  const optionsError = reportOptionsError(options, { github })
   const total = preview.data?.totals?.total ?? 0
   const fileName = reportFileName(project.identifier, format(new Date(), 'yyyy-MM-dd'))
-  const canGenerate = !optionsError && preview.isSuccess && total > 0 && !download.isPending
+  // Sin tareas el PDF no tiene sentido, salvo que lleve el desarrollo
+  const canGenerate = !optionsError && preview.isSuccess && (total > 0 || effective.development) && !download.isPending
 
   const generate = () => {
     if (!canGenerate) return
     download.mutate(
-      { params: reportParams(queryFilters, options), fileName },
+      { params: reportParams(queryFilters, effective), fileName },
       {
         onSuccess: () => toast.success(t('Reporte generado'), { description: fileName }),
         onError: (error) => notifyError(error, t('No se pudo generar el reporte')),
@@ -74,7 +84,7 @@ export function ReportsPage() {
       className="h-10 rounded-xl px-3.5"
       onClick={generate}
       disabled={!canGenerate}
-      title={optionsError ?? (preview.isSuccess && total === 0 ? t('Ninguna tarea cumple estos filtros') : undefined)}
+      title={optionsError ?? (preview.isSuccess && total === 0 && !effective.development ? t('Ninguna tarea cumple estos filtros') : undefined)}
     >
       {download.isPending ? <Spinner /> : <FileDown strokeWidth={2.5} />}
       {download.isPending ? t('Generando…') : t('Generar PDF')}
@@ -128,7 +138,7 @@ export function ReportsPage() {
         <div className="flex flex-col gap-3.5 xl:flex-row xl:items-start">
           <section aria-label={t('Vista previa')} className="tf-panel flex min-w-0 flex-1 flex-col gap-3.5 px-4.5 py-4">
             <StepTitle title={t('Vista previa')} hint={t('Lo que va a traer el PDF con estos filtros.')} />
-            <ReportPreview preview={preview} rangesOk={rangesOk} />
+            <ReportPreview preview={preview} rangesOk={rangesOk} development={effective.development} />
           </section>
 
           <section aria-label={t('Cómo se presenta')} className="tf-panel flex flex-col gap-4 px-4.5 py-4 xl:w-[380px] xl:shrink-0">
@@ -138,14 +148,25 @@ export function ReportsPage() {
             <fieldset className="flex flex-col gap-2">
               <legend className="mb-1.5 text-sm font-medium">{t('Secciones')}</legend>
               <ul className="flex flex-col overflow-hidden rounded-xl border">
-                {REPORT_SECTIONS.map((section, index) => (
+                {REPORT_SECTIONS.filter((section) => !section.github || github).map((section, index) => (
                   <SectionSwitch
                     key={section.key}
                     section={section}
                     checked={options[section.key]}
                     onChange={setOption(section.key)}
                     className={index > 0 ? 'border-t' : undefined}
-                  />
+                  >
+                    {section.key === 'development' && options.development && (
+                      <Segmented
+                        size="sm"
+                        label={t('Semanas del desarrollo')}
+                        value={String(options.developmentWeeks)}
+                        onChange={(value) => setOption('developmentWeeks')(Number(value))}
+                        options={DEVELOPMENT_WEEKS.map((weeks) => ({ value: String(weeks), label: t('{count} semanas', { count: weeks }) }))}
+                        className="self-start"
+                      />
+                    )}
+                  </SectionSwitch>
                 ))}
               </ul>
             </fieldset>
@@ -256,23 +277,27 @@ function OptionSelect({ label, value, onChange, options }) {
   )
 }
 
-function SectionSwitch({ section, checked, onChange, className }) {
+/** Una sección del PDF con su interruptor; `children` va debajo (el periodo del desarrollo). */
+function SectionSwitch({ section, checked, onChange, className, children }) {
   const id = useId()
   return (
-    <li className={cn('flex items-center gap-3 px-3 py-2', className)}>
-      <span className="flex min-w-0 flex-1 flex-col">
-        <label htmlFor={id} className="text-sm font-medium">
-          {section.label}
-        </label>
-        <span className="text-xs text-muted-foreground">{section.hint}</span>
-      </span>
-      <Switch id={id} checked={checked} onCheckedChange={onChange} />
+    <li className={cn('flex flex-col gap-2 px-3 py-2', className)}>
+      <div className="flex items-center gap-3">
+        <span className="flex min-w-0 flex-1 flex-col">
+          <label htmlFor={id} className="text-sm font-medium">
+            {section.label}
+          </label>
+          <span className="text-xs text-muted-foreground">{section.hint}</span>
+        </span>
+        <Switch id={id} checked={checked} onCheckedChange={onChange} />
+      </div>
+      {children}
     </li>
   )
 }
 
-/** Totales y repartos de lo que traerá el reporte. */
-function ReportPreview({ preview, rangesOk }) {
+/** Totales y repartos de lo que traerá el reporte y, si va, el desarrollo. */
+function ReportPreview({ preview, rangesOk, development }) {
   const { data, isLoading, isPlaceholderData, error, refetch } = preview
   if (!rangesOk) {
     return <p className="rounded-xl border border-dashed border-dash px-4 py-8 text-center text-sm text-muted-foreground">{t('Corrige el rango de fechas para ver la vista previa.')}</p>
@@ -332,7 +357,57 @@ function ReportPreview({ preview, rangesOk }) {
           <Breakdown title={t('Por tipo')} counts={data.byType} total={totals.total} />
         </div>
       )}
+      {development && data.development && <DevelopmentPreview stats={data.development} />}
     </div>
+  )
+}
+
+/** La sección de desarrollo como irá en el PDF: las cinco cifras y la tabla por workflow. */
+function DevelopmentPreview({ stats }) {
+  return (
+    <section aria-label={t('Desarrollo (GitHub)')} className="flex flex-col gap-3 border-t border-dashed pt-3.5">
+      <h3 className="flex items-center gap-2 text-[13px] font-semibold">
+        <GhMark size="sm" />
+        {t('Desarrollo (GitHub)')}
+        <span className="font-mono text-xs font-normal text-muted-foreground">{t('últimas {weeks} semanas', { weeks: stats.weeks })}</span>
+      </h3>
+      <dl className="grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-3">
+        {developmentFigures(stats).map((figure) => (
+          <div key={figure.key} className="rounded-xl border px-3.5 py-2.5">
+            <dt className="font-mono text-[11px] tracking-[0.06em] text-muted-foreground uppercase">{figure.label}</dt>
+            <dd className={cn('font-display text-[28px] leading-tight font-extrabold', figure.muted && 'text-muted-foreground')}>
+              {figure.value}
+              {figure.unit && <span className="ml-1 font-sans text-sm font-medium text-muted-foreground">{figure.unit}</span>}
+            </dd>
+            <dd className="text-xs text-muted-foreground">{figure.detail}</dd>
+          </div>
+        ))}
+      </dl>
+      {stats.workflows.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{t('No hubo ejecuciones de Actions terminadas en el periodo.')}</p>
+      ) : (
+        <DataTable
+          caption={t('Ejecuciones por workflow')}
+          columns={[
+            { key: 'name', label: t('Workflow') },
+            { key: 'runs', label: t('Ejecuciones'), numeric: true },
+            { key: 'success', label: t('Correctas'), numeric: true },
+            { key: 'duration', label: t('Duración media'), numeric: true },
+          ]}
+          rows={stats.workflows.map((workflow) => ({
+            name: (
+              <span className="flex min-w-0 items-baseline gap-2">
+                <span className="truncate font-semibold">{workflow.name ?? '—'}</span>
+                <span className="truncate font-mono text-[11px] text-muted-foreground">{workflow.repository}</span>
+              </span>
+            ),
+            runs: workflow.runs,
+            success: t('{percent} %', { percent: percent(workflow.succeeded, workflow.runs) }),
+            duration: formatDuration(workflow.averageSeconds),
+          }))}
+        />
+      )}
+    </section>
   )
 }
 

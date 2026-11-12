@@ -50,6 +50,15 @@
 
 /** @typedef {Schemas['ProjectStatsResponse']} ProjectStats */
 /** @typedef {Schemas['ThroughputWeek']} ThroughputWeek */
+/**
+ * @typedef {{ repositories: number, weeks: number, periodStart: string, openPullRequests: number, draftPullRequests: number,
+ *             mergedPullRequests: number, averageHoursToMerge: number | null, runsFinished: number, runsSucceeded: number,
+ *             completedIssues: number, completedWithMergedPullRequest: number, mergedByWeek: { weekStart: string, merged: number }[],
+ *             workflows: { repository: string, name: string, runs: number, succeeded: number, averageSeconds: number | null,
+ *                          lastRunAt: string | null, lastConclusion: string | null }[],
+ *             oldOpenPullRequests: { id: string, repository: string, number: number, title: string, url: string, draft: boolean,
+ *                                    daysOpen: number, issueId: string | null, issueCode: string | null, issueTitle: string | null }[] }} DevelopmentStats
+ */
 /** @typedef {Schemas['Burndown']} Burndown */
 /** @typedef {Schemas['BurndownPoint']} BurndownPoint */
 /** @typedef {Schemas['OpenStateCount']} OpenStateCount */
@@ -92,7 +101,8 @@
  * @typedef {{ totalMatching: number, truncated: boolean, maxIssues: number,
  *             totals: { total: number, open: number, completed: number, cancelled: number, overdue: number },
  *             byState: { name: string, count: number }[], byPriority: { name: string, count: number }[],
- *             byAssignee: { name: string, count: number }[], byType: { name: string, count: number }[] }} IssuesReportPreview
+ *             byAssignee: { name: string, count: number }[], byType: { name: string, count: number }[],
+ *             githubRepositories: number, development: DevelopmentStats | null }} IssuesReportPreview
  */
 /**
  * Ajustes de la daily de un proyecto.

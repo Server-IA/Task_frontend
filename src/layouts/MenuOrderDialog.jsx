@@ -74,7 +74,7 @@ export function MenuOrderDialog({ open, onOpenChange }) {
           />
           <OrderGroup
             title={t('Secciones del proyecto')}
-            items={sections.map((section) => ({ id: section.path, label: section.label, hint: section.hint }))}
+            items={sections.map((section) => ({ id: section.path, label: section.label }))}
             canMove={mode === 'custom'}
             onMove={moveSection}
           />
@@ -167,11 +167,6 @@ function OrderRow({ item, index, count, canMove, onMove }) {
       )}
       <span className="w-4 shrink-0 text-right font-mono text-[11px] text-muted-foreground">{index + 1}</span>
       <span className="min-w-0 flex-1 truncate text-sm font-medium">{item.label}</span>
-      {item.hint && !canMove && (
-        <kbd className="font-mono text-[11px] text-muted-foreground" title={t('Atajo {key}', { key: item.hint })}>
-          {item.hint}
-        </kbd>
-      )}
       {canMove && (
         <span className="flex">
           <Button

@@ -108,7 +108,6 @@ export default {
   crear: 'create',
   buscar: 'search',
   abrir: 'open',
-  secciones: 'sections',
   'sincronizando…': 'syncing…',
   sincronizado: 'synced',
 
