@@ -52,7 +52,6 @@ export default {
   hoy: 'today',
   '{count} activo': '{count} active',
   '{count} activos': '{count} active',
-  '{section} · atajo {key}': '{section} · shortcut {key}',
   'Mi perfil': 'My profile',
 
   // layouts: «Personalizar menú»
@@ -71,7 +70,6 @@ export default {
   Listo: 'Done',
   'Mover «{name}»': 'Move “{name}”',
   'Arrastra o usa alt + ↑ ↓': 'Drag or use alt + ↑ ↓',
-  'Atajo {key}': 'Shortcut {key}',
   'Subir «{name}»': 'Move “{name}” up',
   'Bajar «{name}»': 'Move “{name}” down',
 

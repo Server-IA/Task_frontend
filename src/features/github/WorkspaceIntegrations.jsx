@@ -21,7 +21,7 @@ import { notifyError } from '@/lib/notify'
 import { can } from '@/lib/permissions'
 import { githubApi } from './api'
 import { GhMark } from './GithubParts'
-import { ConnectAccountNotice } from './GithubAccount'
+import { ConnectAccountNotice, LeavingForGithub } from './GithubAccount'
 import {
   useDisconnectGithub,
   useGithubLinked,
@@ -43,7 +43,7 @@ const RESULTS = {
   foreign: () =>
     toast.error(
       t(
-        'Tu cuenta de GitHub no ve esa instalación. Instala la app en una organización o cuenta a la que tengas acceso.',
+        'Esa instalación no es tuya: para conectarla tienes que ser la cuenta de GitHub donde se instaló o dueño de esa organización.',
       ),
     ),
 }
@@ -113,10 +113,14 @@ function Connect({ workspace, status, canManage }) {
   const install = useInstallGithub(workspace.slug)
   // Conectar el workspace pide tener enlazada la cuenta propia: con ella se comprueba que la instalación es de quien la pide
   const linked = useGithubLinked()
+  const [leaving, setLeaving] = useState(false)
   const handleConnect = () =>
     install.mutate(undefined, {
       // Se va a GitHub en esta misma pestaña: al terminar, GitHub trae de vuelta a esta página
-      onSuccess: ({ url }) => window.location.assign(url),
+      onSuccess: ({ url }) => {
+        setLeaving(true)
+        window.location.assign(url)
+      },
       onError: (connectError) => notifyError(connectError, t('No se pudo conectar')),
     })
 
@@ -135,12 +139,17 @@ function Connect({ workspace, status, canManage }) {
           </p>
         </div>
         {canManage && status.configured && (
-          <Button onClick={handleConnect} disabled={install.isPending || !linked} className="gap-2">
+          <Button
+            onClick={handleConnect}
+            disabled={install.isPending || leaving || !linked}
+            className="gap-2"
+          >
             {t('Conectar con GitHub')}
             <ArrowUpRight className="size-4" aria-hidden="true" />
           </Button>
         )}
       </div>
+      <LeavingForGithub show={leaving}>{t('Abriendo GitHub para instalar la app…')}</LeavingForGithub>
       {canManage && status.configured && (
         <ConnectAccountNotice>
           {t(

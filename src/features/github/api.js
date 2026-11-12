@@ -114,4 +114,7 @@ export const githubApi = {
   /** @param {{ repositoryId: string, name: string }} body @returns {Promise<IssueDev>} */
   linkBranch: (slug, projectId, issueId, body) =>
     api.post(`${project(slug, projectId)}/issues/${issueId}/branches/link`, body, SLOW).then(data),
+  /** Quita la rama de la tarea (sigue en GitHub). @returns {Promise<IssueDev>} */
+  unlinkBranch: (slug, projectId, issueId, branchId) =>
+    api.delete(`${project(slug, projectId)}/issues/${issueId}/branches/${branchId}`).then(data),
 }

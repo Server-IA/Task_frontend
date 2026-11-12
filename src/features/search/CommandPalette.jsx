@@ -102,10 +102,9 @@ function PaletteContent({ onClose }) {
       if (SECTION_PERMISSIONS[section.path] && !can(workspace, SECTION_PERMISSIONS[section.path])) continue
       goItems.push({
         id: `section-${section.path}`,
-        icon: section.hint,
+        icon: '~',
         label: t('{section} de {project}', { section: section.label, project: project.name }),
         hint: t('proyecto'),
-        shortcut: section.hint,
         to: `${base}/${section.path}`,
       })
     }

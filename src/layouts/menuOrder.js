@@ -13,18 +13,18 @@ export const MAIN_MENU = [
   { key: 'settings', label: t('Ajustes') },
 ]
 
-/** Secciones de un proyecto con su atajo de teclado (ver ProjectLayout). `path` es su clave y su ruta. */
+/** Secciones de un proyecto. `path` es su clave y su ruta. */
 export const PROJECT_SECTIONS = [
-  { path: 'issues', label: t('Tareas'), hint: 'I' },
-  { path: 'stories', label: t('Historias'), hint: 'H' },
-  { path: 'cycles', label: t('Ciclos'), hint: 'Y' },
-  { path: 'daily', label: t('Daily'), hint: 'D' },
-  { path: 'modules', label: t('Módulos'), hint: 'M' },
-  { path: 'roadmap', label: t('Hoja de ruta'), hint: 'R' },
-  { path: 'stats', label: t('Estadísticas'), hint: 'S' },
-  { path: 'reports', label: t('Reportes'), hint: 'E' },
-  { path: 'github', label: 'GitHub', hint: 'G' },
-  { path: 'settings', label: t('Ajustes'), hint: ',' },
+  { path: 'issues', label: t('Tareas') },
+  { path: 'stories', label: t('Historias') },
+  { path: 'cycles', label: t('Ciclos') },
+  { path: 'daily', label: t('Daily') },
+  { path: 'modules', label: t('Módulos') },
+  { path: 'roadmap', label: t('Hoja de ruta') },
+  { path: 'stats', label: t('Estadísticas') },
+  { path: 'reports', label: t('Reportes') },
+  { path: 'github', label: 'GitHub' },
+  { path: 'settings', label: t('Ajustes') },
 ]
 
 /** Secciones del proyecto que solo ve quien tiene ese permiso (las demás, cualquiera del proyecto). */

@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
-import { GitBranch, GitPullRequest, Play } from 'lucide-react'
+import { GitBranch, GitPullRequest, Play, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Segmented } from '@/components/common/Segmented'
@@ -17,7 +18,7 @@ import { projectPath } from '@/lib/paths'
 import { can } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { ActionsView } from '../GithubActions'
-import { GhMark, Pick, PullMark, TaskLink, TonePill } from '../GithubParts'
+import { GhMark, Pick, PullMark, ShowMore, TaskLink, TonePill } from '../GithubParts'
 import { branchUrl, pullChecks, pullNote, pullState, repoName, repoUrl } from '../githubModel'
 import {
   useGithubBranches,
@@ -31,6 +32,8 @@ import { RunWorkflowDialog } from '../RunWorkflowDialog'
 
 const VIEWS = ['pulls', 'actions', 'branches']
 const ALL = '__all__'
+/** Cuántas filas se dibujan de entrada en cada lista (y cuántas más con «Mostrar más»). */
+const PAGE = 30
 
 /**
  * La sección «GitHub» de un proyecto: los pull requests de sus repositorios con la tarea de cada uno, las ejecuciones
@@ -232,7 +235,10 @@ function PullsView({ workspace, project, status }) {
   const [author, setAuthor] = useState(ALL)
   const { data: pulls, error, refetch } = useGithubPulls(slug, project.id, state)
   const link = useLinkPullRequest(slug, project.id)
-  const canLink = can(workspace, 'ISSUE_EDIT')
+  const linked = useGithubLinked()
+  // Enlazar un PR a una tarea es editarla, y se hace con la cuenta de GitHub de la persona
+  const canLink = can(workspace, 'ISSUE_EDIT') && linked === true
+  const [limit, setLimit] = useState(PAGE)
 
   const authors = useMemo(
     () => [...new Set((pulls ?? []).map((pull) => pull.authorLogin).filter(Boolean))].sort(),
@@ -303,11 +309,6 @@ function PullsView({ workspace, project, status }) {
             className="h-8 w-[170px] text-[13px]"
           />
         )}
-        <span className="text-muted-foreground ml-auto font-mono text-[11.5px]">
-          {t('un PR se enlaza solo si su rama, su título o su descripción nombran la tarea ({code})', {
-            code: `${project.identifier}-22`,
-          })}
-        </span>
       </div>
       <section aria-label={t('Pull requests')} className="bg-card overflow-hidden rounded-2xl border">
         {!pulls && !error ? (
@@ -328,7 +329,7 @@ function PullsView({ workspace, project, status }) {
           />
         ) : (
           <ul>
-            {shown.map((pull, index) => {
+            {shown.slice(0, limit).map((pull, index) => {
               const info = pullState(pull.state)
               const checks = pullChecks(pull)
               return (
@@ -407,65 +408,121 @@ function PullsView({ workspace, project, status }) {
             })}
           </ul>
         )}
+        {pulls && (
+          <ShowMore
+            shown={Math.min(limit, shown.length)}
+            total={shown.length}
+            onMore={() => setLimit(limit + PAGE)}
+          />
+        )}
       </section>
+      <p className="text-muted-foreground font-mono text-[11.5px]">
+        {t('un PR se enlaza solo si su rama, su título o su descripción nombran la tarea ({code})', {
+          code: `${project.identifier}-22`,
+        })}
+      </p>
     </div>
   )
 }
 
 function BranchesView({ workspace, project, branches }) {
+  const [query, setQuery] = useState('')
+  const [limit, setLimit] = useState(PAGE)
+  const needle = query.trim().toLowerCase()
+  const found = (branches ?? []).filter(
+    (branch) =>
+      !needle ||
+      branch.name.toLowerCase().includes(needle) ||
+      (branch.issueCode ?? '').toLowerCase().includes(needle) ||
+      (branch.issueTitle ?? '').toLowerCase().includes(needle),
+  )
   return (
-    <section aria-label={t('Ramas')} className="bg-card overflow-hidden rounded-2xl border">
-      {!branches ? (
-        <div className="space-y-2 p-4">
-          <Skeleton className="h-10 rounded-lg" />
-          <Skeleton className="h-10 rounded-lg" />
+    <div className="flex flex-col gap-3">
+      {branches?.length > 0 && (
+        <div className="relative w-full max-w-[340px]">
+          <Search
+            className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
+            aria-hidden="true"
+          />
+          <Input
+            type="search"
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value)
+              setLimit(PAGE)
+            }}
+            placeholder={t('Buscar rama o tarea')}
+            aria-label={t('Buscar rama o tarea')}
+            className="h-8.5 pl-9 text-[13px]"
+          />
         </div>
-      ) : branches.length === 0 ? (
-        <EmptyState
-          icon={GitBranch}
-          title={t('Todavía no hay ramas enlazadas a tareas')}
-          description={t(
-            'Crea la rama desde una tarea, o pon el código de la tarea ({code}) en el nombre de la tuya.',
-            { code: `${project.identifier}-22` },
-          )}
-          className="py-10"
-        />
-      ) : (
-        <ul>
-          {branches.map((branch, index) => (
-            <li
-              key={branch.id}
-              className={cn(
-                'flex flex-wrap items-center gap-x-3.5 gap-y-2 px-4 py-2.75',
-                index > 0 && 'border-t',
-              )}
-            >
-              <GitBranch className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
-              <span className="min-w-0 flex-[1_1_300px]">
-                <a
-                  href={branchUrl(branch.repository, branch.name)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block truncate font-mono text-[13px] font-semibold hover:underline"
-                >
-                  {branch.name}
-                </a>
-                <span className="text-muted-foreground block truncate text-xs">{branch.issueTitle}</span>
-              </span>
-              <span className="text-muted-foreground font-mono text-xs">{repoName(branch.repository)}</span>
-              <TaskLink
-                slug={workspace.slug}
-                projectId={project.id}
-                issueId={branch.issueId}
-                code={branch.issueCode}
-              />
-              <span className="text-muted-foreground w-[166px] shrink-0 truncate text-right font-mono text-[11.5px]">
-                {formatRelative(branch.createdAt)}
-              </span>
-            </li>
-          ))}
-        </ul>
       )}
-    </section>
+      <section aria-label={t('Ramas')} className="bg-card overflow-hidden rounded-2xl border">
+        {!branches ? (
+          <div className="space-y-2 p-4">
+            <Skeleton className="h-10 rounded-lg" />
+            <Skeleton className="h-10 rounded-lg" />
+          </div>
+        ) : branches.length === 0 ? (
+          <EmptyState
+            icon={GitBranch}
+            title={t('Todavía no hay ramas enlazadas a tareas')}
+            description={t(
+              'Crea la rama desde una tarea, o pon el código de la tarea ({code}) en el nombre de la tuya.',
+              { code: `${project.identifier}-22` },
+            )}
+            className="py-10"
+          />
+        ) : found.length === 0 ? (
+          <EmptyState
+            icon={Search}
+            title={t('Ninguna rama coincide con «{query}»', { query: query.trim() })}
+            className="py-10"
+          />
+        ) : (
+          <ul>
+            {found.slice(0, limit).map((branch, index) => (
+              <li
+                key={branch.id}
+                className={cn(
+                  'flex flex-wrap items-center gap-x-3.5 gap-y-2 px-4 py-2.75',
+                  index > 0 && 'border-t',
+                )}
+              >
+                <GitBranch className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
+                <span className="min-w-0 flex-[1_1_300px]">
+                  <a
+                    href={branchUrl(branch.repository, branch.name)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block truncate font-mono text-[13px] font-semibold hover:underline"
+                  >
+                    {branch.name}
+                  </a>
+                  <span className="text-muted-foreground block truncate text-xs">{branch.issueTitle}</span>
+                </span>
+                <span className="text-muted-foreground font-mono text-xs">{repoName(branch.repository)}</span>
+                <TaskLink
+                  slug={workspace.slug}
+                  projectId={project.id}
+                  issueId={branch.issueId}
+                  code={branch.issueCode}
+                />
+                <span className="text-muted-foreground w-[166px] shrink-0 truncate text-right font-mono text-[11.5px]">
+                  {formatRelative(branch.createdAt)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {branches && (
+          <ShowMore
+            shown={Math.min(limit, found.length)}
+            total={found.length}
+            onMore={() => setLimit(limit + PAGE)}
+          />
+        )}
+      </section>
+    </div>
   )
 }

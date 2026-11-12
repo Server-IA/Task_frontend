@@ -25,10 +25,12 @@ import {
   useDeleteGithubRule,
   useGithubProject,
   useGithubRepoBranches,
+  useGithubLinked,
   useGithubWorkflows,
   useSaveGithubSettings,
   useSetRepositories,
 } from './hooks'
+import { ConnectAccountNotice } from './GithubAccount'
 
 /**
  * Pestaña «GitHub» de los ajustes de un proyecto: qué repositorios son suyos, a qué estado pasa la tarea cuando avanza
@@ -339,6 +341,8 @@ function lastRun(rule) {
 
 function Rules({ workspace, project, status, canManage }) {
   const remove = useDeleteGithubRule(workspace.slug, project.id)
+  // La regla ejecuta el workflow con la cuenta de GitHub de quien la crea
+  const linked = useGithubLinked()
   const [adding, setAdding] = useState(false)
   const chip = 'rounded-[9px] border bg-background px-2.5 py-1.5 text-[13px] font-medium'
   const word = 'font-mono text-[11.5px] text-muted-foreground'
@@ -367,13 +371,21 @@ function Rules({ workspace, project, status, canManage }) {
             variant="outline"
             className="gap-2"
             onClick={() => setAdding(true)}
-            disabled={status.repositories.length === 0}
+            disabled={status.repositories.length === 0 || linked !== true}
+            title={linked === true ? undefined : t('Conecta tu cuenta de GitHub para crear reglas')}
           >
             <Plus className="size-3.5" strokeWidth={3} aria-hidden="true" />
             {t('Nueva regla')}
           </Button>
         )}
       </div>
+      {canManage && (
+        <ConnectAccountNotice>
+          {t(
+            'Cada regla ejecuta su workflow con la cuenta de GitHub de quien la crea: conecta la tuya para crear reglas (tiene que poder escribir en el repositorio).',
+          )}
+        </ConnectAccountNotice>
+      )}
       {status.rules.length === 0 && !adding && (
         <p className="border-dash text-muted-foreground rounded-[14px] border border-dashed px-4 py-5 text-center text-sm">
           {status.repositories.length === 0
@@ -420,7 +432,7 @@ function Rules({ workspace, project, status, canManage }) {
       )}
       <p className="bg-muted text-muted-foreground rounded-xl px-3 py-2.5 text-[12.5px] leading-normal">
         {t(
-          'Si el workflow ya corre solo al hacer push a main, no hace falta una regla: GitHub lo lanza al fusionar y TaskFlow lo muestra en la tarea. Las reglas sirven para lo que GitHub no sabe, como «la tarea quedó completada». Solo se pueden elegir workflows que acepten ejecución manual (workflow_dispatch).',
+          'Si el workflow ya corre solo al hacer push a main, no hace falta una regla: GitHub lo lanza al fusionar y TaskFlow lo muestra en la tarea. Las reglas sirven para lo que GitHub no sabe, como «la tarea quedó completada». Solo se pueden elegir workflows que acepten ejecución manual (workflow_dispatch). Cada regla corre a nombre de quien la creó; si esa persona sale del workspace, la regla deja de ejecutarse.',
         )}
       </p>
     </section>

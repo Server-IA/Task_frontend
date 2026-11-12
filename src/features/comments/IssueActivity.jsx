@@ -22,7 +22,7 @@ import { useMentionPeople } from '@/features/mentions/hooks'
 import { joinNames, mentionedIds } from '@/features/mentions/mentions'
 import { useWorkspace } from '@/features/workspaces/hooks'
 import { t, tc, tn, tx } from '@/i18n'
-import { formatDateTime, formatRelative } from '@/lib/dates'
+import { formatDateTime, groupByDay, timeInDay } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
 import { can, canDeleteComment } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
@@ -76,7 +76,7 @@ export function IssueActivity({ slug, projectId, issueId, issueCode, projectIden
   }, [focusCommentId, isLoading])
 
   return (
-    <section ref={sectionRef} className="flex flex-col gap-3">
+    <section ref={sectionRef} className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-semibold">{t('Actividad')}</h2>
         <Segmented label={t('Filtrar actividad')} size="sm" className="p-0.5" value={filter} onChange={setFilter} options={FILTERS} />
@@ -84,34 +84,44 @@ export function IssueActivity({ slug, projectId, issueId, issueCode, projectIden
 
       {isLoading ? (
         <CenteredSpinner className="p-4" />
+      ) : timeline.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          {filter === 'comments' ? t('Todavía no hay comentarios.') : t('Sin actividad.')}
+        </p>
       ) : (
-        <ol className="flex flex-col gap-2.5">
-          {timeline.map((item) =>
-            item.type === 'comment' ? (
-              <li key={`c-${item.comment.id}`} id={commentAnchor(item.comment.id)} className="scroll-mt-4">
-                <CommentCard
-                  slug={slug}
-                  projectId={projectId}
-                  issueId={issueId}
-                  comment={item.comment}
-                  people={people}
-                  projectIdentifier={projectIdentifier}
-                  onOpenIssue={onOpenIssue}
-                  focusAfterDeleteRef={composerFocusRef}
-                />
-              </li>
-            ) : (
-              <li key={`a-${item.entry.id}`}>
-                <ActivityLine entry={item.entry} />
-              </li>
-            ),
-          )}
-          {timeline.length === 0 && (
-            <li className="text-sm text-muted-foreground">
-              {filter === 'comments' ? t('Todavía no hay comentarios.') : t('Sin actividad.')}
-            </li>
-          )}
-        </ol>
+        // Por día («Hoy», «Ayer», la fecha), con aire entre cada cambio y cada comentario para leerlos de a uno
+        <div className="flex flex-col gap-5">
+          {groupByDay(timeline, (item) => item.at).map((day) => (
+            <div key={day.label} className="flex flex-col gap-3">
+              <h3 className="flex items-center gap-3 font-mono text-[11px] tracking-wide text-muted-foreground uppercase">
+                {day.label}
+                <span aria-hidden="true" className="h-px flex-1 bg-border" />
+              </h3>
+              <ol className="flex flex-col gap-3.5">
+                {day.items.map((item) =>
+                  item.type === 'comment' ? (
+                    <li key={`c-${item.comment.id}`} id={commentAnchor(item.comment.id)} className="scroll-mt-4">
+                      <CommentCard
+                        slug={slug}
+                        projectId={projectId}
+                        issueId={issueId}
+                        comment={item.comment}
+                        people={people}
+                        projectIdentifier={projectIdentifier}
+                        onOpenIssue={onOpenIssue}
+                        focusAfterDeleteRef={composerFocusRef}
+                      />
+                    </li>
+                  ) : (
+                    <li key={`a-${item.entry.id}`}>
+                      <ActivityLine entry={item.entry} />
+                    </li>
+                  ),
+                )}
+              </ol>
+            </div>
+          ))}
+        </div>
       )}
 
       {/* Comentar y subir imágenes en comentarios van cada uno por su permiso */}
@@ -142,32 +152,40 @@ const FILTERS = [
   { value: 'history', label: t('Historial') },
 ]
 
+/**
+ * Un cambio del historial: quién (su foto, o la marca de GitHub o de TaskFlow si fue automático), qué cambió y, en su
+ * propia línea, cuándo. La columna de la foto mide lo mismo que la de los comentarios: todo queda alineado.
+ */
 function ActivityLine({ entry }) {
+  const mark = activityAutoMark(entry)
   return (
-    <div className="flex items-start gap-2 pl-1.5 text-xs text-muted-foreground">
-      {activityAutoMark(entry) === 'GH' ? (
-        <span aria-hidden="true" className="mt-px flex size-5 shrink-0 items-center justify-center rounded-md bg-foreground font-mono text-[8px] font-bold text-background">
-          GH
-        </span>
-      ) : activityAutoMark(entry) ? (
-        <span aria-hidden="true" className="mt-px flex size-5 shrink-0 items-center justify-center rounded-full bg-primary font-mono text-[8px] font-bold text-primary-foreground">
-          TF
-        </span>
-      ) : (
-        <UserAvatar user={entry.actor} size="xs" className="mt-px" />
-      )}
-      <p className="min-w-0 flex-1">
-        <span className="font-semibold text-foreground">{activityActorName(entry)}</span>{' '}
-        {entry.field === 'ATTACHMENT' && entry.newValue && entry.file ? (
-          <AttachedFileText file={entry.file} />
+    <div className="flex items-start gap-3">
+      <span className="flex w-8 shrink-0 justify-center pt-0.5">
+        {mark === 'GH' ? (
+          <span aria-hidden="true" className="flex size-6 items-center justify-center rounded-md bg-foreground font-mono text-[9px] font-bold text-background">
+            GH
+          </span>
+        ) : mark ? (
+          <span aria-hidden="true" className="flex size-6 items-center justify-center rounded-full bg-primary font-mono text-[9px] font-bold text-primary-foreground">
+            TF
+          </span>
         ) : (
-          describeActivity(entry)
+          <UserAvatar user={entry.actor} size="sm" />
         )}
-        <span className="font-mono" title={formatDateTime(entry.createdAt)}>
-          {' '}
-          · {formatRelative(entry.createdAt)}
-        </span>
-      </p>
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] leading-relaxed break-words text-muted-foreground">
+          <span className="font-semibold text-foreground">{activityActorName(entry)}</span>{' '}
+          {entry.field === 'ATTACHMENT' && entry.newValue && entry.file ? (
+            <AttachedFileText file={entry.file} />
+          ) : (
+            describeActivity(entry)
+          )}
+        </p>
+        <p className="mt-0.5 font-mono text-[11px] text-muted-foreground" title={formatDateTime(entry.createdAt)}>
+          {timeInDay(entry.createdAt)}
+        </p>
+      </div>
     </div>
   )
 }
@@ -227,7 +245,7 @@ function CommentCard({ slug, projectId, issueId, comment, people, projectIdentif
   }
 
   return (
-    <div className="flex gap-2.5">
+    <div className="flex gap-3">
       <UserAvatar user={comment.author} size="md" />
       <div
         className={cn(
@@ -235,11 +253,11 @@ function CommentCard({ slug, projectId, issueId, comment, people, projectIdentif
           mentionsMe && 'border-accent-text shadow-[0_0_0_3px_var(--accent-soft)]',
         )}
       >
-        <div className={cn('flex items-center gap-2 rounded-t-[11px] border-b px-3 py-1.5 text-xs', mentionsMe && 'bg-accent-soft')}>
+        <div className={cn('flex items-center gap-2 rounded-t-[11px] border-b px-3.5 py-2 text-[12.5px]', mentionsMe && 'bg-accent-soft')}>
           <span className="shrink-0 font-semibold">{comment.author?.fullName}</span>
           {/* En un panel angosto la fecha se corta (completa en el título) y «te mencionó» no se parte */}
           <span className="min-w-0 truncate font-mono text-muted-foreground" title={formatDateTime(comment.createdAt)}>
-            · {formatRelative(comment.createdAt)}
+            · {timeInDay(comment.createdAt)}
             {edited && ` · ${t('editado')}`}
           </span>
           <span className="ml-auto flex shrink-0 items-center gap-1.5">
@@ -313,7 +331,7 @@ function CommentCard({ slug, projectId, issueId, comment, people, projectIdentif
             slug={slug}
             projectId={projectId}
             onOpenIssue={onOpenIssue}
-            className="tf-md-thumbs px-3 py-2.5"
+            className="tf-md-thumbs px-3.5 py-3 leading-relaxed"
           />
         )}
       </div>
@@ -394,7 +412,7 @@ function CommentComposer({ slug, projectId, issueId, issueCode, projectIdentifie
 
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex gap-2.5">
+      <div className="flex gap-3">
         <UserAvatar user={user} size="md" />
         <div className="min-w-0 flex-1 rounded-xl border bg-card transition-shadow duration-150 focus-within:border-ring focus-within:shadow-[0_0_0_3px_var(--accent-soft)]">
           {active ? (
@@ -476,7 +494,7 @@ function CommentComposer({ slug, projectId, issueId, issueCode, projectIdentifie
         </div>
       </div>
       {notified.length > 0 && (
-        <p className="tf-fade ml-10.5 text-xs text-muted-foreground">
+        <p className="tf-fade ml-11 text-xs text-muted-foreground">
           {tn(notified.length, '{names} recibirá «{author} te mencionó en {task}» en su bandeja.', '{names} recibirán «{author} te mencionó en {task}» en su bandeja.', {
             names: joinNames(notified.map((person) => person.fullName.split(' ')[0])),
             author: user?.fullName ?? '',
