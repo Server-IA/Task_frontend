@@ -54,7 +54,7 @@ const RESULTS = {
  * @param {{ workspace: import('@/api/types').WorkspaceResponse }} props
  */
 export function WorkspaceIntegrations({ workspace }) {
-  const { data: status, isLoading, error, refetch } = useGithubWorkspace(workspace.slug)
+  const { data: status, error, refetch } = useGithubWorkspace(workspace.slug)
   const [searchParams, setSearchParams] = useSearchParams()
   const result = searchParams.get('github')
   const canManage = can(workspace, 'GITHUB_MANAGE')
@@ -66,15 +66,21 @@ export function WorkspaceIntegrations({ workspace }) {
     setSearchParams({ tab: 'integrations' }, { replace: true })
   }, [result, setSearchParams])
 
-  if (isLoading) {
+  if (!status && !error) {
     return (
-      <div className="flex flex-col gap-3.5">
+      <div className="mx-auto flex max-w-[940px] flex-col gap-3.5">
         <Skeleton className="h-24 rounded-2xl" />
         <Skeleton className="h-40 rounded-2xl" />
       </div>
     )
   }
-  if (error) return <ErrorState error={error} onRetry={refetch} className="tf-panel" />
+  if (!status) {
+    return (
+      <div className="mx-auto max-w-[940px]">
+        <ErrorState error={error} onRetry={refetch} className="tf-panel" />
+      </div>
+    )
+  }
 
   return (
     <div className="mx-auto flex max-w-[940px] flex-col gap-3.5">
@@ -251,52 +257,54 @@ function Connected({ workspace, status, canManage }) {
         )}
       </section>
 
-      <section aria-labelledby="github-repos-title" className="bg-card overflow-hidden rounded-2xl border">
-        <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 px-4 pt-3.5 pb-2.5">
-          <h2 id="github-repos-title" className="text-[15px] font-semibold">
-            {t('Repositorios con acceso')}{' '}
-            <span className="text-muted-foreground font-mono text-xs font-normal">
-              {status.repositories.length}
+      {canManage && (
+        <section aria-labelledby="github-repos-title" className="bg-card overflow-hidden rounded-2xl border">
+          <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 px-4 pt-3.5 pb-2.5">
+            <h2 id="github-repos-title" className="text-[15px] font-semibold">
+              {t('Repositorios con acceso')}{' '}
+              <span className="text-muted-foreground font-mono text-xs font-normal">
+                {status.repositories.length}
+              </span>
+            </h2>
+            <span className="text-muted-foreground flex-1 text-[12.5px]">
+              {t('TaskFlow solo ve los que elegiste al instalar. Para sumar otro, cámbialo en GitHub.')}
             </span>
-          </h2>
-          <span className="text-muted-foreground flex-1 text-[12.5px]">
-            {t('TaskFlow solo ve los que elegiste al instalar. Para sumar otro, cámbialo en GitHub.')}
-          </span>
-          {canManage && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground gap-1.5"
-              onClick={handleSync}
-              disabled={sync.isPending}
-            >
-              <RefreshCw
-                className={sync.isPending ? 'size-3.5 animate-spin' : 'size-3.5'}
-                aria-hidden="true"
-              />
-              {t('Actualizar lista')}
-            </Button>
-          )}
-        </div>
-        {status.repositories.length === 0 ? (
-          <p className="text-muted-foreground border-t px-4 py-6 text-center text-sm">
-            {t(
-              'La app todavía no tiene acceso a ningún repositorio. Elígelos en «Administrar en GitHub» y pulsa «Actualizar lista».',
+            {canManage && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground gap-1.5"
+                onClick={handleSync}
+                disabled={sync.isPending}
+              >
+                <RefreshCw
+                  className={sync.isPending ? 'size-3.5 animate-spin' : 'size-3.5'}
+                  aria-hidden="true"
+                />
+                {t('Actualizar lista')}
+              </Button>
             )}
-          </p>
-        ) : (
-          <ul>
-            {status.repositories.map((repository) => (
-              <RepositoryRow
-                key={repository.id}
-                workspace={workspace}
-                repository={repository}
-                canManage={canManage}
-              />
-            ))}
-          </ul>
-        )}
-      </section>
+          </div>
+          {status.repositories.length === 0 ? (
+            <p className="text-muted-foreground border-t px-4 py-6 text-center text-sm">
+              {t(
+                'La app todavía no tiene acceso a ningún repositorio. Elígelos en «Administrar en GitHub» y pulsa «Actualizar lista».',
+              )}
+            </p>
+          ) : (
+            <ul>
+              {status.repositories.map((repository) => (
+                <RepositoryRow
+                  key={repository.id}
+                  workspace={workspace}
+                  repository={repository}
+                  canManage={canManage}
+                />
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
       <TeamAccounts accounts={status.accounts ?? []} />
 

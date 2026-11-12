@@ -310,6 +310,8 @@ export default {
   '{event} · en [[actividad]]': '{event} · on',
 
   // La cuenta de GitHub de cada persona
+  'Tarea relacionada: {code}': 'Related task: {code}',
+  'Tarea relacionada: ninguna': 'Related task: none',
   'Todavía no hay rama ni pull request. Nombra {code} en la tuya y se enlaza sola.':
     'No branch or pull request yet. Name {code} in yours and it links itself.',
   'No se pudo consultar tu cuenta de GitHub.': 'Could not check your GitHub account.',

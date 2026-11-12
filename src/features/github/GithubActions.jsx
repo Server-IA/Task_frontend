@@ -23,7 +23,7 @@ const ALL = '__all__'
  */
 export function ActionsView({ workspace, project, status, settingsLink }) {
   const slug = workspace.slug
-  const { data: runs, isLoading, error, refetch } = useGithubRuns(slug, project.id)
+  const { data: runs, error, refetch } = useGithubRuns(slug, project.id)
   const rerun = useRerunWorkflow(slug, project.id)
   const cancel = useCancelWorkflow(slug, project.id)
   const canRun = can(workspace, 'GITHUB_RUN')
@@ -42,10 +42,13 @@ export function ActionsView({ workspace, project, status, settingsLink }) {
     () => [...new Set((runs ?? []).map((run) => run.branch).filter(Boolean))].sort(),
     [runs],
   )
+  // Un filtro por un workflow o una rama que ya no está en la lista no filtra (el selector vuelve a «todos»)
+  const byWorkflow = workflows.includes(workflow) ? workflow : ALL
+  const byBranch = branches.includes(branch) ? branch : ALL
   const shown = (runs ?? []).filter(
     (run) =>
-      (workflow === ALL || run.workflowName === workflow) &&
-      (branch === ALL || run.branch === branch) &&
+      (byWorkflow === ALL || run.workflowName === byWorkflow) &&
+      (byBranch === ALL || run.branch === byBranch) &&
       (result === ALL || runState(run).result === result),
   )
 
@@ -72,7 +75,7 @@ export function ActionsView({ workspace, project, status, settingsLink }) {
       <div className="flex flex-wrap items-center gap-2.5">
         <Pick
           label={t('Workflow')}
-          value={workflow}
+          value={byWorkflow}
           onChange={setWorkflow}
           options={[
             { value: ALL, label: t('Workflow: todos') },
@@ -82,7 +85,7 @@ export function ActionsView({ workspace, project, status, settingsLink }) {
         />
         <Pick
           label={t('Rama')}
-          value={branch}
+          value={byBranch}
           onChange={setBranch}
           options={[
             { value: ALL, label: t('Rama: todas') },
@@ -118,12 +121,12 @@ export function ActionsView({ workspace, project, status, settingsLink }) {
         aria-label={t('Ejecuciones de GitHub Actions')}
         className="bg-card overflow-hidden rounded-2xl border"
       >
-        {isLoading ? (
+        {!runs && !error ? (
           <div className="space-y-2 p-4">
             <Skeleton className="h-11 rounded-lg" />
             <Skeleton className="h-11 rounded-lg" />
           </div>
-        ) : error ? (
+        ) : !runs ? (
           <ErrorState error={error} onRetry={refetch} />
         ) : shown.length === 0 ? (
           <EmptyState
@@ -146,30 +149,33 @@ export function ActionsView({ workspace, project, status, settingsLink }) {
                 <li
                   key={run.id}
                   className={cn(
-                    'flex flex-wrap items-center gap-x-3.5 gap-y-2 px-4 py-3',
+                    'grid grid-cols-[auto_minmax(0,1fr)_92px_78px_166px_96px] items-center gap-x-3.5 px-4 py-3',
                     index > 0 && 'border-t',
                   )}
                 >
                   <StateMark info={info} />
-                  <div className="min-w-0 flex-[1_1_320px]">
-                    <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                  <div className="min-w-0">
+                    <p className="flex min-w-0 items-center gap-x-2">
                       {run.url ? (
                         <a
                           href={run.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="font-semibold hover:underline"
+                          title={name}
+                          className="max-w-[60%] min-w-0 shrink-0 truncate font-semibold hover:underline"
                         >
                           {name}
                         </a>
                       ) : (
-                        <span className="font-semibold">{name}</span>
+                        <span title={name} className="max-w-[60%] min-w-0 shrink-0 truncate font-semibold">
+                          {name}
+                        </span>
                       )}
                       <TonePill tone={info.tone} outline={info.outline}>
                         {info.label}
                       </TonePill>
                       {run.title && run.title !== name && (
-                        <span className="text-muted-foreground min-w-0 truncate text-[13px]">
+                        <span className="text-muted-foreground min-w-0 flex-1 truncate text-[13px]">
                           {run.title}
                         </span>
                       )}
@@ -188,16 +194,23 @@ export function ActionsView({ workspace, project, status, settingsLink }) {
                       )}
                     </p>
                   </div>
-                  {run.issueId && (
-                    <TaskLink slug={slug} projectId={project.id} issueId={run.issueId} code={run.issueCode} />
-                  )}
-                  <span className="text-muted-foreground w-[86px] shrink-0 text-right font-mono text-[11.5px]">
+                  <span className="flex min-w-0">
+                    {run.issueId && (
+                      <TaskLink
+                        slug={slug}
+                        projectId={project.id}
+                        issueId={run.issueId}
+                        code={run.issueCode}
+                      />
+                    )}
+                  </span>
+                  <span className="text-muted-foreground truncate text-right font-mono text-[11.5px]">
                     {runDuration(run)}
                   </span>
-                  <span className="text-muted-foreground min-w-[92px] shrink-0 text-right font-mono text-[11.5px] whitespace-nowrap">
+                  <span className="text-muted-foreground truncate text-right font-mono text-[11.5px]">
                     {formatRelative(run.startedAt ?? run.requestedAt ?? run.changedAt)}
                   </span>
-                  <span className="flex w-[92px] shrink-0 justify-end">
+                  <span className="flex justify-end">
                     {canAct && info.canRetry && (
                       <Button
                         variant="outline"

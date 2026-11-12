@@ -278,4 +278,4 @@ export function readAsBase64(file) {
 }
 
 /** Tamaño máximo del archivo que se sube (el mismo del backend). */
-export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024
+export const MAX_UPLOAD_BYTES = 14 * 1024 * 1024

@@ -214,8 +214,9 @@ const noAccount = {
 beforeEach(() => {
   vi.clearAllMocks()
   role = 'OWNER'
-  // Por defecto, quien mira tiene su cuenta de GitHub enlazada
+  // Por defecto, quien mira tiene su cuenta de GitHub enlazada y el workspace está conectado
   githubApi.me.mockResolvedValue(myAccount)
+  githubApi.workspace.mockResolvedValue(connected)
 })
 
 describe('Integraciones del workspace', () => {
@@ -254,7 +255,8 @@ describe('Integraciones del workspace', () => {
 
     githubApi.workspace.mockResolvedValue(connected)
     renderWith(<WorkspaceIntegrations workspace={member} />)
-    expect(await screen.findByText('acme/sitio-web-api')).toBeInTheDocument()
+    // (los repositorios del workspace solo los ve quien configura GitHub)
+    expect(await screen.findByText('conectado')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Desconectar' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Enlazar a un proyecto' })).not.toBeInTheDocument()
   })
@@ -806,5 +808,118 @@ describe('la cuenta de GitHub de cada persona (modo estricto)', () => {
     expect(within(section).getByText('1 de 2')).toBeInTheDocument()
     expect(within(section).getByText('@ana-torres')).toBeInTheDocument()
     expect(within(section).getByText('sin enlazar')).toBeInTheDocument()
+  })
+})
+
+describe('correcciones de la revisión', () => {
+  const repositories = [repo('r-api', 'acme/sitio-web-api')]
+  const emptyDev = {
+    available: true,
+    repositories,
+    branches: [],
+    pullRequests: [],
+    runs: [],
+    suggestedBranch: 'web-23-rate-limit',
+  }
+
+  it('sin GitHub conectado, ni el tablero ni la tarea le piden nada más al servidor', async () => {
+    githubApi.workspace.mockResolvedValue({
+      configured: false,
+      connected: false,
+      repositories: [],
+      accounts: [],
+    })
+    const { container } = renderWith(
+      <>
+        <IssueDevChip slug="equipo" projectId="p-web" issueId="i-22" />
+        <IssueDevelopment slug="equipo" project={project} issue={issue} />
+      </>,
+    )
+
+    await waitFor(() => expect(githubApi.workspace).toHaveBeenCalled())
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(githubApi.summary).not.toHaveBeenCalled()
+    expect(githubApi.issue).not.toHaveBeenCalled()
+    expect(container).toBeEmptyDOMElement()
+  })
+
+  it('un sondeo que falla no reemplaza la lista de ejecuciones por un error', async () => {
+    githubApi.runs.mockResolvedValueOnce([run()]).mockRejectedValue(new Error('sin red'))
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <MemoryRouter>
+            <ActionsView workspace={owner} project={project} status={projectStatus} settingsLink="/x" />
+          </MemoryRouter>
+        </TooltipProvider>
+      </QueryClientProvider>,
+    )
+    expect(await screen.findByText('pull request #128')).toBeInTheDocument()
+
+    await queryClient.refetchQueries({ queryKey: ['github'] })
+
+    await waitFor(() => expect(githubApi.runs).toHaveBeenCalledTimes(2))
+    expect(screen.getByText('pull request #128')).toBeInTheDocument()
+    expect(screen.queryByText(/Algo salió mal/)).not.toBeInTheDocument()
+  })
+
+  it('las ejecuciones de una tarea sin rama ni pull request también se ven', async () => {
+    githubApi.issue.mockResolvedValue({
+      ...emptyDev,
+      runs: [run({ workflowName: 'Publicar notas de versión', prNumber: null })],
+    })
+    renderWith(<IssueDevelopment slug="equipo" project={project} issue={issue} />)
+
+    expect(await screen.findByText(/Todavía no hay rama ni pull request/)).toBeInTheDocument()
+    expect(
+      within(screen.getByRole('list', { name: 'Ejecuciones de GitHub Actions' })).getByText(
+        'Publicar notas de versión',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('cuando GitHub cambia el pull request de una tarea, se recargan la tarea y su actividad', async () => {
+    const before = { ...emptyDev, pullRequests: [pull] }
+    const after = { ...emptyDev, pullRequests: [{ ...pull, state: 'MERGED' }] }
+    githubApi.issue.mockResolvedValueOnce(before).mockResolvedValue(after)
+    githubApi.checks.mockResolvedValue([])
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries')
+    render(
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <MemoryRouter>
+            <IssueDevelopment
+              slug="equipo"
+              project={project}
+              issue={{ ...issue, id: 'i-22', code: 'WEB-22' }}
+            />
+          </MemoryRouter>
+        </TooltipProvider>
+      </QueryClientProvider>,
+    )
+    expect(await screen.findByText('abierto')).toBeInTheDocument()
+    invalidate.mockClear()
+
+    await queryClient.refetchQueries({
+      queryKey: ['github', 'equipo', 'project', 'p-web', 'issue', 'i-22'],
+      exact: true,
+    })
+
+    expect(await screen.findByText('fusionado')).toBeInTheDocument()
+    const keys = invalidate.mock.calls.map(([filter]) => JSON.stringify(filter.queryKey))
+    expect(keys).toEqual(
+      expect.arrayContaining(['["issue","i-22"]', '["activity","i-22"]', '["issues","p-web"]']),
+    )
+  })
+
+  it('quien no configura GitHub no ve la lista de repositorios del workspace', async () => {
+    githubApi.workspace.mockResolvedValue({ ...connected, repositories: [] })
+    renderWith(<WorkspaceIntegrations workspace={member} />)
+
+    expect(await screen.findByText('conectado')).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: /Repositorios con acceso/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('region', { name: /Cuentas de GitHub del equipo/ })).toBeInTheDocument()
   })
 })

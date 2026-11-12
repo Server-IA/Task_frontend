@@ -38,7 +38,7 @@ export function ConnectStep({ workspace, source, onCancel, onJob }) {
   const pickFile = async (file) => {
     if (!file) return
     if (file.size > MAX_UPLOAD_BYTES) {
-      notifyError(new Error(t('El archivo pesa más de 25 MB. Expórtalo por partes (por proyecto, por ejemplo).')))
+      notifyError(new Error(t('El archivo pesa más de 14 MB. Expórtalo por partes (por proyecto, por ejemplo).')))
       return
     }
     try {
@@ -144,7 +144,7 @@ export function ConnectStep({ workspace, source, onCancel, onJob }) {
             >
               {upload.isPending ? <Spinner /> : <Upload className="size-5 text-muted-foreground" />}
               <span className="font-semibold">{upload.isPending ? t('Leyendo el archivo…') : t('Elige el archivo o suéltalo aquí')}</span>
-              <span className="font-mono text-[11px] text-muted-foreground">{t('hasta 25 MB')}</span>
+              <span className="font-mono text-[11px] text-muted-foreground">{t('hasta 14 MB')}</span>
             </button>
           </div>
         )}

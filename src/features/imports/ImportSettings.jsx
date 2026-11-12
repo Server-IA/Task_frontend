@@ -25,9 +25,10 @@ export function ImportSettings({ workspace }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const jobId = searchParams.get('job')
   const sourceKey = searchParams.get('source')
-  const go = (params) => setSearchParams({ tab: 'import', ...params }, { replace: false })
+  const go = (params, options = { replace: false }) => setSearchParams({ tab: 'import', ...params }, options)
 
-  if (jobId) return <ImportJobView workspace={workspace} jobId={jobId} onHome={() => go({})} />
+  // Al salir de una importación se reemplaza la dirección: «Atrás» no vuelve a una que quizá ya se descartó
+  if (jobId) return <ImportJobView workspace={workspace} jobId={jobId} onHome={() => go({}, { replace: true })} />
   if (sourceKey) {
     return <ConnectStep workspace={workspace} source={sourceOf(sourceKey)} onCancel={() => go({})} onJob={(job) => go({ job: job.id })} />
   }
@@ -95,7 +96,7 @@ function broughtText(job) {
 }
 
 function ImportHistory({ workspace, onOpen }) {
-  const { data: jobs, isLoading, error, refetch } = useImports(workspace.slug)
+  const { data: jobs, error, refetch } = useImports(workspace.slug)
   const undo = useUndoImport(workspace.slug)
   const discard = useDiscardImport(workspace.slug)
   const [toUndo, setToUndo] = useState(null)
@@ -124,12 +125,12 @@ function ImportHistory({ workspace, onOpen }) {
         </h2>
         <span className="text-[12.5px] text-muted-foreground">{t('Deshacer elimina lo que creó esa importación, y nada más.')}</span>
       </div>
-      {isLoading ? (
+      {!jobs && !error ? (
         <div className="space-y-2 border-t p-4">
           <Skeleton className="h-10 rounded-lg" />
           <Skeleton className="h-10 rounded-lg" />
         </div>
-      ) : error ? (
+      ) : !jobs ? (
         <ErrorState error={error} onRetry={refetch} className="border-t" />
       ) : jobs.length === 0 ? (
         <EmptyState
@@ -166,12 +167,12 @@ function ImportHistory({ workspace, onOpen }) {
               const finished = ['COMPLETED', 'FAILED', 'STOPPED'].includes(job.status)
               return (
                 <tr key={job.id} className="border-t">
-                  <td className="px-4 py-2.75">
+                  <td className="max-w-[320px] px-4 py-2.75">
                     <span className="flex min-w-0 items-center gap-2.5">
                       <SourceMark source={source} className="h-6.5 min-w-6.5 rounded-lg text-[10px]" />
                       <span className="min-w-0">
                         <span className="block font-medium">{source.name}</span>
-                        <span className="block truncate font-mono text-[11.5px] text-muted-foreground">{job.sourceLabel}</span>
+                        <span title={job.sourceLabel} className="block truncate font-mono text-[11.5px] text-muted-foreground">{job.sourceLabel}</span>
                       </span>
                     </span>
                   </td>
@@ -213,13 +214,19 @@ function ImportHistory({ workspace, onOpen }) {
 
 /** Una importación ya empezada: qué paso toca sale de por dónde va. */
 function ImportJobView({ workspace, jobId, onHome }) {
-  const { data: job, isLoading, error, refetch } = useImport(workspace.slug, jobId)
+  const { data: job, error, refetch } = useImport(workspace.slug, jobId)
   const discard = useDiscardImport(workspace.slug)
   // En «lista para revisar» hay dos pantallas (equivalencias y revisión), y se puede volver a elegir qué traer
   const [view, setView] = useState(null)
 
-  if (isLoading) return <Skeleton className="h-64 rounded-2xl" />
-  if (error) return <div className="tf-panel"><ErrorState error={error} onRetry={refetch} /></div>
+  if (!job && !error) return <Skeleton className="h-64 rounded-2xl" />
+  if (!job) {
+    return (
+      <div className="tf-panel">
+        <ErrorState error={error} onRetry={refetch} homeLink={`/${workspace.slug}/settings?tab=import`} />
+      </div>
+    )
+  }
 
   const source = sourceOf(job.source)
   const cancel = () => {

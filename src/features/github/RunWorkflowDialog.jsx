@@ -34,7 +34,7 @@ export function RunWorkflowDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[520px]">
+      <DialogContent className="max-h-[calc(100dvh-3rem)] overflow-y-auto sm:max-w-[520px]">
         {/* El formulario se monta al abrir: cada vez empieza limpio */}
         {open && (
           <RunForm
@@ -166,7 +166,7 @@ function RunForm({ workspace, project, repositories, initialIssue, onDone }) {
         </div>
         {workflow?.inputs.map((name) => (
           <div key={name} className={label}>
-            <label htmlFor={`workflow-input-${name}`} className="font-mono">
+            <label htmlFor={`workflow-input-${name}`} title={name} className="truncate font-mono">
               {name}
             </label>
             <Input
@@ -195,6 +195,9 @@ function RunForm({ workspace, project, repositories, initialIssue, onDone }) {
         >
           <button
             type="button"
+            aria-label={
+              issue ? t('Tarea relacionada: {code}', { code: issue.code }) : t('Tarea relacionada: ninguna')
+            }
             className="focus-visible:ring-ring flex h-8.5 w-full items-center gap-2 rounded-md border bg-transparent px-3 text-left text-sm font-normal shadow-xs focus-visible:ring-2 focus-visible:outline-none"
           >
             {issue ? (

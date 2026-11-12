@@ -823,7 +823,7 @@ const IssueCard = memo(function IssueCard({
         )}
         <AttachmentsChip issue={issue} />
         <ChecklistChip issue={issue} />
-        {!overlay && <IssueDevChip slug={slug} projectId={project.id} issueId={issue.id} />}
+        <IssueDevChip slug={slug} projectId={project.id} issueId={issue.id} />
         {!hasLabels && meta.labels.length > 0 && (
           <LabelsPicker disabled={locked} compact labels={meta.labels} value={[]} onChange={(labelIds) => update({ labelIds })} className={revealOnHover} />
         )}

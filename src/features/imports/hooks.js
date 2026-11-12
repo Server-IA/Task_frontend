@@ -10,11 +10,36 @@ const WORKING = ['FETCHING', 'RUNNING', 'UNDOING']
 /** Si hay un trabajo corriendo en segundo plano. @param {import('./api').ImportJob | undefined} job */
 export const isWorking = (job) => WORKING.includes(job?.status)
 
+/**
+ * Lo que una importación cambia fuera de su pestaña: al terminar (o al deshacerse) hay proyectos, miembros,
+ * invitaciones y archivos nuevos (o menos), y la barra lateral y los ajustes tienen que enterarse.
+ */
+function refreshWorkspace(queryClient, slug) {
+  for (const queryKey of [
+    queryKeys.projects(slug),
+    queryKeys.members(slug),
+    queryKeys.invitations(slug),
+    queryKeys.storageOf(slug),
+    queryKeys.workspaceActivityOf(slug),
+  ]) {
+    queryClient.invalidateQueries({ queryKey })
+  }
+}
+
+/** Si entre una consulta y la siguiente alguna importación dejó de trabajar. */
+const settled = (before, after) =>
+  (before ?? []).some((job) => isWorking(job) && !isWorking(after.find((other) => other.id === job.id)))
+
 /** Las importaciones del workspace (historial y las que quedaron sin terminar). */
 export function useImports(slug) {
+  const queryClient = useQueryClient()
   return useQuery({
     queryKey: queryKeys.imports(slug),
-    queryFn: () => importsApi.list(slug),
+    queryFn: async () => {
+      const jobs = await importsApi.list(slug)
+      if (settled(queryClient.getQueryData(queryKeys.imports(slug)), jobs)) refreshWorkspace(queryClient, slug)
+      return jobs
+    },
     enabled: Boolean(slug),
     // Si alguna está corriendo, la lista se actualiza sola hasta que termine
     refetchInterval: (query) => (query.state.data?.some(isWorking) ? POLL_MS * 2 : false),
@@ -23,9 +48,15 @@ export function useImports(slug) {
 
 /** Una importación; se actualiza sola mientras hay un trabajo corriendo. */
 export function useImport(slug, jobId) {
+  const queryClient = useQueryClient()
   return useQuery({
     queryKey: queryKeys.importJob(slug, jobId),
-    queryFn: () => importsApi.get(slug, jobId),
+    queryFn: async () => {
+      const job = await importsApi.get(slug, jobId)
+      const before = queryClient.getQueryData(queryKeys.importJob(slug, jobId))
+      if (isWorking(before) && !isWorking(job)) refreshWorkspace(queryClient, slug)
+      return job
+    },
     enabled: Boolean(slug && jobId),
     refetchInterval: (query) => (isWorking(query.state.data) ? POLL_MS : false),
   })

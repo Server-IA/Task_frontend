@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/api/queryKeys'
 import { githubApi } from './api'
 
@@ -30,12 +30,12 @@ export function useGithubProject(slug, projectId, { live = false } = {}) {
 }
 
 /** @param {'open' | 'merged' | 'all'} state */
-export function useGithubPulls(slug, projectId, state, { enabled = true } = {}) {
+export function useGithubPulls(slug, projectId, state, { enabled = true, live = true } = {}) {
   return useQuery({
     queryKey: queryKeys.githubPulls(slug, projectId, state),
     queryFn: () => githubApi.pulls(slug, projectId, state),
     enabled: Boolean(slug && projectId) && enabled,
-    refetchInterval: LIVE_MS,
+    refetchInterval: live ? LIVE_MS : false,
   })
 }
 
@@ -49,13 +49,63 @@ export function useGithubRuns(slug, projectId, { enabled = true } = {}) {
 }
 
 /** Las ramas enlazadas a tareas del proyecto. */
-export function useGithubBranches(slug, projectId, { enabled = true } = {}) {
+export function useGithubBranches(slug, projectId, { enabled = true, live = true } = {}) {
   return useQuery({
     queryKey: queryKeys.githubBranches(slug, projectId),
     queryFn: () => githubApi.branches(slug, projectId),
     enabled: Boolean(slug && projectId) && enabled,
-    refetchInterval: LIVE_MS * 2,
+    refetchInterval: live ? LIVE_MS * 2 : false,
   })
+}
+
+/** Cada cuánto se vuelve a preguntar si el workspace está conectado con GitHub. */
+const CONNECTED_MS = 5 * 60_000
+
+/**
+ * Si el workspace está conectado con GitHub. Lo usan las consultas que se piden desde todas las pantallas de tareas (el
+ * resumen del tablero, el desarrollo de una tarea): sin conexión no le piden nada más al servidor.
+ */
+async function isConnected(queryClient, slug) {
+  try {
+    const status = await queryClient.fetchQuery({
+      queryKey: queryKeys.githubWorkspace(slug),
+      queryFn: () => githubApi.workspace(slug),
+      staleTime: CONNECTED_MS,
+    })
+    return Boolean(status?.connected)
+  } catch {
+    return false
+  }
+}
+
+/** Lo que cambia en una tarea cuando GitHub la mueve: su rama y el estado de su pull request. */
+const summarySignature = (summaries) =>
+  summaries
+    .map((summary) => `${summary.issueId}:${summary.branches}:${summary.prNumber}:${summary.prState}`)
+    .sort()
+    .join('|')
+
+/**
+ * El resumen del proyecto (qué tareas tienen rama o pull request). Cuando cambia entre un sondeo y otro es que GitHub
+ * hizo algo (se abrió o se fusionó un pull request), y eso puede haber movido tareas: se recargan las listas de tareas.
+ */
+function summaryOptions(queryClient, slug, projectId) {
+  const queryKey = queryKeys.githubSummary(slug, projectId)
+  return {
+    queryKey,
+    queryFn: async () => {
+      if (!(await isConnected(queryClient, slug))) return []
+      const next = await githubApi.summary(slug, projectId)
+      const previous = queryClient.getQueryData(queryKey)
+      if (previous && summarySignature(previous) !== summarySignature(next)) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.issuesOf(projectId) })
+      }
+      return next
+    },
+    enabled: Boolean(slug && projectId),
+    staleTime: SUMMARY_MS / 2,
+    refetchInterval: SUMMARY_MS,
+  }
 }
 
 /**
@@ -64,13 +114,8 @@ export function useGithubBranches(slug, projectId, { enabled = true } = {}) {
  * @returns {Map<string, import('./api').IssueSummary>}
  */
 export function useGithubSummary(slug, projectId) {
-  const { data } = useQuery({
-    queryKey: queryKeys.githubSummary(slug, projectId),
-    queryFn: () => githubApi.summary(slug, projectId),
-    enabled: Boolean(slug && projectId),
-    staleTime: SUMMARY_MS / 2,
-    refetchInterval: SUMMARY_MS,
-  })
+  const queryClient = useQueryClient()
+  const { data } = useQuery(summaryOptions(queryClient, slug, projectId))
   return useMemo(() => new Map((data ?? []).map((summary) => [summary.issueId, summary])), [data])
 }
 
@@ -80,12 +125,9 @@ export function useGithubSummary(slug, projectId) {
  * @returns {import('./api').IssueSummary | undefined}
  */
 export function useIssueGithubSummary(slug, projectId, issueId) {
+  const queryClient = useQueryClient()
   const { data } = useQuery({
-    queryKey: queryKeys.githubSummary(slug, projectId),
-    queryFn: () => githubApi.summary(slug, projectId),
-    enabled: Boolean(slug && projectId),
-    staleTime: SUMMARY_MS / 2,
-    refetchInterval: SUMMARY_MS,
+    ...summaryOptions(queryClient, slug, projectId),
     select: (summaries) => summaries.find((summary) => summary.issueId === issueId),
   })
   return data
@@ -111,15 +153,48 @@ export function useGithubRepoBranches(slug, projectId, repositoryId) {
   })
 }
 
+/** Lo que se responde de una tarea cuando el workspace no está conectado con GitHub. */
+const NO_DEVELOPMENT = {
+  available: false,
+  repositories: [],
+  branches: [],
+  pullRequests: [],
+  runs: [],
+  suggestedBranch: '',
+}
+
+const developmentSignature = (dev) =>
+  [
+    ...dev.branches.map((branch) => branch.name),
+    ...dev.pullRequests.map((pull) => `${pull.id}:${pull.state}`),
+  ]
+    .sort()
+    .join('|')
+
 /** El desarrollo de una tarea: sus ramas, pull requests y ejecuciones. */
 export function useGithubIssue(slug, projectId, issueId) {
+  const queryClient = useQueryClient()
+  const queryKey = queryKeys.githubIssue(slug, projectId, issueId)
   return useQuery({
-    queryKey: queryKeys.githubIssue(slug, projectId, issueId),
-    queryFn: () => githubApi.issue(slug, projectId, issueId),
+    queryKey,
+    queryFn: async () => {
+      if (!(await isConnected(queryClient, slug))) return NO_DEVELOPMENT
+      const next = await githubApi.issue(slug, projectId, issueId)
+      const previous = queryClient.getQueryData(queryKey)
+      // Si cambió su rama o el estado de su pull request, GitHub pudo mover la tarea y dejó una entrada en su actividad
+      if (previous && developmentSignature(previous) !== developmentSignature(next)) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.issue(issueId) })
+        queryClient.invalidateQueries({ queryKey: queryKeys.activity(issueId) })
+        queryClient.invalidateQueries({ queryKey: queryKeys.issuesOf(projectId) })
+      }
+      return next
+    },
     enabled: Boolean(slug && projectId && issueId),
     // Solo se sigue consultando si la tarea ya tiene algo en GitHub que pueda cambiar
-    refetchInterval: (query) =>
-      query.state.data?.branches.length || query.state.data?.pullRequests.length ? LIVE_MS : false,
+    refetchInterval: (query) => {
+      const dev = query.state.data
+      return dev?.branches.length || dev?.pullRequests.length || dev?.runs.length ? LIVE_MS : false
+    },
   })
 }
 
@@ -135,6 +210,9 @@ export function useGithubChecks(slug, projectId, issueId, pullRequest) {
     queryFn: () => githubApi.checks(slug, projectId, issueId, pullRequest.id),
     enabled: Boolean(slug && projectId && issueId && pullRequest?.id && pullRequest?.headSha),
     staleTime: LIVE_MS,
+    // Mientras alguno sigue corriendo, la lista se refresca; y al cambiar de commit no se queda en blanco
+    refetchInterval: pullRequest?.checksState === 'PENDING' ? LIVE_MS : false,
+    placeholderData: keepPreviousData,
   })
 }
 

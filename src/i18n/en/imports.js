@@ -99,11 +99,11 @@ export default {
   'Conectando…': 'Connecting…',
   'Conectar y continuar': 'Connect and continue',
   'No se pudo conectar': 'Could not connect',
-  'El archivo pesa más de 25 MB. Expórtalo por partes (por proyecto, por ejemplo).': 'The file is larger than 25 MB. Export it in parts (per project, for example).',
+  'El archivo pesa más de 14 MB. Expórtalo por partes (por proyecto, por ejemplo).': 'The file is larger than 14 MB. Export it in parts (per project, for example).',
   'No se pudo leer el archivo': 'The file could not be read',
   'Leyendo el archivo…': 'Reading the file…',
   'Elige el archivo o suéltalo aquí': 'Choose the file or drop it here',
-  'hasta 25 MB': 'up to 25 MB',
+  'hasta 14 MB': 'up to 14 MB',
 
   // Qué importar
   'Conectado como {name}': 'Connected as {name}',
@@ -294,4 +294,6 @@ export default {
   // En la tarea y en la Bandeja
   'importada de {source}': 'imported from {source}',
   'avisa: importación': 'notice: import',
+  'Falta un correo válido para invitarla.': 'A valid email is needed to invite them.',
+  'A alguien marcado para invitar le falta un correo válido.': 'Someone marked to be invited is missing a valid email.',
 }

@@ -161,10 +161,10 @@ export function TaskLink({ slug, projectId, issueId, code, state }) {
   return (
     <Link
       to={`/${slug}/projects/${projectId}/issues/${issueId}`}
-      className="hover:border-dash hover:bg-muted focus-visible:ring-ring inline-flex shrink-0 items-center gap-1.75 rounded-lg border px-2 py-1 text-[12.5px] transition-colors focus-visible:ring-2 focus-visible:outline-none"
+      className="hover:border-dash hover:bg-muted focus-visible:ring-ring inline-flex max-w-full min-w-0 shrink-0 items-center gap-1.75 rounded-lg border px-2 py-1 text-[12.5px] transition-colors focus-visible:ring-2 focus-visible:outline-none"
     >
-      <span className="font-mono text-xs font-semibold">{code}</span>
-      {state && <span className="text-muted-foreground">{stateName(state)}</span>}
+      <span className="shrink-0 font-mono text-xs font-semibold">{code}</span>
+      {state && <span className="text-muted-foreground truncate">{stateName(state)}</span>}
     </Link>
   )
 }

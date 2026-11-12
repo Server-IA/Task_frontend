@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useCallback, useState } from 'react'
 import { Link } from 'react-router'
 import { Check, Download, Inbox, TriangleAlert } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -34,22 +34,30 @@ const ARROW = <span aria-hidden="true" className="text-muted-foreground">→</sp
 /** El grupo de TaskFlow que le toca a un estado del origen cuando se crea con su nombre. */
 const GROUP_OF = { BACKLOG: 'BACKLOG', TODO: 'UNSTARTED', IN_PROGRESS: 'STARTED', DONE: 'COMPLETED', CANCELLED: 'CANCELLED' }
 
+const NO_MEMBERS = []
+const VALID_EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
+
 /**
  * Paso «Equivalencias»: cada tipo, estado, prioridad y persona del origen con lo que le corresponde en TaskFlow. Llega
  * propuesto; aquí se cambia lo que no sirva. Al continuar se guardan y se pasa a revisar lo que se crearía con ellas.
  */
 export function MappingStep({ workspace, job, onBack, onNext }) {
-  const { data: members = [] } = useMembers(workspace.slug)
+  const { data: members = NO_MEMBERS } = useMembers(workspace.slug)
   const save = useSaveImportMapping(workspace.slug, job.id)
   const [mapping, setMapping] = useState(() => toMapping(job.mapping))
   const proposal = job.mapping
   const mayInvite = can(workspace, 'MEMBER_INVITE')
   const set = (section, key, value) => setMapping((current) => ({ ...current, [section]: { ...current[section], [key]: value } }))
+  // Estable entre renders: así una fila de persona solo se repinta cuando cambia lo suyo
+  const setPerson = useCallback(
+    (id, value) => setMapping((current) => ({ ...current, people: { ...current.people, [id]: value } })),
+    [],
+  )
 
   const outside = proposal.people.filter((person) => mapping.people[person.id]?.action !== 'MEMBER').length
   const missingEmail = proposal.people.some((person) => {
     const target = mapping.people[person.id]
-    return target?.action === 'INVITE' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(target.email ?? '')
+    return target?.action === 'INVITE' && !VALID_EMAIL.test(target.email ?? '')
   })
 
   const submit = () =>
@@ -128,7 +136,7 @@ export function MappingStep({ workspace, job, onBack, onNext }) {
           ) : (
             <ul className="max-h-[420px] overflow-y-auto">
               {proposal.people.map((person) => (
-                <PersonRow key={person.id} row={person} members={members} mayInvite={mayInvite} value={mapping.people[person.id]} onChange={(value) => set('people', person.id, value)} />
+                <PersonRow key={person.id} row={person} members={members} mayInvite={mayInvite} value={mapping.people[person.id]} onChange={setPerson} />
               ))}
             </ul>
           )}
@@ -168,6 +176,11 @@ export function MappingStep({ workspace, job, onBack, onNext }) {
         <span className="ml-auto font-mono text-xs text-muted-foreground">
           {t('estas equivalencias se proponen en la próxima importación desde {source}', { source: sourceName(job.source) })}
         </span>
+        {missingEmail && (
+          <span role="status" className="text-[12.5px] text-late">
+            {t('A alguien marcado para invitar le falta un correo válido.')}
+          </span>
+        )}
         <Button onClick={submit} disabled={save.isPending || missingEmail}>
           {save.isPending && <Spinner />}
           {t('Continuar')}
@@ -217,13 +230,14 @@ function StateRow({ row, choices, value, onChange }) {
   )
 }
 
-function PersonRow({ row, members, mayInvite, value, onChange }) {
+const PersonRow = memo(function PersonRow({ row, members, mayInvite, value, onChange }) {
   const key = value.action === 'MEMBER' ? value.userId : value.action
   const pick = (next) => {
-    if (next === 'UNASSIGNED') onChange({ action: 'UNASSIGNED', userId: null, email: row.email ?? null, roleId: null })
-    else if (next === 'INVITE') onChange({ action: 'INVITE', userId: null, email: value.email ?? row.email ?? '', roleId: null })
-    else onChange({ action: 'MEMBER', userId: next, email: null, roleId: null })
+    if (next === 'UNASSIGNED') onChange(row.id, { action: 'UNASSIGNED', userId: null, email: row.email ?? null, roleId: null })
+    else if (next === 'INVITE') onChange(row.id, { action: 'INVITE', userId: null, email: value.email ?? row.email ?? '', roleId: null })
+    else onChange(row.id, { action: 'MEMBER', userId: next, email: null, roleId: null })
   }
+  const emailMissing = value.action === 'INVITE' && !VALID_EMAIL.test(value.email ?? '')
   return (
     <li className={cn(ROW, 'flex-wrap')}>
       <span className="min-w-0 flex-[1_1_150px]">
@@ -245,7 +259,9 @@ function PersonRow({ row, members, mayInvite, value, onChange }) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="UNASSIGNED">{t('Dejar sin asignar')}</SelectItem>
-            {mayInvite && <SelectItem value="INVITE">{t('Invitar como Miembro')}</SelectItem>}
+            {/* Sin permiso de invitar la opción solo aparece si ya venía puesta (de una importación anterior): al empezar
+                se cambia a «sin asignar» */}
+            {(mayInvite || value.action === 'INVITE') && <SelectItem value="INVITE">{t('Invitar como Miembro')}</SelectItem>}
             {members.map((member) => (
               <SelectItem key={member.user.id} value={member.user.id}>
                 {member.user.fullName}
@@ -259,14 +275,16 @@ function PersonRow({ row, members, mayInvite, value, onChange }) {
             aria-label={t('Correo de {name}', { name: row.name })}
             placeholder={t('persona@correo.com')}
             className="h-8.5"
+            aria-invalid={emailMissing}
             value={value.email ?? ''}
-            onChange={(event) => onChange({ ...value, email: event.target.value.trim() })}
+            onChange={(event) => onChange(row.id, { ...value, email: event.target.value.trim() })}
           />
         )}
+        {emailMissing && <span className="text-[12px] text-late">{t('Falta un correo válido para invitarla.')}</span>}
       </span>
     </li>
   )
-}
+})
 
 const TYPE_TONE = { STORY: 'bg-[#ECE6FF] text-[#4B33A8] dark:bg-[#2B2440] dark:text-[#C9BBFF]', BUG: 'bg-late-soft text-late', TASK: 'bg-muted text-muted-foreground' }
 const typeLabel = (type) => ({ STORY: t('Historia'), BUG: t('Bug'), TASK: t('Tarea') })[type]

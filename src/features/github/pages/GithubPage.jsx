@@ -42,10 +42,17 @@ export function GithubPage() {
   const slug = workspace.slug
   const [searchParams, setSearchParams] = useSearchParams()
   const view = VIEWS.includes(searchParams.get('view')) ? searchParams.get('view') : 'pulls'
-  const { data: status, isLoading, error, refetch } = useGithubProject(slug, project.id, { live: true })
+  const { data: status, error, refetch } = useGithubProject(slug, project.id, { live: true })
   const ready = Boolean(status?.connected && status.repositories.length > 0)
-  const { data: openPulls } = useGithubPulls(slug, project.id, 'open', { enabled: ready })
-  const { data: branches } = useGithubBranches(slug, project.id, { enabled: ready })
+  // Para los contadores de las pestañas; se refrescan solos solo en su pestaña
+  const { data: openPulls } = useGithubPulls(slug, project.id, 'open', {
+    enabled: ready,
+    live: view === 'pulls',
+  })
+  const { data: branches } = useGithubBranches(slug, project.id, {
+    enabled: ready,
+    live: view === 'branches',
+  })
   const [running, setRunning] = useState(false)
   const canRun = can(workspace, 'GITHUB_RUN')
   const linked = useGithubLinked()
@@ -80,7 +87,8 @@ export function GithubPage() {
     </PageHeader>
   )
 
-  if (isLoading) {
+  // Con datos en pantalla, un sondeo que falla (el servidor se reinició, la red se cortó) no los reemplaza por un error
+  if (!status && !error) {
     return (
       <>
         {header()}
@@ -94,7 +102,7 @@ export function GithubPage() {
       </>
     )
   }
-  if (error) {
+  if (!status) {
     return (
       <>
         {header()}
@@ -207,6 +215,8 @@ function Author({ login, name }) {
     : login.slice(0, 2)
   return (
     <span
+      role="img"
+      aria-label={name ? `${name} (@${login})` : `@${login}`}
       title={name ? `${name} (@${login})` : `@${login}`}
       className="bg-accent-soft text-accent-text flex size-6.5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold uppercase"
     >
@@ -220,7 +230,7 @@ function PullsView({ workspace, project, status }) {
   const [state, setState] = useState('open')
   const [repository, setRepository] = useState(ALL)
   const [author, setAuthor] = useState(ALL)
-  const { data: pulls, isLoading, error, refetch } = useGithubPulls(slug, project.id, state)
+  const { data: pulls, error, refetch } = useGithubPulls(slug, project.id, state)
   const link = useLinkPullRequest(slug, project.id)
   const canLink = can(workspace, 'ISSUE_EDIT')
 
@@ -228,10 +238,17 @@ function PullsView({ workspace, project, status }) {
     () => [...new Set((pulls ?? []).map((pull) => pull.authorLogin).filter(Boolean))].sort(),
     [pulls],
   )
+  // Un filtro cuyo selector ya no se muestra (queda un solo autor, o el elegido no está en esta lista) no filtra: si no,
+  // la lista saldría vacía sin forma de quitarlo
+  const byRepository =
+    status.repositories.length > 1 && status.repositories.some((repo) => repo.id === repository)
+      ? repository
+      : ALL
+  const byAuthor = authors.length > 1 && authors.includes(author) ? author : ALL
   const shown = (pulls ?? []).filter(
     (pull) =>
-      (repository === ALL || pull.repositoryId === repository) &&
-      (author === ALL || pull.authorLogin === author),
+      (byRepository === ALL || pull.repositoryId === byRepository) &&
+      (byAuthor === ALL || pull.authorLogin === byAuthor),
   )
 
   const handleLink = (pull, issue) =>
@@ -265,7 +282,7 @@ function PullsView({ workspace, project, status }) {
         {status.repositories.length > 1 && (
           <Pick
             label={t('Repositorio')}
-            value={repository}
+            value={byRepository}
             onChange={setRepository}
             options={[
               { value: ALL, label: t('Repositorio: todos') },
@@ -277,7 +294,7 @@ function PullsView({ workspace, project, status }) {
         {authors.length > 1 && (
           <Pick
             label={t('Persona')}
-            value={author}
+            value={byAuthor}
             onChange={setAuthor}
             options={[
               { value: ALL, label: t('Persona: todas') },
@@ -293,12 +310,12 @@ function PullsView({ workspace, project, status }) {
         </span>
       </div>
       <section aria-label={t('Pull requests')} className="bg-card overflow-hidden rounded-2xl border">
-        {isLoading ? (
+        {!pulls && !error ? (
           <div className="space-y-2 p-4">
             <Skeleton className="h-11 rounded-lg" />
             <Skeleton className="h-11 rounded-lg" />
           </div>
-        ) : error ? (
+        ) : !pulls ? (
           <ErrorState error={error} onRetry={refetch} />
         ) : shown.length === 0 ? (
           <EmptyState
@@ -318,13 +335,13 @@ function PullsView({ workspace, project, status }) {
                 <li
                   key={pull.id}
                   className={cn(
-                    'flex flex-wrap items-center gap-x-3.5 gap-y-2 px-4 py-3',
+                    'grid grid-cols-[auto_minmax(0,1fr)_176px_138px_auto_166px] items-center gap-x-3.5 px-4 py-3',
                     index > 0 && 'border-t',
                   )}
                 >
                   <PullMark state={pull.state} />
-                  <div className="min-w-0 flex-[1_1_320px]">
-                    <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                  <div className="min-w-0">
+                    <p className="flex min-w-0 items-center gap-x-2">
                       <a
                         href={pull.url}
                         target="_blank"
@@ -333,7 +350,7 @@ function PullsView({ workspace, project, status }) {
                       >
                         {pull.title}
                       </a>
-                      <span className="text-muted-foreground font-mono text-xs">#{pull.number}</span>
+                      <span className="text-muted-foreground shrink-0 font-mono text-xs">#{pull.number}</span>
                       <TonePill tone={info.tone}>{info.label}</TonePill>
                     </p>
                     <p className="text-muted-foreground mt-0.5 truncate font-mono text-[11.5px]">
@@ -346,32 +363,34 @@ function PullsView({ workspace, project, status }) {
                         .join(' · ')}
                     </p>
                   </div>
-                  {pull.issueId ? (
-                    <TaskLink
-                      slug={slug}
-                      projectId={project.id}
-                      issueId={pull.issueId}
-                      code={pull.issueCode}
-                      state={pull.issueState}
-                    />
-                  ) : canLink ? (
-                    <IssuePicker
-                      slug={slug}
-                      projectId={project.id}
-                      onPick={(issue) => handleLink(pull, issue)}
-                      align="end"
-                    >
-                      <button
-                        type="button"
-                        className="border-dash text-muted-foreground hover:text-foreground focus-visible:ring-ring shrink-0 rounded-lg border border-dashed px-2 py-1 text-[12.5px] transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                  <span className="flex min-w-0">
+                    {pull.issueId ? (
+                      <TaskLink
+                        slug={slug}
+                        projectId={project.id}
+                        issueId={pull.issueId}
+                        code={pull.issueCode}
+                        state={pull.issueState}
+                      />
+                    ) : canLink ? (
+                      <IssuePicker
+                        slug={slug}
+                        projectId={project.id}
+                        onPick={(issue) => handleLink(pull, issue)}
+                        align="end"
                       >
-                        {t('sin tarea · enlazar')}
-                      </button>
-                    </IssuePicker>
-                  ) : (
-                    <span className="text-muted-foreground shrink-0 text-[12.5px]">{t('sin tarea')}</span>
-                  )}
-                  <span className="flex w-[150px] shrink-0 justify-start">
+                        <button
+                          type="button"
+                          className="border-dash text-muted-foreground hover:text-foreground focus-visible:ring-ring shrink-0 rounded-lg border border-dashed px-2 py-1 text-[12.5px] transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                        >
+                          {t('sin tarea · enlazar')}
+                        </button>
+                      </IssuePicker>
+                    ) : (
+                      <span className="text-muted-foreground shrink-0 text-[12.5px]">{t('sin tarea')}</span>
+                    )}
+                  </span>
+                  <span className="flex min-w-0 justify-start">
                     {checks && (
                       <TonePill tone={checks.tone}>
                         <span aria-hidden="true">{checks.mark}</span>
@@ -380,7 +399,7 @@ function PullsView({ workspace, project, status }) {
                     )}
                   </span>
                   <Author login={pull.authorLogin} name={pull.authorName} />
-                  <span className="text-muted-foreground min-w-[92px] shrink-0 text-right font-mono text-[11.5px] whitespace-nowrap">
+                  <span className="text-muted-foreground truncate text-right font-mono text-[11.5px]">
                     {formatRelative(pull.changedAt)}
                   </span>
                 </li>
@@ -440,7 +459,7 @@ function BranchesView({ workspace, project, branches }) {
                 issueId={branch.issueId}
                 code={branch.issueCode}
               />
-              <span className="text-muted-foreground min-w-[92px] shrink-0 text-right font-mono text-[11.5px] whitespace-nowrap">
+              <span className="text-muted-foreground w-[166px] shrink-0 truncate text-right font-mono text-[11.5px]">
                 {formatRelative(branch.createdAt)}
               </span>
             </li>

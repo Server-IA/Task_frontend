@@ -36,10 +36,10 @@ import {
  * @param {{ workspace: import('@/api/types').WorkspaceResponse, project: import('@/api/types').ProjectResponse }} props
  */
 export function ProjectGithubSettings({ workspace, project }) {
-  const { data: status, isLoading, error, refetch } = useGithubProject(workspace.slug, project.id)
+  const { data: status, error, refetch } = useGithubProject(workspace.slug, project.id)
   const canManage = can(workspace, 'GITHUB_MANAGE')
 
-  if (isLoading) {
+  if (!status && !error) {
     return (
       <div className="mx-auto flex max-w-[940px] flex-col gap-3.5">
         <Skeleton className="h-32 rounded-2xl" />
@@ -47,7 +47,13 @@ export function ProjectGithubSettings({ workspace, project }) {
       </div>
     )
   }
-  if (error) return <ErrorState error={error} onRetry={refetch} className="tf-panel" />
+  if (!status) {
+    return (
+      <div className="mx-auto max-w-[940px]">
+        <ErrorState error={error} onRetry={refetch} className="tf-panel" />
+      </div>
+    )
+  }
   if (!status.connected) return <NotConnected workspace={workspace} />
 
   return (

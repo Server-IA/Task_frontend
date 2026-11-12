@@ -70,6 +70,7 @@ export function IssueDevelopment({ slug, project, issue }) {
   // La rama la crea la persona con su cuenta de GitHub; enlazar una que ya existe no la necesita
   const canCreate = canEdit && linked === true
   const empty = dev.branches.length === 0 && dev.pullRequests.length === 0
+  const onlyRuns = empty && dev.runs.length > 0
   const titleId = `development-${issue.id}`
   const action = 'rounded-full border px-2.5 py-1 text-xs transition-colors duration-150 hover:bg-accent'
 
@@ -127,18 +128,19 @@ export function IssueDevelopment({ slug, project, issue }) {
           {dev.branches.map((branch) => (
             <div
               key={branch.id}
-              className="bg-muted flex flex-wrap items-center gap-x-2.5 gap-y-1.5 rounded-xl px-3 py-2"
+              className="bg-muted grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2.5 gap-y-0.5 rounded-xl px-3 py-2"
             >
               <GitBranch className="text-muted-foreground size-3.5 shrink-0" aria-hidden="true" />
               <a
                 href={branchUrl(branch.repository, branch.name)}
                 target="_blank"
                 rel="noreferrer"
+                title={branch.name}
                 className="min-w-0 truncate font-mono text-[13px] font-semibold hover:underline"
               >
                 {branch.name}
               </a>
-              <span className="text-muted-foreground min-w-0 flex-1 truncate font-mono text-[11.5px]">
+              <span className="text-muted-foreground col-start-2 row-start-2 min-w-0 truncate font-mono text-[11.5px]">
                 {branch.repository} · {formatRelative(branch.createdAt)}
               </span>
               <button
@@ -157,6 +159,7 @@ export function IssueDevelopment({ slug, project, issue }) {
         </>
       )}
 
+      {onlyRuns && <Runs runs={dev.runs} />}
       {canEdit && (
         <ConnectAccountNotice short>
           {t('Para crear la rama desde aquí, conecta tu cuenta de GitHub: la rama se crea a tu nombre.')}
@@ -199,34 +202,37 @@ function PullCard({ slug, projectId, issueId, pull }) {
   ]
   return (
     <div className="overflow-hidden rounded-[14px] border">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3.5 py-3">
+      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 px-3.5 py-3">
         <PullMark state={pull.state} />
-        <span className="min-w-0 flex-[1_1_240px]">
-          <span className="flex flex-wrap items-baseline gap-x-1.5">
+        <span className="min-w-0">
+          <span className="flex min-w-0 items-baseline gap-x-1.5">
             <a
               href={pull.url}
               target="_blank"
               rel="noreferrer"
+              title={pull.title}
               className="min-w-0 truncate font-semibold hover:underline"
             >
               {pull.title}
             </a>
-            <span className="text-muted-foreground font-mono text-xs">#{pull.number}</span>
+            <span className="text-muted-foreground shrink-0 font-mono text-xs">#{pull.number}</span>
           </span>
           <span className="text-muted-foreground mt-0.5 block truncate font-mono text-[11.5px]">
             {facts.filter(Boolean).join(' · ')}
           </span>
         </span>
-        <TonePill tone={info.tone}>{info.label}</TonePill>
-        <a
-          href={pull.url}
-          target="_blank"
-          rel="noreferrer"
-          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-[12.5px] hover:underline"
-        >
-          {t('ver en GitHub')}
-          <ArrowUpRight className="size-3.5" aria-hidden="true" />
-        </a>
+        <span className="flex flex-col items-end gap-1">
+          <TonePill tone={info.tone}>{info.label}</TonePill>
+          <a
+            href={pull.url}
+            target="_blank"
+            rel="noreferrer"
+            className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-[12.5px] whitespace-nowrap hover:underline"
+          >
+            {t('ver en GitHub')}
+            <ArrowUpRight className="size-3.5" aria-hidden="true" />
+          </a>
+        </span>
       </div>
       {checks?.length > 0 && (
         <ul aria-label={t('Checks del pull request')} className="border-t">
@@ -284,25 +290,35 @@ function Runs({ runs }) {
           <li
             key={run.id}
             className={cn(
-              'flex flex-wrap items-center gap-x-2.5 gap-y-1 px-3.5 py-2 text-[13px]',
+              'grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-2.5 px-3.5 py-2 text-[13px]',
               index > 0 && 'border-t',
             )}
           >
             <StateMark info={info} className="size-5 text-[11px]" />
-            {run.url ? (
-              <a href={run.url} target="_blank" rel="noreferrer" className="font-medium hover:underline">
-                {name}
-              </a>
-            ) : (
-              <span className="font-medium">{name}</span>
-            )}
-            <span className="text-muted-foreground min-w-0 flex-1 truncate font-mono text-[11.5px]">
-              {[repoName(run.repository), run.branch].filter(Boolean).join(' · ')}
+            <span className="min-w-0">
+              {run.url ? (
+                <a
+                  href={run.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  title={name}
+                  className="block truncate font-medium hover:underline"
+                >
+                  {name}
+                </a>
+              ) : (
+                <span title={name} className="block truncate font-medium">
+                  {name}
+                </span>
+              )}
+              <span className="text-muted-foreground block truncate font-mono text-[11.5px]">
+                {[repoName(run.repository), run.branch].filter(Boolean).join(' · ')}
+              </span>
             </span>
             <TonePill tone={info.tone} outline={info.outline}>
               {info.label}
             </TonePill>
-            <span className="text-muted-foreground min-w-[92px] text-right font-mono text-[11.5px] whitespace-nowrap">
+            <span className="text-muted-foreground text-right font-mono text-[11.5px] whitespace-nowrap">
               {formatRelative(run.startedAt ?? run.requestedAt ?? run.changedAt)}
             </span>
           </li>
@@ -315,7 +331,7 @@ function Runs({ runs }) {
 function CreateBranchDialog({ open, onOpenChange, slug, project, issue, dev }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[520px]">
+      <DialogContent className="max-h-[calc(100dvh-3rem)] overflow-y-auto sm:max-w-[520px]">
         {open && (
           <CreateBranchForm
             slug={slug}
@@ -467,7 +483,7 @@ function CreateBranchForm({ slug, project, issue, dev, onDone }) {
 function LinkDialog({ open, onOpenChange, slug, project, issue, dev }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[520px]">
+      <DialogContent className="max-h-[calc(100dvh-3rem)] overflow-y-auto sm:max-w-[520px]">
         {open && (
           <LinkForm
             slug={slug}
@@ -548,7 +564,7 @@ function LinkForm({ slug, project, issue, dev, onDone }) {
                   type="button"
                   disabled={linkPull.isPending}
                   onClick={() => handlePull(pull)}
-                  className="hover:bg-muted focus-visible:bg-muted flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] focus-visible:outline-none"
+                  className="hover:bg-muted focus-visible:ring-ring flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
                 >
                   <span className="text-muted-foreground font-mono text-xs">#{pull.number}</span>
                   <span className="min-w-0 flex-1 truncate">{pull.title}</span>
