@@ -49,6 +49,8 @@ export function StatsPage() {
   // Las tareas (vencidas, sin movimiento) se abren en el panel lateral, sin salir de la página
   const issueFilters = useIssueFilters()
   const base = `/${workspace.slug}/projects/${project.id}`
+  // Las tarjetas llevan a las tareas con el mismo filtro de personas que la página
+  const issuesUrl = `${base}/issues${assignees.length > 0 ? `?${assignees.map((id) => `assignee=${encodeURIComponent(id)}`).join('&')}` : ''}`
 
   // El rango y las personas quedan en el historial: «Atrás» deshace el último filtro en vez de salir de la página
   const setWeeks = (value) =>
@@ -101,14 +103,14 @@ export function StatsPage() {
             aria-busy={isPlaceholderData}
             className={cn('flex flex-col gap-3.5 transition-opacity duration-200', isPlaceholderData && 'opacity-60')}
           >
-            <KpiTiles stats={stats} onOpenIssue={issueFilters.openIssue} />
+            <KpiTiles stats={stats} onOpenIssue={issueFilters.openIssue} issuesUrl={issuesUrl} />
             <div className="flex flex-wrap gap-3.5">
               <ThroughputCard className="flex-[3_1_460px]" throughput={stats.throughput ?? []} weeks={weeks} />
               <BurndownCard className="flex-[2_1_340px]" burndown={stats.burndown ?? null} cyclesUrl={`${base}/cycles`} />
             </div>
             <div className="flex flex-wrap gap-3.5">
-              <StatesCard className="flex-[1_1_280px]" states={stats.openByState ?? []} />
-              <WorkloadCard className="flex-[1.3_1_320px]" workload={stats.workload ?? []} />
+              <StatesCard className="flex-[1_1_280px]" states={stats.openByState ?? []} issuesUrl={issuesUrl} />
+              <WorkloadCard className="flex-[1.3_1_320px]" workload={stats.workload ?? []} issuesUrl={`${base}/issues`} />
               <StaleCard className="flex-[1.3_1_320px]" stale={stats.stale ?? []} onOpenIssue={issueFilters.openIssue} />
             </div>
             {development?.repositories > 0 && (

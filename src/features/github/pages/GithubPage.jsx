@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Segmented } from '@/components/common/Segmented'
+import { SingleFilter } from '@/components/common/SingleFilter'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { useCurrentProject } from '@/features/projects/hooks'
 import { useCurrentWorkspace } from '@/features/workspaces/hooks'
@@ -17,7 +18,7 @@ import { projectPath } from '@/lib/paths'
 import { can } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { ActionsView } from '../GithubActions'
-import { GhMark, Pick, PullMark, ShowMore, TaskLink, TonePill } from '../GithubParts'
+import { GhMark, PullMark, ShowMore, TaskLink, TonePill } from '../GithubParts'
 import { branchUrl, pullChecks, pullNote, pullState, repoName, repoUrl } from '../githubModel'
 import {
   useGithubBranches,
@@ -30,7 +31,6 @@ import { IssuePicker } from '../IssuePicker'
 import { RunWorkflowDialog } from '../RunWorkflowDialog'
 
 const VIEWS = ['pulls', 'actions', 'branches']
-const ALL = '__all__'
 /** Cuántas filas se dibujan de entrada en cada lista (y cuántas más con «Mostrar más»). */
 const PAGE = 30
 
@@ -230,8 +230,8 @@ function Author({ login, name }) {
 function PullsView({ workspace, project, status }) {
   const slug = workspace.slug
   const [state, setState] = useState('open')
-  const [repository, setRepository] = useState(ALL)
-  const [author, setAuthor] = useState(ALL)
+  const [repository, setRepository] = useState(null)
+  const [author, setAuthor] = useState(null)
   // Al cambiar entre abiertos, fusionados y todos, la lista anterior se queda (atenuada) hasta que llega la nueva
   const { data: pulls, error, refetch, isPlaceholderData: switching } = useGithubPulls(slug, project.id, state)
   const link = useLinkPullRequest(slug, project.id)
@@ -249,12 +249,12 @@ function PullsView({ workspace, project, status }) {
   const byRepository =
     status.repositories.length > 1 && status.repositories.some((repo) => repo.id === repository)
       ? repository
-      : ALL
-  const byAuthor = authors.length > 1 && authors.includes(author) ? author : ALL
+      : null
+  const byAuthor = authors.length > 1 && authors.includes(author) ? author : null
   const shown = (pulls ?? []).filter(
     (pull) =>
-      (byRepository === ALL || pull.repositoryId === byRepository) &&
-      (byAuthor === ALL || pull.authorLogin === byAuthor),
+      (byRepository === null || pull.repositoryId === byRepository) &&
+      (byAuthor === null || pull.authorLogin === byAuthor),
   )
 
   const handleLink = (pull, issue) =>
@@ -286,27 +286,23 @@ function PullsView({ workspace, project, status }) {
           ]}
         />
         {status.repositories.length > 1 && (
-          <Pick
-            label={t('Repositorio')}
+          <SingleFilter
+            title={t('repositorio')}
+            removeLabel={t('Quitar filtro de repositorio')}
+            searchPlaceholder={t('Filtrar por repositorio…')}
             value={byRepository}
             onChange={setRepository}
-            options={[
-              { value: ALL, label: t('Repositorio: todos') },
-              ...status.repositories.map((repo) => ({ value: repo.id, label: repoName(repo.fullName) })),
-            ]}
-            className="h-8 w-[190px] text-[13px]"
+            options={status.repositories.map((repo) => ({ value: repo.id, label: repoName(repo.fullName) }))}
           />
         )}
         {authors.length > 1 && (
-          <Pick
-            label={t('Persona')}
+          <SingleFilter
+            title={t('persona')}
+            removeLabel={t('Quitar filtro de persona')}
+            searchPlaceholder={t('Filtrar por persona…')}
             value={byAuthor}
             onChange={setAuthor}
-            options={[
-              { value: ALL, label: t('Persona: todas') },
-              ...authors.map((login) => ({ value: login, label: login })),
-            ]}
-            className="h-8 w-[170px] text-[13px]"
+            options={authors.map((login) => ({ value: login, label: login }))}
           />
         )}
       </div>
@@ -335,7 +331,7 @@ function PullsView({ workspace, project, status }) {
             className="py-10"
           />
         ) : (
-          <ul>
+          <ul className="tf-fade">
             {shown.slice(0, limit).map((pull, index) => {
               const info = pullState(pull.state)
               const checks = pullChecks(pull)
@@ -487,7 +483,7 @@ function BranchesView({ workspace, project, branches }) {
             className="py-10"
           />
         ) : (
-          <ul>
+          <ul className="tf-fade">
             {found.slice(0, limit).map((branch, index) => (
               <li
                 key={branch.id}

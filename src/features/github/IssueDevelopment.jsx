@@ -26,6 +26,8 @@ import {
   checkState,
   devCount,
   duration,
+  hasPull,
+  newPullUrl,
   pullState,
   repoName,
   runState,
@@ -130,6 +132,7 @@ export function IssueDevelopment({ slug, project, issue }) {
               issue={issue}
               branch={branch}
               canLink={canLink}
+              canOpenPull={canEdit && !hasPull(dev.pullRequests, branch)}
             />
           ))}
           {dev.pullRequests.map((pull) => (
@@ -181,8 +184,12 @@ export function IssueDevelopment({ slug, project, issue }) {
 const iconButton =
   'text-muted-foreground hover:bg-background hover:text-foreground focus-visible:ring-ring flex size-7 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50'
 
-/** Una rama de la tarea: su nombre (enlace a GitHub), su repositorio y cuándo se enlazó; se copia o se quita de la tarea. */
-function BranchRow({ slug, projectId, issue, branch, canLink }) {
+/**
+ * Una rama de la tarea: su nombre (enlace a GitHub), su repositorio y cuándo se enlazó; se copia o se quita de la tarea.
+ * Si todavía no tiene pull request, lleva a abrirlo en GitHub (a nombre de quien lo abre) con el código de la tarea en
+ * el título, para que se enlace solo.
+ */
+function BranchRow({ slug, projectId, issue, branch, canLink, canOpenPull }) {
   const unlink = useUnlinkBranch(slug, projectId, issue.id)
   const handleUnlink = () =>
     unlink.mutate(branch.id, {
@@ -211,6 +218,18 @@ function BranchRow({ slug, projectId, issue, branch, canLink }) {
           <span className="shrink-0">{formatRelative(branch.createdAt)}</span>
         </span>
       </div>
+      {canOpenPull && (
+        <a
+          href={newPullUrl(branch.repository, branch.name, `${issue.code} ${issue.title}`)}
+          target="_blank"
+          rel="noreferrer"
+          title={t('Abrir el pull request en GitHub, con {code} en el título', { code: issue.code })}
+          className="text-muted-foreground hover:bg-background hover:text-foreground focus-visible:ring-ring flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none"
+        >
+          {t('Abrir PR')}
+          <ArrowUpRight className="size-3.5" aria-hidden="true" />
+        </a>
+      )}
       <button
         type="button"
         aria-label={t('Copiar el nombre de la rama')}
@@ -410,15 +429,15 @@ function CreateBranchDialog({ open, onOpenChange, slug, project, issue, dev }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[calc(100dvh-3rem)] overflow-y-auto sm:max-w-[520px]">
-        {open && (
-          <CreateBranchForm
-            slug={slug}
-            project={project}
-            issue={issue}
-            dev={dev}
-            onDone={() => onOpenChange(false)}
-          />
-        )}
+        {/* Radix desmonta el contenido al terminar de cerrarse: el formulario sigue visible mientras se va y cada vez que se
+            abre empieza limpio */}
+        <CreateBranchForm
+          slug={slug}
+          project={project}
+          issue={issue}
+          dev={dev}
+          onDone={() => onOpenChange(false)}
+        />
       </DialogContent>
     </Dialog>
   )
@@ -562,15 +581,9 @@ function LinkDialog({ open, onOpenChange, slug, project, issue, dev }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[calc(100dvh-3rem)] overflow-y-auto sm:max-w-[520px]">
-        {open && (
-          <LinkForm
-            slug={slug}
-            project={project}
-            issue={issue}
-            dev={dev}
-            onDone={() => onOpenChange(false)}
-          />
-        )}
+        {/* Radix desmonta el contenido al terminar de cerrarse: el formulario sigue visible mientras se va y cada vez que se
+            abre empieza limpio */}
+        <LinkForm slug={slug} project={project} issue={issue} dev={dev} onDone={() => onOpenChange(false)} />
       </DialogContent>
     </Dialog>
   )

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   branchFormats,
   branchUrl,
+  hasPull,
+  newPullUrl,
   checkState,
   devCount,
   devIndicator,
@@ -291,8 +293,21 @@ describe('utilidades', () => {
     expect(branchUrl('acme/sitio-web', 'feature/web-22 x')).toBe(
       'https://github.com/acme/sitio-web/tree/feature/web-22%20x',
     )
+    expect(newPullUrl('acme/sitio-web', 'feature/web-22 x', 'WEB-22 Rotación & token')).toBe(
+      'https://github.com/acme/sitio-web/compare/feature/web-22%20x?expand=1&title=WEB-22%20Rotaci%C3%B3n%20%26%20token',
+    )
     expect(shortSha('a41c9e2f00112233')).toBe('a41c9e2')
     expect(shortSha(null)).toBe('')
+  })
+
+  it('una rama tiene PR si hay uno abierto, en borrador o fusionado de esa rama en ese repositorio', () => {
+    const branch = { repository: 'acme/web', name: 'web-22-x' }
+    const pull = { repository: 'acme/web', headBranch: 'web-22-x', state: 'OPEN' }
+    expect(hasPull([pull], branch)).toBe(true)
+    expect(hasPull([{ ...pull, state: 'MERGED' }], branch)).toBe(true)
+    expect(hasPull([{ ...pull, state: 'CLOSED' }], branch)).toBe(false)
+    expect(hasPull([{ ...pull, repository: 'acme/api' }], branch)).toBe(false)
+    expect(hasPull([], branch)).toBe(false)
   })
 
   it('los formatos de rama dan su ejemplo con el identificador del proyecto', () => {

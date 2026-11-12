@@ -157,8 +157,6 @@ export default {
   Fusionados: 'Merged',
   Todos: 'All',
   Repositorio: 'Repository',
-  'Repositorio: todos': 'Repository: all',
-  'Persona: todas': 'Person: all',
   'un PR se enlaza solo si su rama, su título o su descripción nombran la tarea ({code})':
     'a PR links itself if its branch, title or description names the task ({code})',
   'No hay pull requests abiertos': 'No open pull requests',
@@ -187,10 +185,7 @@ export default {
 
   // Actions
   Workflow: 'Workflow',
-  'Workflow: todos': 'Workflow: all',
   Rama: 'Branch',
-  'Rama: todas': 'Branch: all',
-  'Resultado: todos': 'Result: all',
   correcto: 'success',
   falló: 'failed',
   'en cola': 'queued',
@@ -246,6 +241,9 @@ export default {
   'Enlazar una que ya existe': 'Link an existing one',
   'Crear rama': 'Create branch',
   'Nombre de la rama copiado': 'Branch name copied',
+  'Abrir PR': 'Open PR',
+  'Abrir el pull request en GitHub, con {code} en el título':
+    'Open the pull request on GitHub, with {code} in the title',
   'Copiar nombre': 'Copy name',
   'No se pudo copiar': 'Could not copy',
   'abierto por {name}': 'opened by {name}',
@@ -278,6 +276,17 @@ export default {
 
   // Indicador en el tablero y la lista
   rama: 'branch',
+  workflow: 'workflow',
+  resultado: 'result',
+  repositorio: 'repository',
+  'Quitar filtro de workflow': 'Remove workflow filter',
+  'Filtrar por workflow…': 'Filter by workflow…',
+  'Quitar filtro de rama': 'Remove branch filter',
+  'Filtrar por rama…': 'Filter by branch…',
+  'Quitar filtro de resultado': 'Remove result filter',
+  'Filtrar por resultado…': 'Filter by result…',
+  'Quitar filtro de repositorio': 'Remove repository filter',
+  'Filtrar por repositorio…': 'Filter by repository…',
   '{branch} · sin pull request': '{branch} · no pull request',
   '{pr} · desplegando': '{pr} · deploying',
   'PR {pr} fusionado · hay un workflow en curso': 'PR {pr} merged · a workflow is running',

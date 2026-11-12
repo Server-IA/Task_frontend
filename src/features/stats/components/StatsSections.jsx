@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { TrendingDown, TrendingUp } from 'lucide-react'
 import { isTooDark } from '@/components/common/StateIcon'
 import { UserAvatar } from '@/components/common/UserAvatar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { stateName, t, tn, tx } from '@/i18n'
 import { formatShortDate } from '@/lib/dates'
 import { cn } from '@/lib/utils'
@@ -23,6 +24,66 @@ function AlertMark({ className }) {
   )
 }
 
+/**
+ * El «+N» de las vencidas: abre la lista de todas (la más vencida primero) y cualquiera se abre desde ahí.
+ * @param {{ issues: import('@/api/types').IssueSummaryResponse[], onOpenIssue: (issueId: string) => void }} props
+ */
+function OverdueList({ issues, onOpenIssue }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        className="rounded-sm hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        aria-label={tn(issues.length, 'Ver la tarea vencida', 'Ver las {count} tareas vencidas')}
+      >
+        +{issues.length - 3}
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-80 p-0">
+        <p className="border-b px-3.5 py-2.5 text-[13px] font-semibold">
+          {tn(issues.length, '{count} tarea vencida', '{count} tareas vencidas')}
+          <span className="ml-1.5 font-normal text-muted-foreground">{t('la más vencida primero')}</span>
+        </p>
+        <ul className="max-h-72 overflow-y-auto p-1">
+          {issues.map((issue) => (
+            <li key={issue.id}>
+              <button
+                type="button"
+                className="flex w-full items-baseline gap-2.5 rounded-md px-2.5 py-1.5 text-left text-[13px] hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
+                onClick={() => {
+                  setOpen(false)
+                  onOpenIssue(issue.id)
+                }}
+              >
+                <span className="shrink-0 font-mono text-xs font-semibold text-late">{issue.code}</span>
+                <span className="min-w-0 truncate">{issue.title}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+/**
+ * La lista de tareas con filtros: `issuesLink('/w/projects/p/issues?assignee=a', { state: ['s1', 's2'] })`. Sin `base` no hay
+ * enlace (`null`): la tarjeta se muestra igual, sin navegar.
+ */
+function issuesLink(base, params) {
+  if (!base) return null
+  const [path, query = ''] = base.split('?')
+  const search = new URLSearchParams(query)
+  for (const [key, value] of Object.entries(params)) {
+    for (const one of [value].flat()) search.append(key, one)
+  }
+  const text = search.toString()
+  return text ? `${path}?${text}` : path
+}
+
+/** Enlace de una tarjeta hacia las tareas: discreto, se subraya al pasar. */
+const cardLink =
+  'rounded-sm underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none'
+
 /** Color del cambio: verde si mejora, rojo si empeora y gris si no cambia (`higherIsBetter` decide qué es mejor). */
 function deltaTone(delta, higherIsBetter = true) {
   if (!delta) return 'text-muted-foreground'
@@ -31,9 +92,10 @@ function deltaTone(delta, higherIsBetter = true) {
 
 /**
  * Los cuatro indicadores: abiertas, cerradas esta semana, vencidas y tiempo de ciclo.
- * @param {{ stats: import('@/api/types').ProjectStats, onOpenIssue: (issueId: string) => void }} props
+ * `issuesUrl`: la lista de tareas (con el filtro de personas de la página), para «Ver tareas».
+ * @param {{ stats: import('@/api/types').ProjectStats, onOpenIssue: (issueId: string) => void, issuesUrl?: string }} props
  */
-export function KpiTiles({ stats, onOpenIssue }) {
+export function KpiTiles({ stats, onOpenIssue, issuesUrl }) {
   const overdue = stats.overdue ?? []
   const net = stats.createdThisWeek - stats.completedThisWeek
   const closedDelta = stats.completedThisWeek - stats.completedLastWeek
@@ -45,6 +107,14 @@ export function KpiTiles({ stats, onOpenIssue }) {
       <KpiTile
         label={t('Abiertas')}
         value={stats.openCount}
+        action={
+          issuesUrl && (
+            // Solo las abiertas: los estados que no son de cierre
+            <Link to={issuesLink(issuesUrl, { state: (stats.openByState ?? []).map((state) => state.stateId) })} className={cardLink}>
+              {t('Ver tareas')} →
+            </Link>
+          )
+        }
         detail={
           <span title={t('{created} creadas y {completed} cerradas desde el lunes', { created: stats.createdThisWeek, completed: stats.completedThisWeek })}>
             {tx('{delta} esta semana', { delta: <Delta value={net} className="text-muted-foreground" /> })}
@@ -75,7 +145,12 @@ export function KpiTiles({ stats, onOpenIssue }) {
                       {issue.code}
                     </button>
                     {index < Math.min(overdue.length, 3) - 1 && ','}
-                    {index === 2 && overdue.length > 3 && ` +${overdue.length - 3}`}
+                    {index === 2 && overdue.length > 3 && (
+                      <>
+                        {' '}
+                        <OverdueList issues={overdue} onOpenIssue={onOpenIssue} />
+                      </>
+                    )}
                   </span>
                 </Fragment>
               ))}
@@ -110,13 +185,16 @@ export function KpiTiles({ stats, onOpenIssue }) {
 }
 
 /** Un indicador: nombre en monoespaciada, la cifra grande (con su unidad) y una línea que la explica. */
-export function KpiTile({ label, value, unit, detail, alert = false, valueClassName }) {
+export function KpiTile({ label, value, unit, detail, alert = false, valueClassName, action }) {
   return (
     <article className="tf-panel flex flex-col gap-1.5 px-4.5 py-4">
-      <h3 className="flex items-center gap-1.5 font-mono text-[11px] tracking-[0.06em] text-muted-foreground uppercase">
-        {alert && <AlertMark />}
-        {label}
-      </h3>
+      <div className="flex items-center gap-2">
+        <h3 className="flex items-center gap-1.5 font-mono text-[11px] tracking-[0.06em] text-muted-foreground uppercase">
+          {alert && <AlertMark />}
+          {label}
+        </h3>
+        {action && <span className="ml-auto text-xs text-muted-foreground hover:text-foreground">{action}</span>}
+      </div>
       <p className={cn('font-display text-[36px] leading-none font-extrabold tracking-[-0.02em]', valueClassName)}>
         {value}
         {unit && <span className="ml-1 font-sans text-sm font-medium tracking-normal text-muted-foreground">{unit}</span>}
@@ -259,9 +337,10 @@ function stateSwatch(color) {
 
 /**
  * Barra apilada de las abiertas por estado, con leyenda (conteo y porcentaje) y globo por segmento.
- * @param {{ states: import('@/api/types').OpenStateCount[], className?: string }} props
+ * Cada estado con tareas lleva a la lista filtrada por él (`issuesUrl`).
+ * @param {{ states: import('@/api/types').OpenStateCount[], className?: string, issuesUrl?: string }} props
  */
-export function StatesCard({ states, className }) {
+export function StatesCard({ states, className, issuesUrl }) {
   const [active, setActive] = useState(null)
   const total = states.reduce((sum, state) => sum + state.count, 0)
   const visible = states.filter((state) => state.count > 0)
@@ -322,7 +401,17 @@ export function StatesCard({ states, className }) {
                   onPointerLeave={() => setActive(null)}
                 >
                   <span aria-hidden="true" className={cn('size-2.5 rounded-[3px]', swatch.className)} style={swatch.style} />
-                  <span className={cn('min-w-0 flex-1 truncate', active === state.stateId && 'font-semibold')}>{stateName(state)}</span>
+                  {issuesUrl && state.count > 0 ? (
+                    <Link
+                      to={issuesLink(issuesUrl, { state: state.stateId })}
+                      title={t('Ver las tareas en {state}', { state: stateName(state) })}
+                      className={cn('min-w-0 flex-1 truncate', cardLink, active === state.stateId && 'font-semibold')}
+                    >
+                      {stateName(state)}
+                    </Link>
+                  ) : (
+                    <span className={cn('min-w-0 flex-1 truncate', active === state.stateId && 'font-semibold')}>{stateName(state)}</span>
+                  )}
                   <span className="font-mono text-xs text-muted-foreground tabular-nums">
                     {state.count} · {percent(state.count, total)}%
                   </span>
@@ -339,9 +428,10 @@ export function StatesCard({ states, className }) {
 /**
  * Tareas abiertas asignadas a cada persona y cuántas tiene vencidas, en una tabla. Sin barras: con unas pocas
  * personas el número ya dice quién tiene más.
- * @param {{ workload: import('@/api/types').WorkloadEntry[], className?: string }} props
+ * Cada persona lleva a la lista de sus tareas (`issuesUrl`).
+ * @param {{ workload: import('@/api/types').WorkloadEntry[], className?: string, issuesUrl?: string }} props
  */
-export function WorkloadCard({ workload, className }) {
+export function WorkloadCard({ workload, className, issuesUrl }) {
   // Primero las personas (de más a menos) y al final «Sin asignar»
   const rows = [...workload].sort((a, b) => (a.user === null) - (b.user === null) || b.open - a.open)
 
@@ -365,7 +455,17 @@ export function WorkloadCard({ workload, className }) {
                 ) : (
                   <span aria-hidden="true" className="size-5.5 shrink-0 rounded-full border border-dashed border-dash" />
                 )}
-                <span className={cn('truncate', !row.user && 'text-muted-foreground')}>{row.user?.fullName ?? t('Sin asignar')}</span>
+                {row.user && issuesUrl ? (
+                  <Link
+                    to={issuesLink(issuesUrl, { assignee: row.user.id })}
+                    title={t('Ver las tareas de {name}', { name: row.user.fullName })}
+                    className={cn('truncate', cardLink)}
+                  >
+                    {row.user.fullName}
+                  </Link>
+                ) : (
+                  <span className={cn('truncate', !row.user && 'text-muted-foreground')}>{row.user?.fullName ?? t('Sin asignar')}</span>
+                )}
               </span>
             ),
             open: row.open,

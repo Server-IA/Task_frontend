@@ -4,18 +4,18 @@ import { Workflow } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { SingleFilter } from '@/components/common/SingleFilter'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { t, tn, tx } from '@/i18n'
 import { formatRelative } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
 import { can } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
-import { Pick, ShowMore, StateMark, TaskLink, TonePill } from './GithubParts'
+import { ShowMore, StateMark, TaskLink, TonePill } from './GithubParts'
 import { repoName, runDuration, runState, runTrigger, shortSha } from './githubModel'
 import { ConnectAccountNotice } from './GithubAccount'
 import { useCancelWorkflow, useGithubLinked, useGithubRuns, useRerunWorkflow } from './hooks'
 
-const ALL = '__all__'
 const PAGE = 30
 
 /**
@@ -31,9 +31,9 @@ export function ActionsView({ workspace, project, status, settingsLink }) {
   // Ejecutar, reintentar y cancelar se hacen con la cuenta de GitHub de la persona
   const linked = useGithubLinked()
   const canAct = canRun && linked === true
-  const [workflow, setWorkflow] = useState(ALL)
-  const [branch, setBranch] = useState(ALL)
-  const [result, setResult] = useState(ALL)
+  const [workflow, setWorkflow] = useState(null)
+  const [branch, setBranch] = useState(null)
+  const [result, setResult] = useState(null)
   const [limit, setLimit] = useState(PAGE)
 
   const workflows = useMemo(
@@ -44,14 +44,14 @@ export function ActionsView({ workspace, project, status, settingsLink }) {
     () => [...new Set((runs ?? []).map((run) => run.branch).filter(Boolean))].sort(),
     [runs],
   )
-  // Un filtro por un workflow o una rama que ya no está en la lista no filtra (el selector vuelve a «todos»)
-  const byWorkflow = workflows.includes(workflow) ? workflow : ALL
-  const byBranch = branches.includes(branch) ? branch : ALL
+  // Un filtro por un workflow o una rama que ya no está en la lista no filtra (el filtro vuelve a quedar vacío)
+  const byWorkflow = workflows.includes(workflow) ? workflow : null
+  const byBranch = branches.includes(branch) ? branch : null
   const shown = (runs ?? []).filter(
     (run) =>
-      (byWorkflow === ALL || run.workflowName === byWorkflow) &&
-      (byBranch === ALL || run.branch === byBranch) &&
-      (result === ALL || runState(run).result === result),
+      (byWorkflow === null || run.workflowName === byWorkflow) &&
+      (byBranch === null || run.branch === byBranch) &&
+      (result === null || runState(run).result === result),
   )
 
   const handleRerun = (run) =>
@@ -74,39 +74,35 @@ export function ActionsView({ workspace, project, status, settingsLink }) {
           )}
         </ConnectAccountNotice>
       )}
-      <div className="flex flex-wrap items-center gap-2.5">
-        <Pick
-          label={t('Workflow')}
+      <div className="flex flex-wrap items-center gap-2">
+        <SingleFilter
+          title={t('workflow')}
+          removeLabel={t('Quitar filtro de workflow')}
+          searchPlaceholder={t('Filtrar por workflow…')}
           value={byWorkflow}
           onChange={setWorkflow}
-          options={[
-            { value: ALL, label: t('Workflow: todos') },
-            ...workflows.map((name) => ({ value: name, label: name })),
-          ]}
-          className="h-8 w-[200px] text-[13px]"
+          options={workflows.map((name) => ({ value: name, label: name }))}
         />
-        <Pick
-          label={t('Rama')}
+        <SingleFilter
+          title={t('rama')}
+          removeLabel={t('Quitar filtro de rama')}
+          searchPlaceholder={t('Filtrar por rama…')}
           value={byBranch}
           onChange={setBranch}
-          options={[
-            { value: ALL, label: t('Rama: todas') },
-            ...branches.map((name) => ({ value: name, label: name })),
-          ]}
-          className="h-8 w-[200px] text-[13px]"
+          options={branches.map((name) => ({ value: name, label: name }))}
         />
-        <Pick
-          label={t('Resultado')}
+        <SingleFilter
+          title={t('resultado')}
+          removeLabel={t('Quitar filtro de resultado')}
+          searchPlaceholder={t('Filtrar por resultado…')}
           value={result}
           onChange={setResult}
           options={[
-            { value: ALL, label: t('Resultado: todos') },
             { value: 'ok', label: t('correcto') },
             { value: 'fail', label: t('falló') },
             { value: 'run', label: t('en curso') },
             { value: 'wait', label: t('en cola') },
           ]}
-          className="h-8 w-[180px] text-[13px]"
         />
       </div>
       <section
@@ -132,7 +128,7 @@ export function ActionsView({ workspace, project, status, settingsLink }) {
             className="py-10"
           />
         ) : (
-          <ul>
+          <ul className="tf-fade">
             {shown.slice(0, limit).map((run, index) => {
               const info = runState(run)
               const trigger = runTrigger(run, status.rules)
@@ -141,7 +137,7 @@ export function ActionsView({ workspace, project, status, settingsLink }) {
                 <li
                   key={run.id}
                   className={cn(
-                    'grid grid-cols-[auto_minmax(0,1fr)_92px_64px_176px_96px] items-center gap-x-3.5 px-4 py-3',
+                    'grid grid-cols-[auto_minmax(0,1fr)_92px_64px_200px_96px] items-center gap-x-3.5 px-4 py-3',
                     index > 0 && 'border-t',
                   )}
                 >

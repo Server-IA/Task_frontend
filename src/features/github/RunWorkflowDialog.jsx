@@ -35,16 +35,15 @@ export function RunWorkflowDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[calc(100dvh-3rem)] overflow-y-auto sm:max-w-[520px]">
-        {/* El formulario se monta al abrir: cada vez empieza limpio */}
-        {open && (
-          <RunForm
-            workspace={workspace}
-            project={project}
-            repositories={repositories}
-            initialIssue={initialIssue}
-            onDone={() => onOpenChange(false)}
-          />
-        )}
+        {/* Radix desmonta el contenido al terminar de cerrarse: el formulario sigue visible mientras se va y cada vez que se
+            abre empieza limpio */}
+        <RunForm
+          workspace={workspace}
+          project={project}
+          repositories={repositories}
+          initialIssue={initialIssue}
+          onDone={() => onOpenChange(false)}
+        />
       </DialogContent>
     </Dialog>
   )

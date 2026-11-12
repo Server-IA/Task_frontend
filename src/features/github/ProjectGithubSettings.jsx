@@ -59,7 +59,7 @@ export function ProjectGithubSettings({ workspace, project }) {
   if (!status.connected) return <NotConnected workspace={workspace} />
 
   return (
-    <div className="mx-auto flex max-w-[940px] flex-col gap-3.5">
+    <div className="tf-fade mx-auto flex max-w-[940px] flex-col gap-3.5">
       {!canManage && (
         <p className="bg-muted text-muted-foreground rounded-xl px-3.5 py-2.5 text-[13px] leading-normal">
           {t('Puedes ver cómo está configurado. Cambiarlo pide el permiso «Configurar GitHub».')}
@@ -74,7 +74,7 @@ export function ProjectGithubSettings({ workspace, project }) {
 
 function NotConnected({ workspace }) {
   return (
-    <section className="tf-panel mx-auto flex max-w-[940px] flex-wrap items-center gap-3.5 px-6 py-5.5">
+    <section className="tf-panel tf-fade mx-auto flex max-w-[940px] flex-wrap items-center gap-3.5 px-6 py-5.5">
       <GhMark />
       <div className="flex-[1_1_320px]">
         <h2 className="text-[17px] font-semibold">{t('Este workspace no está conectado con GitHub')}</h2>
