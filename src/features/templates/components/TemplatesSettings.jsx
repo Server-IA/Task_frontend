@@ -23,7 +23,8 @@ import { MarkdownView } from '@/features/editor/components/MarkdownView'
 import { AssigneesPicker, LabelsPicker, PriorityPicker, StatePicker } from '@/features/issues/components/PropertyPickers'
 import { PriorityChip } from '@/features/issues/components/PriorityIcon'
 import { useProjectMeta } from '@/features/issues/useIssueHelpers'
-import { useIsManager } from '@/features/workspaces/hooks'
+import { useCan } from '@/features/workspaces/hooks'
+import { stateName, t, tx } from '@/i18n'
 import { DND_INSTRUCTIONS, DRAG_ROLE, quoted, sortableAnnouncements } from '@/lib/dndAnnouncements'
 import { applyFieldErrors } from '@/lib/errors'
 import { useFocusAfterRemoval } from '@/lib/focusReturn'
@@ -38,17 +39,17 @@ import { useCreateTemplate, useDeleteTemplate, useTemplates, useUpdateTemplate }
 
 /** Mismas reglas que el backend. */
 const templateSchema = z.object({
-  name: z.string().trim().min(1, 'El nombre es obligatorio').max(60, 'Máximo 60 caracteres'),
-  titlePrefix: z.string().max(40, 'Máximo 40 caracteres'),
-  description: z.string().max(50000, 'La descripción es demasiado larga'),
+  name: z.string().trim().min(1, t('El nombre es obligatorio')).max(60, t('Máximo 60 caracteres')),
+  titlePrefix: z.string().max(40, t('Máximo 40 caracteres')),
+  description: z.string().max(50000, t('La descripción es demasiado larga')),
   priority: z.string(),
   type: z.enum(['STORY', 'TASK', 'BUG']),
   stateId: z.string().nullable(),
-  assigneeIds: z.array(z.string()).max(20, 'Máximo 20 asignados'),
-  labelIds: z.array(z.string()).max(20, 'Máximo 20 etiquetas'),
+  assigneeIds: z.array(z.string()).max(20, t('Máximo 20 asignados')),
+  labelIds: z.array(z.string()).max(20, t('Máximo 20 etiquetas')),
   checklist: z
-    .array(z.object({ kind: z.enum(['CRITERION', 'CHECK']), text: z.string().max(500, 'Máximo 500 caracteres') }))
-    .max(50, 'Máximo 50 elementos en la checklist'),
+    .array(z.object({ kind: z.enum(['CRITERION', 'CHECK']), text: z.string().max(500, t('Máximo 500 caracteres')) }))
+    .max(50, t('Máximo 50 elementos en la checklist')),
 })
 
 const NEW = 'new'
@@ -97,7 +98,7 @@ const toRequest = ({ stateId, ...values }, isNew) => ({
 export function TemplatesSettings({ slug, project }) {
   const { data: templates, isLoading, error, refetch } = useTemplates(slug, project.id)
   const update = useUpdateTemplate(slug, project.id)
-  const canManage = useIsManager()
+  const canManage = useCan('PROJECT_TEMPLATES')
   const [selectedId, setSelectedId] = useState(null)
   // El editor tiene cambios sin guardar; elegir otra plantilla los descartaría, así que se pregunta antes
   const [dirty, setDirty] = useState(false)
@@ -122,7 +123,7 @@ export function TemplatesSettings({ slug, project }) {
   const move = (template, index, direction) =>
     update.mutate(
       { templateId: template.id, position: index + direction },
-      { onError: (moveError) => notifyError(moveError, 'No se pudo mover la plantilla') },
+      { onError: (moveError) => notifyError(moveError, t('No se pudo mover la plantilla')) },
     )
 
   return (
@@ -130,20 +131,26 @@ export function TemplatesSettings({ slug, project }) {
       <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4">
         <div className="space-y-1.5">
           <CardTitle ref={titleRef} tabIndex={-1} className="outline-none">
-            Plantillas de tareas
+            {t('Plantillas de tareas')}
           </CardTitle>
           <CardDescription>
-            Rellenan la tarea nueva con título, descripción, estado, prioridad, etiquetas, asignados y checklist. Todo el equipo
-            las usa al crear tareas.
+            {t(
+              'Rellenan la tarea nueva con título, descripción, estado, prioridad, etiquetas, asignados y checklist. Todo el equipo las usa al crear tareas.',
+            )}
           </CardDescription>
-          {!canManage && <LockNote>Solo el project manager puede cambiar las plantillas.</LockNote>}
+          {!canManage && <LockNote>{t('Tu rol no permite cambiar las plantillas.')}</LockNote>}
         </div>
       </CardHeader>
       <CardContent>
         {isLoading && <CenteredSpinner />}
         {error && <ErrorState error={error} onRetry={refetch} />}
         {templates && list.length === 0 && !canManage && (
-          <EmptyState icon={FileText} title="Sin plantillas" description="El project manager puede crear plantillas para el equipo." className="py-6" />
+          <EmptyState
+            icon={FileText}
+            title={t('Sin plantillas')}
+            description={t('El project manager puede crear plantillas para el equipo.')}
+            className="py-6"
+          />
         )}
         {templates && (list.length > 0 || canManage) && (
           <div className="flex flex-wrap items-start gap-4">
@@ -181,13 +188,13 @@ export function TemplatesSettings({ slug, project }) {
                               // Al pasar el mouse, las flechas de subir y bajar ocupan su lugar
                               reorderable && 'group-focus-within:opacity-0 group-hover:opacity-0',
                             )}
-                            title="Tareas creadas con esta plantilla"
+                            title={t('Tareas creadas con esta plantilla')}
                           >
                             {usesLabel(template.usageCount)}
                           </span>
                         </span>
                         <span className="truncate font-mono text-xs text-muted-foreground">
-                          {templateSummary(template) || 'sin valores por defecto'}
+                          {templateSummary(template) || t('sin valores por defecto')}
                         </span>
                       </button>
                       {reorderable && (
@@ -196,7 +203,7 @@ export function TemplatesSettings({ slug, project }) {
                             variant="ghost"
                             size="icon"
                             className="size-7 text-muted-foreground"
-                            aria-label={`Subir «${template.name}»`}
+                            aria-label={t('Subir «{name}»', { name: template.name })}
                             disabled={index === 0 || update.isPending}
                             onClick={() => move(template, index, -1)}
                           >
@@ -206,7 +213,7 @@ export function TemplatesSettings({ slug, project }) {
                             variant="ghost"
                             size="icon"
                             className="size-7 text-muted-foreground"
-                            aria-label={`Bajar «${template.name}»`}
+                            aria-label={t('Bajar «{name}»', { name: template.name })}
                             disabled={index === list.length - 1 || update.isPending}
                             onClick={() => move(template, index, 1)}
                           >
@@ -230,7 +237,7 @@ export function TemplatesSettings({ slug, project }) {
                   )}
                 >
                   <Plus className="size-3.5" strokeWidth={2.5} />
-                  Nueva plantilla
+                  {t('Nueva plantilla')}
                 </button>
               )}
             </div>
@@ -253,9 +260,9 @@ export function TemplatesSettings({ slug, project }) {
         <ConfirmDialog
           open={leavingTo !== undefined}
           onOpenChange={(open) => !open && setLeavingTo(undefined)}
-          title="¿Descartar los cambios sin guardar?"
-          description="La plantilla que estás editando tiene cambios sin guardar. Si eliges otra, se pierden."
-          confirmLabel="Descartar cambios"
+          title={t('¿Descartar los cambios sin guardar?')}
+          description={t('La plantilla que estás editando tiene cambios sin guardar. Si eliges otra, se pierden.')}
+          confirmLabel={t('Descartar cambios')}
           onConfirm={() => {
             setSelectedId(leavingTo)
             setLeavingTo(undefined)
@@ -269,7 +276,7 @@ export function TemplatesSettings({ slug, project }) {
 const fieldLabel = 'flex flex-col gap-1.5 text-xs font-medium text-muted-foreground'
 
 const SKELETON_VIEWS = [
-  { value: 'visual', label: 'Visual' },
+  { value: 'visual', label: t('Visual') },
   { value: 'markdown', label: 'Markdown' },
 ]
 
@@ -283,9 +290,9 @@ function SkeletonField({ value, onChange, readOnly, error }) {
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-2.5">
         <span id="esqueleto-label" className="text-xs font-medium text-muted-foreground">
-          Esqueleto de la descripción
+          {t('Esqueleto de la descripción')}
         </span>
-        <Segmented label="Vista del esqueleto" size="sm" className="ml-auto p-0.5" value={view} onChange={setView} options={SKELETON_VIEWS} />
+        <Segmented label={t('Vista del esqueleto')}size="sm" className="ml-auto p-0.5" value={view} onChange={setView} options={SKELETON_VIEWS} />
       </div>
       <div
         className={cn(
@@ -311,14 +318,14 @@ function SkeletonField({ value, onChange, readOnly, error }) {
             onChange={onChange}
             size="sm"
             toolbar="compact"
-            ariaLabel="Esqueleto de la descripción"
-            placeholder="Escribe la estructura, o pulsa / para insertar"
+            ariaLabel={t('Esqueleto de la descripción')}
+            placeholder={t('Escribe la estructura, o pulsa / para insertar')}
             contentClassName="min-h-28 px-3.5 pt-2.5 pb-3"
           />
         )}
         <div className="flex flex-wrap items-center gap-3 border-t px-3 py-1.5 font-mono text-[11px] text-muted-foreground">
-          <span>## título · 1. lista · [ ] tarea · / insertar</span>
-          <span className="ml-auto">se guarda como Markdown</span>
+          <span>{t('## título · 1. lista · [ ] tarea · / insertar')}</span>
+          <span className="ml-auto">{t('se guarda como Markdown')}</span>
         </div>
       </div>
       {error && <span className="text-xs text-destructive">{error}</span>}
@@ -354,7 +361,7 @@ function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted
     const body = toRequest(formValues, isNew)
     const options = {
       onSuccess: (saved) => {
-        toast.success(isNew ? `Plantilla «${saved.name}» creada` : 'Plantilla guardada')
+        toast.success(isNew ? t('Plantilla «{name}» creada', { name: saved.name }) : t('Plantilla guardada'))
         form.reset(toFormValues(saved))
         onSaved(saved)
       },
@@ -371,7 +378,7 @@ function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted
     remove.mutate(template.id, {
       onSuccess: () => {
         removal?.done()
-        toast.success(`Plantilla «${template.name}» eliminada`)
+        toast.success(t('Plantilla «{name}» eliminada', { name: template.name }))
         setConfirmDelete(false)
         onDeleted()
       },
@@ -388,31 +395,38 @@ function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted
 
   return (
     <form
-      aria-label={isNew ? 'Nueva plantilla' : `Editar plantilla ${template.name}`}
+      aria-label={isNew ? t('Nueva plantilla') : t('Editar plantilla {name}', { name: template.name })}
       onSubmit={form.handleSubmit(onSubmit)}
       noValidate
       className="tf-fade flex min-w-0 flex-[2_1_460px] flex-col gap-3.5 rounded-2xl border bg-subtle px-4.5 py-4"
     >
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className={fieldLabel}>
-          Nombre
-          <Input {...form.register('name')} readOnly={readOnly} placeholder="Reporte de bug" autoFocus={isNew} className="bg-card text-sm font-normal text-foreground" />
+          {t('Nombre')}
+          <Input {...form.register('name')} readOnly={readOnly} placeholder={t('Reporte de bug')} autoFocus={isNew} className="bg-card text-sm font-normal text-foreground" />
           {errors.name && <span className="font-normal text-destructive">{errors.name.message}</span>}
         </label>
         <label className={fieldLabel}>
-          Prefijo del título
-          <Input {...form.register('titlePrefix')} readOnly={readOnly} placeholder="[Etiqueta] " className="bg-card font-mono text-sm font-normal text-foreground" />
+          {t('Prefijo del título')}
+          <Input {...form.register('titlePrefix')} readOnly={readOnly} placeholder={t('[Etiqueta] ')} className="bg-card font-mono text-sm font-normal text-foreground" />
           {errors.titlePrefix && <span className="font-normal text-destructive">{errors.titlePrefix.message}</span>}
         </label>
       </div>
       {values.titlePrefix && (
         <p className="-mt-1.5 text-xs text-muted-foreground">
-          Así queda: <span className="font-mono whitespace-pre-wrap text-foreground">{values.titlePrefix}Título de la tarea</span>
+          {tx('Así queda: {example}', {
+            example: (
+              <span className="font-mono whitespace-pre-wrap text-foreground">
+                {values.titlePrefix}
+                {t('Título de la tarea')}
+              </span>
+            ),
+          })}
         </p>
       )}
       <div className="flex flex-col gap-1.5">
-        <p className="text-xs font-medium text-muted-foreground">Crea una</p>
-        <div role="radiogroup" aria-label="Tipo de la tarea que crea" className="flex flex-wrap items-center gap-1.5">
+        <p className="text-xs font-medium text-muted-foreground">{t('Crea una')}</p>
+        <div role="radiogroup" aria-label={t('Tipo de la tarea que crea')}className="flex flex-wrap items-center gap-1.5">
           {ISSUE_TYPES.map((option) => {
             const checked = values.type === option.value
             if (readOnly && !checked) return null
@@ -436,7 +450,7 @@ function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted
           })}
           {!readOnly && (
             <span className="text-xs text-muted-foreground">
-              {values.type === 'STORY' ? 'solo el project manager crea historias' : 'al elegir la plantilla, la tarea toma este tipo'}
+              {values.type === 'STORY' ? t('solo el project manager crea historias') : t('al elegir la plantilla, la tarea toma este tipo')}
             </span>
           )}
         </div>
@@ -451,13 +465,13 @@ function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted
       />
 
       <div className="flex flex-col gap-1.5">
-        <p className="text-xs font-medium text-muted-foreground">Valores por defecto</p>
+        <p className="text-xs font-medium text-muted-foreground">{t('Valores por defecto')}</p>
         {readOnly ? (
           <div className="flex flex-wrap items-center gap-1.5">
             {selectedState && (
               <span className={cn(chip(false), 'inline-flex items-center gap-1.5')}>
                 <StateIcon group={selectedState.group} color={selectedState.color} />
-                {selectedState.name}
+                {stateName(selectedState)}
               </span>
             )}
             {values.priority !== 'NONE' ? <PriorityChip priority={values.priority} /> : null}
@@ -470,7 +484,7 @@ function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted
                 {selectedUsers.map((user) => user.fullName.split(' ')[0]).join(', ')}
               </span>
             )}
-            {!hasDefaults && <span className="text-sm text-muted-foreground">Sin valores por defecto</span>}
+            {!hasDefaults && <span className="text-sm text-muted-foreground">{t('Sin valores por defecto')}</span>}
           </div>
         ) : (
           <div className="flex flex-wrap items-center gap-1.5">
@@ -478,7 +492,7 @@ function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted
               states={states}
               value={values.stateId}
               onChange={(stateId) => form.setValue('stateId', stateId, { shouldDirty: true })}
-              noneLabel="Sin estado fijo"
+              noneLabel={t('Sin estado fijo')}
               className={chip(!selectedState)}
             />
             <PriorityPicker
@@ -506,8 +520,8 @@ function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted
 
       <div className="flex flex-col gap-1.5">
         <p className="text-xs font-medium text-muted-foreground">
-          Checklist{' '}
-          <span className="font-mono">{checklistLabel(values.checklist?.filter((item) => item.text?.trim())) || 'vacía'}</span>
+          {t('Checklist')}{' '}
+          <span className="font-mono">{checklistLabel(values.checklist?.filter((item) => item.text?.trim())) || t('vacía')}</span>
         </p>
         {checklist.fields.length > 0 && (
           <TemplateChecklistEditor form={form} fieldArray={checklist} readOnly={readOnly} />
@@ -516,8 +530,8 @@ function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted
         {!readOnly && (
           <div className="flex gap-1.5">
             {[
-              ['CHECK', '+ paso'],
-              ['CRITERION', '+ criterio'],
+              ['CHECK', t('+ paso')],
+              ['CRITERION', t('+ criterio')],
             ].map(([kind, label]) => (
               <button
                 key={kind}
@@ -537,25 +551,25 @@ function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted
         <div className="flex flex-wrap items-center gap-2.5 border-t pt-3">
           {isNew ? (
             <Button type="button" variant="ghost" className="text-muted-foreground" onClick={onCancelNew}>
-              Cancelar
+              {t('Cancelar')}
             </Button>
           ) : (
             <Button type="button" variant="ghost" className="text-muted-foreground" onClick={() => setConfirmDelete(true)}>
-              Eliminar plantilla
+              {t('Eliminar plantilla')}
             </Button>
           )}
           {/* Los dos botones van juntos: si no cabe todo, el aviso sube a su propia línea */}
           <div className="ml-auto flex flex-wrap items-center justify-end gap-x-2.5 gap-y-1.5">
-            {dirty && !isNew && <span className="font-mono text-[11px] text-muted-foreground">cambios sin guardar</span>}
+            {dirty && !isNew && <span className="font-mono text-[11px] text-muted-foreground">{t('cambios sin guardar')}</span>}
             <div className="flex items-center gap-2.5">
               {!isNew && (
                 <Button type="button" variant="outline" disabled={!dirty || pending} onClick={() => form.reset()}>
-                  Descartar
+                  {t('Descartar')}
                 </Button>
               )}
               <Button type="submit" disabled={pending || (!isNew && !dirty)}>
                 {pending && <Spinner />}
-                {isNew ? 'Crear plantilla' : 'Guardar plantilla'}
+                {isNew ? t('Crear plantilla') : t('Guardar plantilla')}
               </Button>
             </div>
           </div>
@@ -565,9 +579,9 @@ function TemplateEditor({ slug, project, template, canManage, onSaved, onDeleted
         <ConfirmDialog
           open={confirmDelete}
           onOpenChange={setConfirmDelete}
-          title={`¿Eliminar la plantilla «${template.name}»?`}
-          description="Las tareas ya creadas con ella no cambian."
-          confirmLabel="Eliminar"
+          title={t('¿Eliminar la plantilla «{name}»?', { name: template.name })}
+          description={t('Las tareas ya creadas con ella no cambian.')}
+          confirmLabel={t('Eliminar')}
           loading={remove.isPending}
           onConfirm={handleDelete}
           focusAfterConfirmRef={removal?.ref}
@@ -597,8 +611,9 @@ function TemplateChecklistEditor({ form, fieldArray, readOnly }) {
           (id) => {
             const index = fields.findIndex((field) => field.id === id)
             const item = form.getValues(`checklist.${index}`)
-            if (!item) return 'el elemento'
-            return `${item.kind === 'CRITERION' ? 'el criterio' : 'el paso'} ${quoted(item.text || 'sin texto')}`
+            if (!item) return t('el elemento')
+            const name = quoted(item.text || t('sin texto'))
+            return item.kind === 'CRITERION' ? t('el criterio {name}', { name }) : t('el paso {name}', { name })
           },
         ),
       }}
@@ -661,8 +676,8 @@ function TemplateChecklistRow({ id, index, count, form, readOnly, error, onMove,
             }
             listeners?.onKeyDown?.(event)
           }}
-          aria-label={`Mover «${text || 'elemento'}»`}
-          title="Arrastra o usa alt + ↑ ↓"
+          aria-label={t('Mover «{name}»', { name: text || t('elemento') })}
+          title={t('Arrastra o usa alt + ↑ ↓')}
           className={cn(
             'flex h-7 w-6 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-dash hover:bg-accent hover:text-muted-foreground active:cursor-grabbing',
             isDragging && 'bg-accent-soft text-accent-text',
@@ -677,7 +692,7 @@ function TemplateChecklistRow({ id, index, count, form, readOnly, error, onMove,
         onClick={() =>
           form.setValue(`checklist.${index}.kind`, isCriterion ? 'CHECK' : 'CRITERION', { shouldDirty: true })
         }
-        title={readOnly ? undefined : 'Cambiar entre paso y criterio'}
+        title={readOnly ? undefined : t('Cambiar entre paso y criterio')}
         className={cn(
           'w-16 shrink-0 rounded-md px-1.5 py-0.5 text-center font-mono text-[11px] transition-colors duration-150 disabled:cursor-default',
           isCriterion ? 'bg-accent-soft font-semibold text-accent-text' : 'bg-muted text-muted-foreground',
@@ -685,18 +700,18 @@ function TemplateChecklistRow({ id, index, count, form, readOnly, error, onMove,
           readOnly && 'ml-1.5',
         )}
       >
-        {isCriterion ? 'criterio' : 'paso'}
+        {isCriterion ? t('criterio') : t('paso')}
       </button>
       <input
         {...form.register(`checklist.${index}.text`)}
         readOnly={readOnly}
         maxLength={500}
-        aria-label={isCriterion ? 'Texto del criterio' : 'Texto del paso'}
-        placeholder={isCriterion ? 'Dado …, cuando …, entonces …' : 'Qué hay que hacer'}
+        aria-label={isCriterion ? t('Texto del criterio') : t('Texto del paso')}
+        placeholder={isCriterion ? t('Dado …, cuando …, entonces …') : t('Qué hay que hacer')}
         className="min-w-0 flex-1 rounded-md bg-transparent px-1.5 py-1 text-sm outline-none placeholder:text-muted-foreground focus:bg-accent/50 read-only:focus:bg-transparent"
       />
       {!readOnly && (
-        <Button type="button" variant="ghost" size="icon" className="size-7 text-muted-foreground" aria-label={`Quitar «${text || 'elemento'}»`} onClick={onRemove}>
+        <Button type="button" variant="ghost" size="icon" className="size-7 text-muted-foreground" aria-label={t('Quitar «{name}»', { name: text || t('elemento') })} onClick={onRemove}>
           <X className="size-3.5" />
         </Button>
       )}

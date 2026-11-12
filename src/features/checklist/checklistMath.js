@@ -1,3 +1,5 @@
+import { t } from '@/i18n'
+
 /**
  * Cuentas de los criterios de aceptación (CRITERION) y los pasos de la checklist (CHECK) de una tarea.
  * `position` empieza en 0 dentro de cada tipo, igual que en el backend.
@@ -82,8 +84,11 @@ export function dropIndex(items, activeId, overId) {
   return itemsOfKind(items, active.kind).findIndex((item) => item.id === overId)
 }
 
-/** Criterio con la forma «Dado …, cuando …, entonces …» (como los de las plantillas). */
-const GHERKIN = /^\s*dado\s+(.+?),?\s+cuando\s+(.+?),?\s+entonces\s+(.+?)\s*$/is
+/**
+ * Criterio con la forma «Dado …, cuando …, entonces …» (como los de las plantillas) o, escrito en inglés,
+ * «Given …, when …, then …»: se reconocen los dos, sin importar el idioma de la interfaz.
+ */
+const GHERKIN = /^\s*(?:dado\s+(.+?),?\s+cuando\s+(.+?),?\s+entonces|given\s+(.+?),?\s+when\s+(.+?),?\s+then)\s+(.+?)\s*$/is
 
 /**
  * Separa un criterio en sus tres partes para mostrarlo en columnas; null si no tiene esa forma.
@@ -92,11 +97,13 @@ const GHERKIN = /^\s*dado\s+(.+?),?\s+cuando\s+(.+?),?\s+entonces\s+(.+?)\s*$/is
 export function parseCriterion(text = '') {
   const match = GHERKIN.exec(text)
   if (!match) return null
-  const [, given, when, then] = match
+  const given = match[1] ?? match[3]
+  const when = match[2] ?? match[4]
+  const then = match[5]
   return { given: given.trim(), when: when.trim(), then: then.trim() }
 }
 
-/** Las tres partes → «Dado …, cuando …, entonces …». */
+/** Las tres partes → «Dado …, cuando …, entonces …» (en inglés, «Given …, when …, then …»). */
 export function formatCriterion({ given, when, then }) {
-  return `Dado ${given.trim()}, cuando ${when.trim()}, entonces ${then.trim()}`
+  return t('Dado {given}, cuando {when}, entonces {then}', { given: given.trim(), when: when.trim(), then: then.trim() })
 }

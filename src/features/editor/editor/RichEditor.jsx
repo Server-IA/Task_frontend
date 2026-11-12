@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { IMAGE_ACCEPT, isImageFile, pastedName, renameFile, validateFile } from '@/features/files/fileTypes'
 import { uploadQueue } from '@/features/files/uploadQueue'
 import { filterPeople, mentionName } from '@/features/mentions/mentions'
+import { t } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { useSessionStore } from '@/stores/sessionStore'
 import { normalizeHref } from '../markdown/links'
@@ -20,11 +21,12 @@ import { wordListsToHtml } from './wordPaste'
 import { codeReplacement, findText } from './findText'
 import { syncUploadingImages } from './imageExtension'
 import { LinkPopover } from './LinkPopover'
-import { caretRect, popupPosition } from './popups'
+import { caretRect, popupPosition, tableElementAt } from './popups'
 import { ShortcutsDialog } from './ShortcutsDialog'
 import { MentionMenu, slashGroups, SlashMenu } from './SuggestionMenus'
 import { TaskSearchPopover } from './TaskSearchPopover'
-import { currentBlockType, Toolbar } from './Toolbar'
+import { TablePicker } from './TablePicker'
+import { currentBlockType, TableMenu, Toolbar } from './Toolbar'
 
 /** Texto pegado que parece Markdown (títulos, listas, código, tablas, negritas, enlaces). */
 const looksLikeMarkdown = (text) =>
@@ -117,7 +119,7 @@ export default function RichEditor({
   size = 'md',
   toolbar = false,
   stickyToolbar = false,
-  placeholder = 'Escribe, o pulsa / para insertar',
+  placeholder = t('Escribe, o pulsa / para insertar'),
   people = [],
   slug,
   projectIdentifier,
@@ -131,7 +133,7 @@ export default function RichEditor({
   onCommandChange,
   imageUpload,
   onUploadsChange,
-  ariaLabel = 'Descripción',
+  ariaLabel = t('Descripción'),
   className,
   contentClassName,
 }) {
@@ -149,6 +151,8 @@ export default function RichEditor({
   const [mentionActive, setMentionActive] = useState(0)
   const [link, setLink] = useState(null)
   const [taskSearch, setTaskSearch] = useState(null)
+  // Selector de columnas y filas de una tabla nueva, anclado donde estaba el cursor
+  const [tablePicker, setTablePicker] = useState(null)
   const [help, setHelp] = useState(false)
   const [pointerDown, setPointerDown] = useState(false)
   const [creating, setCreating] = useState(false)
@@ -305,9 +309,10 @@ export default function RichEditor({
       if (event.key !== 'Escape' || !root.contains(event.target)) return
       if (slash) exitSuggestion(editor.view, SLASH_KEY)
       else if (mention) exitSuggestion(editor.view, MENTION_KEY)
-      else if (link || taskSearch) {
+      else if (link || taskSearch || tablePicker) {
         setLink(null)
         setTaskSearch(null)
+        setTablePicker(null)
         editor.commands.focus()
       } else if (onEscape) onEscape()
       else return
@@ -316,19 +321,20 @@ export default function RichEditor({
     }
     window.addEventListener('keydown', onKeyDown, true)
     return () => window.removeEventListener('keydown', onKeyDown, true)
-  }, [root, editor, slash, mention, link, taskSearch, onEscape])
+  }, [root, editor, slash, mention, link, taskSearch, tablePicker, onEscape])
 
-  // Un clic fuera del editor cierra el enlace y la búsqueda de tareas
+  // Un clic fuera del editor cierra el enlace, la búsqueda de tareas y el selector de tabla
   useEffect(() => {
-    if (!root || (!link && !taskSearch)) return undefined
+    if (!root || (!link && !taskSearch && !tablePicker)) return undefined
     const onDown = (event) => {
       if (root.contains(event.target)) return
       setLink(null)
       setTaskSearch(null)
+      setTablePicker(null)
     }
     window.addEventListener('mousedown', onDown)
     return () => window.removeEventListener('mousedown', onDown)
-  }, [root, link, taskSearch])
+  }, [root, link, taskSearch, tablePicker])
 
   const features = { people: people.length > 0, tasks: Boolean(slug), taskHint: projectIdentifier, images: Boolean(imageUpload) }
   const groups = slash ? slashGroups(slash.query, features) : []
@@ -472,7 +478,7 @@ export default function RichEditor({
           const file = renameFile(original, pastedName(original))
           const check = validateFile(file, { imagesOnly: true })
           if (!check.ok) {
-            toast.error(`${check.error} No se pegó.`)
+            toast.error(t('{error} No se pegó.', { error: check.error }))
             continue
           }
           const uploadId = uploadQueue.add(file, { target: imageUpload.target, scope: uploadScope, contentType: check.contentType })
@@ -486,7 +492,7 @@ export default function RichEditor({
         const others = list.filter((file) => !isImageFile(file))
         if (others.length) {
           if (imageUpload.onOtherFiles) imageUpload.onOtherFiles(others)
-          else toast.error(others.length === 1 ? `«${others[0].name}» no es una imagen` : 'Algunos archivos no son imágenes', { description: 'Aquí solo se pueden pegar imágenes PNG, JPG, GIF o WebP.' })
+          else toast.error(others.length === 1 ? t('«{name}» no es una imagen', { name: others[0].name }) : t('Algunos archivos no son imágenes'), { description: t('Aquí solo se pueden pegar imágenes PNG, JPG, GIF o WebP.') })
         }
         return true
       },
@@ -553,6 +559,9 @@ export default function RichEditor({
             chain.run()
             const pos = current.state.selection.from
             setTaskSearch({ key: Date.now(), pos })
+          } else if (item.id === 'table') {
+            chain.run()
+            setTablePicker({ key: Date.now(), pos: current.state.selection.from })
           } else item.run(chain).run()
         },
       },
@@ -598,6 +607,16 @@ export default function RichEditor({
     const box = root.getBoundingClientRect()
     if (start) bubbleStyle = { left: Math.max(0, Math.min(start.left - box.left - 8, box.width - 340)), bottom: box.bottom - start.top + 10 }
   }
+  // Sin barra de herramientas (comentarios), el menú de la tabla flota sobre su esquina superior derecha
+  let tableMenuStyle = null
+  if (!toolbar && state.inTable && root) {
+    const table = tableElementAt(editor.view, state.from)
+    if (table) {
+      const box = root.getBoundingClientRect()
+      const rect = table.getBoundingClientRect()
+      tableMenuStyle = { top: Math.max(2, rect.top - box.top - 13), right: Math.max(6, box.right - rect.right + 8) }
+    }
+  }
 
   return (
     <div
@@ -606,9 +625,10 @@ export default function RichEditor({
       onMouseDown={(event) => {
         if (!event.target.closest?.('.ProseMirror')) return
         setPointerDown(true)
-        if (link || taskSearch) {
+        if (link || taskSearch || tablePicker) {
           setLink(null)
           setTaskSearch(null)
+          setTablePicker(null)
         }
       }}
     >
@@ -622,6 +642,7 @@ export default function RichEditor({
           onHelp={() => setHelp(true)}
           onMoveTasks={onMoveTasks ? moveTasks : undefined}
           onImage={imageUpload ? () => fileInputRef.current?.click() : undefined}
+          onTable={() => setTablePicker({ key: Date.now(), pos: editor.state.selection.from })}
         />
       )}
       <EditorContent editor={editor} />
@@ -653,6 +674,7 @@ export default function RichEditor({
           taskCount={taskCount}
         />
       )}
+      {tableMenuStyle && <TableMenu editor={editor} size={26} floating style={tableMenuStyle} />}
       {slash && groups.length > 0 && (
         <SlashMenu
           groups={groups}
@@ -697,6 +719,20 @@ export default function RichEditor({
           }}
           onClose={() => {
             setTaskSearch(null)
+            editor.commands.focus()
+          }}
+        />
+      )}
+      {tablePicker && (
+        <TablePicker
+          key={tablePicker.key}
+          style={popupPosition(caretRect(editor.view, Math.min(tablePicker.pos, editor.state.doc.content.size)), root, { width: 252, height: 250 })}
+          onInsert={({ cols, rows }) => {
+            setTablePicker(null)
+            editor.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run()
+          }}
+          onClose={() => {
+            setTablePicker(null)
             editor.commands.focus()
           }}
         />

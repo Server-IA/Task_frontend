@@ -1,45 +1,46 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { t } from '@/i18n'
 
 const SECTIONS = [
   {
-    title: 'Formato',
+    title: t('Formato'),
     rows: [
-      ['Negrita', 'ctrl B'],
-      ['Cursiva', 'ctrl I'],
-      ['Tachado', 'ctrl shift X'],
-      ['Código', 'ctrl E'],
-      ['Enlace', 'ctrl K'],
+      [t('Negrita'), 'ctrl B'],
+      [t('Cursiva'), 'ctrl I'],
+      [t('Tachado'), 'ctrl shift X'],
+      [t('Código'), 'ctrl E'],
+      [t('Enlace'), 'ctrl K'],
     ],
   },
   {
-    title: 'Bloques',
+    title: t('Bloques'),
     rows: [
-      ['Lista numerada', 'ctrl shift 7'],
-      ['Lista', 'ctrl shift 8'],
-      ['Lista de tareas', 'ctrl shift 9'],
-      ['Cita', 'ctrl shift B'],
-      ['Bloque de código', 'ctrl alt C'],
-      ['Meter / sacar de la lista', 'tab · shift tab'],
-      ['Salto de línea', 'shift ↵'],
+      [t('Lista numerada'), 'ctrl shift 7'],
+      [t('Lista'), 'ctrl shift 8'],
+      [t('Lista de tareas'), 'ctrl shift 9'],
+      [t('Cita'), 'ctrl shift B'],
+      [t('Bloque de código'), 'ctrl alt C'],
+      [t('Meter / sacar de la lista'), 'tab · shift tab'],
+      [t('Salto de línea'), 'shift ↵'],
     ],
   },
   {
-    title: 'Escribiendo Markdown',
+    title: t('Escribiendo Markdown'),
     rows: [
-      ['Títulos', '# ## ###'],
-      ['Lista · numerada · tareas', '- · 1. · [ ]'],
-      ['Cita · código · separador', '> · ``` · ---'],
-      ['Negrita · cursiva', '**texto** · *texto*'],
-      ['Código · tachado', '`texto` · ~~texto~~'],
+      [t('Títulos'), '# ## ###'],
+      [t('Lista · numerada · tareas'), '- · 1. · [ ]'],
+      [t('Cita · código · separador'), '> · ``` · ---'],
+      [t('Negrita · cursiva'), t('**texto** · *texto*')],
+      [t('Código · tachado'), t('`texto` · ~~texto~~')],
     ],
   },
   {
-    title: 'Insertar y terminar',
+    title: t('Insertar y terminar'),
     rows: [
-      ['Insertar bloque', '/'],
-      ['Mencionar', '@'],
-      ['Terminar', 'esc · ctrl ↵'],
-      ['Estos atajos', 'ctrl /'],
+      [t('Insertar bloque'), '/'],
+      [t('Mencionar'), '@'],
+      [t('Terminar'), 'esc · ctrl ↵'],
+      [t('Estos atajos'), 'ctrl /'],
     ],
   },
 ]
@@ -50,8 +51,8 @@ export function ShortcutsDialog({ open, onOpenChange }) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="gap-4 sm:max-w-[640px]" onCloseAutoFocus={(event) => event.preventDefault()}>
         <DialogHeader>
-          <DialogTitle>Atajos del editor</DialogTitle>
-          <DialogDescription>Se guarda como Markdown: lo que escribas con estos símbolos se convierte al instante.</DialogDescription>
+          <DialogTitle>{t('Atajos del editor')}</DialogTitle>
+          <DialogDescription>{t('Se guarda como Markdown: lo que escribas con estos símbolos se convierte al instante.')}</DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
           {SECTIONS.map((section) => (

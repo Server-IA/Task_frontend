@@ -8,12 +8,14 @@ import { EmptyState, ErrorState } from '@/components/common/States'
 import { StateIcon } from '@/components/common/StateIcon'
 import { IssueTypeIcon } from '@/features/issues/components/IssueTypeBits'
 import { BlockedChip } from '@/features/issues/components/IssueBadges'
-import { PriorityChip } from '@/features/issues/components/PriorityIcon'
+import { PriorityChip, PriorityIcon } from '@/features/issues/components/PriorityIcon'
 import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
 import { useProjects } from '@/features/projects/hooks'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
+import { t, tn, tx } from '@/i18n'
 import { describeDueDate } from '@/lib/dates'
 import { cn } from '@/lib/utils'
+import { countByPriority, countByProject } from '../breakdown'
 import { groupByDue } from '../groupByDue'
 import { useMyWork } from '../hooks'
 import { startedCounts } from '../weekSummary'
@@ -21,33 +23,39 @@ import { startedCounts } from '../weekSummary'
 /** Las tres vistas: qué tareas muestra cada una, su contador y sus textos. */
 const VIEWS = {
   assigned: {
-    label: 'Asignadas',
+    label: t('Asignadas'),
     countKey: 'assignedCount',
-    summary: (count) => (count ? `${count} ${count === 1 ? 'tarea asignada' : 'tareas asignadas'} a ti` : 'Ninguna tarea asignada a ti'),
-    emptyTitle: 'No tienes tareas asignadas abiertas',
-    emptyDescription: 'Cuando alguien te asigne una tarea aparecerá aquí, ordenada por fecha límite.',
+    summary: (count) => (count ? tn(count, '{count} tarea asignada a ti', '{count} tareas asignadas a ti') : t('Ninguna tarea asignada a ti')),
+    emptyTitle: t('No tienes tareas asignadas abiertas'),
+    emptyDescription: t('Cuando alguien te asigne una tarea aparecerá aquí, ordenada por fecha límite.'),
   },
   created: {
-    label: 'Creadas por mí',
+    label: t('Creadas por mí'),
     // En el teléfono las tres pestañas caben en una línea con la etiqueta corta
-    shortLabel: 'Creadas',
+    shortLabel: t('Creadas'),
     countKey: 'createdCount',
     summary: (count) =>
-      count ? `${count} ${count === 1 ? 'tarea abierta creada' : 'tareas abiertas creadas'} por ti` : 'Ninguna tarea abierta creada por ti',
-    emptyTitle: 'Ninguna tarea abierta creada por ti',
-    emptyDescription: 'Las tareas que crees y sigan abiertas aparecerán aquí.',
+      count ? tn(count, '{count} tarea abierta creada por ti', '{count} tareas abiertas creadas por ti') : t('Ninguna tarea abierta creada por ti'),
+    emptyTitle: t('Ninguna tarea abierta creada por ti'),
+    emptyDescription: t('Las tareas que crees y sigan abiertas aparecerán aquí.'),
   },
   commented: {
-    label: 'Comentadas',
+    label: t('Comentadas'),
     countKey: 'commentedCount',
     summary: (count) =>
-      count ? `${count} ${count === 1 ? 'tarea abierta' : 'tareas abiertas'} en las que comentaste` : 'Ninguna tarea abierta en la que comentaste',
-    emptyTitle: 'Sin tareas comentadas abiertas',
-    emptyDescription: 'Las tareas abiertas en las que dejes un comentario aparecerán aquí.',
+      count
+        ? tn(count, '{count} tarea abierta en las que comentaste', '{count} tareas abiertas en las que comentaste')
+        : t('Ninguna tarea abierta en la que comentaste'),
+    emptyTitle: t('Sin tareas comentadas abiertas'),
+    emptyDescription: t('Las tareas abiertas en las que dejes un comentario aparecerán aquí.'),
   },
 }
 
-/** Tareas abiertas del usuario en todos sus proyectos, agrupadas por fecha límite. */
+/**
+ * Tareas abiertas del usuario en todos sus proyectos, agrupadas por fecha límite. En pantallas anchas (desde 1440 px) la lista ocupa
+ * todo el ancho y a la derecha va un panel con la semana y el reparto por proyecto y prioridad; en una ventana
+ * angosta, la semana va como una franja arriba.
+ */
 export function MyWorkPage() {
   const { slug } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -65,23 +73,24 @@ export function MyWorkPage() {
     : (groups.find((group) => group.key === 'overdue')?.issues.length ?? 0)
   const projectCount = assignedView ? (data?.projectCount ?? 0) : new Set(issues.map((issue) => issue.projectId)).size
   const config = VIEWS[view]
+  // «3 tareas asignadas a ti en 2 proyectos»: la frase de la vista y, si hay tareas, en cuántos proyectos
+  const summary = config.summary(data?.[config.countKey] ?? 0)
+  const summaryWithProjects =
+    projectCount > 0 ? tn(projectCount, '{summary} en {count} proyecto', '{summary} en {count} proyectos', { summary }) : summary
 
   return (
-    <div className="mx-auto flex min-h-0 w-full max-w-[980px] flex-1 flex-col gap-3.5">
+    <>
       <PageHeader
-        path={[{ label: '~' }, { label: 'mi-trabajo' }]}
-        title="Mi trabajo"
+        path={[{ label: '~' }, { label: t('mi-trabajo') }]}
+        title={t('Mi trabajo')}
         description={
           data && (
             <>
-              {config.summary(data[config.countKey] ?? 0)}
-              {projectCount > 0 && ` en ${projectCount} ${projectCount === 1 ? 'proyecto' : 'proyectos'}`}
+              {summaryWithProjects}
               {overdue > 0 && (
                 <>
                   {' · '}
-                  <span className="font-semibold text-late">
-                    {overdue} {overdue === 1 ? 'vencida' : 'vencidas'}
-                  </span>
+                  <span className="font-semibold text-late">{tn(overdue, '{count} vencida', '{count} vencidas')}</span>
                 </>
               )}
             </>
@@ -89,7 +98,7 @@ export function MyWorkPage() {
         }
         actions={
           <Segmented
-            label="Qué tareas ver"
+            label={t('Qué tareas ver')}
             // En el teléfono las tres pestañas caben en una línea con menos relleno
             itemClassName="whitespace-nowrap px-2.5 text-[13px] sm:px-3.5 sm:text-sm"
             value={view}
@@ -117,8 +126,9 @@ export function MyWorkPage() {
         {isLoading && <MyWorkSkeleton />}
         {error && !data && <ErrorState error={error} onRetry={refetch} homeLink={`/${slug}`} />}
         {data && (
-          <>
-            <WeekStrip slug={slug} data={data} />
+          <div className="flex flex-col gap-3.5 min-[1440px]:flex-row min-[1440px]:items-start">
+          <div className="flex min-w-0 flex-1 flex-col gap-3.5">
+            <WeekStrip slug={slug} data={data} className="min-[1440px]:hidden" />
             {issues.length === 0 && (
               <EmptyState icon={CircleCheck} title={config.emptyTitle} description={config.emptyDescription} />
             )}
@@ -151,10 +161,115 @@ export function MyWorkPage() {
                 </section>
               ))}
             </div>
-          </>
+          </div>
+          <MyWorkAside slug={slug} data={data} issues={issues} projectsById={projectsById} listLabel={config.label} />
+          </div>
         )}
       </PageBody>
-    </div>
+    </>
+  )
+}
+
+/**
+ * Panel lateral (pantallas anchas): «Tu semana» con los contadores de las tareas asignadas y la próxima fecha, y el
+ * reparto de la lista que se ve por proyecto y por prioridad.
+ */
+function MyWorkAside({ slug, data, issues, projectsById, listLabel }) {
+  const completed = data.completedThisWeek ?? 0
+  const numbers = [{ key: 'completed', count: completed, label: completed === 1 ? t('cerrada') : t('cerradas') }, ...startedCounts(data.byState)]
+  const byProject = countByProject(issues, projectsById)
+  const byPriority = countByPriority(issues)
+  const next = data.nextDue
+
+  return (
+    <aside aria-label={t('Resumen')} className="hidden w-[340px] shrink-0 flex-col gap-3.5 min-[1440px]:flex min-[1680px]:w-[380px]">
+      <section className="tf-panel flex flex-col gap-3 px-4.5 py-4">
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 className="text-[15px] font-semibold">{t('Tu semana')}</h2>
+          <span className="font-mono text-[11px] text-muted-foreground">{t('tareas asignadas')}</span>
+        </div>
+        <dl className="grid grid-cols-2 gap-3">
+          {numbers.map((item) => (
+            <div key={item.key} className="min-w-0">
+              <dt className="truncate font-mono text-[11px] text-muted-foreground" title={item.label}>
+                {item.label}
+              </dt>
+              <dd className="mt-0.5 font-display text-[26px] leading-tight font-extrabold">{item.count}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="border-t border-dashed pt-3 text-[13px] text-muted-foreground">
+          <NextDue slug={slug} next={next} />
+        </p>
+      </section>
+
+      {byProject.length > 0 && (
+        <BreakdownPanel
+          title={t('Por proyecto')}
+          meta={listLabel.toLowerCase()}
+          rows={byProject.map((row) => ({
+            key: row.projectId,
+            count: row.count,
+            label: (
+              <>
+                {row.project && <ProjectIcon project={row.project} />}
+                <span className="truncate">{row.name}</span>
+              </>
+            ),
+            to: `/${slug}/projects/${row.projectId}/issues`,
+          }))}
+        />
+      )}
+      {byPriority.length > 0 && (
+        <BreakdownPanel
+          title={t('Por prioridad')}
+          meta={listLabel.toLowerCase()}
+          rows={byPriority.map((row) => ({
+            key: row.priority,
+            count: row.count,
+            label: (
+              <>
+                <PriorityIcon priority={row.priority} />
+                <span className="truncate">{row.label}</span>
+              </>
+            ),
+          }))}
+        />
+      )}
+    </aside>
+  )
+}
+
+/** Tarjeta con una fila por valor y su cantidad («Por proyecto», «Por prioridad»); con `to`, la fila lleva a ese sitio. */
+function BreakdownPanel({ title, meta, rows }) {
+  return (
+    <section className="tf-panel flex flex-col gap-2.5 px-4.5 py-4">
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 className="text-[15px] font-semibold">{title}</h2>
+        <span className="font-mono text-[11px] text-muted-foreground">{meta}</span>
+      </div>
+      {rows.map((row) => {
+        const content = (
+          <>
+            <span className="flex min-w-0 items-center gap-2">{row.label}</span>
+            <span className="shrink-0 font-mono text-muted-foreground">{row.count}</span>
+          </>
+        )
+        return row.to ? (
+          <Link
+            key={row.key}
+            to={row.to}
+            className="-mx-1.5 flex items-center justify-between gap-2 rounded-lg px-1.5 py-1 text-[13px] transition-colors hover:bg-subtle"
+          >
+            {content}
+          </Link>
+        ) : (
+          <div key={row.key} className="flex items-center justify-between gap-2 py-1 text-[13px]">
+            {content}
+          </div>
+        )
+      })}
+    </section>
   )
 }
 
@@ -162,20 +277,20 @@ export function MyWorkPage() {
  * «// tu semana  4 cerradas  2 en curso  1 en revisión · Próxima fecha: mañana · WEB-19». Habla siempre de las
  * tareas asignadas, sea cual sea la vista; cada estado «en curso» lleva su propio nombre.
  */
-function WeekStrip({ slug, data }) {
+function WeekStrip({ slug, data, className }) {
   const next = data.nextDue
   const completed = data.completedThisWeek ?? 0
   const stats = [
-    { key: 'completed', count: completed, label: completed === 1 ? 'cerrada' : 'cerradas' },
+    { key: 'completed', count: completed, label: completed === 1 ? t('cerrada') : t('cerradas') },
     ...startedCounts(data.byState),
   ]
 
   return (
     <section
-      aria-label="Tu semana"
-      className="flex flex-wrap items-center gap-x-5.5 gap-y-2 rounded-2xl border border-dashed border-dash px-4.5 py-3"
+      aria-label={t('Tu semana')}
+      className={cn('flex flex-wrap items-center gap-x-5.5 gap-y-2 rounded-2xl border border-dashed border-dash px-4.5 py-3', className)}
     >
-      <span className="font-mono text-[11px] text-muted-foreground">// tu semana</span>
+      <span className="font-mono text-[11px] text-muted-foreground">{t('// tu semana')}</span>
       {stats.map((item) => (
         <span key={item.key} className="tf-pop flex items-baseline gap-1.5">
           <strong className="font-display text-[22px] leading-none font-extrabold">{item.count}</strong>
@@ -183,24 +298,29 @@ function WeekStrip({ slug, data }) {
         </span>
       ))}
       <span className="text-[13px] text-muted-foreground sm:ml-auto">
-        Próxima fecha:{' '}
-        {next?.dueDate ? (
-          <>
-            <strong className="font-semibold text-foreground">{describeDueDate(next.dueDate).text}</strong> ·{' '}
-            <Link
-              to={`/${slug}/projects/${next.project?.id}/issues?issue=${next.id}`}
-              className="font-mono hover:text-foreground hover:underline"
-              title={next.title}
-            >
-              {next.code}
-            </Link>
-          </>
-        ) : (
-          <strong className="font-semibold text-foreground">ninguna</strong>
-        )}
+        <NextDue slug={slug} next={next} />
       </span>
     </section>
   )
+}
+
+/** «Próxima fecha: mañana · WEB-19» (o «ninguna»): la tarea asignada que vence antes, con enlace. */
+function NextDue({ slug, next }) {
+  if (!next?.dueDate) {
+    return tx('Próxima fecha: {date}', { date: <strong className="font-semibold text-foreground">{t('ninguna')}</strong> })
+  }
+  return tx('Próxima fecha: {date} · {task}', {
+    date: <strong className="font-semibold text-foreground">{describeDueDate(next.dueDate).text}</strong>,
+    task: (
+      <Link
+        to={`/${slug}/projects/${next.project?.id}/issues?issue=${next.id}`}
+        className="font-mono hover:text-foreground hover:underline"
+        title={next.title}
+      >
+        {next.code}
+      </Link>
+    ),
+  })
 }
 
 /** Fila de una tarea: abre el panel de detalle en la página de tareas de su proyecto. */
@@ -230,7 +350,7 @@ function MyWorkRow({ slug, issue, project }) {
 
 function MyWorkSkeleton() {
   return (
-    <div className="flex flex-col gap-3.5" aria-label="Cargando tareas">
+    <div className="flex flex-col gap-3.5" aria-label={t('Cargando tareas')}>
       <Skeleton className="h-14 rounded-2xl" />
       <Skeleton className="h-40 rounded-2xl" />
       <Skeleton className="h-28 rounded-2xl" />

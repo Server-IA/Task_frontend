@@ -1,6 +1,7 @@
 import { useId, useRef } from 'react'
 import { ArrowRight, Check, TriangleAlert } from 'lucide-react'
 import { LockNote } from '@/components/common/LockNote'
+import { t } from '@/i18n'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { useCreateRetroNote } from '../hooks'
@@ -41,7 +42,7 @@ export function RetroColumn({ column, notes, retro, open, composing, onCompose, 
           {column.name}
         </h2>
         <span className="font-mono text-xs text-muted-foreground">{notes.length}</span>
-        {notes.length > 1 && <span className="ml-auto text-[11px] text-muted-foreground">orden: votos</span>}
+        {notes.length > 1 && <span className="ml-auto text-[11px] text-muted-foreground">{t('orden: votos')}</span>}
       </header>
 
       {notes.map((note) => (
@@ -49,16 +50,16 @@ export function RetroColumn({ column, notes, retro, open, composing, onCompose, 
       ))}
 
       {notes.length === 0 && !composing && (
-        <p className="px-1 py-2 text-[13px] text-muted-foreground">{open ? 'Todavía no hay notas.' : 'Sin notas.'}</p>
+        <p className="px-1 py-2 text-[13px] text-muted-foreground">{open ? t('Todavía no hay notas.') : t('Sin notas.')}</p>
       )}
 
       {/* Si la retro termina mientras se escribe, el campo sigue montado un momento para avisar (ver NoteEditor) */}
       {composing && (
         <div className="tf-pop rounded-xl border border-ring bg-card p-2.5 shadow-[0_0_0_3px_var(--accent-soft)]">
           <NoteEditor
-            label={`Nueva nota en ${column.name}`}
+            label={t('Nueva nota en {column}', { column: column.name })}
             placeholder={column.placeholder}
-            submitLabel="Agregar"
+            submitLabel={t('Agregar')}
             keepOpen
             closed={!open}
             withOwner={takesOwner(column.key)}
@@ -74,18 +75,18 @@ export function RetroColumn({ column, notes, retro, open, composing, onCompose, 
           />
         </div>
       )}
-      {open && !composing && (
+      {open && ctx.canParticipate !== false && !composing && (
         <button
           ref={addRef}
           type="button"
           onClick={() => onCompose(true)}
           className="rounded-xl border border-dashed border-dash p-2 text-[13px] text-muted-foreground transition-colors duration-150 hover:border-foreground/30 hover:bg-card/60 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         >
-          + nota
+          {t('+ nota')}
         </button>
       )}
       {pendingActions && !ctx.manager && (
-        <LockNote className="px-1 pt-0.5">Solo el project manager crea tareas desde las acciones.</LockNote>
+        <LockNote className="px-1 pt-0.5">{t('Solo quien dirige la retro crea tareas desde las acciones.')}</LockNote>
       )}
     </section>
   )

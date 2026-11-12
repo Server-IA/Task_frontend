@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { CenteredSpinner, Spinner } from '@/components/common/Loaders'
 import { useLogout } from '@/features/auth/hooks'
+import { t, tc, tx } from '@/i18n'
 import { AuthCard, AuthHeader, AuthIcon, CenteredShell } from '@/layouts/AuthLayout'
 import { formatRelative } from '@/lib/dates'
 import { asSentence, getErrorMessage, toApiError } from '@/lib/errors'
@@ -17,8 +18,8 @@ import { useAcceptInvitation, useInvitationDetails } from '../hooks'
 
 /** Qué permite cada rol, para explicarlo en la invitación. */
 const ROLE_HINTS = {
-  OWNER: 'gestionar proyectos, ciclos, módulos y miembros',
-  MEMBER: 'crear y editar tareas',
+  OWNER: t('gestionar proyectos, ciclos, módulos y miembros'),
+  MEMBER: t('crear y editar tareas'),
 }
 
 /** Página pública que abre el enlace del correo de invitación. */
@@ -50,10 +51,10 @@ export function InvitationPage() {
 
   const meta = isAuthenticated ? (
     <span className="font-sans text-[13px]">
-      Sesión: <strong className="font-semibold text-foreground">{user?.email}</strong>
+      {tx('Sesión: {email}', { email: <strong className="font-semibold text-foreground">{user?.email}</strong> })}
     </span>
   ) : (
-    '~/invitaciones'
+    t('~/invitaciones')
   )
 
   if (isLoading) {
@@ -73,11 +74,11 @@ export function InvitationPage() {
           </AuthIcon>
           <AuthHeader
             size="md"
-            title="Invitación no válida"
-            description={`${asSentence(getErrorMessage(error))} Pide al project manager del workspace que te invite de nuevo.`}
+            title={t('Invitación no válida')}
+            description={`${asSentence(getErrorMessage(error))} ${t('Pide al project manager del workspace que te invite de nuevo.')}`}
           />
           <Button asChild className="h-11 rounded-xl">
-            <Link to="/">Ir a TaskFlow</Link>
+            <Link to="/">{t('Ir a TaskFlow')}</Link>
           </Button>
         </AuthCard>
       </CenteredShell>
@@ -88,7 +89,7 @@ export function InvitationPage() {
     accept.mutate(token, {
       onSuccess: (workspace) => {
         pendingInvitation.clear()
-        toast.success(`Te uniste a «${workspace.name}»`)
+        toast.success(t('Te uniste a «{name}»', { name: workspace.name }))
         navigate(`/${workspace.slug}`, { replace: true })
       },
       onError: (acceptError) => notifyError(acceptError),
@@ -96,17 +97,20 @@ export function InvitationPage() {
   }
 
   const authState = { from: location, email: invitation.email }
-  const inviter = invitation.invitedByName ?? 'El project manager'
+  const invitesYouAs = invitation.invitedByName
+    ? t('{name} te invita como', { name: invitation.invitedByName })
+    : t('El project manager te invita como')
 
+  const roleLabel = invitation.roleName ?? ROLE_LABELS[invitation.role] ?? ''
   return (
     <CenteredShell meta={meta}>
       <section aria-labelledby="invitacion-titulo" className="w-full max-w-[520px] overflow-hidden rounded-[22px] border bg-card">
         <div className="flex flex-col gap-4 bg-sidebar px-6 py-6.5 text-sidebar-foreground sm:px-7.5">
-          <p className="font-mono text-xs text-sidebar-muted">~/invitaciones/••••</p>
+          <p className="font-mono text-xs text-sidebar-muted">{t('~/invitaciones/••••')}</p>
           <div className="flex items-center gap-3.5">
             <WorkspaceLogo name={invitation.workspaceName} className="size-14 rounded-2xl text-xl" />
             <div className="min-w-0">
-              <p className="text-[13px] text-sidebar-muted">Te invitaron a</p>
+              <p className="text-[13px] text-sidebar-muted">{t('Te invitaron a')}</p>
               <p className="mt-0.5 font-display text-[30px] leading-[1.05] font-extrabold tracking-[-0.02em]">
                 {invitation.workspaceName}
               </p>
@@ -116,19 +120,22 @@ export function InvitationPage() {
 
         <div className="flex flex-col gap-4.5 px-6 py-6 sm:px-7.5">
           <h1 id="invitacion-titulo" className="text-[17px] font-semibold">
-            <span className="font-medium text-muted-foreground">{inviter} te invita como</span>{' '}
-            {ROLE_LABELS[invitation.role]?.toLowerCase()}
+            <span className="font-medium text-muted-foreground">{invitesYouAs}</span>{' '}
+            {roleLabel.toLowerCase()}
           </h1>
           <dl className="grid grid-cols-[auto_1fr] gap-x-3.5 gap-y-1.5 rounded-xl bg-muted px-3.5 py-3 font-mono text-xs">
-            <dt className="text-muted-foreground">para</dt>
+            <dt className="text-muted-foreground">{tc('invitación', 'para')}</dt>
             {/* Completo aunque sea largo: la invitación solo sirve con este correo, no se puede cortar */}
             <dd className="min-w-0 wrap-anywhere">{invitation.email}</dd>
-            <dt className="text-muted-foreground">rol</dt>
+            <dt className="text-muted-foreground">{t('rol')}</dt>
             <dd>
-              {/* «Miembro» o «Project manager», nunca el valor de la API («MEMBER») */}
-              {[ROLE_LABELS[invitation.role], ROLE_HINTS[invitation.role]].filter(Boolean).join(' · ')}
+              {/* El nombre del rol («Miembro», «Líder»…), nunca el valor de la API («MEMBER»). La pista de lo que
+                  puede hacer solo vale para los roles de fábrica: los de un rol creado los define el workspace */}
+              {[roleLabel, invitation.roleName && invitation.roleName !== ROLE_LABELS[invitation.role] ? null : ROLE_HINTS[invitation.role]]
+                .filter(Boolean)
+                .join(' · ')}
             </dd>
-            <dt className="text-muted-foreground">expira</dt>
+            <dt className="text-muted-foreground">{t('expira')}</dt>
             <dd>{formatRelative(invitation.expiresAt)}</dd>
           </dl>
 
@@ -136,12 +143,12 @@ export function InvitationPage() {
             <div className="flex flex-wrap gap-2">
               <Button asChild className="h-11 flex-[2_1_200px] rounded-xl">
                 <Link to="/login" state={authState}>
-                  Iniciar sesión para aceptar
+                  {t('Iniciar sesión para aceptar')}
                 </Link>
               </Button>
               <Button asChild variant="outline" className="h-11 flex-[1_1_140px] rounded-xl">
                 <Link to="/register" state={authState}>
-                  Crear una cuenta
+                  {t('Crear una cuenta')}
                 </Link>
               </Button>
             </div>
@@ -150,15 +157,16 @@ export function InvitationPage() {
           {isAuthenticated && emailMatches && (
             <Button className="h-11 rounded-xl" onClick={handleAccept} disabled={accept.isPending}>
               {accept.isPending && <Spinner />}
-              Unirme a {invitation.workspaceName}
+              {t('Unirme a {name}', { name: invitation.workspaceName })}
             </Button>
           )}
 
           {isAuthenticated && !emailMatches && (
             <div className="space-y-3 rounded-xl border border-dashed border-dash p-4 text-sm">
               <p>
-                Iniciaste sesión como <span className="font-semibold">{user?.email}</span>, pero la invitación es para otro
-                correo.
+                {tx('Iniciaste sesión como {email}, pero la invitación es para otro correo.', {
+                  email: <span className="font-semibold">{user?.email}</span>,
+                })}
               </p>
               <Button
                 variant="outline"
@@ -167,13 +175,13 @@ export function InvitationPage() {
                   logout.mutate(undefined, { onSettled: () => pendingInvitation.set(token, invitation.expiresAt) })
                 }
               >
-                Cambiar de cuenta
+                {t('Cambiar de cuenta')}
               </Button>
             </div>
           )}
 
           <p className="border-t border-dashed border-dash pt-3.5 text-[13px] text-muted-foreground">
-            La invitación es para este correo. Si entraste con otra cuenta, cierra sesión y vuelve a abrir el enlace.
+            {t('La invitación es para este correo. Si entraste con otra cuenta, cierra sesión y vuelve a abrir el enlace.')}
           </p>
         </div>
       </section>

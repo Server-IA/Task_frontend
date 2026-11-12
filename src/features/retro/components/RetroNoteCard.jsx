@@ -12,6 +12,7 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { Spinner } from '@/components/common/Loaders'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { useLocalEscape } from '@/hooks/useLocalEscape'
+import { stateName, t, tn, tx } from '@/i18n'
 import { formatDateTime } from '@/lib/dates'
 import { useFocusAfterRemoval } from '@/lib/focusReturn'
 import { notifyError } from '@/lib/notify'
@@ -23,7 +24,7 @@ import { buildNoteUpdate, MAX_VOTES, NOTE_MAX_LENGTH, shortName, voteState } fro
 import { OwnerButton, OwnerPicker } from './OwnerPicker'
 
 /** Aviso cuando la retro termina con una nota a medio escribir. */
-export const RETRO_CLOSED_TITLE = 'La retrospectiva terminó; tu nota no se guardó'
+export const RETRO_CLOSED_TITLE = t('La retrospectiva terminó; tu nota no se guardó')
 
 /** Atajo para guardar una nota, como se muestra en la interfaz. */
 export const SAVE_HINT = IS_MAC ? '⌘ ↵' : 'ctrl ↵'
@@ -56,12 +57,12 @@ export function RetroNoteCard({ note, retro, ctx, focusAfterDelete = [] }) {
     convert.mutate(note, {
       onSuccess: (issue) => {
         const assignee = issue.assignees?.[0]
-        toast.success(`Se creó ${issue.code}`, {
-          description: assignee ? `${issue.title} · asignada a ${assignee.fullName}` : issue.title,
-          action: { label: 'Abrir', onClick: () => ctx.openIssue(issue.id) },
+        toast.success(t('Se creó {code}', { code: issue.code }), {
+          description: assignee ? t('{title} · asignada a {name}', { title: issue.title, name: assignee.fullName }) : issue.title,
+          action: { label: t('Abrir'), onClick: () => ctx.openIssue(issue.id) },
         })
       },
-      onError: (error) => notifyError(error, 'No se pudo crear la tarea'),
+      onError: (error) => notifyError(error, t('No se pudo crear la tarea')),
     })
 
   return (
@@ -72,8 +73,8 @@ export function RetroNoteCard({ note, retro, ctx, focusAfterDelete = [] }) {
           initialOwner={note.owner ?? null}
           withOwner={isAction}
           members={ctx.members}
-          label="Editar nota"
-          submitLabel="Guardar"
+          label={t('Editar nota')}
+          submitLabel={t('Guardar')}
           closed={ctx.open === false}
           pending={update.isPending}
           onCancel={() => setEditing(false)}
@@ -99,24 +100,24 @@ export function RetroNoteCard({ note, retro, ctx, focusAfterDelete = [] }) {
             <button
               type="button"
               onClick={() => ctx.openIssue(note.issue.id)}
-              title={`${note.issue.code} · ${note.issue.state?.name ?? ''} · abrir`}
+              title={t('{code} · {state} · abrir', { code: note.issue.code, state: stateName(note.issue.state) })}
               className="inline-flex shrink-0 items-center gap-1 rounded-md bg-ok-soft px-2 py-0.5 font-semibold text-ok transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             >
               <Check className="size-3" strokeWidth={3} aria-hidden="true" />
-              <span className="font-mono text-[11px]">{note.issue.code}</span> creada
+              {tx('{code} creada', { code: <span className="font-mono text-[11px]">{note.issue.code}</span> })}
             </button>
           )}
-          {isAction && !note.issue && ctx.manager && (
+          {isAction && !note.issue && ctx.manager && ctx.canCreateIssues !== false && (
             <Button
               variant="outline"
               size="xs"
               className="shrink-0 rounded-md"
               onClick={convertNote}
               disabled={convert.isPending}
-              title={note.owner ? `Crea la tarea asignada a ${note.owner.fullName}` : 'Crea la tarea sin asignar'}
+              title={note.owner ? t('Crea la tarea asignada a {name}', { name: note.owner.fullName }) : t('Crea la tarea sin asignar')}
             >
               {convert.isPending && <Spinner className="size-3" />}
-              Crear tarea
+              {t('Crear tarea')}
             </Button>
           )}
         </div>
@@ -128,7 +129,7 @@ export function RetroNoteCard({ note, retro, ctx, focusAfterDelete = [] }) {
                   variant="ghost"
                   size="icon"
                   className="size-7 text-muted-foreground sm:opacity-0 sm:group-hover/note:opacity-100 sm:group-focus-within/note:opacity-100 sm:data-[state=open]:opacity-100"
-                  aria-label="Acciones de la nota"
+                  aria-label={t('Acciones de la nota')}
                 >
                   <MoreHorizontal className="size-3.5" />
                 </Button>
@@ -136,11 +137,11 @@ export function RetroNoteCard({ note, retro, ctx, focusAfterDelete = [] }) {
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onSelect={() => setEditing(true)}>
                   <Pencil />
-                  Editar
+                  {t('Editar')}
                 </DropdownMenuItem>
                 <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(true)}>
                   <Trash2 />
-                  Eliminar
+                  {t('Eliminar')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -151,9 +152,9 @@ export function RetroNoteCard({ note, retro, ctx, focusAfterDelete = [] }) {
       <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
-        title="¿Eliminar la nota?"
-        description={note.votes > 0 ? 'Se pierden también sus votos.' : undefined}
-        confirmLabel="Eliminar"
+        title={t('¿Eliminar la nota?')}
+        description={note.votes > 0 ? t('Se pierden también sus votos.') : undefined}
+        confirmLabel={t('Eliminar')}
         loading={remove.isPending}
         returnFocusRef={focusAfterDelete}
         focusAfterConfirmRef={removal.ref}
@@ -163,7 +164,7 @@ export function RetroNoteCard({ note, retro, ctx, focusAfterDelete = [] }) {
             onSuccess: () => {
               removal.done()
               setConfirmDelete(false)
-              toast.success('Nota eliminada')
+              toast.success(t('Nota eliminada'))
             },
             onError: (error) => notifyError(error),
           })
@@ -180,7 +181,7 @@ function NoteAuthor({ note, ctx }) {
     <span className="flex min-w-0 items-center gap-2">
       <UserAvatar user={note.author} size="xs" />
       <span className="min-w-0 truncate text-muted-foreground" title={formatDateTime(note.createdAt)}>
-        {mine ? 'Tú' : note.author?.fullName}
+        {mine ? t('Tú') : note.author?.fullName}
       </span>
     </span>
   )
@@ -192,13 +193,17 @@ function NoteAuthor({ note, ctx }) {
  */
 function NoteOwner({ note, ctx, editable, pending, onChange }) {
   const owner = note.owner
-  const name = owner.id === ctx.userId ? 'tú' : shortName(owner)
-  const author = note.author?.id === ctx.userId ? 'ti' : note.author?.fullName
-  const title = `Responsable: ${owner.fullName} · escrita por ${author} · ${formatDateTime(note.createdAt)}`
+  const date = formatDateTime(note.createdAt)
+  const title =
+    note.author?.id === ctx.userId
+      ? t('Responsable: {owner} · escrita por ti · {date}', { owner: owner.fullName, date })
+      : t('Responsable: {owner} · escrita por {author} · {date}', { owner: owner.fullName, author: note.author?.fullName, date })
   const content = (
     <>
       <UserAvatar user={owner} size="xs" />
-      <span className="min-w-0 truncate text-muted-foreground">responsable: {name}</span>
+      <span className="min-w-0 truncate text-muted-foreground">
+        {owner.id === ctx.userId ? t('responsable: tú') : t('responsable: {name}', { name: shortName(owner) })}
+      </span>
     </>
   )
 
@@ -213,8 +218,8 @@ function NoteOwner({ note, ctx, editable, pending, onChange }) {
     <OwnerPicker members={ctx.members} value={owner.id} onChange={(ownerId) => onChange({ ownerId })} disabled={pending}>
       <button
         type="button"
-        title={`${title}. Cambiar responsable`}
-        aria-label={`Responsable: ${owner.fullName}. Cambiar`}
+        title={t('{title}. Cambiar responsable', { title })}
+        aria-label={t('Responsable: {name}. Cambiar', { name: owner.fullName })}
         className="-mx-1 flex min-w-0 items-center gap-2 rounded-md px-1 py-0.5 outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
       >
         {content}
@@ -237,7 +242,7 @@ function VoteButton({ note, retro, ctx }) {
   const vote = useVoteRetroNote(ctx.slug, ctx.projectId, ctx.cycleId)
   const state = voteState(note, retro)
   const votes = note.votes ?? 0
-  const label = `${votes} ${votes === 1 ? 'voto' : 'votos'}`
+  const label = tn(votes, '{count} voto', '{count} votos')
 
   if (state.reason === 'closed') {
     return (
@@ -256,11 +261,19 @@ function VoteButton({ note, retro, ctx }) {
     <button
       type="button"
       aria-pressed={Boolean(note.votedByMe)}
-      aria-label={`${note.votedByMe ? 'Quitar tu voto' : 'Votar'} · ${label}`}
-      title={state.reason === 'noVotes' ? `Ya usaste tus ${MAX_VOTES} votos` : note.votedByMe ? 'Quitar tu voto' : 'Votar'}
-      disabled={!state.enabled || vote.isPending}
+      aria-label={note.votedByMe ? t('Quitar tu voto · {votes}', { votes: label }) : t('Votar · {votes}', { votes: label })}
+      title={
+        ctx.canParticipate === false
+          ? t('Tu rol no permite votar')
+          : state.reason === 'noVotes'
+            ? t('Ya usaste tus {max} votos', { max: MAX_VOTES })
+            : note.votedByMe
+              ? t('Quitar tu voto')
+              : t('Votar')
+      }
+      disabled={!state.enabled || ctx.canParticipate === false || vote.isPending}
       onClick={() =>
-        vote.mutate({ note, vote: !note.votedByMe }, { onError: (error) => notifyError(error, 'No se pudo votar') })
+        vote.mutate({ note, vote: !note.votedByMe }, { onError: (error) => notifyError(error, t('No se pudo votar')) })
       }
       className={cn(
         'inline-flex h-7 items-center gap-1.5 rounded-lg border px-2 font-mono text-xs font-semibold transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50',
@@ -305,7 +318,7 @@ export function NoteEditor({
     const draft = draftRef.current
     const unsaved = draft.text.trim()
     if (unsaved && unsaved !== draft.initialText.trim()) {
-      warnUnsavedText(RETRO_CLOSED_TITLE, 'Copia tu texto para no perderlo.', unsaved)
+      warnUnsavedText(RETRO_CLOSED_TITLE, t('Copia tu texto para no perderlo.'), unsaved)
     }
     draft.onCancel()
   }, [closed])
@@ -347,14 +360,14 @@ export function NoteEditor({
       />
       {withOwner && (
         <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
-          <span className="font-mono text-[11px]">responsable</span>
+          <span className="font-mono text-[11px]">{t('responsable')}</span>
           <OwnerPicker members={members} value={ownerId} onChange={setOwnerId}>
             <OwnerButton owner={owner} />
           </OwnerPicker>
         </div>
       )}
       <div className="flex items-center gap-2">
-        <span className="min-w-0 truncate font-mono text-[11px] text-muted-foreground" title="Escape cancela">
+        <span className="min-w-0 truncate font-mono text-[11px] text-muted-foreground" title={t('Escape cancela')}>
           {SAVE_HINT} {submitLabel.toLowerCase()}
         </span>
         {text.length > NOTE_MAX_LENGTH - 50 && (
@@ -363,7 +376,7 @@ export function NoteEditor({
           </span>
         )}
         <Button size="xs" variant="ghost" className="ml-auto rounded-md" onClick={onCancel}>
-          Cancelar
+          {t('Cancelar')}
         </Button>
         <Button size="xs" className="rounded-md px-2.5" onClick={submit} disabled={!value || pending}>
           {pending && <Spinner className="size-3" />}

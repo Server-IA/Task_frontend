@@ -15,7 +15,8 @@ import { LockNote } from '@/components/common/LockNote'
 import { CenteredSpinner, Spinner } from '@/components/common/Loaders'
 import { ErrorState } from '@/components/common/States'
 import { STATE_GROUP_LABELS, StateIcon } from '@/components/common/StateIcon'
-import { useIsManager } from '@/features/workspaces/hooks'
+import { useCan } from '@/features/workspaces/hooks'
+import { stateName, stateNameToSave, t } from '@/i18n'
 import { applyFieldErrors } from '@/lib/errors'
 import { useFocusAfterRemoval } from '@/lib/focusReturn'
 import { notifyError } from '@/lib/notify'
@@ -29,7 +30,7 @@ export function StatesSettings({ slug, project }) {
   const [editing, setEditing] = useState(null)
   const [creating, setCreating] = useState(false)
   const [toDelete, setToDelete] = useState(null)
-  const canManage = useIsManager()
+  const canManage = useCan('PROJECT_STATES')
   // Al eliminar un estado su fila desaparece: el foco va a «Nuevo estado» (o al título)
   const newRef = useRef(null)
   const titleRef = useRef(null)
@@ -51,7 +52,7 @@ export function StatesSettings({ slug, project }) {
     remove.mutate(toDelete.id, {
       onSuccess: () => {
         removal.done()
-        toast.success(`Estado «${toDelete.name}» eliminado`)
+        toast.success(t('Estado «{name}» eliminado', { name: stateName(toDelete) }))
         setToDelete(null)
       },
       onError: (deleteError) => {
@@ -66,17 +67,17 @@ export function StatesSettings({ slug, project }) {
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div className="space-y-1.5">
           <CardTitle ref={titleRef} tabIndex={-1} className="outline-none">
-            Estados
+            {t('Estados')}
           </CardTitle>
           <CardDescription>
-            Son las columnas del tablero, en este orden. El grupo define cuándo una tarea cuenta como completada.
+            {t('Son las columnas del tablero, en este orden. El grupo define cuándo una tarea cuenta como completada.')}
           </CardDescription>
-          {!canManage && <LockNote>Solo el project manager puede cambiar los estados.</LockNote>}
+          {!canManage && <LockNote>{t('Tu rol no permite cambiar los estados.')}</LockNote>}
         </div>
         {canManage && (
           <Button ref={newRef} size="sm" onClick={() => setCreating(true)}>
             <Plus />
-            Nuevo estado
+            {t('Nuevo estado')}
           </Button>
         )}
       </CardHeader>
@@ -89,7 +90,7 @@ export function StatesSettings({ slug, project }) {
               <li key={state.id} className="flex flex-wrap items-center gap-3 px-3.5 py-2.5">
                 <span className="w-5 font-mono text-[11px] text-muted-foreground">{String(index + 1).padStart(2, '0')}</span>
                 <StateIcon group={state.group} color={state.color} />
-                <span className="min-w-0 flex-[1_1_160px] truncate text-sm font-medium">{state.name}</span>
+                <span className="min-w-0 flex-[1_1_160px] truncate text-sm font-medium">{stateName(state)}</span>
                 <span className="hidden rounded-full bg-muted px-2.5 py-0.5 font-mono text-[11px] text-muted-foreground sm:inline">
                   {STATE_GROUP_LABELS[state.group].toLowerCase()}
                 </span>
@@ -99,20 +100,28 @@ export function StatesSettings({ slug, project }) {
                 </span>
                 {canManage && (
                   <div className="ml-auto flex items-center">
-                    <IconButton label={`Subir «${state.name}»`} disabled={index === 0 || moving} onClick={() => move(index, -1)}>
+                    <IconButton
+                      label={t('Subir «{name}»', { name: stateName(state) })}
+                      disabled={index === 0 || moving}
+                      onClick={() => move(index, -1)}
+                    >
                       <ArrowUp />
                     </IconButton>
                     <IconButton
-                      label={`Bajar «${state.name}»`}
+                      label={t('Bajar «{name}»', { name: stateName(state) })}
                       disabled={index === states.length - 1 || moving}
                       onClick={() => move(index, 1)}
                     >
                       <ArrowDown />
                     </IconButton>
-                    <IconButton label={`Editar el estado «${state.name}»`} onClick={() => setEditing(state)}>
+                    <IconButton label={t('Editar el estado «{name}»', { name: stateName(state) })} onClick={() => setEditing(state)}>
                       <Pencil />
                     </IconButton>
-                    <IconButton label={`Eliminar el estado «${state.name}»`} disabled={states.length <= 1} onClick={() => setToDelete(state)}>
+                    <IconButton
+                      label={t('Eliminar el estado «{name}»', { name: stateName(state) })}
+                      disabled={states.length <= 1}
+                      onClick={() => setToDelete(state)}
+                    >
                       <Trash2 />
                     </IconButton>
                   </div>
@@ -121,7 +130,7 @@ export function StatesSettings({ slug, project }) {
             ))}
           </ol>
         )}
-        {canManage && <p className="mt-3 font-mono text-xs text-muted-foreground">un estado con tareas no se puede eliminar</p>}
+        {canManage && <p className="mt-3 font-mono text-xs text-muted-foreground">{t('un estado con tareas no se puede eliminar')}</p>}
       </CardContent>
 
       <StateDialog
@@ -139,9 +148,9 @@ export function StatesSettings({ slug, project }) {
       <ConfirmDialog
         open={Boolean(toDelete)}
         onOpenChange={(open) => !open && setToDelete(null)}
-        title={`¿Eliminar el estado «${toDelete?.name}»?`}
-        description="Solo se puede eliminar si no tiene tareas. Mueve antes sus tareas a otro estado."
-        confirmLabel="Eliminar"
+        title={t('¿Eliminar el estado «{name}»?', { name: stateName(toDelete) })}
+        description={t('Solo se puede eliminar si no tiene tareas. Mueve antes sus tareas a otro estado.')}
+        confirmLabel={t('Eliminar')}
         loading={remove.isPending}
         onConfirm={handleDelete}
         // Si no se pudo (tiene tareas) el estado sigue ahí: el foco vuelve a su botón
@@ -173,7 +182,7 @@ function StateDialog({ slug, projectId, state: requestedState, open, onOpenChang
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{state ? 'Editar estado' : 'Nuevo estado'}</DialogTitle>
+          <DialogTitle>{state ? t('Editar estado') : t('Nuevo estado')}</DialogTitle>
         </DialogHeader>
         {/* El formulario vive mientras exista el diálogo: así no desaparece durante la animación de cierre */}
         <StateForm
@@ -183,14 +192,15 @@ function StateDialog({ slug, projectId, state: requestedState, open, onOpenChang
           onSubmit={(values, setError) => {
             const options = {
               onSuccess: () => {
-                toast.success(state ? 'Estado actualizado' : 'Estado creado')
+                toast.success(state ? t('Estado actualizado') : t('Estado creado'))
                 onOpenChange(false)
               },
               onError: (error) => {
                 if (!applyFieldErrors(error, setError)) notifyError(error)
               },
             }
-            if (state) update.mutate({ stateId: state.id, ...values }, options)
+            // Un estado de fábrica al que no se le cambió el nombre conserva el guardado (así sigue traduciéndose)
+            if (state) update.mutate({ stateId: state.id, ...values, name: stateNameToSave(state.name, values.name) }, options)
             else create.mutate(values, options)
           }}
         />
@@ -203,7 +213,7 @@ function StateForm({ state, pending, onSubmit, onCancel }) {
   const form = useForm({
     resolver: zodResolver(stateSchema),
     defaultValues: state
-      ? { name: state.name, color: state.color, group: state.group }
+      ? { name: stateName(state), color: state.color, group: state.group }
       : { name: '', color: '#3B82F6', group: 'UNSTARTED' },
   })
 
@@ -215,9 +225,9 @@ function StateForm({ state, pending, onSubmit, onCancel }) {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Nombre</FormLabel>
+              <FormLabel>{t('Nombre')}</FormLabel>
               <FormControl>
-                <Input placeholder="En revisión" autoFocus {...field} />
+                <Input placeholder={t('En revisión')} autoFocus {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -229,7 +239,7 @@ function StateForm({ state, pending, onSubmit, onCancel }) {
             name="group"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Grupo</FormLabel>
+                <FormLabel>{t('Grupo')}</FormLabel>
                 <Select value={field.value} onValueChange={field.onChange}>
                   <FormControl>
                     <SelectTrigger className="w-full">
@@ -254,7 +264,7 @@ function StateForm({ state, pending, onSubmit, onCancel }) {
             name="color"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Color</FormLabel>
+                <FormLabel>{t('Color')}</FormLabel>
                 <FormControl>
                   <ColorPicker value={field.value} onChange={field.onChange} className="w-full" />
                 </FormControl>
@@ -265,11 +275,11 @@ function StateForm({ state, pending, onSubmit, onCancel }) {
         </div>
         <DialogFooter>
           <Button type="button" variant="ghost" onClick={onCancel}>
-            Cancelar
+            {t('Cancelar')}
           </Button>
           <Button type="submit" disabled={pending}>
             {pending && <Spinner />}
-            {state ? 'Guardar' : 'Crear estado'}
+            {state ? t('Guardar') : t('Crear estado')}
           </Button>
         </DialogFooter>
       </form>

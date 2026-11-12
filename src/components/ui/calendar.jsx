@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { getLanguage, localeTag } from "@/i18n"
 import { cn } from "@/lib/utils"
 import {
   ChevronDownIcon,
@@ -8,8 +9,8 @@ import {
   ChevronRightIcon,
 } from "lucide-react"
 import { DayPicker, getDefaultClassNames } from "react-day-picker";
-// Español con los textos del calendario («Ir al mes anterior», «Hoy, …») para lectores de pantalla, no solo las fechas
-import { es } from "react-day-picker/locale";
+// Con los textos del calendario («Ir al mes anterior», «Hoy, …») para lectores de pantalla, no solo las fechas
+import { enUS, es } from "react-day-picker/locale";
 
 import { Button, buttonVariants } from "@/components/ui/button"
 
@@ -21,7 +22,7 @@ function Calendar({
   buttonVariant = "ghost",
   formatters,
   components,
-  locale = es,
+  locale = getLanguage() === "en" ? enUS : es,
   ...props
 }) {
   const defaultClassNames = getDefaultClassNames()
@@ -39,7 +40,7 @@ function Calendar({
       locale={locale}
       formatters={{
         formatMonthDropdown: (date) =>
-          date.toLocaleString("default", { month: "short" }),
+          date.toLocaleString(localeTag(), { month: "short" }),
         ...formatters,
       }}
       classNames={{

@@ -7,8 +7,9 @@ import {
   changeNote,
   clampIndex,
   cycleProgress,
+  DEFAULT_DAILY_SETTINGS,
   dueNote,
-  formatTimer,
+  toSettingsBody,
   parseDateParam,
   personMeta,
   previousDayLabel,
@@ -196,11 +197,13 @@ describe('modo Presentar', () => {
   it('marca quién ya habló, quién habla y quién sigue', () => {
     expect([0, 1, 2, 3].map((index) => stepStatus(index, 1))).toEqual(['done', 'current', 'next', 'later'])
   })
+})
 
-  it('muestra la cuenta regresiva y lo excedido', () => {
-    expect(formatTimer(120)).toBe('2:00')
-    expect(formatTimer(84)).toBe('1:24')
-    expect(formatTimer(0)).toBe('0:00')
-    expect(formatTimer(-12)).toBe('+0:12')
+describe('ajustes de la daily', () => {
+  it('el cuerpo no lleva puntos vacíos', () => {
+    expect(toSettingsBody({ sections: DEFAULT_DAILY_SETTINGS.sections, agenda: ['  Demo ', '', '   '] })).toEqual({
+      sections: DEFAULT_DAILY_SETTINGS.sections,
+      agenda: ['Demo'],
+    })
   })
 })

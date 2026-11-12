@@ -6,7 +6,9 @@ import { ColorDot } from '@/components/common/LabelChip'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { StateIcon } from '@/components/common/StateIcon'
 import { UserAvatar } from '@/components/common/UserAvatar'
+import { stateName, t, tn } from '@/i18n'
 import { cn } from '@/lib/utils'
+import { useFlash } from '@/lib/flash'
 import { focusRowMain } from '@/lib/focusReturn'
 import { BOARD_GROUP_STORY, GROUP_BY_DEFAULT, LIST_PAGE_SIZE, ROW_FOCUS } from '../constants'
 import { groupIssues } from '../groupIssues'
@@ -15,9 +17,11 @@ import { stateOptionsFor, storyStateLocked } from '../issueTypes'
 import { useCriteriaGuard } from '../useCriteriaGuard'
 import { isClosed, useIssueUpdater } from '../useIssueHelpers'
 import { closedStoryActions, useStoryClosedGuard } from '../useStoryClosedGuard'
+import { IssueDevChip } from '@/features/github/GithubParts'
 import { AttachmentsChip, BlockedChip, BlockingChip, ChecklistChip } from './IssueBadges'
 import { IssueTypeIcon, ParentStoryChip, TypeIcon } from './IssueTypeBits'
 import { PriorityIcon } from './PriorityIcon'
+import { useCanEditIssues } from '../editPermission'
 import { AssigneesPicker, DatePicker, LabelsPicker, PriorityPicker, StatePicker } from './PropertyPickers'
 
 /**
@@ -57,13 +61,13 @@ export function IssueListView({
 
   if (data.totalElements === 0) {
     return hasFilters ? (
-      <EmptyState icon={CircleDot} title="Ninguna tarea coincide" description="Prueba con otros filtros o búsqueda." />
+      <EmptyState icon={CircleDot} title={t('Ninguna tarea coincide')} description={t('Prueba con otros filtros o búsqueda.')} />
     ) : (
       <EmptyState
         icon={CircleDot}
-        title="Todavía no hay tareas"
-        description="Crea la primera con el botón «Nueva tarea» o la tecla C."
-        action={<Button onClick={onCreate}>Crear tarea</Button>}
+        title={t('Todavía no hay tareas')}
+        description={onCreate ? t('Crea la primera con el botón «Nueva tarea» o la tecla C.') : t('Cuando alguien cree una, aparecerá aquí.')}
+        action={onCreate && <Button onClick={onCreate}>{t('Crear tarea')}</Button>}
       />
     )
   }
@@ -97,21 +101,19 @@ export function IssueListView({
       ))}
 
       <footer className="mt-auto flex flex-wrap items-center gap-4 rounded-xl border bg-card px-3.5 py-1.5 font-mono text-[11px] text-muted-foreground">
+        <span>{t('{from}–{to} de {total}', { from, to, total: data.totalElements })}</span>
         <span>
-          {from}–{to} de {data.totalElements}
-        </span>
-        <span>
-          <kbd className="text-foreground">Enter</kbd> abrir
+          <kbd className="text-foreground">Enter</kbd> {t('abrir')}
         </span>
         {data.totalPages > 1 && (
           <div className="ml-auto flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="size-7" disabled={data.first} onClick={() => setPage(page - 1)} aria-label="Página anterior">
+            <Button variant="ghost" size="icon" className="size-7" disabled={data.first} onClick={() => setPage(page - 1)} aria-label={t('Página anterior')}>
               <ChevronLeft />
             </Button>
             <span className="px-1">
               {data.page + 1} / {data.totalPages}
             </span>
-            <Button variant="ghost" size="icon" className="size-7" disabled={data.last} onClick={() => setPage(page + 1)} aria-label="Página siguiente">
+            <Button variant="ghost" size="icon" className="size-7" disabled={data.last} onClick={() => setPage(page + 1)} aria-label={t('Página siguiente')}>
               <ChevronRight />
             </Button>
           </div>
@@ -144,9 +146,7 @@ function GroupHeader({ group, onCreateInState }) {
           <span aria-hidden="true" className="size-2.5 rounded-full border border-dashed border-dash" />
         )}
         <h2 className="min-w-0 truncate text-[13px] font-semibold">{group.label}</h2>
-        <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
-          {count} {count === 1 ? 'tarea' : 'tareas'}
-        </span>
+        <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{tn(count, '{count} tarea', '{count} tareas')}</span>
       </header>
     )
   }
@@ -161,12 +161,12 @@ function GroupHeader({ group, onCreateInState }) {
       )}
       <h2 className="font-semibold">{group.label}</h2>
       <span className="text-muted-foreground">{count}</span>
-      {group.kind === 'state' && (
+      {group.kind === 'state' && onCreateInState && (
         <button
           type="button"
           className="ml-auto flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-card hover:text-foreground"
-          onClick={() => onCreateInState?.(group.state.id)}
-          aria-label={`Nueva tarea en ${group.state.name}`}
+          onClick={() => onCreateInState(group.state.id)}
+          aria-label={t('Nueva tarea en {state}', { state: stateName(group.state) })}
         >
           <Plus className="size-3.5" />
         </button>
@@ -185,18 +185,27 @@ const stop = (event) => event.stopPropagation()
  * esa tarea en la lista y solo su fila vuelve a pintarse.
  */
 const IssueRow = memo(function IssueRow({ issue, slug, project, meta, openIssue, guard, onStoryClosed, manager }) {
+  const locked = !useCanEditIssues()
   const { update } = useIssueUpdater(slug, project.id, issue.id)
+
+  const created = useFlash('created', issue.id)
+  const completed = useFlash('completed', issue.id)
 
   return (
     <li className="border-t">
       {/* Con el mouse, un clic en la fila la abre; con el teclado, el título es el botón (nombre corto: código y título)
           y los selectores van aparte, cada uno con su nombre */}
       <div
+        data-issue-id={issue.id}
         onClick={(event) => {
           focusRowMain(event.currentTarget)
           openIssue(issue.id)
         }}
         className={cn(
+          // Recién creada aparece resaltada un momento (ver `CreateIssueDialog`)
+          created && 'tf-new-row',
+          // Recién completada se enciende en verde un momento (ver `signalCompleted`)
+          completed && 'tf-done-flash',
           'group flex cursor-pointer flex-wrap items-center gap-x-2.5 gap-y-1.5 px-4 py-2 transition-colors duration-150 hover:bg-subtle',
           ROW_FOCUS,
         )}
@@ -204,7 +213,7 @@ const IssueRow = memo(function IssueRow({ issue, slug, project, meta, openIssue,
         <span className="flex items-center gap-1" onClick={stop}>
           <StatePicker
             states={stateOptionsFor(issue, meta.states, manager)}
-            disabled={storyStateLocked(issue, manager)}
+            disabled={locked || storyStateLocked(issue, manager)}
             value={issue.state?.id}
             onChange={(stateId) => {
               const state = meta.states.find((item) => item.id === stateId)
@@ -220,7 +229,7 @@ const IssueRow = memo(function IssueRow({ issue, slug, project, meta, openIssue,
           />
           <IssueTypeIcon issue={issue} size={14} className="mx-0.5" />
           <span className="w-24">
-            <PriorityPicker
+            <PriorityPicker disabled={locked}
               chip
               iconOnlyWhenEmpty
               value={issue.priority}
@@ -232,7 +241,7 @@ const IssueRow = memo(function IssueRow({ issue, slug, project, meta, openIssue,
         <span className="min-w-16 shrink-0 font-mono text-xs whitespace-nowrap text-muted-foreground">{issue.code}</span>
         <span className="flex min-w-0 flex-[1_1_260px] items-center gap-2">
           {issue.parent && issue.parent.type !== 'STORY' && (
-            <span className="hidden shrink-0 items-center gap-1 font-mono text-[11px] text-muted-foreground lg:flex" title={`Subtarea de ${issue.parent.code}`}>
+            <span className="hidden shrink-0 items-center gap-1 font-mono text-[11px] text-muted-foreground lg:flex" title={t('Subtarea de {code}', { code: issue.parent.code })}>
               <CornerDownRight className="size-3" />
               {issue.parent.code}
             </span>
@@ -252,15 +261,16 @@ const IssueRow = memo(function IssueRow({ issue, slug, project, meta, openIssue,
           <BlockedChip issue={issue} codes="inline" />
           <BlockingChip issue={issue} />
           {issue.subIssueCount > 0 && (
-            <span className="shrink-0 font-mono text-[11px] text-muted-foreground" title="Subtareas completadas">
+            <span className="shrink-0 font-mono text-[11px] text-muted-foreground" title={t('Subtareas completadas')}>
               ↳ {issue.completedSubIssueCount}/{issue.subIssueCount}
             </span>
           )}
           <ChecklistChip issue={issue} />
+          <IssueDevChip slug={slug} projectId={project.id} issueId={issue.id} />
         </span>
         <span className="flex items-center gap-1.5" onClick={stop}>
           {(meta.labels.length > 0 || issue.labels?.length > 0) && (
-            <LabelsPicker
+            <LabelsPicker disabled={locked}
               compact
               labels={meta.labels}
               value={issue.labels?.map((label) => label.id) ?? []}
@@ -268,9 +278,9 @@ const IssueRow = memo(function IssueRow({ issue, slug, project, meta, openIssue,
               className={cn(!issue.labels?.length && revealOnHover)}
             />
           )}
-          <DatePicker
+          <DatePicker disabled={locked}
             value={issue.dueDate}
-            placeholder="Fecha límite"
+            placeholder={t('Fecha límite')}
             due={{ closed: isClosed(issue) }}
             minDate={issue.startDate}
             onChange={(dueDate) => update(dueDate ? { dueDate } : { clearDueDate: true })}
@@ -278,7 +288,7 @@ const IssueRow = memo(function IssueRow({ issue, slug, project, meta, openIssue,
           />
           {/* Columna fija: el clip con el número de adjuntos (vacía si no hay) */}
           <AttachmentsChip issue={issue} reserve className="w-8.5 justify-end" />
-          <AssigneesPicker
+          <AssigneesPicker disabled={locked}
             members={meta.users}
             value={issue.assignees?.map((user) => user.id) ?? []}
             onChange={(assigneeIds) => update({ assigneeIds })}

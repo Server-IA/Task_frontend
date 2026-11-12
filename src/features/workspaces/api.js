@@ -25,10 +25,36 @@ export const workspacesApi = {
   /** @returns {Promise<WorkspaceMember[]>} */
   members: (slug) => api.get(`/workspaces/${slug}/members`).then(data),
 
-  /** @returns {Promise<WorkspaceMember>} */
-  updateMemberRole: (slug, userId, role) => api.patch(`/workspaces/${slug}/members/${userId}`, { role }).then(data),
+  /**
+   * `role` es 'OWNER' (project manager) o 'MEMBER'; con 'MEMBER', `roleId` elige un rol creado por el workspace
+   * (sin él, «Miembro»).
+   * @returns {Promise<WorkspaceMember>}
+   */
+  updateMemberRole: (slug, userId, role, roleId = null) =>
+    api.patch(`/workspaces/${slug}/members/${userId}`, { role, roleId }).then(data),
 
   removeMember: (slug, userId) => api.delete(`/workspaces/${slug}/members/${userId}`),
+}
+
+/** Roles del workspace y el catálogo de permisos. */
+export const rolesApi = {
+  /** @returns {Promise<{ groups: import('./roles').PermissionGroup[] }>} */
+  catalog: () => api.get('/permissions').then(data),
+
+  /** @returns {Promise<import('./roles').Role[]>} */
+  list: (slug) => api.get(`/workspaces/${slug}/roles`).then(data),
+
+  /** @returns {Promise<import('./roles').Role>} */
+  create: (slug, body) => api.post(`/workspaces/${slug}/roles`, body).then(data),
+
+  /** @returns {Promise<import('./roles').Role>} */
+  update: (slug, roleId, body) => api.patch(`/workspaces/${slug}/roles/${roleId}`, body).then(data),
+
+  /** Permisos del rol «Miembro». @returns {Promise<import('./roles').Role>} */
+  updateMemberPermissions: (slug, permissions) =>
+    api.put(`/workspaces/${slug}/roles/member/permissions`, { permissions }).then(data),
+
+  remove: (slug, roleId) => api.delete(`/workspaces/${slug}/roles/${roleId}`),
 }
 
 export const invitationsApi = {

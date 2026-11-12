@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/api/queryKeys'
+import { t, tn } from '@/i18n'
 import { ApiError } from '@/lib/errors'
 import { useSessionStore } from '@/stores/sessionStore'
 import { checklistApi } from './api'
@@ -91,8 +92,8 @@ export const useMoveChecklistItem = (slug, projectId, issueId) =>
 
 /** Mensaje cuando los pasos no caben en el checklist (`room`: cuántos caben todavía). */
 export function checklistFullMessage(room) {
-  if (room <= 0) return `El checklist ya tiene ${CHECKLIST_LIMIT} criterios y pasos, el máximo`
-  return `Solo caben ${room} ${room === 1 ? 'paso más' : 'pasos más'} en el checklist (máximo ${CHECKLIST_LIMIT})`
+  if (room <= 0) return t('El checklist ya tiene {limit} criterios y pasos, el máximo', { limit: CHECKLIST_LIMIT })
+  return tn(room, 'Solo caben {count} paso más en el checklist (máximo {limit})', 'Solo caben {count} pasos más en el checklist (máximo {limit})', { limit: CHECKLIST_LIMIT })
 }
 
 /**

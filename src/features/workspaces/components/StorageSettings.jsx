@@ -16,11 +16,12 @@ import {
   formatPercent,
   freeBytes,
   kindSegments,
-  projectBars,
+  projectRows,
   uploadedWhen,
   usageBarLabel,
 } from '@/features/files/storageReport'
 import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
+import { t } from '@/i18n'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 
@@ -64,14 +65,14 @@ function UsageSection({ report }) {
   return (
     <section aria-labelledby="storage-usage-title" className="tf-panel flex flex-[2_1_460px] flex-col gap-3.5 px-5 py-4.5">
       <h2 id="storage-usage-title" className="text-[15px] font-semibold">
-        Espacio usado
+        {t('Espacio usado')}
       </h2>
       <p className="flex items-baseline gap-2.5">
         <span className="font-display text-[40px] leading-none font-extrabold tracking-[-0.02em]">
           {formatGigabytes(usage.usedBytes)}
         </span>
         <span className={cn('text-muted-foreground', usage.warning && 'font-medium text-soon', usage.full && 'text-late')}>
-          de {formatGigabytes(usage.quotaBytes)} · {formatPercent(usage)}
+          {t('de {total} · {percent}', { total: formatGigabytes(usage.quotaBytes), percent: formatPercent(usage) })}
         </span>
       </p>
       <div role="img" aria-label={usageBarLabel(report)} className={cn('flex h-3.5 gap-0.5 overflow-hidden rounded-[4px]', TRACK)}>
@@ -86,7 +87,7 @@ function UsageSection({ report }) {
             />
           ))}
       </div>
-      <ul aria-label="Por tipo" className="flex flex-wrap gap-x-5.5 gap-y-2 text-[13px]">
+      <ul aria-label={t('Por tipo')}className="flex flex-wrap gap-x-5.5 gap-y-2 text-[13px]">
         {segments.map((segment) => (
           <li key={segment.type} className="flex items-center gap-1.75">
             <span aria-hidden="true" className={cn('size-2.5 rounded-[3px]', segment.color)} />
@@ -95,12 +96,13 @@ function UsageSection({ report }) {
         ))}
         <li className="flex items-center gap-1.75 text-muted-foreground">
           <span aria-hidden="true" className={cn('size-2.5 rounded-[3px] border', TRACK)} />
-          Libre <span className="font-mono text-xs">{formatGigabytes(freeBytes(usage))}</span>
+          {t('Libre')} <span className="font-mono text-xs">{formatGigabytes(freeBytes(usage))}</span>
         </li>
       </ul>
       <p className="rounded-xl bg-background px-3 py-2.5 text-[12.5px] leading-normal text-muted-foreground dark:bg-muted">
-        Al pasar el 90 % el PM recibe un aviso en la Bandeja. Al llegar al 100 % no se pueden subir archivos nuevos; lo
-        que ya está se sigue viendo y descargando.
+        {t(
+          'Al pasar el 90 % el PM recibe un aviso en la Bandeja. Al llegar al 100 % no se pueden subir archivos nuevos; lo que ya está se sigue viendo y descargando.',
+        )}
       </p>
     </section>
   )
@@ -108,24 +110,21 @@ function UsageSection({ report }) {
 
 /** @param {{ byProject: import('@/features/files/storageReport').StorageReport['byProject'] }} props */
 function ProjectsSection({ byProject }) {
-  const bars = projectBars(byProject)
+  const rows = projectRows(byProject)
   return (
     <section aria-labelledby="storage-projects-title" className="tf-panel flex flex-[1_1_260px] flex-col gap-3 px-5 py-4.5">
       <h2 id="storage-projects-title" className="text-[15px] font-semibold">
-        Por proyecto
+        {t('Por proyecto')}
       </h2>
-      {bars.length === 0 && <p className="text-[13px] text-muted-foreground">Ningún proyecto tiene archivos todavía.</p>}
-      {bars.map((bar) => (
-        <div key={bar.project.id} className="flex flex-col gap-1.5">
+      {rows.length === 0 && <p className="text-[13px] text-muted-foreground">{t('Ningún proyecto tiene archivos todavía.')}</p>}
+      {rows.map((row) => (
+        <div key={row.project.id} className="flex flex-col gap-0.5">
           <p className="flex min-w-0 items-center gap-2 text-[13px]">
-            <ProjectIcon project={bar.project} />
-            <span className="truncate">{bar.project.name}</span>
-            <span className="ml-auto shrink-0 font-mono text-xs text-muted-foreground">{bar.size}</span>
+            <ProjectIcon project={row.project} />
+            <span className="truncate">{row.project.name}</span>
+            <span className="ml-auto shrink-0 font-mono text-xs">{row.size}</span>
           </p>
-          <span className={cn('block h-2 rounded-[4px]', TRACK)}>
-            <span className="block h-full rounded-[4px] bg-ring transition-[width] duration-300" style={{ width: bar.width }} />
-          </span>
-          <span className="font-mono text-[11px] text-muted-foreground">{bar.files}</span>
+          <span className="pl-7 font-mono text-[11px] text-muted-foreground">{row.files}</span>
         </div>
       ))}
     </section>
@@ -140,15 +139,15 @@ function LargestFiles({ workspace, files }) {
   const deleteFile = useDeleteStoredFile(workspace.slug)
   const [toDelete, setToDelete] = useState(null)
 
-  const handleDownload = (file) => downloadFile(file.id).catch((error) => notifyError(error, 'No se pudo descargar'))
+  const handleDownload = (file) => downloadFile(file.id).catch((error) => notifyError(error, t('No se pudo descargar')))
   const handleDelete = () => {
     const file = toDelete
     deleteFile.mutate(file, {
       onSuccess: () => {
-        toast.success(`Se eliminó ${file.fileName}`)
+        toast.success(t('Se eliminó {name}', { name: file.fileName }))
         setToDelete(null)
       },
-      onError: (error) => notifyError(error, 'No se pudo eliminar'),
+      onError: (error) => notifyError(error, t('No se pudo eliminar')),
     })
   }
 
@@ -156,15 +155,17 @@ function LargestFiles({ workspace, files }) {
     <section aria-labelledby="storage-largest-title" className="overflow-x-auto rounded-2xl border bg-card">
       <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 px-4 pt-3.5 pb-2.5">
         <h2 id="storage-largest-title" className="text-[15px] font-semibold">
-          Archivos más pesados
+          {t('Archivos más pesados')}
         </h2>
-        <span className="text-[12.5px] text-muted-foreground">Para liberar espacio rápido. Eliminar aquí es igual que en la tarea.</span>
+        <span className="text-[12.5px] text-muted-foreground">
+          {t('Para liberar espacio rápido. Eliminar aquí es igual que en la tarea.')}
+        </span>
       </div>
       {files.length === 0 ? (
         <EmptyState
           icon={HardDrive}
-          title="Todavía no hay archivos"
-          description="Los adjuntos y las imágenes de las tareas aparecerán aquí, del más pesado al más liviano."
+          title={t('Todavía no hay archivos')}
+          description={t('Los adjuntos y las imágenes de las tareas aparecerán aquí, del más pesado al más liviano.')}
           className="border-t py-8"
         />
       ) : (
@@ -172,19 +173,19 @@ function LargestFiles({ workspace, files }) {
           <thead>
             <tr className="bg-subtle font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase">
               <th scope="col" className="px-4 py-2.25 text-left font-semibold">
-                Archivo
+                {t('Archivo')}
               </th>
               <th scope="col" className="px-4 py-2.25 text-left font-semibold">
-                Tarea
+                {t('Tarea')}
               </th>
               <th scope="col" className="px-4 py-2.25 text-left font-semibold">
-                Subido por
+                {t('Subido por')}
               </th>
               <th scope="col" className="px-4 py-2.25 text-right font-semibold">
-                Tamaño
+                {t('Tamaño')}
               </th>
               <th scope="col" className="w-18 px-4 py-2.25">
-                <span className="sr-only">Acciones</span>
+                <span className="sr-only">{t('Acciones')}</span>
               </th>
             </tr>
           </thead>
@@ -221,7 +222,7 @@ function LargestFiles({ workspace, files }) {
                       </Link>
                     ) : (
                       <span className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
-                        <ProjectIcon project={file.project} /> Sin tarea
+                        <ProjectIcon project={file.project} /> {t('Sin tarea')}
                       </span>
                     )}
                   </td>
@@ -241,13 +242,13 @@ function LargestFiles({ workspace, files }) {
                             variant="ghost"
                             size="icon"
                             className="size-7 rounded-lg text-muted-foreground"
-                            aria-label={`Descargar ${file.fileName}`}
+                            aria-label={t('Descargar {name}', { name: file.fileName })}
                             onClick={() => handleDownload(file)}
                           >
                             <Download className="size-[15px]" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Descargar</TooltipContent>
+                        <TooltipContent>{t('Descargar')}</TooltipContent>
                       </Tooltip>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -255,13 +256,13 @@ function LargestFiles({ workspace, files }) {
                             variant="ghost"
                             size="icon"
                             className="size-7 rounded-lg text-late hover:text-late"
-                            aria-label={`Eliminar ${file.fileName}`}
+                            aria-label={t('Eliminar {name}', { name: file.fileName })}
                             onClick={() => setToDelete(file)}
                           >
                             <Trash2 className="size-[15px]" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Eliminar</TooltipContent>
+                        <TooltipContent>{t('Eliminar')}</TooltipContent>
                       </Tooltip>
                     </span>
                   </td>
@@ -274,13 +275,18 @@ function LargestFiles({ workspace, files }) {
       <ConfirmDialog
         open={Boolean(toDelete)}
         onOpenChange={(open) => !open && !deleteFile.isPending && setToDelete(null)}
-        title={toDelete ? `¿Eliminar ${toDelete.fileName}?` : ''}
+        title={toDelete ? t('¿Eliminar {name}?', { name: toDelete.fileName }) : ''}
         description={
-          toDelete
-            ? `${toDelete.issue ? `Se quitará de ${toDelete.issue.code} y se` : 'Se'} liberarán ${formatSize(toDelete.size)}. No se puede deshacer.`
-            : ''
+          !toDelete
+            ? ''
+            : toDelete.issue
+              ? t('Se quitará de {code} y se liberarán {size}. No se puede deshacer.', {
+                  code: toDelete.issue.code,
+                  size: formatSize(toDelete.size),
+                })
+              : t('Se liberarán {size}. No se puede deshacer.', { size: formatSize(toDelete.size) })
         }
-        confirmLabel="Eliminar"
+        confirmLabel={t('Eliminar')}
         loading={deleteFile.isPending}
         onConfirm={handleDelete}
       />
@@ -290,7 +296,7 @@ function LargestFiles({ workspace, files }) {
 
 function StorageSkeleton() {
   return (
-    <div className="flex flex-col gap-3.5" aria-label="Cargando almacenamiento">
+    <div className="flex flex-col gap-3.5" aria-label={t('Cargando almacenamiento')}>
       <div className="flex flex-wrap gap-3.5">
         <Skeleton className="h-[230px] flex-[2_1_460px] rounded-2xl" />
         <Skeleton className="h-[230px] flex-[1_1_260px] rounded-2xl" />

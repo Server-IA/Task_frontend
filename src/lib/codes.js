@@ -1,3 +1,5 @@
+import { t } from '@/i18n'
+
 /**
  * Código de ejemplo para las ayudas («pega un código como PORT-12»): con el identificador del proyecto actual o, si no
  * se conoce, uno genérico.
@@ -5,7 +7,7 @@
  */
 export function exampleCode(identifier) {
   const prefix = String(identifier ?? '').trim().toUpperCase()
-  return `${prefix || 'PROY'}-12`
+  return `${prefix || t('PROY')}-12`
 }
 
 /** El identificador de proyecto de un código de tarea («PORT-12» → «PORT»). */

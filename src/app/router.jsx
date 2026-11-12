@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router'
 import { RequireAuth } from '@/app/guards/RequireAuth'
+import { RequirePermission } from '@/app/guards/RequirePermission'
 import { PublicOnlyRoute } from '@/app/guards/PublicOnlyRoute'
 import { SessionGate } from '@/app/SessionGate'
 import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage'
@@ -20,13 +21,17 @@ import { IssuesPage } from '@/features/issues/pages/IssuesPage'
 import { ProfilePage } from '@/features/profile/ProfilePage'
 import { ProjectLayout } from '@/features/projects/pages/ProjectLayout'
 import { ProjectSettingsPage } from '@/features/projects/pages/ProjectSettingsPage'
+import { GithubCallbackPage } from '@/features/github/pages/GithubCallbackPage'
+import { GithubPage } from '@/features/github/pages/GithubPage'
 import { StatsPage } from '@/features/stats/pages/StatsPage'
 import { StoriesPage } from '@/features/stories/pages/StoriesPage'
 import { HomeRedirect } from '@/features/workspaces/pages/HomeRedirect'
+import { t } from '@/i18n'
 import { InvitationPage } from '@/features/workspaces/pages/InvitationPage'
 import { OnboardingPage } from '@/features/workspaces/pages/OnboardingPage'
 import { WorkspaceHomePage } from '@/features/workspaces/pages/WorkspaceHomePage'
 import { WorkspaceLayout } from '@/features/workspaces/pages/WorkspaceLayout'
+import { ReportsPage } from '@/features/reports/pages/ReportsPage'
 import { WorkspaceSettingsPage } from '@/features/workspaces/pages/WorkspaceSettingsPage'
 import { AppLayout } from '@/layouts/AppLayout'
 import { AuthLayout } from '@/layouts/AuthLayout'
@@ -59,6 +64,8 @@ export const router = createBrowserRouter([
         children: [
           { path: '/', element: <HomeRedirect /> },
           { path: '/onboarding', element: <OnboardingPage /> },
+          // A donde GitHub trae a la persona después de autorizar: termina de enlazar su cuenta
+          { path: '/github/callback', element: <GithubCallbackPage /> },
           {
             element: <AppLayout />,
             children: [
@@ -71,7 +78,14 @@ export const router = createBrowserRouter([
                   { index: true, element: <WorkspaceHomePage /> },
                   { path: 'settings', element: <WorkspaceSettingsPage /> },
                   { path: 'my-work', element: <MyWorkPage /> },
-                  { path: 'activity', element: <ActivityPage /> },
+                  {
+                    path: 'activity',
+                    element: (
+                      <RequirePermission permission="ACTIVITY_VIEW" title={t('Actividad')}>
+                        <ActivityPage />
+                      </RequirePermission>
+                    ),
+                  },
                   {
                     path: 'projects/:projectId',
                     element: <ProjectLayout />,
@@ -87,7 +101,23 @@ export const router = createBrowserRouter([
                       { path: 'modules', element: <PlanningListPage kind="modules" key="modules" /> },
                       { path: 'modules/:itemId', element: <PlanningDetailPage kind="modules" key="module" /> },
                       { path: 'roadmap', element: <RoadmapPage /> },
-                      { path: 'stats', element: <StatsPage /> },
+                      {
+                        path: 'stats',
+                        element: (
+                          <RequirePermission permission="STATS_VIEW" title={t('Estadísticas')}>
+                            <StatsPage />
+                          </RequirePermission>
+                        ),
+                      },
+                      {
+                        path: 'reports',
+                        element: (
+                          <RequirePermission permission="REPORT_GENERATE" title={t('Reportes')}>
+                            <ReportsPage />
+                          </RequirePermission>
+                        ),
+                      },
+                      { path: 'github', element: <GithubPage /> },
                       { path: 'settings', element: <ProjectSettingsPage /> },
                       { path: '*', element: <NotFoundPage /> },
                     ],

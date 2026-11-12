@@ -3,6 +3,18 @@ import { forgetQueries } from '@/api/forgetQueries'
 import { queryKeys } from '@/api/queryKeys'
 import { toApiError } from '@/lib/errors'
 import { issuesApi } from './api'
+import { becameCompleted, signalCompleted } from './taskMotion'
+
+/** La tarea como está en caché ahora (su detalle o, si no se ha abierto, su fila en alguna lista del proyecto). */
+function cachedIssue(queryClient, projectId, issueId) {
+  return (
+    queryClient.getQueryData(queryKeys.issue(issueId)) ??
+    queryClient
+      .getQueriesData({ queryKey: queryKeys.issuesOf(projectId) })
+      .flatMap(([, page]) => page?.content ?? [])
+      .find((issue) => issue.id === issueId)
+  )
+}
 
 /** Reemplaza un issue en todas las listas en caché del proyecto (sin esperar a recargarlas). */
 function replaceInLists(queryClient, projectId, issue) {
@@ -189,8 +201,11 @@ export function useUpdateIssue(slug, projectId, issueId) {
     mutationFn: ({ issueId: id, onError: _onError, ...body }) => issuesApi.update(slug, projectId, id, body),
     ...(issueId && { scope: { id: `issue:${issueId}` } }),
     onSuccess: (issue, { issueId: _id, onError: _onError, ...body }) => {
+      // Antes de reemplazarla en caché: si con este cambio quedó completada, se avisa (ver `signalCompleted`)
+      const completedNow = 'stateId' in body && becameCompleted(cachedIssue(queryClient, projectId, issue.id), issue)
       queryClient.setQueryData(queryKeys.issue(issue.id), issue)
       replaceInLists(queryClient, projectId, issue)
+      if (completedNow) signalCompleted(issue)
       invalidateAfterIssueChange(queryClient, projectId, issue.id, Object.keys(body))
     },
     onError: (error, { onError }) => onError?.(error),
@@ -295,10 +310,12 @@ export function useMoveIssue(slug, projectId) {
         : page,
     )
   return useMutation({
-    mutationFn: async ({ issueId, stateId, afterIssueId, beforeIssueId, reopenParent, parentChange }) => {
+    mutationFn: async ({ issueId, stateId, afterIssueId, beforeIssueId, reopenParent, parentChange, keepPosition }) => {
       const position = { stateId, afterIssueId, beforeIssueId }
       if (!parentChange) return issuesApi.move(slug, projectId, issueId, { ...position, reopenParent: reopenParent || undefined })
       const updated = await issuesApi.update(slug, projectId, issueId, { stateId, ...parentChange, reopenParent: reopenParent || undefined })
+      // Tablero con un orden elegido y la tarjeta en su mismo estado: solo cambió de historia, su posición manual no se toca
+      if (keepPosition) return updated
       // La historia y el estado ya cambiaron: si la posición falla, la tarjeta queda al final de la columna
       return issuesApi.move(slug, projectId, issueId, position).catch(() => updated)
     },
@@ -325,9 +342,11 @@ export function useMoveIssue(slug, projectId) {
       }
       onError?.(error)
     },
-    onSuccess: (issue, { parentChange, onMoved }) => {
+    onSuccess: (issue, { parentChange, onMoved }, context) => {
       queryClient.setQueryData(queryKeys.issue(issue.id), issue)
       if (parentChange) replaceInLists(queryClient, projectId, issue)
+      // Soltada en una columna de completadas (la caché ya tenía el cambio: se compara con lo de antes del arrastre)
+      if (becameCompleted(context?.previous, issue)) signalCompleted(issue)
       onMoved?.(issue)
     },
     onSettled: (_data, _error, { issueId }) => invalidateAfterIssueChange(queryClient, projectId, issueId),

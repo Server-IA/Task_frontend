@@ -6,6 +6,7 @@ import { FileImage } from '@/features/files/components/FileImage'
 import { parseFileReference } from '@/features/files/fileRefs'
 import { openFileInNewTab } from '@/features/files/fileUrls'
 import { useImageViewer } from '@/features/files/imageViewerContext'
+import { stateName, t, tc } from '@/i18n'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { useSessionStore } from '@/stores/sessionStore'
@@ -95,9 +96,12 @@ function renderBlock(node, ctx) {
       return <MarkdownImage node={node} />
     case 'table':
       return (
-        <table>
-          <tbody>{renderBlocks(node.content, ctx)}</tbody>
-        </table>
+        // El mismo contenedor que pone el editor: una tabla más ancha que el texto se desliza en vez de apretarse
+        <div className="tableWrapper">
+          <table>
+            <tbody>{renderBlocks(node.content, ctx)}</tbody>
+          </table>
+        </div>
       )
     case 'tableRow':
       return <tr>{renderBlocks(node.content, ctx)}</tr>
@@ -156,7 +160,7 @@ export function MarkdownImage({ node }) {
   const alt = node.attrs?.alt ?? ''
   const open = () => {
     if (viewer) viewer.open(reference.id)
-    else openFileInNewTab(reference.id).catch((error) => notifyError(error, 'No se pudo abrir la imagen'))
+    else openFileInNewTab(reference.id).catch((error) => notifyError(error, t('No se pudo abrir la imagen')))
   }
   return (
     <figure className="tf-md-figure" data-wide={node.attrs?.wide || undefined} data-md-ui="">
@@ -187,7 +191,7 @@ export function TaskRefChip({ issue, ctx }) {
       to={url}
       className="tf-chip"
       data-md-text={issue.code}
-      title={`${issue.code} · ${issue.title} · ${issue.state?.name ?? ''}`}
+      title={`${issue.code} · ${issue.title} · ${stateName(issue.state)}`}
       onClick={(event) => {
         if (!samePanel || event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return
         event.preventDefault()
@@ -210,7 +214,7 @@ function TaskItemView({ node, index, ctx }) {
         type="button"
         role="checkbox"
         aria-checked={checked}
-        aria-label={text || 'Casilla'}
+        aria-label={text || t('Casilla')}
         className="tf-md-check"
         data-md-ui=""
         disabled={!ctx.onToggleTask}
@@ -222,14 +226,14 @@ function TaskItemView({ node, index, ctx }) {
       {ctx.onMoveTasks && text && (
         <button
           type="button"
-          title="Pasar al checklist de la tarea"
+          title={t('Pasar al checklist de la tarea')}
           data-md-ui=""
-          aria-label={`Pasar «${text}» al checklist`}
+          aria-label={t('Pasar «{text}» al checklist', { text })}
           onClick={() => ctx.onMoveTasks([index])}
           className="mt-0.5 flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-muted-foreground opacity-0 transition-opacity duration-150 group-hover/task:opacity-100 hover:bg-muted hover:text-foreground focus-visible:opacity-100"
         >
           <ArrowRight className="size-3" />
-          checklist
+          {t('checklist')}
         </button>
       )}
     </li>
@@ -255,15 +259,15 @@ export function UserStoryCard({ story, size = 'md', textLength: length = 0 }) {
     </>
   )
   return (
-    <figure className="tf-md-story" aria-label="Historia de usuario" data-md-len={length}>
+    <figure className="tf-md-story" aria-label={t('Historia de usuario')} data-md-len={length}>
       <figcaption className="mb-2 flex items-center gap-2 font-mono text-[11px] tracking-[0.08em] text-accent-text uppercase">
         <UserRound className="size-[13px]" aria-hidden="true" />
-        Historia de usuario
+        {t('Historia de usuario')}
       </figcaption>
       <p className={cn('m-0 grid grid-cols-[64px_minmax(0,1fr)] gap-y-1 leading-[1.45]', size === 'sm' ? 'text-[14.5px]' : 'text-[15.5px]')}>
-        {row('Como', story.como, true)}
-        {row('quiero', story.quiero)}
-        {row('para', story.para)}
+        {row(tc('historia de usuario', 'Como'), story.como, true)}
+        {row(tc('historia de usuario', 'quiero'), story.quiero)}
+        {row(tc('historia de usuario', 'para'), story.para)}
       </p>
     </figure>
   )
@@ -275,7 +279,7 @@ export function CodeBlockView({ language, code }) {
   return (
     <figure className="tf-md-code">
       <figcaption className="flex items-center justify-between gap-2 border-b py-1.5 pr-2 pl-3" data-md-ui="">
-        <span className="font-mono text-[11px] text-muted-foreground">{language || 'código'}</span>
+        <span className="font-mono text-[11px] text-muted-foreground">{language || t('código')}</span>
         <CopyButton text={code} />
       </figcaption>
       <pre>
@@ -306,7 +310,7 @@ export function CopyButton({ text, className }) {
       }}
     >
       {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
-      {copied ? 'Copiado' : 'Copiar'}
+      {copied ? t('Copiado') : t('Copiar')}
     </button>
   )
 }

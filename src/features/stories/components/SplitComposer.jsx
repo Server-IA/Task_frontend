@@ -9,6 +9,7 @@ import { PriorityChip } from '@/features/issues/components/PriorityIcon'
 import { TypeIcon } from '@/features/issues/components/IssueTypeBits'
 import { opensAbove } from '@/features/editor/editor/popups'
 import { useLocalEscape } from '@/hooks/useLocalEscape'
+import { t, tn, tx } from '@/i18n'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { useSplitStory } from '../hooks'
@@ -125,11 +126,11 @@ export function SplitComposer({ slug, project, story, members, onDone, onCancel,
       { storyId: story.id, items },
       {
         onSuccess: (created) => {
-          toast.success(`${created.length} ${created.length === 1 ? 'tarea creada' : 'tareas creadas'} en ${story.code}`)
+          toast.success(tn(created.length, '{count} tarea creada en {code}', '{count} tareas creadas en {code}', { code: story.code }))
           setLines([emptyLine()])
           onDone()
         },
-        onError: (error) => notifyError(error, 'No se pudieron crear las tareas'),
+        onError: (error) => notifyError(error, t('No se pudieron crear las tareas')),
       },
     )
   }
@@ -176,14 +177,18 @@ export function SplitComposer({ slug, project, story, members, onDone, onCancel,
     ...(story.modules ?? []).map((module) => module.name),
     ...(story.labels ?? []).map((label) => label.name),
   ].filter(Boolean)
-  const storyPriority = story.priority && story.priority !== 'NONE' ? PRIORITY_LABELS[story.priority].toLowerCase() : 'sin prioridad'
+  const storyPriority = story.priority && story.priority !== 'NONE' ? PRIORITY_LABELS[story.priority].toLowerCase() : null
+  const inheritedParts = {
+    inherited: <span className="text-foreground">{inherited.length ? inherited.join(' · ') : t('nada')}</span>,
+    mark: <span className="font-mono">!</span>,
+  }
 
   return (
     <div ref={rootRef} className="tf-pop flex flex-col rounded-[14px] border border-ring/60 bg-card shadow-card">
       <div className="flex items-center gap-2 border-b px-3.5 py-2.5">
         <GitBranch className="size-4 text-muted-foreground" aria-hidden="true" />
-        <h3 className="text-sm font-semibold">Partir en tareas</h3>
-        <span className="text-xs text-muted-foreground">una línea por tarea</span>
+        <h3 className="text-sm font-semibold">{t('Partir en tareas')}</h3>
+        <span className="text-xs text-muted-foreground">{t('una línea por tarea')}</span>
       </div>
       <ol className="flex flex-col py-1">
         {lines.map((line, index) => (
@@ -193,8 +198,12 @@ export function SplitComposer({ slug, project, story, members, onDone, onCancel,
               type="button"
               tabIndex={-1}
               onClick={() => updateLine(line.id, { type: line.type === 'BUG' ? 'TASK' : 'BUG' })}
-              title={`${line.type === 'BUG' ? 'Bug' : 'Tarea'} · Tab cambia el tipo`}
-              aria-label={`Tipo de la línea ${index + 1}: ${line.type === 'BUG' ? 'Bug' : 'Tarea'}`}
+              title={line.type === 'BUG' ? t('Bug · Tab cambia el tipo') : t('Tarea · Tab cambia el tipo')}
+              aria-label={
+                line.type === 'BUG'
+                  ? t('Tipo de la línea {number}: Bug', { number: index + 1 })
+                  : t('Tipo de la línea {number}: Tarea', { number: index + 1 })
+              }
             >
               <TypeIcon type={line.type} />
             </button>
@@ -205,8 +214,8 @@ export function SplitComposer({ slug, project, story, members, onDone, onCancel,
               onChange={(event) => onInput(line, event)}
               onKeyDown={(event) => onKeyDown(line, index, event)}
               onBlur={() => setTimeout(() => setPicker((current) => (current?.lineId === line.id ? null : current)), 150)}
-              placeholder={index === 0 ? 'Qué hay que hacer… (@ asignar, ! prioridad)' : ''}
-              aria-label={`Tarea ${index + 1}`}
+              placeholder={index === 0 ? t('Qué hay que hacer… (@ asignar, ! prioridad)') : ''}
+              aria-label={t('Tarea {number}', { number: index + 1 })}
               // Como el título de una tarea (el backend rechaza más de 255 y no dice qué línea)
               maxLength={TITLE_MAX}
               className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
@@ -216,7 +225,7 @@ export function SplitComposer({ slug, project, story, members, onDone, onCancel,
                 type="button"
                 tabIndex={-1}
                 onClick={() => updateLine(line.id, { assignee: null })}
-                title="Quitar asignado"
+                title={t('Quitar asignado')}
                 className="group flex shrink-0 items-center gap-1.5 rounded-full border py-0.5 pr-2 pl-0.5 text-xs font-medium"
               >
                 <UserAvatar user={line.assignee} size="xs" className="size-4.5" />@{line.assignee.fullName.split(' ')[0]}
@@ -224,14 +233,14 @@ export function SplitComposer({ slug, project, story, members, onDone, onCancel,
               </button>
             )}
             {line.priority && (
-              <button type="button" tabIndex={-1} onClick={() => updateLine(line.id, { priority: null })} title="Quitar prioridad">
+              <button type="button" tabIndex={-1} onClick={() => updateLine(line.id, { priority: null })} title={t('Quitar prioridad')}>
                 <PriorityChip priority={line.priority} />
               </button>
             )}
             {picker?.lineId === line.id && options.length > 0 && (
               <div
                 role="listbox"
-                aria-label={picker.kind === 'person' ? 'Asignar a' : 'Prioridad'}
+                aria-label={picker.kind === 'person' ? t('Asignar a') : t('Prioridad')}
                 className={cn(
                   'absolute left-24 z-20 w-60 rounded-xl border bg-popover p-1 shadow-xl',
                   picker.above ? 'bottom-full mb-0.5' : 'top-full mt-0.5',
@@ -262,21 +271,26 @@ export function SplitComposer({ slug, project, story, members, onDone, onCancel,
         ))}
       </ol>
       <p className="border-t border-dashed px-3.5 py-2 text-xs text-muted-foreground">
-        heredan de la historia: <span className="text-foreground">{inherited.length ? inherited.join(' · ') : 'nada'}</span> · sin{' '}
-        <span className="font-mono">!</span>, prioridad {storyPriority}
+        {storyPriority
+          ? tx('heredan de la historia: {inherited} · sin {mark}, prioridad {priority}', { ...inheritedParts, priority: storyPriority })
+          : tx('heredan de la historia: {inherited} · sin {mark}, prioridad sin prioridad', inheritedParts)}
       </p>
       <div className="flex flex-wrap items-center gap-3 rounded-b-[14px] border-t bg-subtle px-3.5 py-2.5">
         <span className="font-mono text-[11px] text-muted-foreground">
-          <kbd className="text-foreground">Enter</kbd> nueva línea · <kbd className="text-foreground">@</kbd> asignar ·{' '}
-          <kbd className="text-foreground">!</kbd> prioridad · <kbd className="text-foreground">Tab</kbd> tipo ·{' '}
-          <kbd className="text-foreground">Esc</kbd> cancelar
+          {tx('{enter} nueva línea · {at} asignar · {mark} prioridad · {tab} tipo · {esc} cancelar', {
+            enter: <kbd className="text-foreground">Enter</kbd>,
+            at: <kbd className="text-foreground">@</kbd>,
+            mark: <kbd className="text-foreground">!</kbd>,
+            tab: <kbd className="text-foreground">Tab</kbd>,
+            esc: <kbd className="text-foreground">Esc</kbd>,
+          })}
         </span>
         <Button type="button" variant="ghost" size="sm" className="ml-auto" onClick={cancel}>
-          Cancelar
+          {t('Cancelar')}
         </Button>
         <Button type="button" size="sm" disabled={items.length === 0 || split.isPending} onClick={submit}>
           {split.isPending && <Spinner />}
-          Crear {items.length} {items.length === 1 ? 'tarea' : 'tareas'}
+          {tn(items.length, 'Crear {count} tarea', 'Crear {count} tareas')}
           <kbd className="rounded-[5px] bg-foreground/10 px-1.5 text-[11px] font-normal">ctrl ↵</kbd>
         </Button>
       </div>

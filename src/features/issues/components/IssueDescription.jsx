@@ -15,11 +15,14 @@ import { markdownToDoc } from '@/features/editor/markdown/parse'
 import { docToMarkdown, escapeText } from '@/features/editor/markdown/serialize'
 import { removeMovedTaskItems, setTaskChecked, takeTaskItems } from '@/features/editor/markdown/taskItems'
 import { useMentionPeople } from '@/features/mentions/hooks'
+import { useWorkspace } from '@/features/workspaces/hooks'
+import { t, tn, tx } from '@/i18n'
 import { formatRelative } from '@/lib/dates'
 import { isSessionExpired } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { warnUnsavedText } from '@/lib/unsavedText'
 import { cn } from '@/lib/utils'
+import { can } from '@/lib/permissions'
 import { useSessionStore } from '@/stores/sessionStore'
 import { issuesApi } from '../api'
 import { descriptionConflict, useCreateIssue, useDeleteIssue, useSaveDescription } from '../hooks'
@@ -36,13 +39,15 @@ const firstName = (user) => user?.fullName?.split(' ')[0] ?? null
 
 /** Quién cambió la descripción por última vez y cuándo («editada por Luis hace 2 h»). */
 const lastEditOf = (issue) =>
-  issue.descriptionUpdatedAt ? { name: firstName(issue.descriptionUpdatedBy) ?? 'alguien', at: issue.descriptionUpdatedAt, by: issue.descriptionUpdatedBy } : null
+  issue.descriptionUpdatedAt ? { name: firstName(issue.descriptionUpdatedBy) ?? t('alguien'), at: issue.descriptionUpdatedAt, by: issue.descriptionUpdatedBy } : null
 
 /** «Luis la cambió hace 1 min», para los avisos de conflicto. */
 function changedBy(conflict, me) {
-  if (!conflict?.by) return 'Alguien más la cambió'
-  const who = conflict.by.id === me ? 'Tú la cambiaste en otra ventana' : `${firstName(conflict.by)} la cambió`
-  return conflict.at ? `${who} ${formatRelative(conflict.at)}` : who
+  if (!conflict?.by) return t('Alguien más la cambió')
+  const when = conflict.at ? formatRelative(conflict.at) : null
+  if (conflict.by.id === me) return when ? t('Tú la cambiaste en otra ventana {when}', { when }) : t('Tú la cambiaste en otra ventana')
+  const name = firstName(conflict.by)
+  return when ? t('{name} la cambió {when}', { name, when }) : t('{name} la cambió', { name })
 }
 
 /**
@@ -61,6 +66,8 @@ export function IssueDescription({ slug, project, issue, variant = 'page', onOpe
   const moveToChecklist = useMoveToChecklist(slug, project.id, issue.id)
   const me = useSessionStore((state) => state.user?.id)
   const [editing, setEditing] = useState(null)
+  // Sin el permiso de editar tareas la descripción solo se lee
+  const canEdit = can(useWorkspace(slug).data, 'ISSUE_EDIT')
   // Al terminar de editar, el foco vuelve a «Editar descripción» (el editor desaparece con el foco adentro)
   const [refocus, setRefocus] = useState(false)
   // Cambios desde la lectura (casillas, «Pasar al checklist»): van de a uno, cada uno sobre lo que dejó el anterior
@@ -73,8 +80,8 @@ export function IssueDescription({ slug, project, issue, variant = 'page', onOpe
 
   const warnChanged = (conflict, what) => {
     queryClient.invalidateQueries({ queryKey: issueKey })
-    toast.warning('Alguien cambió la descripción', {
-      description: `${changedBy(conflict, me)}. ${what} Revisa la versión nueva y vuelve a intentarlo.`,
+    toast.warning(t('Alguien cambió la descripción'), {
+      description: t('{who}. {what} Revisa la versión nueva y vuelve a intentarlo.', { who: changedBy(conflict, me), what }),
     })
   }
 
@@ -100,7 +107,7 @@ export function IssueDescription({ slug, project, issue, variant = 'page', onOpe
       } catch (error) {
         const conflict = descriptionConflict(error)
         if (conflict) warnChanged(conflict, what)
-        else notifyError(error, 'No se pudo guardar la descripción')
+        else notifyError(error, t('No se pudo guardar la descripción'))
         return false
       }
     }
@@ -118,14 +125,17 @@ export function IssueDescription({ slug, project, issue, variant = 'page', onOpe
     try {
       result = await moveToChecklist.mutateAsync(items)
     } catch (error) {
-      notifyError(error, 'No se pudo pasar al checklist')
+      notifyError(error, t('No se pudo pasar al checklist'))
       throw error
     }
     const { created, error } = result
-    if (created > 0) toast.success(created === 1 ? 'Se pasó 1 paso al checklist' : `Se pasaron ${created} pasos al checklist`)
+    if (created > 0) toast.success(tn(created, 'Se pasó {count} paso al checklist', 'Se pasaron {count} pasos al checklist'))
     if (error) {
       const missing = items.length - created
-      notifyError(error, created > 0 ? `${missing} ${missing === 1 ? 'paso no se pasó' : 'pasos no se pasaron'} al checklist` : 'No se pudo pasar al checklist')
+      notifyError(
+        error,
+        created > 0 ? tn(missing, '{count} paso no se pasó al checklist', '{count} pasos no se pasaron al checklist') : t('No se pudo pasar al checklist'),
+      )
       if (created === 0) throw error
     }
     return created
@@ -138,11 +148,11 @@ export function IssueDescription({ slug, project, issue, variant = 'page', onOpe
     try {
       fresh = await queryClient.fetchQuery({ queryKey: issueKey, queryFn: () => issuesApi.get(slug, project.id, issue.id), staleTime: 0 })
     } catch (error) {
-      notifyError(error, 'No se pudo pasar al checklist')
+      notifyError(error, t('No se pudo pasar al checklist'))
       return
     }
     if ((fresh.descriptionVersion ?? 0) !== seen && fresh.descriptionVersion !== ownVersionRef.current) {
-      warnChanged({ by: fresh.descriptionUpdatedBy, at: fresh.descriptionUpdatedAt }, 'No se pasó nada al checklist.')
+      warnChanged({ by: fresh.descriptionUpdatedBy, at: fresh.descriptionUpdatedAt }, t('No se pasó nada al checklist.'))
       return
     }
     const { items } = takeTaskItems(markdownToDoc(norm(fresh.description)), indexes)
@@ -157,7 +167,7 @@ export function IssueDescription({ slug, project, issue, variant = 'page', onOpe
     await changeDescription(
       fresh.descriptionVersion ?? 0,
       (current) => docToMarkdown(removeMovedTaskItems(markdownToDoc(current), indexes, created)),
-      'Los pasos quedaron en el checklist y también siguen en la descripción.',
+      t('Los pasos quedaron en el checklist y también siguen en la descripción.'),
     )
   }
 
@@ -189,23 +199,32 @@ export function IssueDescription({ slug, project, issue, variant = 'page', onOpe
       description={description}
       onOpenIssue={onOpenIssue}
       onEdit={(caret) => setEditing({ caret })}
+      canEdit={canEdit}
       refocus={refocus}
       onRefocused={() => setRefocus(false)}
-      onToggleTask={(index, checked) => {
+      onToggleTask={
+        canEdit
+          ? (index, checked) => {
         changeDescription(
           issue.descriptionVersion ?? 0,
           (current) => docToMarkdown(setTaskChecked(markdownToDoc(current), index, checked)),
-          checked ? 'La casilla no se marcó.' : 'La casilla no se desmarcó.',
+          checked ? t('La casilla no se marcó.') : t('La casilla no se desmarcó.'),
         )
-      }}
-      onMoveTasks={(indexes) => {
+      }
+          : undefined
+      }
+      onMoveTasks={
+        canEdit
+          ? (indexes) => {
         moveTasksFromReader(indexes)
-      }}
+      }
+          : undefined
+      }
     />
   )
 }
 
-function DescriptionReader({ issue, slug, project, variant, description, onOpenIssue, onEdit, refocus, onRefocused, onToggleTask, onMoveTasks }) {
+function DescriptionReader({ issue, slug, project, variant, description, onOpenIssue, onEdit, canEdit, refocus, onRefocused, onToggleTask, onMoveTasks }) {
   const lastEdit = lastEditOf(issue)
   const textRef = useRef(null)
   const editRef = useRef(null)
@@ -221,6 +240,7 @@ function DescriptionReader({ issue, slug, project, variant, description, onOpenI
   }, [refocus, onRefocused])
 
   const enter = (event) => {
+    if (!canEdit) return
     // Los enlaces, las pastillas y las casillas funcionan sin entrar a editar; seleccionar texto tampoco entra
     if (event.target.closest('a, button, input, label, [role="checkbox"]')) return
     if (window.getSelection()?.toString()) return
@@ -235,18 +255,20 @@ function DescriptionReader({ issue, slug, project, variant, description, onOpenI
   }
 
   return (
-    <section aria-label="Descripción" className="flex flex-col gap-1.5">
+    <section aria-label={t('Descripción')} className="flex flex-col gap-1.5">
       <div
         onClick={enter}
         onPointerEnter={preloadRichEditor}
         className={cn(
-          'group/desc relative cursor-text rounded-[14px] transition-colors duration-150',
+          'group/desc relative rounded-[14px] transition-colors duration-150',
+          canEdit && 'cursor-text',
           page ? 'border bg-md-frame px-5 pt-4 pb-4.5' : '-mx-2 border border-transparent px-2 py-1.5 hover:bg-md-frame',
         )}
       >
         <button
           ref={editRef}
           type="button"
+          hidden={!canEdit}
           onClick={() => onEdit(null)}
           className={cn(
             'z-[2] flex items-center gap-1.5 rounded-full border bg-card px-2.5 py-1 text-xs font-medium shadow-card',
@@ -257,7 +279,7 @@ function DescriptionReader({ issue, slug, project, variant, description, onOpenI
           )}
         >
           <Pencil className="size-3.25" />
-          Editar descripción
+          {t('Editar descripción')}
         </button>
         {description ? (
           // Si empieza con un bloque con borde (historia, tabla, código, cita), baja para no quedar bajo el botón
@@ -272,31 +294,31 @@ function DescriptionReader({ issue, slug, project, variant, description, onOpenI
             />
           </div>
         ) : (
-          <p className="py-1 text-[14.5px] text-muted-foreground">Agrega una descripción…</p>
+          <p className="py-1 text-[14.5px] text-muted-foreground">{t('Agrega una descripción…')}</p>
         )}
       </div>
       {page && (
         <p className="px-1 font-mono text-[11px] text-muted-foreground">
-          haz clic en el texto para editar · los enlaces, menciones y casillas funcionan sin entrar a editar
-          {lastEdit && ` · editada por ${lastEdit.name} ${formatRelative(lastEdit.at)}`}
+          {t('haz clic en el texto para editar · los enlaces, menciones y casillas funcionan sin entrar a editar')}
+          {lastEdit && t(' · editada por {name} {when}', { name: lastEdit.name, when: formatRelative(lastEdit.at) })}
         </p>
       )}
     </section>
   )
 }
 
-const SAVE_TEXT = { saved: 'Guardado', pending: 'Guardando…', saving: 'Guardando…', error: 'No se pudo guardar', conflict: 'En pausa' }
+const SAVE_TEXT = { saved: t('Guardado'), pending: t('Guardando…'), saving: t('Guardando…'), error: t('No se pudo guardar'), conflict: t('En pausa') }
 
 /** Por qué no se guardó lo escrito al salir del editor. */
 function unsavedReason(error) {
-  if (descriptionConflict(error)) return 'Alguien más cambió la descripción mientras editabas.'
-  if (isSessionExpired(error)) return 'Tu sesión expiró.'
-  return 'No se pudo guardar.'
+  if (descriptionConflict(error)) return t('Alguien más cambió la descripción mientras editabas.')
+  if (isSessionExpired(error)) return t('Tu sesión expiró.')
+  return t('No se pudo guardar.')
 }
 
 /** Aviso persistente con el texto que no se pudo guardar al salir del editor (para no perderlo). */
 function warnUnsaved(body, reason) {
-  warnUnsavedText('Tu cambio en la descripción no se guardó', `${reason} Copia tu texto para no perderlo.`, body)
+  warnUnsavedText(t('Tu cambio en la descripción no se guardó'), t('{reason} Copia tu texto para no perderlo.', { reason }), body)
 }
 
 function DescriptionEditor({ slug, project, issue, variant, caret, onMoveTasks, onFinish }) {
@@ -317,8 +339,8 @@ function DescriptionEditor({ slug, project, issue, variant, caret, onMoveTasks, 
     target: inlineImageTarget(slug, project.id, issue.id),
     onOtherFiles: (files) => {
       attachFiles(files)
-      toast.success(files.length === 1 ? `«${files[0].name}» va a Adjuntos` : `${files.length} archivos van a Adjuntos`, {
-        description: 'En la descripción solo entran imágenes.',
+      toast.success(files.length === 1 ? t('«{name}» va a Adjuntos', { name: files[0].name }) : t('{count} archivos van a Adjuntos', { count: files.length }), {
+        description: t('En la descripción solo entran imágenes.'),
       })
     },
     onInserted: () => {
@@ -386,7 +408,7 @@ function DescriptionEditor({ slug, project, issue, variant, caret, onMoveTasks, 
             showConflict(theirs)
           } else {
             setStatus('error')
-            notifyError(error, 'No se pudo guardar la descripción')
+            notifyError(error, t('No se pudo guardar la descripción'))
           }
           return false
         },
@@ -433,13 +455,13 @@ function DescriptionEditor({ slug, project, issue, variant, caret, onMoveTasks, 
   /** Terminar: guarda lo que falte y cierra solo si se guardó (con un conflicto o un error, el editor sigue abierto). */
   const finish = async () => {
     if (uploading > 0) {
-      toast.info(uploading === 1 ? 'La imagen sigue subiendo' : 'Las imágenes siguen subiendo', {
-        description: 'Espera a que termine para cerrar el editor; el texto ya se está guardando.',
+      toast.info(uploading === 1 ? t('La imagen sigue subiendo') : t('Las imágenes siguen subiendo'), {
+        description: t('Espera a que termine para cerrar el editor; el texto ya se está guardando.'),
       })
       return
     }
     if (conflictRef.current) {
-      toast.warning('Elige qué versión mantener', { description: 'Alguien más cambió la descripción mientras editabas.' })
+      toast.warning(t('Elige qué versión mantener'), { description: t('Alguien más cambió la descripción mientras editabas.') })
       return
     }
     flush()
@@ -460,7 +482,7 @@ function DescriptionEditor({ slug, project, issue, variant, caret, onMoveTasks, 
         const body = norm(draftRef.current)
         if (body === savedRef.current) return
         if (conflictRef.current) {
-          warnUnsaved(body, 'Alguien más cambió la descripción mientras editabas.')
+          warnUnsaved(body, t('Alguien más cambió la descripción mientras editabas.'))
           return
         }
         save.mutateAsync({ description: body, base: baseRef.current }).catch((error) => {
@@ -532,13 +554,13 @@ function DescriptionEditor({ slug, project, issue, variant, caret, onMoveTasks, 
     try {
       const created = await createIssue.mutateAsync({ title: text, parentId: issue.id, stateId: issue.state?.id })
       replace(created.code)
-      toast.success(`${created.code} creada como subtarea de ${issue.code}`, {
+      toast.success(t('{code} creada como subtarea de {parent}', { code: created.code, parent: issue.code }), {
         description: created.title,
         duration: 8000,
-        action: { label: 'Deshacer', onClick: () => undoSubtask(created, text) },
+        action: { label: t('Deshacer'), onClick: () => undoSubtask(created, text) },
       })
     } catch (error) {
-      notifyError(error, 'No se pudo crear la subtarea')
+      notifyError(error, t('No se pudo crear la subtarea'))
     }
   }
 
@@ -546,14 +568,14 @@ function DescriptionEditor({ slug, project, issue, variant, caret, onMoveTasks, 
     try {
       await removeIssue.mutateAsync(created.id)
     } catch (error) {
-      notifyError(error, 'No se pudo deshacer')
+      notifyError(error, t('No se pudo deshacer'))
       return
     }
     // Si todavía se está editando, el código vuelve a ser el texto en el editor (y se guarda solo). Si ya no está
     // en el texto, no se guarda nada por debajo del editor: sería un conflicto con uno mismo
     if (apiRef.current) {
       if (!apiRef.current.replaceText(created.code, text)) {
-        toast(`${created.code} ya no está en el texto`, { description: 'La subtarea se eliminó; el texto quedó como estaba.' })
+        toast(t('{code} ya no está en el texto', { code: created.code }), { description: t('La subtarea se eliminó; el texto quedó como estaba.') })
       }
       return
     }
@@ -566,8 +588,8 @@ function DescriptionEditor({ slug, project, issue, variant, caret, onMoveTasks, 
     } catch (error) {
       const theirs = descriptionConflict(error)
       if (theirs) {
-        toast.warning('Alguien cambió la descripción', {
-          description: `${changedBy(theirs, me)}. ${created.code} sigue en el texto: cámbialo a mano si hace falta.`,
+        toast.warning(t('Alguien cambió la descripción'), {
+          description: t('{who}. {code} sigue en el texto: cámbialo a mano si hace falta.', { who: changedBy(theirs, me), code: created.code }),
         })
       } else {
         notifyError(error)
@@ -580,7 +602,7 @@ function DescriptionEditor({ slug, project, issue, variant, caret, onMoveTasks, 
   const busy = status === 'pending' || status === 'saving'
 
   return (
-    <section aria-label="Descripción" className="flex flex-col gap-1.5">
+    <section aria-label={t('Descripción')} className="flex flex-col gap-1.5">
       <div className="relative rounded-[14px] border border-ring bg-card shadow-[0_0_0_3px_var(--accent-soft)]">
         {conflict && (
           <ConflictBanner
@@ -625,22 +647,20 @@ function DescriptionEditor({ slug, project, issue, variant, caret, onMoveTasks, 
             {(busy || uploading > 0) && <Spinner className="size-3" />}
             {status === 'saved' && uploading === 0 && <Check className="size-3.25 text-ok-dot" strokeWidth={2.6} />}
             {uploading > 0 && status !== 'error' && status !== 'conflict'
-              ? uploading === 1
-                ? 'Subiendo 1 imagen…'
-                : `Subiendo ${uploading} imágenes…`
+              ? tn(uploading, 'Subiendo {count} imagen…', 'Subiendo {count} imágenes…')
               : SAVE_TEXT[status]}
             {status === 'error' && (
               <button type="button" className="font-semibold underline underline-offset-2" onClick={flush}>
-                Reintentar
+                {t('Reintentar')}
               </button>
             )}
           </span>
           <PasteHint recent={justPasted} page={page} />
           <span className="ml-auto font-mono text-[11px]">
-            <kbd className="text-foreground">esc</kbd> o <kbd className="text-foreground">ctrl ↵</kbd> terminar
+            {tx('{esc} o {enter} terminar', { esc: <kbd className="text-foreground">esc</kbd>, enter: <kbd className="text-foreground">ctrl ↵</kbd> })}
           </span>
           <Button size="sm" className="h-7 rounded-[9px] px-3" onClick={finish}>
-            Listo
+            {t('Listo')}
           </Button>
         </div>
       </div>
@@ -656,14 +676,14 @@ function PasteHint({ recent, page }) {
   if (recent) {
     return (
       <span className="font-mono text-[11px]">
-        Imagen pegada · <kbd className="text-foreground">ctrl Z</kbd> deshace
+        {tx('Imagen pegada · {key} deshace', { key: <kbd className="text-foreground">ctrl Z</kbd> })}
       </span>
     )
   }
   return (
     <>
-      {page && <span className="font-mono text-[11px]">## título · - lista · [ ] tarea · &gt; cita · ``` código · / insertar</span>}
-      <span className="font-mono text-[11px]">PNG, JPG, GIF o WebP · hasta 5 MB · también puedes pegar</span>
+      {page && <span className="font-mono text-[11px]">{t('## título · - lista · [ ] tarea · > cita · ``` código · / insertar')}</span>}
+      <span className="font-mono text-[11px]">{t('PNG, JPG, GIF o WebP · hasta 5 MB · también puedes pegar')}</span>
     </>
   )
 }
@@ -673,30 +693,30 @@ const PASTE_HINT_MS = 5000
 /** «Alguien cambió la descripción»: quién y cuándo, comparar las dos versiones y elegir. */
 function ConflictBanner({ conflict, me, mine, onCompare, onKeepTheirs, onKeepMine }) {
   const comparing = mine != null
-  const who = conflict.by ? (conflict.by.id === me ? 'Tú, en otra ventana' : firstName(conflict.by)) : null
+  const who = conflict.by ? (conflict.by.id === me ? t('Tú, en otra ventana') : firstName(conflict.by)) : null
   return (
     <div role="alert" className="tf-fade rounded-t-[13px] border-b bg-soon-soft text-[13px] text-soon">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3.5 py-2">
-        <span className="font-semibold">Alguien cambió la descripción</span>
+        <span className="font-semibold">{t('Alguien cambió la descripción')}</span>
         {(who || conflict.at) && (
           <span className="text-xs">
             {[who, conflict.at && formatRelative(conflict.at)].filter(Boolean).join(' · ')}
           </span>
         )}
-        <span className="text-xs">Tus cambios no se guardan hasta que elijas.</span>
+        <span className="text-xs">{t('Tus cambios no se guardan hasta que elijas.')}</span>
         <span className="ml-auto flex gap-1.5">
           <Button size="sm" variant="ghost" className="h-7 text-soon hover:bg-card/60 hover:text-soon" aria-expanded={comparing} onClick={onCompare}>
-            {comparing ? 'Ocultar comparación' : 'Comparar'}
+            {comparing ? t('Ocultar comparación') : t('Comparar')}
           </Button>
           <Button size="sm" variant="outline" className="h-7 bg-card" onClick={onKeepTheirs}>
-            Ver su versión
+            {t('Ver su versión')}
           </Button>
           <Button size="sm" className="h-7" onClick={onKeepMine}>
-            Mantener la mía
+            {t('Mantener la mía')}
           </Button>
         </span>
       </div>
-      {comparing && <CompareVersions theirs={conflict.description} mine={mine} theirLabel={who ? `Su versión · ${who}` : 'Su versión'} />}
+      {comparing && <CompareVersions theirs={conflict.description} mine={mine} theirLabel={who ? t('Su versión · {who}', { who }) : t('Su versión')} />}
     </div>
   )
 }
@@ -719,11 +739,11 @@ function CompareVersions({ theirs, mine, theirLabel }) {
   return (
     <div className="border-t border-soon/20 px-3.5 pt-2.5 pb-3">
       {diff.same ? (
-        <p className="text-xs">Las dos versiones son iguales.</p>
+        <p className="text-xs">{t('Las dos versiones son iguales.')}</p>
       ) : (
         <div className="grid grid-cols-2 gap-2.5">
           {column(theirLabel, diff.left, 'bg-late-soft')}
-          {column('Tu versión', diff.right, 'bg-accent-soft')}
+          {column(t('Tu versión'), diff.right, 'bg-accent-soft')}
         </div>
       )}
     </div>
@@ -733,19 +753,19 @@ function CompareVersions({ theirs, mine, theirLabel }) {
 /** «Ver Markdown»: la descripción tal como se guarda. */
 function RawMarkdown({ description, onClose }) {
   return (
-    <section aria-label="Descripción en Markdown" className="flex flex-col gap-1.5">
+    <section aria-label={t('Descripción en Markdown')} className="flex flex-col gap-1.5">
       <div className="overflow-hidden rounded-[14px] border bg-subtle">
         <div className="flex items-center gap-2 border-b py-1.5 pr-2 pl-3.5">
-          <span className="font-mono text-[11px] text-muted-foreground">markdown · solo lectura</span>
+          <span className="font-mono text-[11px] text-muted-foreground">{t('markdown · solo lectura')}</span>
           <span className="ml-auto flex items-center gap-1">
             <CopyButton text={description} />
             <button type="button" onClick={onClose} className="rounded-md px-2 py-0.5 text-xs font-medium hover:bg-muted">
-              Ver con formato
+              {t('Ver con formato')}
             </button>
           </span>
         </div>
         <pre className="max-h-[60vh] overflow-auto px-4 py-3 font-mono text-[12.5px] leading-relaxed whitespace-pre-wrap break-words">
-          {description || <span className="text-muted-foreground">Sin descripción</span>}
+          {description || <span className="text-muted-foreground">{t('Sin descripción')}</span>}
         </pre>
       </div>
     </section>

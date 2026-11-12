@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 import { effectiveTypes, typesToUrl } from './issueTypes'
 
 /**
@@ -10,14 +11,14 @@ import { effectiveTypes, typesToUrl } from './issueTypes'
 
 /** Los filtros, en el orden en que se muestran. `common`: siempre a la vista sin vista guardada. */
 export const FILTER_KINDS = [
-  { key: 'state', title: 'estado', type: 'multi', common: true },
-  { key: 'priority', title: 'prioridad', type: 'multi', common: true },
-  { key: 'assignee', title: 'asignado', type: 'multi', common: true },
-  { key: 'label', title: 'etiqueta', type: 'multi', common: true },
-  { key: 'type', title: 'tipo', type: 'types', common: true },
-  { key: 'cycle', title: 'ciclo', type: 'single', common: false },
-  { key: 'module', title: 'módulo', type: 'single', common: false },
-  { key: 'blocked', title: 'bloqueadas', type: 'toggle', common: false },
+  { key: 'state', title: t('estado'), type: 'multi', common: true },
+  { key: 'priority', title: t('prioridad'), type: 'multi', common: true },
+  { key: 'assignee', title: t('asignado'), type: 'multi', common: true },
+  { key: 'label', title: t('etiqueta'), type: 'multi', common: true },
+  { key: 'type', title: t('tipo'), type: 'types', common: true },
+  { key: 'cycle', title: t('ciclo'), type: 'single', common: false },
+  { key: 'module', title: t('módulo'), type: 'single', common: false },
+  { key: 'blocked', title: t('bloqueadas'), type: 'toggle', common: false },
 ]
 
 /** Si el filtro tiene valor. */

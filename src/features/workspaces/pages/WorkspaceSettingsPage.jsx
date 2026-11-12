@@ -1,25 +1,32 @@
 import { useSearchParams } from 'react-router'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { t } from '@/i18n'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { workspacePath } from '@/lib/paths'
-import { isManager } from '@/lib/permissions'
+import { WorkspaceIntegrations } from '@/features/github/WorkspaceIntegrations'
+import { ImportSettings } from '@/features/imports/ImportSettings'
+import { can } from '@/lib/permissions'
 import { GeneralSettings } from '../components/GeneralSettings'
 import { InvitationsSettings } from '../components/InvitationsSettings'
 import { MembersSettings } from '../components/MembersSettings'
+import { RolesSettings } from '../components/RolesSettings'
 import { StorageSettings } from '../components/StorageSettings'
 import { useCurrentWorkspace, useMembers } from '../hooks'
 
-const TABS = ['general', 'members', 'invitations', 'storage']
-/** Pestañas que solo ve el project manager (con otro rol, la URL lleva a «General»). */
-const MANAGER_TABS = ['invitations', 'storage']
+const TABS = ['general', 'members', 'roles', 'invitations', 'storage', 'import', 'integrations']
+/** Pestañas que piden un permiso (sin él, la URL lleva a «General»). Los roles los ve cualquiera. */
+const TAB_PERMISSIONS = { invitations: 'MEMBER_INVITE', storage: 'STORAGE_VIEW', import: 'DATA_IMPORT' }
 
 export function WorkspaceSettingsPage() {
   const workspace = useCurrentWorkspace()
   const { data: members } = useMembers(workspace.slug)
   const [searchParams, setSearchParams] = useSearchParams()
-  const canManage = isManager(workspace.myRole)
+  const canInvite = can(workspace, 'MEMBER_INVITE')
+  const canSeeStorage = can(workspace, 'STORAGE_VIEW')
+  const canImport = can(workspace, 'DATA_IMPORT')
   const requested = searchParams.get('tab')
-  const tab = TABS.includes(requested) && (!MANAGER_TABS.includes(requested) || canManage) ? requested : 'general'
+  const allowed = TABS.includes(requested) && (!TAB_PERMISSIONS[requested] || can(workspace, TAB_PERMISSIONS[requested]))
+  const tab = allowed ? requested : 'general'
 
   return (
     <Tabs
@@ -28,42 +35,52 @@ export function WorkspaceSettingsPage() {
       className="min-h-0 flex-1 gap-3.5"
     >
       <PageHeader
-        path={[...workspacePath(workspace), { label: 'ajustes' }]}
-        title="Ajustes del workspace"
-        documentTitle={['Ajustes', workspace.name]}
+        path={[...workspacePath(workspace), { label: t('ajustes') }]}
+        title={t('Ajustes del workspace')}
+        documentTitle={[t('Ajustes'), workspace.name]}
       >
-        <TabsList aria-label="Secciones">
-          <TabsTrigger value="general">General</TabsTrigger>
+        <TabsList aria-label={t('Secciones')}>
+          <TabsTrigger value="general">{t('General')}</TabsTrigger>
           <TabsTrigger value="members">
-            Miembros {members && <span className="font-mono">{members.length}</span>}
+            {t('Miembros')} {members && <span className="font-mono">{members.length}</span>}
           </TabsTrigger>
-          {canManage && <TabsTrigger value="invitations">Invitaciones</TabsTrigger>}
-          {canManage && (
-            <TabsTrigger value="storage">
-              Almacenamiento
-              <span className="rounded-md bg-card px-1.5 font-mono text-[10.5px] font-medium text-muted-foreground">solo PM</span>
-            </TabsTrigger>
-          )}
+          <TabsTrigger value="roles">{t('Roles')}</TabsTrigger>
+          {canInvite && <TabsTrigger value="invitations">{t('Invitaciones')}</TabsTrigger>}
+          {canSeeStorage && <TabsTrigger value="storage">{t('Almacenamiento')}</TabsTrigger>}
+          {canImport && <TabsTrigger value="import">{t('Importar')}</TabsTrigger>}
+          <TabsTrigger value="integrations">{t('Integraciones')}</TabsTrigger>
         </TabsList>
       </PageHeader>
       <PageBody>
-        <div className="mx-auto max-w-[920px]">
+        <div className="mx-auto max-w-[1320px]">
           <TabsContent value="general">
             <GeneralSettings workspace={workspace} />
           </TabsContent>
           <TabsContent value="members">
             <MembersSettings workspace={workspace} />
           </TabsContent>
-          {canManage && (
+          <TabsContent value="roles">
+            <RolesSettings workspace={workspace} />
+          </TabsContent>
+          {canInvite && (
             <TabsContent value="invitations">
               <InvitationsSettings workspace={workspace} />
             </TabsContent>
           )}
-          {canManage && (
+          {canSeeStorage && (
             <TabsContent value="storage">
               <StorageSettings workspace={workspace} />
             </TabsContent>
           )}
+          {canImport && (
+            <TabsContent value="import">
+              <ImportSettings workspace={workspace} />
+            </TabsContent>
+          )}
+          {/* Cualquiera ve si GitHub está conectado; conectar y desconectar piden «Configurar GitHub» */}
+          <TabsContent value="integrations">
+            <WorkspaceIntegrations workspace={workspace} />
+          </TabsContent>
         </div>
       </PageBody>
     </Tabs>

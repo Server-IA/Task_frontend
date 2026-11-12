@@ -1,6 +1,7 @@
 import { Fragment } from 'react'
 import { Ban } from 'lucide-react'
 import { StateIcon } from '@/components/common/StateIcon'
+import { t } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { blockerOwner, changeNote, todayNotes, yesterdayDetail } from '../daily'
 
@@ -18,9 +19,11 @@ const TONES = {
  * bloquean y de quién son). Cada tarea del proyecto abre el panel lateral.
  * @param {{ person: import('@/api/types').DailyPerson, date: string, previousDate?: string, projectId: string,
  *           blocking?: { code: string, blockedCode: string, ownerName: string }[],
- *           onOpenIssue: (issueId: string) => void, size?: 'card' | 'focus' }} props
+ *           onOpenIssue: (issueId: string) => void, size?: 'card' | 'focus',
+ *           sections?: { yesterday?: boolean, today?: boolean, blockers?: boolean } }} props
+ *   `sections`: los bloques que el proyecto decidió exponer (ajustes de la daily); sin él van los tres.
  */
-export function personBlocks({ person, date, previousDate, projectId, blocking = [], onOpenIssue, size = 'card' }) {
+export function personBlocks({ person, date, previousDate, projectId, blocking = [], onOpenIssue, size = 'card', sections }) {
   const userId = person.user?.id
   const yesterday = (person.yesterday ?? []).map((entry) => ({
     key: `y-${entry.issue?.id}`,
@@ -45,26 +48,28 @@ export function personBlocks({ person, date, previousDate, projectId, blocking =
 
   const blockingText =
     blocking.length > 0
-      ? ` ${blocking.map((item) => `Su ${item.code} bloquea a ${item.blockedCode} de ${item.ownerName}`).join('. ')}.`
+      ? ` ${blocking.map((item) => t('Su {code} bloquea a {blocked} de {owner}', { code: item.code, blocked: item.blockedCode, owner: item.ownerName })).join('. ')}.`
       : ''
 
   return [
     {
       key: 'yesterday',
-      title: 'Ayer',
+      title: t('Ayer'),
       detail: yesterdayDetail(date, previousDate),
       items: yesterday,
-      empty: 'Sin cambios registrados.',
+      empty: t('Sin cambios registrados.'),
     },
-    { key: 'today', title: 'Hoy', items: today, empty: 'Nada en curso ni con fecha para hoy.' },
+    { key: 'today', title: t('Hoy'), items: today, empty: t('Nada en curso ni con fecha para hoy.') },
     {
       key: 'blockers',
-      title: 'Bloqueos',
+      title: t('Bloqueos'),
       items: blockers,
-      empty: blocking.length > 0 ? `Nada lo bloquea.${blockingText}` : 'Sin bloqueos.',
+      empty: blocking.length > 0 ? `${t('Nada lo bloquea.')}${blockingText}` : t('Sin bloqueos.'),
       late: blockers.length > 0,
     },
-  ].map((block) => ({ ...block, size, onOpenIssue }))
+  ]
+    .filter((block) => sections?.[block.key] !== false)
+    .map((block) => ({ ...block, size, onOpenIssue }))
 }
 
 /** Un bloque («Ayer», «Hoy», «Bloqueos») con sus tareas o el texto de vacío. */
@@ -123,7 +128,7 @@ function DailyIssueItem({ item, size, onOpenIssue }) {
         <button
           type="button"
           onClick={() => onOpenIssue(issue.id)}
-          title={`Abrir ${issue.code}`}
+          title={t('Abrir {code}', { code: issue.code })}
           className="text-left outline-none after:absolute after:inset-0 after:rounded-[inherit] focus-visible:after:ring-2 focus-visible:after:ring-ring"
         >
           <span className={cn('font-mono text-muted-foreground', focus ? 'text-[13px]' : 'text-xs')}>{issue.code}</span>{' '}
@@ -133,7 +138,7 @@ function DailyIssueItem({ item, size, onOpenIssue }) {
         {blocked ? (
           <span className={cn('mt-0.5 flex flex-wrap items-center gap-x-1', noteSize, TONES.late)}>
             <Ban className="size-3" strokeWidth={2.5} aria-hidden="true" />
-            bloqueada por
+            {t('bloqueada por')}
             {item.blockedBy.map((by, index) => (
               <span key={by.id}>
                 {by.openable ? (
@@ -148,7 +153,7 @@ function DailyIssueItem({ item, size, onOpenIssue }) {
                 ) : (
                   <span
                     className="font-mono"
-                    title={by.title ? `${by.title} · ${by.project?.name ?? 'otro proyecto'}` : 'De un proyecto al que no tienes acceso'}
+                    title={by.title ? `${by.title} · ${by.project?.name ?? t('otro proyecto')}` : t('De un proyecto al que no tienes acceso')}
                   >
                     {by.code}
                   </span>

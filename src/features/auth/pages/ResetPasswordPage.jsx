@@ -8,6 +8,7 @@ import { PasswordInput } from '@/components/common/PasswordInput'
 import { PasswordRules } from '@/components/common/PasswordRules'
 import { Spinner } from '@/components/common/Loaders'
 import { useUrlToken } from '@/hooks/useUrlToken'
+import { t, tx } from '@/i18n'
 import { AuthCard, AuthHeader, AuthIcon, CenteredShell } from '@/layouts/AuthLayout'
 import { applyFieldErrors, toApiError } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
@@ -41,12 +42,12 @@ export function ResetPasswordPage() {
   }
 
   return (
-    <CenteredShell meta="~/acceso/restablecer">
+    <CenteredShell meta={t('~/acceso/restablecer')}>
       <AuthCard>
         {checking && (
           <div className="flex flex-col items-center gap-3 py-8">
             <Spinner className="size-6 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Comprobando el enlace…</p>
+            <p className="text-sm text-muted-foreground">{t('Comprobando el enlace…')}</p>
           </div>
         )}
         {invalid && (
@@ -56,11 +57,11 @@ export function ResetPasswordPage() {
             </AuthIcon>
             <AuthHeader
               size="md"
-              title="Este enlace no es válido o ya venció"
-              description="Pide un nuevo enlace para restablecer tu contraseña."
+              title={t('Este enlace no es válido o ya venció')}
+              description={t('Pide un nuevo enlace para restablecer tu contraseña.')}
             />
             <Button asChild className="h-11 rounded-xl">
-              <Link to="/forgot-password">Pedir un enlace nuevo</Link>
+              <Link to="/forgot-password">{t('Pedir un enlace nuevo')}</Link>
             </Button>
           </>
         )}
@@ -71,11 +72,11 @@ export function ResetPasswordPage() {
             </AuthIcon>
             <AuthHeader
               size="md"
-              title="Contraseña actualizada"
-              description="Ya puedes iniciar sesión con tu nueva contraseña. Por seguridad cerramos tus otras sesiones."
+              title={t('Contraseña actualizada')}
+              description={t('Ya puedes iniciar sesión con tu nueva contraseña. Por seguridad cerramos tus otras sesiones.')}
             />
             <Button asChild className="h-11 rounded-xl">
-              <Link to="/login">Iniciar sesión</Link>
+              <Link to="/login">{t('Iniciar sesión')}</Link>
             </Button>
           </>
         )}
@@ -83,12 +84,12 @@ export function ResetPasswordPage() {
           <>
             <p className="flex items-center gap-2 self-start rounded-full bg-muted px-2.5 py-1 font-mono text-[11px] text-muted-foreground">
               <span aria-hidden="true" className="size-1.5 rounded-full bg-ok-dot" />
-              el enlace vale por 1 h desde que lo pediste
+              {t('el enlace vale por 1 h desde que lo pediste')}
             </p>
             <AuthHeader
               size="md"
-              title="Crea una contraseña nueva"
-              description="Cerraremos las sesiones abiertas en otros dispositivos."
+              title={t('Crea una contraseña nueva')}
+              description={t('Cerraremos las sesiones abiertas en otros dispositivos.')}
             />
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3.5" noValidate>
@@ -97,7 +98,7 @@ export function ResetPasswordPage() {
                   name="newPassword"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nueva contraseña</FormLabel>
+                      <FormLabel>{t('Nueva contraseña')}</FormLabel>
                       <FormControl>
                         <PasswordInput autoComplete="new-password" autoFocus className="h-10" {...field} />
                       </FormControl>
@@ -111,27 +112,30 @@ export function ResetPasswordPage() {
                   name="confirmPassword"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Confirmar contraseña</FormLabel>
+                      <FormLabel>{t('Confirmar contraseña')}</FormLabel>
                       <FormControl>
                         <PasswordInput autoComplete="new-password" className="h-10" {...field} />
                       </FormControl>
-                      {matches && <p className="font-mono text-xs text-ok">✓ coinciden</p>}
+                      {matches && <p className="font-mono text-xs text-ok">{t('✓ coinciden')}</p>}
                       <FormMessage />
                     </FormItem>
                   )}
                 />
                 <Button type="submit" className="h-11 w-full rounded-xl" disabled={reset.isPending}>
                   {reset.isPending && <Spinner />}
-                  Guardar contraseña
+                  {t('Guardar contraseña')}
                 </Button>
               </form>
             </Form>
             {reset.isError && (
               <p className="text-center text-sm text-muted-foreground">
-                ¿El enlace expiró?{' '}
-                <Link to="/forgot-password" className="font-semibold text-accent-text hover:underline">
-                  Pide uno nuevo
-                </Link>
+                {tx('¿El enlace expiró? {link}', {
+                  link: (
+                    <Link to="/forgot-password" className="font-semibold text-accent-text hover:underline">
+                      {t('Pide uno nuevo')}
+                    </Link>
+                  ),
+                })}
               </p>
             )}
           </>

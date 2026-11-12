@@ -1,5 +1,6 @@
 import { isStory } from '@/features/issues/issueTypes'
 import { isClosed } from '@/features/issues/useIssueHelpers'
+import { tn } from '@/i18n'
 
 /**
  * El desglose «○ por hacer ◐ en curso» de un ciclo o módulo. Como su avance (el backend), cuenta el trabajo: las
@@ -14,8 +15,6 @@ export function progressBreakdown(issues) {
   }
 }
 
-const plural = (count, one, many) => `${count} ${count === 1 ? one : many}`
-
 /**
  * El número junto a «Tareas del ciclo/módulo», en la misma unidad que el avance («4 de 16 completadas»): el trabajo
  * (tareas y bugs) sin las canceladas. Las historias y las canceladas que también están en la lista van aparte:
@@ -28,11 +27,11 @@ export function planningListCount(issues) {
   const cancelled = issues.filter((issue) => !isStory(issue) && issue.state?.group === 'CANCELLED').length
   const work = issues.length - stories - cancelled
   const extras = [
-    stories > 0 && plural(stories, 'historia', 'historias'),
-    cancelled > 0 && plural(cancelled, 'cancelada', 'canceladas'),
+    stories > 0 && tn(stories, '{count} historia', '{count} historias'),
+    cancelled > 0 && tn(cancelled, '{count} cancelada', '{count} canceladas'),
   ].filter(Boolean)
   return {
     text: [String(work).padStart(2, '0'), ...extras].join(' · '),
-    title: [`${plural(work, 'tarea', 'tareas')} (tareas y bugs, como el avance)`, ...extras].join(' · '),
+    title: [tn(work, '{count} tarea (tareas y bugs, como el avance)', '{count} tareas (tareas y bugs, como el avance)'), ...extras].join(' · '),
   }
 }

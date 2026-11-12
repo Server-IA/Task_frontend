@@ -12,6 +12,11 @@ import { useSessionStore } from '@/stores/sessionStore'
 import { issuesApi } from '../api'
 import { IssueDescription } from './IssueDescription'
 
+// Quien mira tiene todos los permisos (project manager)
+vi.mock('@/features/workspaces/hooks', async (importOriginal) => ({
+  ...(await importOriginal()),
+  useWorkspace: () => ({ data: { myRole: 'OWNER' } }),
+}))
 vi.mock('../api', () => ({ issuesApi: { get: vi.fn(), update: vi.fn() } }))
 vi.mock('@/features/checklist/api', () => ({ checklistApi: { list: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() } }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } }))

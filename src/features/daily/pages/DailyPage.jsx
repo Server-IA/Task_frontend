@@ -1,34 +1,44 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { useSearchParams } from 'react-router'
-import { Ban, Users } from 'lucide-react'
+import { Ban, Settings2, Users } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { IssuePeekSheet } from '@/features/issues/components/IssuePeekSheet'
 import { useIssueFilters } from '@/features/issues/useIssueFilters'
 import { useCurrentProject } from '@/features/projects/hooks'
-import { useCurrentWorkspace } from '@/features/workspaces/hooks'
+import { useCan, useCurrentWorkspace } from '@/features/workspaces/hooks'
 import { useHotkey } from '@/hooks/useHotkey'
+import { t, tn } from '@/i18n'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { projectPath } from '@/lib/paths'
 import { cn } from '@/lib/utils'
+import { DailyAgenda } from '../components/DailyAgenda'
+import { fadeAway, growFrom } from '../presentMotion'
 import { DailyDateNav } from '../components/DailyDateNav'
 import { DailyNoteEditor } from '../components/DailyNoteEditor'
 import { DailyPersonCard } from '../components/DailyPersonCard'
 import { DailyPresenter } from '../components/DailyPresenter'
+import { DailySettingsDialog } from '../components/DailySettingsDialog'
 import {
   blockingByPerson,
   clampIndex,
   cycleProgress,
+  DEFAULT_DAILY_SETTINGS,
   parseDateParam,
   previousDayLabel,
   summaryItems,
   toIsoDay,
 } from '../daily'
-import { useDaily } from '../hooks'
+import { useDaily, useDailySettings } from '../hooks'
 
 /**
  * Daily del proyecto: por persona, lo que hizo «ayer» (el último día con actividad, que elige el backend), lo de
  * hoy y sus bloqueos, más la nota del día. «Presentar» muestra una persona a la vez con un tiempo sugerido. La fecha va en `?date=`.
+ * Los ajustes del proyecto (el engranaje, para quien puede configurar la daily) deciden el tiempo por persona, qué bloques
+ * se exponen y los puntos fijos a tratar.
  */
 export function DailyPage() {
   const workspace = useCurrentWorkspace()
@@ -38,6 +48,13 @@ export function DailyPage() {
   const date = parseDateParam(searchParams.get('date')) ?? today
   const fixedDate = date > today ? today : date
   const { data: daily, isLoading, isPlaceholderData, error, refetch } = useDaily(workspace.slug, project.id, fixedDate)
+  // Mientras llegan los ajustes se usan los de por defecto (todo visible, 2 minutos)
+  const { data: savedSettings } = useDailySettings(workspace.slug, project.id)
+  const settings = savedSettings ?? DEFAULT_DAILY_SETTINGS
+  const { sections } = settings
+  const canConfigure = useCan('DAILY_SETTINGS')
+  const canWriteNote = useCan('DAILY_NOTE')
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const issueFilters = useIssueFilters()
   const [presenting, setPresenting] = useState(false)
   const [current, setCurrent] = useState(0)
@@ -59,12 +76,29 @@ export function DailyPage() {
       return next
     })
 
+  // Al entrar a «Presentar», la tarjeta grande crece desde donde estaba la tarjeta de quien habla (se empieza por la
+  // primera persona); al salir se va con un fundido corto y vuelve la vista normal (ver `presentMotion`).
+  const leaving = useRef(false)
+  const exitPresenting = useCallback(() => {
+    if (leaving.current) return
+    const back = () => {
+      leaving.current = false
+      setPresenting(false)
+      setCurrent(0)
+    }
+    const fading = fadeAway(document.querySelector('[data-daily-presenter]'))
+    if (!fading) return back()
+    leaving.current = true
+    fading.then(back)
+  }, [])
   const togglePresenting = useCallback(() => {
     if (!canPresent) return
-    setPresenting((value) => !value)
-    setCurrent(0)
-  }, [canPresent])
-  const exitPresenting = useCallback(() => setPresenting(false), [])
+    if (presenting) return exitPresenting()
+    // Dónde está la tarjeta ahora, antes de cambiar de vista; el cambio se pinta de una vez para animar desde ahí
+    const origin = document.querySelector('[data-daily-morph]')?.getBoundingClientRect()
+    flushSync(() => setPresenting(true))
+    growFrom(document.querySelector('[data-daily-presenter] > article'), origin)
+  }, [canPresent, presenting, exitPresenting])
   const goPrevious = useCallback(() => setCurrent((value) => clampIndex(value - 1, people.length)), [people.length])
   const goNext = useCallback(() => setCurrent((value) => clampIndex(value + 1, people.length)), [people.length])
 
@@ -75,22 +109,42 @@ export function DailyPage() {
   useHotkey('escape', exitPresenting, { enabled: presenting })
 
   const base = `/${workspace.slug}/projects/${project.id}`
+  let description = t('Se arma sola con la actividad del proyecto.')
+  if (cycle && cycleDay) {
+    description = t('{cycle} · día {day} de {total} · se arma sola con la actividad del proyecto', { cycle: cycle.name, day: cycleDay.day, total: cycleDay.total })
+  } else if (cycle) {
+    description = t('{cycle} · se arma sola con la actividad del proyecto', { cycle: cycle.name })
+  }
 
   return (
     <>
       <PageHeader
-        path={[...projectPath(workspace, project), { label: 'daily' }]}
-        title="Daily"
-        documentTitle={['Daily', project.name]}
-        description={
-          cycle
-            ? `${cycle.name}${cycleDay ? ` · día ${cycleDay.day} de ${cycleDay.total}` : ''} · se arma sola con la actividad del proyecto`
-            : 'Se arma sola con la actividad del proyecto.'
-        }
+        path={[...projectPath(workspace, project), { label: t('daily') }]}
+        title={t('Daily')}
+        documentTitle={[t('Daily'), project.name]}
+        description={description}
         actions={
           <>
             <DailyDateNav date={fixedDate} today={today} onChange={setDate} />
             <PresentSwitch checked={presenting} disabled={!canPresent} onToggle={togglePresenting} />
+            {canConfigure && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon-lg"
+                    className="rounded-xl bg-card"
+                    onClick={() => setSettingsOpen(true)}
+                    // Hasta tener los ajustes guardados: abrirlo antes guardaría los de por defecto
+                    disabled={!savedSettings}
+                    aria-label={t('Ajustes de la daily')}
+                  >
+                    <Settings2 />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t('Ajustes de la daily: tiempos, bloques y puntos a tratar')}</TooltipContent>
+              </Tooltip>
+            )}
           </>
         }
       />
@@ -100,13 +154,14 @@ export function DailyPage() {
         {daily && people.length === 0 && (
           <EmptyState
             icon={Users}
-            title="Nadie en el proyecto todavía"
-            description="La daily muestra a los miembros del proyecto y a quienes tienen tareas asignadas."
+            title={t('Nadie en el proyecto todavía')}
+            description={t('La daily muestra a los miembros del proyecto y a quienes tienen tareas asignadas.')}
           />
         )}
 
         {daily && people.length > 0 && presenting && (
           <DailyPresenter
+            settings={settings}
             people={people}
             current={position}
             onSelect={(value) => setCurrent(clampIndex(value, people.length))}
@@ -125,11 +180,14 @@ export function DailyPage() {
             aria-busy={isPlaceholderData}
             className={cn('flex flex-col gap-3.5 transition-opacity duration-200', isPlaceholderData && 'opacity-60')}
           >
-            <DailySummaryStrip daily={daily} />
+            {sections.summary && <DailySummaryStrip daily={daily} />}
+            <DailyAgenda agenda={settings.agenda} />
             <div className="grid grid-cols-[repeat(auto-fit,minmax(270px,1fr))] items-start gap-3.5">
-              {people.map((person) => (
+              {people.map((person, index) => (
                 <DailyPersonCard
                   key={person.user?.id}
+                  // La tarjeta desde la que crece la pantalla de «Presentar»
+                  morph={index === position}
                   person={person}
                   cycle={cycle}
                   date={daily.date}
@@ -137,11 +195,12 @@ export function DailyPage() {
                   projectId={project.id}
                   blocking={blocking.get(person.user?.id)}
                   onOpenIssue={issueFilters.openIssue}
+                  sections={sections}
                 />
               ))}
             </div>
             {/* Una nota por día: al cambiar de fecha el editor empieza de nuevo (y guarda lo pendiente) */}
-            {!isPlaceholderData && (
+            {!isPlaceholderData && sections.note && (canWriteNote || daily.note) && (
               <DailyNoteEditor
                 key={daily.date}
                 slug={workspace.slug}
@@ -149,6 +208,7 @@ export function DailyPage() {
                 date={daily.date}
                 isToday={daily.date === today}
                 note={daily.note}
+                readOnly={!canWriteNote}
               />
             )}
           </div>
@@ -162,6 +222,15 @@ export function DailyPage() {
         onClose={issueFilters.closeIssue}
         onOpenIssue={issueFilters.openIssue}
       />
+      {canConfigure && (
+        <DailySettingsDialog
+          slug={workspace.slug}
+          projectId={project.id}
+          settings={settings}
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+        />
+      )}
     </>
   )
 }
@@ -192,7 +261,7 @@ function PresentSwitch({ checked, disabled, onToggle }) {
           )}
         />
       </span>
-      Presentar
+      {t('Presentar')}
       <kbd className="font-mono text-[11px] font-normal text-muted-foreground">P</kbd>
     </button>
   )
@@ -206,11 +275,11 @@ function DailySummaryStrip({ daily }) {
   const { items, blocked } = summaryItems(daily.summary)
   return (
     <section
-      aria-label="Resumen desde el día anterior"
+      aria-label={t('Resumen desde el día anterior')}
       className="flex flex-wrap items-center gap-x-5.5 gap-y-2 rounded-2xl border border-dashed border-dash px-4.5 py-2.5"
     >
-      <span className="font-mono text-[11px] text-muted-foreground">// desde {previousDayLabel(daily.date, daily.previousDate)}</span>
-      {items.length === 0 && blocked === 0 && <span className="text-[13px] text-muted-foreground">sin cambios en las tareas</span>}
+      <span className="font-mono text-[11px] text-muted-foreground">{t('// desde {day}', { day: previousDayLabel(daily.date, daily.previousDate) })}</span>
+      {items.length === 0 && blocked === 0 && <span className="text-[13px] text-muted-foreground">{t('sin cambios en las tareas')}</span>}
       {items.map((item) => (
         <span key={item.key} className="flex items-baseline gap-1.5">
           <strong className="font-display text-[22px] leading-none font-extrabold">{item.value}</strong>
@@ -218,16 +287,16 @@ function DailySummaryStrip({ daily }) {
         </span>
       ))}
       {blocked > 0 && (
-        <span className="flex items-center gap-1.5 text-[13px] font-semibold text-late" title="Tareas abiertas con una tarea abierta que las bloquea">
+        <span className="flex items-center gap-1.5 text-[13px] font-semibold text-late" title={t('Tareas abiertas con una tarea abierta que las bloquea')}>
           <Ban className="size-3.5" strokeWidth={2.5} aria-hidden="true" />
-          {blocked} {blocked === 1 ? 'bloqueo' : 'bloqueos'}
+          {tn(blocked, '{count} bloqueo', '{count} bloqueos')}
         </span>
       )}
       <span
         className="ml-auto text-xs text-muted-foreground"
-        title="El último día antes de la reunión en que hubo cambios o comentarios en el proyecto (como mucho, el día hábil anterior)"
+        title={t('El último día antes de la reunión en que hubo cambios o comentarios en el proyecto (como mucho, el día hábil anterior)')}
       >
-        Ayer = último día con actividad
+        {t('Ayer = último día con actividad')}
       </span>
     </section>
   )
@@ -235,7 +304,7 @@ function DailySummaryStrip({ daily }) {
 
 function DailySkeleton() {
   return (
-    <div className="flex flex-col gap-3.5" aria-label="Cargando la daily">
+    <div className="flex flex-col gap-3.5" aria-label={t('Cargando la daily')}>
       <Skeleton className="h-12 rounded-2xl" />
       <div className="grid grid-cols-[repeat(auto-fit,minmax(270px,1fr))] gap-3.5">
         {Array.from({ length: 3 }, (_, index) => (

@@ -1,23 +1,27 @@
-import { useEffect, useState } from 'react'
-import { ChevronLeft, ChevronRight, Timer } from 'lucide-react'
+import { useState } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { UserAvatar } from '@/components/common/UserAvatar'
+import { t, tc, tx } from '@/i18n'
 import { cn } from '@/lib/utils'
-import { firstName, formatTimer, personMeta, PRESENT_SECONDS, stepStatus } from '../daily'
+import { firstName, personMeta, stepStatus } from '../daily'
+import { DailyAgenda } from './DailyAgenda'
 import { DailyBlock, personBlocks } from './DailyBlocks'
 
-const STEP_LABEL = { done: 'lista', current: 'ahora', next: 'sigue', later: '' }
+const STEP_LABEL = { done: tc('daily', 'lista'), current: t('ahora'), next: t('sigue'), later: '' }
 
 /**
- * Modo «Presentar»: una persona a la vez, con quién ya habló y quién sigue, y un tiempo sugerido por
- * persona (solo visual). ← → cambian de persona y Esc sale (los atajos los pone la página).
+ * Modo «Presentar»: una persona a la vez, con quién ya habló y quién sigue. Solo se ven los bloques que el proyecto
+ * expone (`settings`) y, debajo de las personas, los puntos a tratar. ← → cambian de persona y Esc sale (los atajos
+ * los pone la página).
  * @param {{ people: import('@/api/types').DailyPerson[], current: number, onSelect: (index: number) => void,
  *           onExit: () => void, cycle: import('@/api/types').DailyCycle | null, date: string, previousDate?: string,
  *           projectId: string,
  *           blocking: Map<string, { code: string, blockedCode: string, ownerName: string }[]>,
- *           onOpenIssue: (issueId: string) => void }} props
+ *           onOpenIssue: (issueId: string) => void, settings?: import('@/api/types').DailySettings }} props
  */
 export function DailyPresenter({
+  settings,
   people,
   current,
   onSelect,
@@ -29,6 +33,13 @@ export function DailyPresenter({
   blocking,
   onOpenIssue,
 }) {
+  // Hacia dónde se avanzó la última vez (para la entrada de la tarjeta); al abrir «Presentar», ninguno
+  const [lastIndex, setLastIndex] = useState(current)
+  const [direction, setDirection] = useState(null)
+  if (current !== lastIndex) {
+    setDirection(current > lastIndex ? 'next' : 'prev')
+    setLastIndex(current)
+  }
   const person = people[current]
   if (!person) return null
   const previous = people[current - 1]
@@ -41,11 +52,12 @@ export function DailyPresenter({
     blocking: blocking.get(person.user?.id),
     onOpenIssue,
     size: 'focus',
+    sections: settings?.sections,
   })
 
   return (
-    <div className="tf-fade flex min-h-0 flex-1 flex-col gap-3.5">
-      <nav aria-label="Personas" className="flex flex-wrap items-center gap-2">
+    <div data-daily-presenter="" className="tf-fade flex min-h-0 flex-1 flex-col gap-3.5">
+      <nav aria-label={t('Personas')} className="flex flex-wrap items-center gap-2">
         {people.map((item, position) => {
           const status = stepStatus(position, current)
           return (
@@ -68,14 +80,15 @@ export function DailyPresenter({
             </button>
           )
         })}
-        {/* La clave reinicia el tiempo al cambiar de persona */}
-        <PresenterTimer key={current} />
       </nav>
+      <DailyAgenda agenda={settings?.agenda} />
 
       <article
         key={person.user?.id ?? current}
         aria-label={person.user?.fullName}
-        className="tf-fade flex flex-1 flex-col gap-4.5 rounded-[22px] border bg-card px-5 py-5 sm:px-6.5"
+        // Al cambiar de persona la tarjeta entra desde el lado hacia el que se avanzó. Al abrir «Presentar» no lleva
+        // animación propia: la página la hace crecer desde la tarjeta de la persona (y todo el modo aparece con `tf-fade`)
+        className={cn('flex flex-1 flex-col gap-4.5 rounded-[22px] border bg-card px-5 py-5 sm:px-6.5', direction && `tf-slide-${direction}`)}
       >
         <header className="flex items-center gap-3.5">
           <UserAvatar user={person.user} size="lg" className="size-13 text-[17px]" />
@@ -84,7 +97,7 @@ export function DailyPresenter({
               {person.user?.fullName}
             </span>
             <span className="block font-mono text-xs text-muted-foreground">
-              {current + 1} de {people.length} · {personMeta(person, cycle, { long: true })}
+              {t('{current} de {total}', { current: current + 1, total: people.length })} · {personMeta(person, cycle, { long: true })}
             </span>
           </span>
         </header>
@@ -101,41 +114,17 @@ export function DailyPresenter({
             </Button>
           )}
           <span className="hidden font-mono text-[11px] text-muted-foreground sm:inline">
-            <kbd className="text-foreground">← →</kbd> cambiar persona · <kbd className="text-foreground">esc</kbd> salir
+            {tx('{arrows} cambiar persona · {esc} salir', {
+              arrows: <kbd className="text-foreground">← →</kbd>,
+              esc: <kbd className="text-foreground">esc</kbd>,
+            })}
           </span>
           <Button className="ml-auto h-10 rounded-xl px-3.5" onClick={next ? () => onSelect(current + 1) : onExit}>
-            {next ? `Sigue ${next.user?.fullName}` : 'Terminar'}
+            {next ? t('Sigue {name}', { name: next.user?.fullName }) : t('Terminar')}
             {next && <ChevronRight strokeWidth={2.5} />}
           </Button>
         </footer>
       </article>
     </div>
-  )
-}
-
-/** Cuenta regresiva por persona («1:24 / 2:00 por persona»); pasado el tiempo sigue contando en rojo. */
-function PresenterTimer() {
-  const [elapsed, setElapsed] = useState(0)
-  useEffect(() => {
-    const timer = setInterval(() => setElapsed((value) => value + 1), 1000)
-    return () => clearInterval(timer)
-  }, [])
-  const remaining = PRESENT_SECONDS - elapsed
-  const over = remaining < 0
-
-  return (
-    <span
-      role="timer"
-      aria-live="off"
-      aria-label={over ? `Tiempo excedido por ${formatTimer(remaining).slice(1)}` : `Quedan ${formatTimer(remaining)}`}
-      className={cn(
-        'ml-auto flex items-center gap-2 rounded-full border px-3 py-1.5 font-mono text-[13px] tabular-nums',
-        over && 'border-late/40 bg-late-soft text-late',
-      )}
-    >
-      <Timer className="size-3.5" aria-hidden="true" />
-      {formatTimer(remaining)}
-      <span className={cn('text-muted-foreground', over && 'text-late')}>/ {formatTimer(PRESENT_SECONDS)} por persona</span>
-    </span>
   )
 }

@@ -4,6 +4,9 @@ import { withSessionLock } from '@/api/session'
 import { pendingInvitation } from '@/lib/pendingInvitation'
 import { tokenStorage } from '@/lib/tokenStorage'
 import { usePreferencesStore } from '@/stores/preferencesStore'
+import { getLanguage } from '@/i18n'
+import { playLoginOutro, playLogoutOutro, requestAppIntro } from '@/lib/intro'
+import { useLayoutStore } from '@/stores/layoutStore'
 import { useSessionStore } from '@/stores/sessionStore'
 import { authApi, userApi } from './api'
 
@@ -12,9 +15,16 @@ export function useLogin() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: authApi.login,
-    onSuccess: (auth) => {
+    // Asíncrono: la sesión no se guarda (y la app no se abre) hasta que el login terminó de salir
+    onSuccess: async (auth) => {
+      await playLoginOutro(() => useLayoutStore.getState().setEnteringApp(true))
+      // La app que viene entra animada (ver `lib/intro`)
+      requestAppIntro()
       queryClient.clear()
       setSession(auth)
+      // Una cuenta que todavía no eligió idioma se queda con el que la persona está viendo: así sus correos y sus
+      // otros navegadores lo siguen. Si falla (por ejemplo, con un backend anterior) no pasa nada.
+      if (auth?.user && !auth.user.language) userApi.updateLanguage?.(getLanguage())?.catch(() => {})
     },
   })
 }
@@ -64,14 +74,17 @@ export function useVerifyEmail() {
 export function useLogout() {
   const forgetSession = useForgetSession()
   return useMutation({
-    // Bajo el mismo lock que el refresh: se revoca el token vigente, no uno que se esté rotando
-    mutationFn: () =>
-      withSessionLock(async () => {
+    mutationFn: async () => {
+      // Primero la salida animada (la app se va y queda el logo en el centro); después se cierra de verdad
+      await playLogoutOutro(() => useLayoutStore.getState().setLeaving(true))
+      // Bajo el mismo lock que el refresh: se revoca el token vigente, no uno que se esté rotando
+      return withSessionLock(async () => {
         const refreshToken = tokenStorage.get()
         if (refreshToken) {
           await authApi.logout(refreshToken).catch(() => {})
         }
-      }),
+      })
+    },
     onSettled: forgetSession,
   })
 }
@@ -117,6 +130,15 @@ export function useUpdateProfile() {
       queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] !== 'me' })
     },
   })
+}
+
+/**
+ * Cambia el idioma de la cuenta. Al guardarse, la sesión toma el usuario nuevo y la página se recarga en ese idioma
+ * (ver `followAccountLanguage` en la sesión).
+ */
+export function useUpdateLanguage() {
+  const setUser = useSessionStore((state) => state.setUser)
+  return useMutation({ mutationFn: userApi.updateLanguage, onSuccess: (user) => setUser(user) })
 }
 
 /** El backend cierra las demás sesiones y devuelve tokens nuevos para esta. */

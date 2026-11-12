@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { setLanguage } from '@/i18n'
 import { tokenStorage } from '@/lib/tokenStorage'
 
 /**
@@ -9,6 +10,14 @@ import { tokenStorage } from '@/lib/tokenStorage'
  * status: 'loading' (recuperando la sesión al abrir la app) | 'authenticated' | 'anonymous'
  *   | 'offline' (al abrir la app no se pudo contactar al backend; se conserva el token para reintentar)
  */
+/**
+ * El idioma elegido en el perfil manda sobre el de este navegador: si la cuenta tiene uno y es otro, se cambia (la
+ * página se recarga). Una cuenta que nunca lo eligió (`language` vacío) deja el del navegador.
+ */
+function followAccountLanguage(user) {
+  if (user?.language) setLanguage(user.language)
+}
+
 export const useSessionStore = create((set) => ({
   status: tokenStorage.get() ? 'loading' : 'anonymous',
   accessToken: null,
@@ -23,9 +32,13 @@ export const useSessionStore = create((set) => ({
   setSession: (auth) => {
     tokenStorage.set(auth.refreshToken)
     set({ status: 'authenticated', accessToken: auth.accessToken, user: auth.user, loggedOut: false, expired: false })
+    followAccountLanguage(auth.user)
   },
 
-  setUser: (user) => set({ user }),
+  setUser: (user) => {
+    set({ user })
+    followAccountLanguage(user)
+  },
 
   /** @param {{ loggedOut?: boolean, expired?: boolean }} [options] */
   clearSession: ({ loggedOut = false, expired = false } = {}) => {

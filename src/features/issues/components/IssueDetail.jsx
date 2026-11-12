@@ -11,15 +11,18 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { AvatarStack } from '@/components/common/AvatarStack'
+import { StrikeText } from '@/components/common/Pulse'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { CenteredSpinner } from '@/components/common/Loaders'
 import { ErrorState } from '@/components/common/States'
 import { StateIcon } from '@/components/common/StateIcon'
 import { MarkdownView } from '@/features/editor/components/MarkdownView'
 import { useWorkspace } from '@/features/workspaces/hooks'
+import { stateName, t } from '@/i18n'
 import { formatDateTime, formatRelative, formatShortDate } from '@/lib/dates'
+import { useFlashed } from '@/lib/flash'
 import { notifyError } from '@/lib/notify'
-import { canDeleteIssue } from '@/lib/permissions'
+import { can, canDeleteIssue } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { useSessionStore } from '@/stores/sessionStore'
 import { useDeleteIssue, useIssue, useSubIssues } from '../hooks'
@@ -27,6 +30,7 @@ import { useCriteriaGuard } from '../useCriteriaGuard'
 import { isStory, stateOptionsFor, storyFlags, storyStateLocked, typeOf } from '../issueTypes'
 import { isOverdue, useIssueUpdater, useProjectMeta } from '../useIssueHelpers'
 import { closedStoryActions, useStoryClosedGuard } from '../useStoryClosedGuard'
+import { sourceName } from '@/features/imports/importModel'
 import { CreateIssueDialog } from './CreateIssueDialog'
 import { StoryProgressSummary, TypePill } from './IssueTypeBits'
 import { TypePicker } from './TypePicker'
@@ -67,6 +71,11 @@ export function IssueDetail({
   // Estado, tipo o padre que reabrirían una historia cerrada: 409 STORY_CLOSED → preguntar
   const { onStoryClosed, dialog: storyClosedDialog, manager } = useStoryClosedGuard(slug)
   const [subIssueOpen, setSubIssueOpen] = useState(false)
+  // Del workspace de la tarea (no de la URL): el panel también se abre desde la Bandeja. Sin el permiso de editar
+  // tareas las propiedades quedan apagadas; sin el de crear, no se ofrecen subtareas
+  const { data: workspace } = useWorkspace(slug)
+  const canEdit = can(workspace, 'ISSUE_EDIT')
+  const canCreate = can(workspace, 'ISSUE_CREATE')
   // «Ver Markdown» del menú ⋯: la descripción tal como se guarda
   const [showMarkdown, setShowMarkdown] = useState(false)
 
@@ -95,7 +104,7 @@ export function IssueDetail({
         onClose={onClose}
         showMarkdown={showMarkdown}
         onToggleMarkdown={() => setShowMarkdown((current) => !current)}
-        manager={manager}
+        canEdit={canEdit}
         onChangeType={(type) => updateReopening({ type }, closedStoryActions.type(issue))}
       />
 
@@ -118,9 +127,10 @@ export function IssueDetail({
               singleLine
               value={issue.title}
               maxLength={255}
+              disabled={!canEdit}
               onSave={(title) => update({ title })}
               className="-mx-2 text-2xl leading-tight font-semibold tracking-[-0.01em]"
-              placeholder="Título de la tarea"
+              placeholder={t('Título de la tarea')}
             />
           </div>
           {renderUnderTitle?.(issue)}
@@ -138,7 +148,7 @@ export function IssueDetail({
               projectId={project.id}
               issueId={issue.id}
               onOpenIssue={onOpenIssue}
-              onAdd={() => setSubIssueOpen(true)}
+              onAdd={canCreate ? () => setSubIssueOpen(true) : undefined}
             />
           )}
 
@@ -148,15 +158,15 @@ export function IssueDetail({
         </div>
 
         <aside className="flex flex-[1_1_240px] flex-col gap-1 border-l bg-column px-4.5 py-5">
-          <p className="mb-2 font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase">Propiedades</p>
-          <PropertyRow label="Tipo">
+          <p className="mb-2 font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase">{t('Propiedades')}</p>
+          <PropertyRow label={t('Tipo')}>
             <TypePill type={typeOf(issue)} className="ml-2" />
           </PropertyRow>
-          <PropertyRow label="Estado">
+          <PropertyRow label={t('Estado')}>
             <span className="flex min-w-0 flex-col items-start">
             <StatePicker
               states={stateOptions}
-              disabled={storyStateLocked(issue, manager)}
+              disabled={!canEdit || storyStateLocked(issue, manager)}
               value={issue.state?.id}
               onChange={(stateId) => {
                 const state = meta.states.find((item) => item.id === stateId)
@@ -164,60 +174,65 @@ export function IssueDetail({
               }}
             />
             {story && (
-              <span className="-mt-1 pl-2 font-mono text-[10.5px] text-muted-foreground" title="El estado de la historia sigue a sus tareas">
-                {flags.closed ? 'cerrada' : 'automático'}
+              <span className="-mt-1 pl-2 font-mono text-[10.5px] text-muted-foreground" title={t('El estado de la historia sigue a sus tareas')}>
+                {flags.closed ? t('cerrada') : t('automático')}
               </span>
             )}
             </span>
           </PropertyRow>
           {story && (
-            <PropertyRow label="Progreso">
+            <PropertyRow label={t('Progreso')}>
               <StoryProgressSummary story={issue} />
             </PropertyRow>
           )}
           {story && issue.closedAt && (
-            <PropertyRow label="Cerrada por">
+            <PropertyRow label={t('Cerrada por')}>
               <span className="truncate px-2 text-xs">
                 {issue.closedBy?.fullName.split(' ')[0] ?? '—'} · {formatShortDate(issue.closedAt)}
               </span>
             </PropertyRow>
           )}
-          <PropertyRow label="Prioridad">
-            <PriorityPicker value={issue.priority} onChange={(priority) => update({ priority })} />
+          <PropertyRow label={t('Prioridad')}>
+            <PriorityPicker disabled={!canEdit} value={issue.priority} onChange={(priority) => update({ priority })} />
           </PropertyRow>
-          <PropertyRow label="Asignados">
+          <PropertyRow label={t('Asignados')}>
             <AssigneesPicker
+              disabled={!canEdit}
               members={meta.users}
               value={issue.assignees?.map((user) => user.id) ?? []}
               onChange={(assigneeIds) => update({ assigneeIds })}
             />
           </PropertyRow>
-          <PropertyRow label="Etiquetas">
+          <PropertyRow label={t('Etiquetas')}>
             <LabelsPicker
+              disabled={!canEdit}
               labels={meta.labels}
               value={issue.labels?.map((label) => label.id) ?? []}
               onChange={(labelIds) => update({ labelIds })}
             />
           </PropertyRow>
-          <PropertyRow label="Inicio">
+          <PropertyRow label={t('Inicio')}>
             <DatePicker
+              disabled={!canEdit}
               value={issue.startDate}
-              placeholder="Sin fecha"
+              placeholder={t('Sin fecha')}
               maxDate={issue.dueDate}
               onChange={(startDate) => update(startDate ? { startDate } : { clearStartDate: true })}
             />
           </PropertyRow>
-          <PropertyRow label="Fecha límite">
+          <PropertyRow label={t('Fecha límite')}>
             <DatePicker
+              disabled={!canEdit}
               value={issue.dueDate}
-              placeholder="Sin fecha"
+              placeholder={t('Sin fecha')}
               minDate={issue.startDate}
               isOverdue={isOverdue(issue)}
               onChange={(dueDate) => update(dueDate ? { dueDate } : { clearDueDate: true })}
             />
           </PropertyRow>
-          <PropertyRow label={issue.parent?.type === 'STORY' ? 'Historia' : 'Padre'}>
+          <PropertyRow label={issue.parent?.type === 'STORY' ? t('Historia') : t('Padre')}>
             <ParentPicker
+              disabled={!canEdit}
               slug={slug}
               projectId={project.id}
               issue={issue}
@@ -228,18 +243,20 @@ export function IssueDetail({
           </PropertyRow>
           {renderProperties?.(issue)}
           <div className="mt-3.5 space-y-0.5 border-t pt-3.5 font-mono text-[11px] leading-relaxed text-muted-foreground">
-            <p title={formatDateTime(issue.createdAt)}>
-              {story ? 'escrita' : 'creada'}
-              {issue.createdBy ? ` por ${issue.createdBy.fullName.split(' ')[0]}` : ''} · {formatRelative(issue.createdAt)}
-            </p>
+            <p title={formatDateTime(issue.createdAt)}>{createdLine(issue, story)}</p>
             {story && issue.closedAt && (
               <p title={formatDateTime(issue.closedAt)}>
-                cerrada{issue.closedBy ? ` por ${issue.closedBy.fullName.split(' ')[0]}` : ''} · {formatShortDate(issue.closedAt)}
+                {issue.closedBy
+                  ? t('cerrada por {name} · {when}', { name: issue.closedBy.fullName.split(' ')[0], when: formatShortDate(issue.closedAt) })
+                  : t('cerrada · {when}', { when: formatShortDate(issue.closedAt) })}
               </p>
             )}
-            <p title={formatDateTime(issue.updatedAt)}>actualizada {formatRelative(issue.updatedAt)}</p>
+            <p title={formatDateTime(issue.updatedAt)}>{t('actualizada {when}', { when: formatRelative(issue.updatedAt) })}</p>
+            {issue.importSource && <ImportedFrom issue={issue} />}
             {issue.checklistUpdatedAt && (
-              <p title={formatDateTime(issue.checklistUpdatedAt)}>checklist actualizado {formatRelative(issue.checklistUpdatedAt)}</p>
+              <p title={formatDateTime(issue.checklistUpdatedAt)}>
+                {t('checklist actualizado {when}', { when: formatRelative(issue.checklistUpdatedAt) })}
+              </p>
             )}
           </div>
         </aside>
@@ -258,6 +275,28 @@ export function IssueDetail({
   )
 }
 
+/** «importada de Jira · PORT-123 ↗»: de dónde vino una tarea importada, con el enlace a su original si lo tiene. */
+function ImportedFrom({ issue }) {
+  const where = [sourceName(issue.importSource), issue.importKey].filter(Boolean).join(' · ')
+  const text = t('importada de {source}', { source: where })
+  if (!issue.importUrl) return <p>{text}</p>
+  return (
+    <p>
+      <a href={issue.importUrl} target="_blank" rel="noreferrer" className="underline-offset-2 hover:text-foreground hover:underline">
+        {text} <span aria-hidden="true">↗</span>
+      </a>
+    </p>
+  )
+}
+
+/** «creada por Luis · hace 2 días» (una historia se «escribe»); sin autor, «creada · hace 2 días». */
+function createdLine(issue, story) {
+  const when = formatRelative(issue.createdAt)
+  const name = issue.createdBy?.fullName.split(' ')[0]
+  if (story) return name ? t('escrita por {name} · {when}', { name, when }) : t('escrita · {when}', { when })
+  return name ? t('creada por {name} · {when}', { name, when }) : t('creada · {when}', { when })
+}
+
 export function PropertyRow({ label, children }) {
   return (
     <div className="grid min-h-[34px] grid-cols-[76px_minmax(0,1fr)] items-center gap-2">
@@ -267,29 +306,29 @@ export function PropertyRow({ label, children }) {
   )
 }
 
-function IssueTopBar({ slug, project, issue, variant, pageUrl, onClose, showMarkdown, onToggleMarkdown, manager, onChangeType }) {
+function IssueTopBar({ slug, project, issue, variant, pageUrl, onClose, showMarkdown, onToggleMarkdown, canEdit, onChangeType }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const remove = useDeleteIssue(slug, project.id)
   const navigate = useNavigate()
   // Del workspace de la tarea (no de la URL): el panel también se abre desde la Bandeja
   const { data: workspace } = useWorkspace(slug)
   const currentUserId = useSessionStore((state) => state.user?.id)
-  // Eliminar: el project manager o quien creó la tarea (el backend responde 403 a los demás)
-  const canDelete = canDeleteIssue(workspace?.myRole, issue, currentUserId)
+  // Eliminar: las propias y las de otros van por permisos distintos (el backend responde 403 a los demás)
+  const canDelete = canDeleteIssue(workspace, issue, currentUserId)
 
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(`${window.location.origin}${pageUrl}`)
-      toast.success('Enlace copiado')
+      toast.success(t('Enlace copiado'))
     } catch {
-      toast.error('No se pudo copiar el enlace')
+      toast.error(t('No se pudo copiar el enlace'))
     }
   }
 
   const handleDelete = () => {
     remove.mutate(issue.id, {
       onSuccess: () => {
-        toast.success(`${issue.code} eliminada`)
+        toast.success(t('{code} eliminada', { code: issue.code }))
         setConfirmDelete(false)
         if (variant === 'panel') onClose?.()
         else navigate(`/${slug}/projects/${project.id}/issues`, { replace: true })
@@ -302,24 +341,24 @@ function IssueTopBar({ slug, project, issue, variant, pageUrl, onClose, showMark
 
   return (
     <div className="flex shrink-0 items-center gap-2.5 border-b px-4 py-3">
-      <TypePicker issue={issue} isManager={manager} onChange={onChangeType} />
+      <TypePicker issue={issue} isManager={can(workspace, 'STORY_MANAGE')} disabled={!canEdit} onChange={onChangeType} />
       {/* El código no se parte (en el panel quedaba «QAVISUALLONG-» / «1»); un estado de nombre largo se corta */}
       <span className="shrink-0 font-mono text-[13px] whitespace-nowrap text-muted-foreground">{issue.code}</span>
       <span className="hidden truncate font-mono text-xs text-muted-foreground sm:inline">· {project.name.toLowerCase()}</span>
-      <span className="flex max-w-60 shrink-0 items-center gap-1.5 text-[13px]" title={issue.state?.name}>
+      <span className="flex max-w-60 shrink-0 items-center gap-1.5 text-[13px]" title={stateName(issue.state)}>
         <StateIcon group={issue.state?.group} color={issue.state?.color} />
-        <span className="truncate">{issue.state?.name}</span>
+        <span className="truncate">{stateName(issue.state)}</span>
         {isStory(issue) && issue.state?.group !== 'COMPLETED' && issue.state?.group !== 'CANCELLED' && (
-          <span className="shrink-0 font-mono text-[11px] text-muted-foreground">automático</span>
+          <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{t('automático')}</span>
         )}
       </span>
       {issue.assignees?.length > 0 && <AvatarStack users={issue.assignees} size="xs" className="ml-1" />}
       <div className="ml-auto flex items-center gap-1">
-        <Button variant="ghost" size="icon" className={iconButton} onClick={copyLink} aria-label="Copiar enlace" title="Copiar enlace">
+        <Button variant="ghost" size="icon" className={iconButton} onClick={copyLink} aria-label={t('Copiar enlace')} title={t('Copiar enlace')}>
           <Link2 />
         </Button>
         {variant === 'panel' && (
-          <Button asChild variant="ghost" size="icon" className={iconButton} aria-label="Abrir en página completa" title="Abrir en página completa">
+          <Button asChild variant="ghost" size="icon" className={iconButton} aria-label={t('Abrir en página completa')} title={t('Abrir en página completa')}>
             <Link to={pageUrl}>
               <Maximize2 />
             </Link>
@@ -327,28 +366,28 @@ function IssueTopBar({ slug, project, issue, variant, pageUrl, onClose, showMark
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className={iconButton} aria-label="Más acciones">
+            <Button variant="ghost" size="icon" className={iconButton} aria-label={t('Más acciones')}>
               <MoreHorizontal />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onSelect={onToggleMarkdown}>
               <FileCode2 />
-              {showMarkdown ? 'Ver la descripción con formato' : 'Ver Markdown'}
+              {showMarkdown ? t('Ver la descripción con formato') : t('Ver Markdown')}
             </DropdownMenuItem>
             {canDelete && (
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(true)}>
                   <Trash2 />
-                  Eliminar tarea
+                  {t('Eliminar tarea')}
                 </DropdownMenuItem>
               </>
             )}
           </DropdownMenuContent>
         </DropdownMenu>
         {variant === 'panel' && (
-          <Button variant="ghost" size="icon" className={iconButton} onClick={onClose} aria-label="Cerrar">
+          <Button variant="ghost" size="icon" className={iconButton} onClick={onClose} aria-label={t('Cerrar')}>
             <X />
           </Button>
         )}
@@ -356,9 +395,9 @@ function IssueTopBar({ slug, project, issue, variant, pageUrl, onClose, showMark
       <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
-        title={`¿Eliminar ${issue.code}?`}
-        description="Se borrarán sus comentarios e historial. Sus subtareas se conservan sin padre."
-        confirmLabel="Eliminar"
+        title={t('¿Eliminar {code}?', { code: issue.code })}
+        description={t('Se borrarán sus comentarios e historial. Sus subtareas se conservan sin padre.')}
+        confirmLabel={t('Eliminar')}
         loading={remove.isPending}
         onConfirm={handleDelete}
       />
@@ -370,27 +409,31 @@ function SubIssues({ slug, projectId, issueId, onOpenIssue, onAdd }) {
   const { data: subIssues, isLoading } = useSubIssues(slug, projectId, issueId)
   const total = subIssues?.length ?? 0
   const done = subIssues?.filter((sub) => sub.state?.group === 'COMPLETED').length ?? 0
+  // La subtarea recién creada desde aquí queda resaltada un momento (la ficha de `landNewTask` llega a su fila)
+  const createdId = useFlashed('created')
 
   return (
     <section className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold">
-          Subtareas{' '}
+          {t('Subtareas')}{' '}
           {total > 0 && (
             <span className="font-mono text-xs font-normal text-muted-foreground">
               {done}/{total}
             </span>
           )}
         </h2>
-        <button type="button" className="rounded-full border px-2.5 py-1 text-xs hover:bg-accent" onClick={onAdd}>
-          + agregar
-        </button>
+        {onAdd && (
+          <button type="button" className="rounded-full border px-2.5 py-1 text-xs hover:bg-accent" onClick={onAdd}>
+            {t('+ agregar')}
+          </button>
+        )}
       </div>
       {isLoading ? (
         <CenteredSpinner className="p-4" />
       ) : total === 0 ? (
         <p className="rounded-xl border border-dashed border-dash px-3 py-3.5 text-center text-sm text-muted-foreground">
-          Sin subtareas
+          {t('Sin subtareas')}
         </p>
       ) : (
         <>
@@ -405,11 +448,14 @@ function SubIssues({ slug, projectId, issueId, onOpenIssue, onAdd }) {
                   <button
                     type="button"
                     onClick={() => onOpenIssue(sub.id)}
-                    className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-subtle"
+                    data-issue-id={sub.id}
+                    className={cn('flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-subtle', createdId === sub.id && 'tf-new-row')}
                   >
                     <StateIcon group={sub.state?.group} color={sub.state?.color} />
                     <span className="shrink-0 font-mono text-xs text-muted-foreground">{sub.code}</span>
-                    <span className={cn('min-w-0 flex-1 truncate', closed && 'text-muted-foreground line-through')}>{sub.title}</span>
+                    <StrikeText done={closed} className={cn('min-w-0 flex-1 truncate', closed && 'text-muted-foreground')}>
+                      {sub.title}
+                    </StrikeText>
                     {sub.assignees?.length > 0 && <AvatarStack users={sub.assignees} size="xs" />}
                   </button>
                 </li>

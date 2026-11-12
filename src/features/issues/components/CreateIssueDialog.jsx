@@ -17,6 +17,7 @@ import { Spinner } from '@/components/common/Loaders'
 import { LazyRichEditor, usePreloadRichEditor } from '@/features/editor/components/LazyRichEditor'
 import { inlineImageTarget } from '@/features/files/hooks'
 import { useMentionPeople } from '@/features/mentions/hooks'
+import { t } from '@/i18n'
 import {
   applyTemplate,
   appliedParts,
@@ -25,20 +26,22 @@ import {
   fromTemplateFlags,
 } from '@/features/templates/applyTemplate'
 import { useTemplates } from '@/features/templates/hooks'
-import { useIsManager } from '@/features/workspaces/hooks'
+import { useCan } from '@/features/workspaces/hooks'
 import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { useCreateIssue } from '../hooks'
+import { flash } from '@/lib/flash'
 import { firstTemplateOfType, ISSUE_TYPES, templateType, TYPE_LABELS } from '../issueTypes'
+import { landNewTask } from '../taskMotion'
 import { useProjectMeta } from '../useIssueHelpers'
 import { TypeIcon } from './IssueTypeBits'
 import { AssigneesPicker, DatePicker, LabelsPicker, PriorityPicker, StatePicker } from './PropertyPickers'
 
 const issueSchema = z
   .object({
-    title: z.string().trim().min(1, 'El título es obligatorio').max(255, 'Máximo 255 caracteres'),
-    description: z.string().max(50000, 'La descripción es demasiado larga'),
+    title: z.string().trim().min(1, t('El título es obligatorio')).max(255, t('Máximo 255 caracteres')),
+    description: z.string().max(50000, t('La descripción es demasiado larga')),
     stateId: z.string().nullable(),
     priority: z.string(),
     assigneeIds: z.array(z.string()),
@@ -48,20 +51,26 @@ const issueSchema = z
   })
   .refine((values) => !values.startDate || !values.dueDate || values.dueDate >= values.startDate, {
     path: ['dueDate'],
-    message: 'La fecha límite no puede ser anterior al inicio',
+    message: t('La fecha límite no puede ser anterior al inicio'),
   })
 
 /** Máximo de criterios y pasos que acepta el backend al crear una tarea. */
 const CHECKLIST_ON_CREATE = 50
+/** Los diálogos y paneles laterales de la app (no los menús desplegables, que también son `role="dialog"`). */
+const PANELS = '[data-slot="dialog-content"], [data-slot="sheet-content"]'
 
 /** Título del diálogo según el tipo y, si tiene, la historia (o tarea) padre. */
 function dialogTitle(type, defaults) {
   if (defaults.parentId) {
-    const what = type === 'BUG' ? 'Nuevo bug' : 'Nueva tarea'
-    return defaults.parentType === 'STORY' ? `${what} de la historia ${defaults.parentCode}` : `Nueva subtarea de ${defaults.parentCode}`
+    const code = defaults.parentCode
+    if (defaults.parentType !== 'STORY') return t('Nueva subtarea de {code}', { code })
+    return type === 'BUG' ? t('Nuevo bug de la historia {code}', { code }) : t('Nueva tarea de la historia {code}', { code })
   }
-  if (defaults.relatesToCode) return `${type === 'STORY' ? 'Nueva historia' : 'Nueva tarea'} relacionada con ${defaults.relatesToCode}`
-  return type === 'STORY' ? 'Nueva historia' : type === 'BUG' ? 'Reportar bug' : 'Nueva tarea'
+  if (defaults.relatesToCode) {
+    const code = defaults.relatesToCode
+    return type === 'STORY' ? t('Nueva historia relacionada con {code}', { code }) : t('Nueva tarea relacionada con {code}', { code })
+  }
+  return type === 'STORY' ? t('Nueva historia') : type === 'BUG' ? t('Reportar bug') : t('Nueva tarea')
 }
 
 /**
@@ -81,7 +90,7 @@ function dialogTitle(type, defaults) {
  * tarea, el foco del panel recuperaba el `autoFocus` del título y el diálogo terminaba enfocando la primera plantilla.
  */
 function focusTitle(event) {
-  const title = event.currentTarget?.querySelector('input[aria-label="Título"]')
+  const title = event.currentTarget?.querySelector(`input[aria-label="${t('Título')}"]`)
   if (!title) return
   event.preventDefault()
   title.focus()
@@ -113,23 +122,24 @@ export function CreateIssueDialog({ slug, project, open, onOpenChange, defaults 
   }
   return (
     <Dialog open={open} onOpenChange={requestOpenChange}>
-      {/* Arriba y con scroll propio: con una plantilla (descripción y checklist) puede ser más alto que la pantalla */}
+      {/* Ancho y alto: casi toda la pantalla de un escritorio, para escribir la descripción con espacio. Arriba y con
+          scroll propio: con una plantilla (descripción y checklist) puede ser más alto que la pantalla */}
       <DialogContent
-        className="top-[min(18%,6rem)] max-h-[calc(100dvh_-_min(18%,6rem)_-_1rem)] translate-y-0 gap-3.5 overflow-y-auto px-5 pt-4.5 pb-4 sm:max-w-[680px]"
+        className="top-[min(7%,3.5rem)] max-h-[calc(100dvh_-_min(7%,3.5rem)_-_1.5rem)] translate-y-0 gap-4 overflow-y-auto px-7 pt-5.5 pb-5 sm:max-w-[min(980px,calc(100%_-_3rem))]"
         onOpenAutoFocus={focusTitle}
       >
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-sm font-semibold">
+          <DialogTitle className="flex items-center gap-2 text-[15px] font-semibold">
             <ProjectIcon project={project} className="rounded-md px-2 text-[11px]" />
             <TypeIcon type={type} size={14} />
             {dialogTitle(type, defaults)}
             {project.nextIssueCode && (
-              <span className="font-mono text-xs font-normal text-muted-foreground" title="Código que tendrá si nadie crea otra antes">
-                → será {project.nextIssueCode}
+              <span className="font-mono text-xs font-normal text-muted-foreground" title={t('Código que tendrá si nadie crea otra antes')}>
+                {t('→ será {code}', { code: project.nextIssueCode })}
               </span>
             )}
           </DialogTitle>
-          <DialogDescription className="sr-only">Escribe el título y elige sus propiedades.</DialogDescription>
+          <DialogDescription className="sr-only">{t('Escribe el título y elige sus propiedades.')}</DialogDescription>
         </DialogHeader>
         {/* El formulario vive mientras exista el diálogo: así no desaparece durante la animación de cierre */}
         {waitTemplates ? (
@@ -160,9 +170,10 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
   const meta = useProjectMeta(slug, project.id)
   const create = useCreateIssue(slug, project.id)
   const { data: allTemplates = [] } = useTemplates(slug, project.id)
-  const isManager = useIsManager()
-  // Solo el project manager crea historias, y la tarea de una historia (o una subtarea) no puede ser historia
-  const canStory = isManager && !defaults.parentId
+  const canManageStories = useCan('STORY_MANAGE')
+  const canEditTemplates = useCan('PROJECT_TEMPLATES')
+  // Las historias las crea quien las gestiona, y la tarea de una historia (o una subtarea) no puede ser historia
+  const canStory = canManageStories && !defaults.parentId
   const templates = canStory ? allTemplates : allTemplates.filter((item) => templateType(item) !== 'STORY')
   const people = useMentionPeople(slug, project.id)
   usePreloadRichEditor()
@@ -252,7 +263,7 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
   const [uploading, setUploading] = useState(0)
   const onSubmit = (data) => {
     if (uploading > 0) {
-      toast.info(uploading === 1 ? 'La imagen sigue subiendo' : 'Las imágenes siguen subiendo', { description: 'La tarea se puede crear cuando termine.' })
+      toast.info(uploading === 1 ? t('La imagen sigue subiendo') : t('Las imágenes siguen subiendo'), { description: t('La tarea se puede crear cuando termine.') })
       return
     }
     if (submitting.current) return
@@ -275,7 +286,17 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
     }
     create.mutate(body, {
       onSuccess: (issue) => {
-        toast.success(`${issue.code} creada`, { description: issue.title })
+        toast.success(t('{code} creada', { code: issue.code }), { description: issue.title })
+        // Si el diálogo se cierra, se encoge hasta una ficha que viaja al lugar de la tarea nueva, que queda resaltada
+        // en la lista o el tablero; con «crear otra» el diálogo sigue abierto y solo se resalta
+        if (createMore) flash('created', issue.id, 2200)
+        else {
+          // Este diálogo (no el primero de la página: puede haberse abierto encima del detalle de una tarea o de una
+          // historia). Si debajo queda un panel abierto, la tarea nueva se busca en él, que es lo que se ve
+          const dialog = titleRef.current?.closest(PANELS)
+          const under = [...document.querySelectorAll(PANELS)].filter((panel) => panel !== dialog).at(-1)
+          landNewTask(dialog?.getBoundingClientRect(), issue, under)
+        }
         if (createMore) {
           // Conserva las propiedades (y la plantilla) para crear varios parecidos seguidos
           caretToEnd()
@@ -295,7 +316,7 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
   const setField = (name) => (value) => form.setValue(name, value, { shouldDirty: true })
   // Pastillas de propiedades: punteadas mientras están vacías
   const chip = (empty) =>
-    cn('h-8 rounded-full border px-3 text-[13px]', empty ? 'border-dashed border-dash text-muted-foreground' : 'border-border bg-card')
+    cn('h-9 rounded-full border px-3.5 text-sm', empty ? 'border-dashed border-dash text-muted-foreground' : 'border-border bg-card')
 
   return (
     <Form {...form}>
@@ -306,7 +327,7 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
           event.preventDefault()
           if (!event.repeat && !submitting.current) form.handleSubmit(onSubmit)(event)
         }}
-        className="space-y-3.5"
+        className="space-y-4"
         noValidate
       >
         {templates.length > 0 && (
@@ -314,7 +335,7 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
             templates={templates}
             active={template}
             onChoose={requestTemplate}
-            settingsUrl={isManager ? `/${slug}/projects/${project.id}/settings?tab=templates` : null}
+            settingsUrl={canEditTemplates ? `/${slug}/projects/${project.id}/settings?tab=templates` : null}
             onLeave={onDiscard}
           />
         )}
@@ -331,9 +352,9 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
                     titleRef.current = element
                   }}
                   autoFocus
-                  placeholder="Título"
-                  aria-label="Título"
-                  className="w-full bg-transparent text-[21px] font-semibold outline-none placeholder:text-muted-foreground"
+                  placeholder={t('Título')}
+                  aria-label={t('Título')}
+                  className="w-full bg-transparent text-[26px] leading-tight font-semibold outline-none placeholder:text-muted-foreground"
                 />
               </FormControl>
               <FormMessage />
@@ -358,7 +379,7 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
             </FormItem>
           )}
         />
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-2">
           <FromTemplate active={Boolean(template)}>
             <TypeSelect value={type} onChange={onTypeChange} canStory={canStory} className={chip(false)} />
           </FromTemplate>
@@ -388,14 +409,14 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
           <DatePicker
             value={values.startDate}
             onChange={setField('startDate')}
-            placeholder="Inicio"
+            placeholder={t('Inicio')}
             maxDate={values.dueDate}
             className={chip(!values.startDate)}
           />
           <DatePicker
             value={values.dueDate}
             onChange={setField('dueDate')}
-            placeholder="Fecha límite"
+            placeholder={t('Fecha límite')}
             minDate={values.startDate}
             className={chip(!values.dueDate)}
           />
@@ -408,16 +429,16 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
           <div className="flex items-center gap-2">
             <Switch id="create-more" checked={createMore} onCheckedChange={setCreateMore} />
             <Label htmlFor="create-more" className="text-[13px] font-normal text-muted-foreground">
-              {template ? 'Crear otra con la misma plantilla' : 'Crear otra'}
+              {template ? t('Crear otra con la misma plantilla') : t('Crear otra')}
             </Label>
           </div>
-          <span className="ml-auto hidden font-mono text-[11px] text-muted-foreground sm:inline">esc cerrar</span>
+          <span className="ml-auto hidden font-mono text-[11px] text-muted-foreground sm:inline">{t('esc cerrar')}</span>
           <Button type="button" variant="ghost" onClick={onCancel}>
-            Cancelar
+            {t('Cancelar')}
           </Button>
-          <Button type="submit" disabled={create.isPending || uploading > 0} title={uploading > 0 ? 'Se activa cuando termina la subida' : undefined}>
+          <Button type="submit" disabled={create.isPending || uploading > 0} title={uploading > 0 ? t('Se activa cuando termina la subida') : undefined}>
             {(create.isPending || uploading > 0) && <Spinner />}
-            {uploading > 0 ? 'Subiendo…' : type === 'STORY' ? 'Crear historia' : type === 'BUG' ? 'Reportar bug' : 'Crear tarea'}
+            {uploading > 0 ? t('Subiendo…') : type === 'STORY' ? t('Crear historia') : type === 'BUG' ? t('Reportar bug') : t('Crear tarea')}
             <kbd className="rounded-[5px] bg-foreground/10 px-1.5 text-[11px] font-normal">ctrl ↵</kbd>
           </Button>
         </div>
@@ -425,9 +446,9 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
       <ConfirmDialog
         open={pendingTemplate !== undefined}
         onOpenChange={(open) => !open && setPendingTemplate(undefined)}
-        title={pendingTemplate ? `¿Cambiar a «${pendingTemplate.name}»?` : '¿Quitar la plantilla?'}
-        description="Editaste la descripción de la plantilla y se reemplazará: perderás esos cambios."
-        confirmLabel={pendingTemplate ? 'Cambiar de plantilla' : 'Quitar plantilla'}
+        title={pendingTemplate ? t('¿Cambiar a «{name}»?', { name: pendingTemplate.name }) : t('¿Quitar la plantilla?')}
+        description={t('Editaste la descripción de la plantilla y se reemplazará: perderás esos cambios.')}
+        confirmLabel={pendingTemplate ? t('Cambiar de plantilla') : t('Quitar plantilla')}
         onConfirm={() => {
           chooseTemplate(pendingTemplate)
           setPendingTemplate(undefined)
@@ -438,9 +459,9 @@ function CreateIssueForm({ slug, project, defaults, type, onTypeChange, onCancel
       <ConfirmDialog
         open={confirmDiscard}
         onOpenChange={setConfirmDiscard}
-        title={`¿Descartar ${type === 'STORY' ? 'la historia' : type === 'BUG' ? 'el bug' : 'la tarea'}?`}
-        description="Se pierde lo que escribiste en el título y la descripción."
-        confirmLabel="Descartar"
+        title={type === 'STORY' ? t('¿Descartar la historia?') : type === 'BUG' ? t('¿Descartar el bug?') : t('¿Descartar la tarea?')}
+        description={t('Se pierde lo que escribiste en el título y la descripción.')}
+        confirmLabel={t('Descartar')}
         onConfirm={() => {
           setConfirmDiscard(false)
           onDiscard()
@@ -463,36 +484,35 @@ function DescriptionField({ value, onChange, people, slug, projectIdentifier, im
         <LazyRichEditor
           value={value}
           onChange={onChange}
-          size="sm"
           toolbar={showFormat ? 'compact' : false}
           people={people}
           slug={slug}
           projectIdentifier={projectIdentifier}
-          ariaLabel="Descripción"
+          ariaLabel={t('Descripción')}
           imageUpload={imageUpload}
           onUploadsChange={onUploadsChange}
-          contentClassName={cn('max-h-[360px] min-h-20 overflow-y-auto', showFormat ? 'px-3 py-2' : 'py-0.5')}
+          contentClassName={cn('max-h-[min(52dvh,560px)] min-h-[min(30dvh,260px)] overflow-y-auto', showFormat ? 'px-3 py-2' : 'py-0.5')}
         />
       </div>
       <div className="mt-2.5 flex flex-wrap items-center gap-3 border-t border-dashed pt-2 font-mono text-[11px] text-muted-foreground">
         <span>
-          <kbd className="text-foreground">/</kbd> insertar
+          <kbd className="text-foreground">/</kbd> {t('insertar')}
         </span>
-        <span>selecciona texto para darle formato</span>
+        <span>{t('selecciona texto para darle formato')}</span>
         <span>
-          <kbd className="text-foreground">@</kbd> mencionar
+          <kbd className="text-foreground">@</kbd> {t('mencionar')}
         </span>
         <button
           type="button"
           aria-pressed={showFormat}
-          title={showFormat ? 'Ocultar la barra de formato' : 'Mostrar la barra de formato'}
+          title={showFormat ? t('Ocultar la barra de formato') : t('Mostrar la barra de formato')}
           onClick={() => setShowFormat((current) => !current)}
           className={cn(
             'ml-auto flex items-center gap-1.5 rounded-[7px] border px-2 py-0.75 font-sans text-xs font-semibold text-foreground transition-colors duration-150',
             showFormat ? 'border-accent-text bg-accent-soft text-accent-text' : 'hover:bg-muted',
           )}
         >
-          Aa <span className="font-normal text-muted-foreground">formato</span>
+          Aa <span className="font-normal text-muted-foreground">{t('formato')}</span>
         </button>
       </div>
     </div>
@@ -501,11 +521,11 @@ function DescriptionField({ value, onChange, people, slug, projectIdentifier, im
 
 /** Plantillas del proyecto como pastillas («Ninguna», «Reporte de bug»…) y qué aplicó la elegida. */
 function TemplateBar({ templates, active, onChoose, settingsUrl, onLeave }) {
-  const options = [{ id: null, name: 'Ninguna' }, ...templates]
+  const options = [{ id: null, name: t('Ninguna') }, ...templates]
   return (
     <div className="flex flex-col gap-2 rounded-[14px] border bg-subtle px-3 py-2.5">
-      <div role="radiogroup" aria-label="Plantilla" className="flex flex-wrap items-center gap-1.5">
-        <span className="mr-1 text-xs font-medium text-muted-foreground">Plantilla</span>
+      <div role="radiogroup" aria-label={t('Plantilla')} className="flex flex-wrap items-center gap-1.5">
+        <span className="mr-1 text-xs font-medium text-muted-foreground">{t('Plantilla')}</span>
         {options.map((option) => {
           const checked = (active?.id ?? null) === option.id
           return (
@@ -527,15 +547,15 @@ function TemplateBar({ templates, active, onChoose, settingsUrl, onLeave }) {
         })}
         {settingsUrl && (
           <Link to={settingsUrl} onClick={onLeave} className="ml-auto text-xs font-medium text-accent-text hover:underline">
-            Editar plantillas
+            {t('Editar plantillas')}
           </Link>
         )}
       </div>
       {active && (
         <p className="tf-fade flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-          Se aplicó «{active.name}»: {appliedParts(active)}. Todo se puede cambiar.
+          {t('Se aplicó «{name}»: {parts}. Todo se puede cambiar.', { name: active.name, parts: appliedParts(active) })}
           <button type="button" className="font-semibold text-foreground underline underline-offset-2" onClick={() => onChoose(null)}>
-            Deshacer
+            {t('Deshacer')}
           </button>
         </p>
       )}
@@ -552,7 +572,7 @@ function TypeSelect({ value, onChange, canStory, className }) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button type="button" aria-label="Tipo" className={cn('inline-flex items-center gap-1.5', className)}>
+        <button type="button" aria-label={t('Tipo')} className={cn('inline-flex items-center gap-1.5', className)}>
           <TypeIcon type={value} size={14} />
           {TYPE_LABELS[value]}
           <ChevronDown className="size-3 text-muted-foreground" />
@@ -566,7 +586,7 @@ function TypeSelect({ value, onChange, canStory, className }) {
               key={option.value}
               type="button"
               disabled={disabled}
-              title={disabled ? 'Solo el project manager crea historias, y no dentro de otra tarea' : undefined}
+              title={disabled ? t('Solo el project manager crea historias, y no dentro de otra tarea') : undefined}
               onClick={() => {
                 setOpen(false)
                 onChange(option.value)
@@ -591,7 +611,7 @@ function FromTemplate({ active, children }) {
       {children}
       {active && (
         <span
-          title="Viene de la plantilla"
+          title={t('Viene de la plantilla')}
           aria-hidden="true"
           className="pointer-events-none absolute top-0.5 right-0.5 size-1.5 rounded-full bg-ring ring-2 ring-card"
         />
@@ -605,9 +625,9 @@ function TemplateChecklist({ checklist }) {
   return (
     <details open className="group rounded-xl border">
       <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-[13px] font-medium [&::-webkit-details-marker]:hidden">
-        Checklist de la plantilla
+        {t('Checklist de la plantilla')}
         <span className="font-mono text-xs font-normal text-muted-foreground">{checklistLabel(checklist)}</span>
-        <span className="ml-auto text-xs font-normal text-muted-foreground">se agrega a la tarea</span>
+        <span className="ml-auto text-xs font-normal text-muted-foreground">{t('se agrega a la tarea')}</span>
         <ChevronDown className="size-3.5 text-muted-foreground transition-transform duration-200 group-open:rotate-180" />
       </summary>
       <ul className="grid grid-cols-1 gap-x-4 gap-y-1.5 px-3 pb-2.5 text-[13px] sm:grid-cols-2">
@@ -615,7 +635,7 @@ function TemplateChecklist({ checklist }) {
           <li key={index} className="flex min-w-0 items-start gap-2">
             <span aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 rounded-[4px] border-[1.5px] border-dash" />
             <span className="min-w-0 break-words">
-              {item.kind === 'CRITERION' && <span className="mr-1.5 font-mono text-[11px] text-accent-text">criterio</span>}
+              {item.kind === 'CRITERION' && <span className="mr-1.5 font-mono text-[11px] text-accent-text">{t('criterio')}</span>}
               {item.text}
             </span>
           </li>

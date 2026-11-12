@@ -6,8 +6,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Segmented } from '@/components/common/Segmented'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { useCurrentProject } from '@/features/projects/hooks'
-import { useCurrentWorkspace, useIsManager } from '@/features/workspaces/hooks'
+import { useCan, useCurrentWorkspace } from '@/features/workspaces/hooks'
 import { useElementWidth } from '@/hooks/useElementWidth'
+import { t } from '@/i18n'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { formatShortDate } from '@/lib/dates'
 import { projectPath } from '@/lib/paths'
@@ -22,31 +23,31 @@ import { ROADMAP_SCALES, buildTimeline, itemEnd, itemRange } from '../roadmap'
  */
 const KINDS = {
   CURRENT: {
-    label: 'Ciclo en curso',
+    label: t('Ciclo en curso'),
     swatch: 'bg-roadmap-current',
     bar: 'border-roadmap-current bg-ok-soft',
     onFill: 'text-roadmap-on-fill',
   },
   UPCOMING: {
-    label: 'Ciclo próximo',
+    label: t('Ciclo próximo'),
     swatch: 'bg-roadmap-upcoming',
     bar: 'border-roadmap-upcoming bg-[#E1F0FF] dark:bg-[#132A3D]',
     onFill: 'text-roadmap-on-fill',
   },
   DRAFT: {
-    label: 'Borrador',
+    label: t('Borrador'),
     swatch: 'bg-roadmap-draft',
     bar: 'border-dashed border-roadmap-draft bg-muted',
     onFill: 'text-roadmap-on-draft',
   },
   COMPLETED: {
-    label: 'Ciclo terminado',
+    label: t('Ciclo terminado'),
     swatch: 'bg-roadmap-completed',
     bar: 'border-roadmap-completed bg-column',
     onFill: 'text-roadmap-on-fill',
   },
   module: {
-    label: 'Módulo',
+    label: t('Módulo'),
     swatch: 'bg-roadmap-module',
     bar: 'border-roadmap-module bg-accent-soft',
     onFill: 'text-roadmap-on-fill',
@@ -67,7 +68,10 @@ const planColumnWidth = (element) =>
 export function RoadmapPage() {
   const workspace = useCurrentWorkspace()
   const project = useCurrentProject()
-  const canManage = useIsManager()
+  // Quien puede crear ciclos o módulos ve las pistas para ponerles fechas
+  const canCreateCycles = useCan('CYCLE_CREATE')
+  const canCreateModules = useCan('MODULE_CREATE')
+  const canManage = canCreateCycles || canCreateModules
   const [searchParams, setSearchParams] = useSearchParams()
   const scale = ROADMAP_SCALES[searchParams.get('scale')] ? searchParams.get('scale') : 'weeks'
   const cycles = usePlanningList('cycles', workspace.slug, project.id)
@@ -81,8 +85,8 @@ export function RoadmapPage() {
   const sections = useMemo(() => {
     const withKind = (items, kind) => (items ?? []).map((item) => ({ ...item, kind, colors: KINDS[kind === 'cycles' ? item.status : 'module'] ?? KINDS.DRAFT }))
     return [
-      { key: 'cycles', name: 'ciclos', items: withKind(cycles.data, 'cycles') },
-      { key: 'modules', name: 'módulos', items: withKind(modules.data, 'modules') },
+      { key: 'cycles', name: t('ciclos'), noDates: t('Sin ciclos con fechas'), items: withKind(cycles.data, 'cycles') },
+      { key: 'modules', name: t('módulos'), noDates: t('Sin módulos con fechas'), items: withKind(modules.data, 'modules') },
     ].map((section) => ({
       ...section,
       dated: section.items.filter((item) => itemRange(item)).sort(byStart),
@@ -115,17 +119,17 @@ export function RoadmapPage() {
   return (
     <>
       <PageHeader
-        path={[...projectPath(workspace, project), { label: 'hoja-de-ruta' }]}
-        title="Hoja de ruta"
-        documentTitle={['Hoja de ruta', project.name]}
-        description="Ciclos y módulos en el tiempo, con su avance. La línea marca hoy."
+        path={[...projectPath(workspace, project), { label: t('hoja-de-ruta') }]}
+        title={t('Hoja de ruta')}
+        documentTitle={[t('Hoja de ruta'), project.name]}
+        description={t('Ciclos y módulos en el tiempo, con su avance. La línea marca hoy.')}
         actions={
           <>
             <Button variant="outline" className="h-9 rounded-xl" onClick={() => scrollToToday()} disabled={dated.length === 0}>
-              Hoy
+              {t('Hoy')}
             </Button>
             <Segmented
-              label="Escala"
+              label={t('Escala')}
               value={scale}
               onChange={(value) => setSearchParams(value === 'weeks' ? {} : { scale: value }, { replace: true })}
               options={Object.entries(ROADMAP_SCALES).map(([value, config]) => ({ value, label: config.label }))}
@@ -139,19 +143,19 @@ export function RoadmapPage() {
         {empty && (
           <EmptyState
             icon={MapIcon}
-            title="Todavía no hay ciclos ni módulos"
+            title={t('Todavía no hay ciclos ni módulos')}
             description={
               canManage
-                ? 'Crea ciclos o módulos con fechas y aparecerán aquí, en el tiempo.'
-                : 'Cuando el project manager cree ciclos o módulos con fechas, aparecerán aquí.'
+                ? t('Crea ciclos o módulos con fechas y aparecerán aquí, en el tiempo.')
+                : t('Cuando haya ciclos o módulos con fechas, aparecerán aquí.')
             }
             action={
               <div className="flex gap-2">
                 <Button asChild variant="outline">
-                  <Link to={`${base}/cycles`}>Ir a ciclos</Link>
+                  <Link to={`${base}/cycles`}>{t('Ir a ciclos')}</Link>
                 </Button>
                 <Button asChild variant="outline">
-                  <Link to={`${base}/modules`}>Ir a módulos</Link>
+                  <Link to={`${base}/modules`}>{t('Ir a módulos')}</Link>
                 </Button>
               </div>
             }
@@ -182,7 +186,7 @@ function TimelinePanel({ sections, dated, scale, base, scrollRef }) {
   )
 
   return (
-    <section aria-label="Línea de tiempo" className="tf-panel overflow-hidden">
+    <section aria-label={t('Línea de tiempo')} className="tf-panel overflow-hidden">
       <div ref={scrollRef} className="overflow-x-auto [--plan-col:150px] sm:[--plan-col:250px]">
         <div className="flex" style={{ width: `calc(var(--plan-col) + ${timeline.width}px)` }}>
           <PlanColumn ref={planRef} sections={sections} base={base} />
@@ -203,7 +207,7 @@ function PlanColumn({ ref, sections, base }) {
           HEADER_HEIGHT,
         )}
       >
-        Plan
+        {t('Plan')}
       </div>
       {sections.map((section) => (
         <Fragment key={section.key}>
@@ -276,7 +280,7 @@ function TimelineColumn({ sections, timeline, base }) {
           <div className={cn('border-b', SECTION_HEIGHT)} />
           {section.dated.length === 0 && (
             <div className={cn('relative flex items-center border-b px-4 text-xs text-muted-foreground', ROW_HEIGHT)}>
-              <span className="sticky left-[calc(var(--plan-col)+1rem)]">Sin {section.name} con fechas</span>
+              <span className="sticky left-[calc(var(--plan-col)+1rem)]">{section.noDates}</span>
             </div>
           )}
           {section.dated.map((item) => (
@@ -300,7 +304,7 @@ function TimelineBar({ item, position, to }) {
     <>
       <Link
         to={to}
-        title={`${item.name} · ${dateText(item)} · ${percentage}% completado`}
+        title={t('{name} · {dates} · {percentage}% completado', { name: item.name, dates: dateText(item), percentage })}
         className={cn(
           'absolute top-3 z-[2] h-7 overflow-hidden rounded-lg border transition-[filter] duration-150 hover:brightness-95 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none dark:hover:brightness-110',
           item.colors.bar,
@@ -352,11 +356,11 @@ function Legend({ sections, undated, base, canManage }) {
         ))}
       <span className="flex items-center gap-1.5">
         <span aria-hidden="true" className="h-3 w-0.5 bg-late" />
-        hoy · {formatShortDate(new Date())}
+        {t('hoy · {date}', { date: formatShortDate(new Date()) })}
       </span>
       {undated.length > 0 && (
         <span className="sm:ml-auto">
-          Sin fechas:{' '}
+          {t('Sin fechas:')}{' '}
           {undated.map((item, index) => (
             <Fragment key={item.id}>
               {index > 0 && ', '}
@@ -365,7 +369,7 @@ function Legend({ sections, undated, base, canManage }) {
               </Link>
             </Fragment>
           ))}
-          {canManage && ' · ponles fechas para verlos aquí'}
+          {canManage && ` · ${t('ponles fechas para verlos aquí')}`}
         </span>
       )}
     </div>

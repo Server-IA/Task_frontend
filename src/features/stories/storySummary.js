@@ -1,6 +1,7 @@
 import { parseUserStory } from '@/features/editor/markdown/userStory'
 import { markdownToDoc } from '@/features/editor/markdown/parse'
 import { docToPlainText } from '@/features/editor/markdown/plainText'
+import { t } from '@/i18n'
 
 /**
  * Extracto de una historia para su fila en «Historias». Si la descripción tiene la cita «Como … quiero … para …»,
@@ -16,7 +17,7 @@ export function storySummary(markdown, maxLength = 140) {
   const index = blocks.findIndex((block) => parseUserStory(block))
   if (index >= 0) {
     const { como, quiero, para } = parseUserStory(blocks[index])
-    const story = [como && `Como ${como}`, quiero && `quiero ${quiero}`, para && `para ${para}`].filter(Boolean).join(', ')
+    const story = [como && t('Como {role}', { role: como }), quiero && t('quiero {goal}', { goal: quiero }), para && t('para {benefit}', { benefit: para })].filter(Boolean).join(', ')
     if (story) return story.length > maxLength ? `${story.slice(0, maxLength).trimEnd()}…` : story
   }
   const rest = index >= 0 ? { ...doc, content: blocks.filter((_, at) => at !== index) } : doc

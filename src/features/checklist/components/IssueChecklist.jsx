@@ -15,11 +15,14 @@ import { Segmented } from '@/components/common/Segmented'
 import { PropertyRow } from '@/features/issues/components/IssueDetail'
 import { checklistProgress } from '@/features/issues/issueFlags'
 import { useLocalEscape } from '@/hooks/useLocalEscape'
+import { t, tc, tx } from '@/i18n'
 import { formatDateTime, formatRelative } from '@/lib/dates'
 import { DND_INSTRUCTIONS, DRAG_ROLE, quoted, sortableAnnouncements } from '@/lib/dndAnnouncements'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
+import { can } from '@/lib/permissions'
 import { usePreferencesStore } from '@/stores/preferencesStore'
+import { useWorkspace } from '@/features/workspaces/hooks'
 import { checkedByName, dropIndex, formatCriterion, itemsOfKind, moveChecklistItem, parseCriterion } from '../checklistMath'
 import {
   CHECKLIST_LIMIT,
@@ -46,6 +49,8 @@ export function IssueChecklist({ slug, projectId, issue }) {
   const update = useUpdateChecklistItem(slug, projectId, issue.id)
   const move = useMoveChecklistItem(slug, projectId, issue.id)
   const remove = useDeleteChecklistItem(slug, projectId, issue.id)
+  // Sin el permiso del checklist se ve, pero no se marca, edita ni agrega
+  const readOnly = !can(useWorkspace(slug).data, 'ISSUE_CHECKLIST')
 
   // Al soltar se muestra el orden nuevo enseguida, hasta que la caché lo tenga (si no, el elemento salta atrás un instante)
   const [pending, setPending] = useState(null)
@@ -54,7 +59,7 @@ export function IssueChecklist({ slug, projectId, issue }) {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-2" aria-label="Cargando checklist">
+      <div className="flex flex-col gap-2" aria-label={t('Cargando checklist')}>
         <Skeleton className="h-5 w-48" />
         <Skeleton className="h-16 rounded-xl" />
       </div>
@@ -71,15 +76,16 @@ export function IssueChecklist({ slug, projectId, issue }) {
       const moved = moveChecklistItem(items, item.id, toIndex)
       if (!moved) return
       setPending({ from: data, items: moved.items })
-      move.mutate({ itemId: item.id, position: moved.position }, { onError: (error) => notifyError(error, 'No se pudo mover') })
+      move.mutate({ itemId: item.id, position: moved.position }, { onError: (error) => notifyError(error, t('No se pudo mover')) })
     },
   }
 
   return (
-    <>
-      <CriteriaBlock issueId={issue.id} items={items} actions={actions} full={full} />
-      <StepsBlock issueId={issue.id} items={items} actions={actions} full={full} />
-    </>
+    // `inert`: nada de lo de adentro recibe clics ni foco (casillas, menús, arrastre); los botones de agregar no se pintan
+    <div inert={readOnly} className="contents">
+      <CriteriaBlock issueId={issue.id} items={items} actions={actions} full={full} readOnly={readOnly} />
+      <StepsBlock issueId={issue.id} items={items} actions={actions} full={full} readOnly={readOnly} />
+    </div>
   )
 }
 
@@ -88,7 +94,7 @@ export function ChecklistProgressRow({ issue }) {
   const progress = checklistProgress(issue)
   if (!progress) return null
   return (
-    <PropertyRow label="Progreso">
+    <PropertyRow label={t('Progreso')}>
       <span className={cn('flex min-h-7 items-center gap-1.5 px-2 py-1 text-xs leading-snug', progress.complete && 'text-ok')}>
         <ListChecks className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
         <span>{progress.label}</span>
@@ -98,11 +104,11 @@ export function ChecklistProgressRow({ issue }) {
 }
 
 const FORMAT_OPTIONS = [
-  { value: 'gherkin', label: 'Dado / cuando / entonces' },
-  { value: 'plain', label: 'Lista simple' },
+  { value: 'gherkin', label: t('Dado / cuando / entonces') },
+  { value: 'plain', label: t('Lista simple') },
 ]
 
-function CriteriaBlock({ issueId, items, actions, full }) {
+function CriteriaBlock({ issueId, items, actions, full, readOnly = false }) {
   const format = usePreferencesStore((state) => state.criteriaFormat)
   const setFormat = usePreferencesStore((state) => state.setCriteriaFormat)
   const [adding, setAdding] = useState(false)
@@ -114,7 +120,7 @@ function CriteriaBlock({ issueId, items, actions, full }) {
     <section aria-labelledby={headingId} className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2.5">
         <h2 id={headingId} className="text-sm font-semibold">
-          Criterios de aceptación{' '}
+          {t('Criterios de aceptación')}{' '}
           {criteria.length > 0 && (
             <span className="font-mono text-xs font-normal text-muted-foreground">
               {done}/{criteria.length}
@@ -124,7 +130,7 @@ function CriteriaBlock({ issueId, items, actions, full }) {
         {(criteria.length > 0 || adding) && (
           // Al hacer clic en el selector el foco no sale del formulario; con teclado, data-keep-adder lo deja abierto
           <span data-keep-adder className="ml-auto" onMouseDown={(event) => event.preventDefault()}>
-            <Segmented label="Formato" size="sm" className="p-0.5" value={format} onChange={setFormat} options={FORMAT_OPTIONS} />
+            <Segmented label={t('Formato')} size="sm" className="p-0.5" value={format} onChange={setFormat} options={FORMAT_OPTIONS} />
           </span>
         )}
       </div>
@@ -140,7 +146,7 @@ function CriteriaBlock({ issueId, items, actions, full }) {
                     item={item}
                     sortable={sortable}
                     actions={actions}
-                    label={`Criterio ${index + 1}`}
+                    label={t('Criterio {number}', { number: index + 1 })}
                     display={format === 'gherkin' ? <CriterionText text={item.text} /> : null}
                   />
                 )}
@@ -156,22 +162,24 @@ function CriteriaBlock({ issueId, items, actions, full }) {
         ) : (
           <ul className="overflow-hidden rounded-xl border">
             <AddItemRow
-              label="Nuevo criterio de aceptación"
-              placeholder="Qué debe cumplirse"
+              label={t('Nuevo criterio de aceptación')}
+              placeholder={t('Qué debe cumplirse')}
               onAdd={(text) => actions.add('CRITERION', text)}
               onClose={() => setAdding(false)}
               first
             />
           </ul>
         )
+      ) : readOnly ? (
+        criteria.length === 0 && <p className="text-xs text-muted-foreground">{t('Sin criterios de aceptación.')}</p>
       ) : (
         <div className="flex flex-wrap items-center gap-2.5">
           <AddButton disabled={full} onClick={() => setAdding(true)}>
-            + criterio
+            {t('+ criterio')}
           </AddButton>
           {criteria.length > 0 && done < criteria.length && (
             <span className="text-xs text-muted-foreground">
-              Al pasar la tarea a un estado completado con criterios sin marcar se pide confirmación.
+              {t('Al pasar la tarea a un estado completado con criterios sin marcar se pide confirmación.')}
             </span>
           )}
         </div>
@@ -180,7 +188,7 @@ function CriteriaBlock({ issueId, items, actions, full }) {
   )
 }
 
-function StepsBlock({ issueId, items, actions, full }) {
+function StepsBlock({ issueId, items, actions, full, readOnly = false }) {
   const [adding, setAdding] = useState(false)
   const [hideDone, setHideDone] = useState(false)
   const steps = itemsOfKind(items, 'CHECK')
@@ -192,14 +200,14 @@ function StepsBlock({ issueId, items, actions, full }) {
     <section aria-labelledby={headingId} className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
         <h2 id={headingId} className="text-sm font-semibold">
-          Checklist{' '}
+          {t('Checklist')}{' '}
           {steps.length > 0 && (
             <span className="font-mono text-xs font-normal text-muted-foreground">
               {done}/{steps.length}
             </span>
           )}
         </h2>
-        <span className="text-xs text-muted-foreground">pasos internos, no son tareas</span>
+        <span className="text-xs text-muted-foreground">{t('pasos internos, no son tareas')}</span>
         {done > 0 && (
           <button
             type="button"
@@ -207,7 +215,7 @@ function StepsBlock({ issueId, items, actions, full }) {
             aria-pressed={hideDone}
             onClick={() => setHideDone((current) => !current)}
           >
-            {hideDone ? `Mostrar hechos (${done})` : 'Ocultar hechos'}
+            {hideDone ? t('Mostrar hechos ({count})', { count: done }) : t('Ocultar hechos')}
           </button>
         )}
       </div>
@@ -215,7 +223,7 @@ function StepsBlock({ issueId, items, actions, full }) {
       {steps.length > 0 && (
         <div
           role="progressbar"
-          aria-label="Checklist"
+          aria-label={t('Checklist')}
           aria-valuemin={0}
           aria-valuemax={steps.length}
           aria-valuenow={done}
@@ -240,8 +248,8 @@ function StepsBlock({ issueId, items, actions, full }) {
             ))}
             {adding && (
               <AddItemRow
-                label="Nuevo paso del checklist"
-                placeholder="Nuevo paso"
+                label={t('Nuevo paso del checklist')}
+                placeholder={t('Nuevo paso')}
                 onAdd={(text) => actions.add('CHECK', text)}
                 onClose={() => setAdding(false)}
                 first={visible.length === 0}
@@ -251,12 +259,13 @@ function StepsBlock({ issueId, items, actions, full }) {
         </SortableItems>
       )}
       {hideDone && visible.length === 0 && !adding && (
-        <p className="text-xs text-muted-foreground">Todos los pasos están hechos.</p>
+        <p className="text-xs text-muted-foreground">{t('Todos los pasos están hechos.')}</p>
       )}
 
-      {!adding && (
+      {readOnly && steps.length === 0 && <p className="text-xs text-muted-foreground">{t('Sin pasos.')}</p>}
+      {!adding && !readOnly && (
         <AddButton disabled={full} onClick={() => setAdding(true)} className="self-start">
-          + paso
+          {t('+ paso')}
         </AddButton>
       )}
     </section>
@@ -268,7 +277,7 @@ function AddButton({ disabled, className, ...props }) {
     <button
       type="button"
       disabled={disabled}
-      title={disabled ? `Una tarea admite hasta ${CHECKLIST_LIMIT} criterios y pasos` : undefined}
+      title={disabled ? t('Una tarea admite hasta {limit} criterios y pasos', { limit: CHECKLIST_LIMIT }) : undefined}
       className={cn(
         'rounded-full border border-dashed border-dash px-2.5 py-1 text-xs transition-colors duration-150 hover:border-foreground/40 hover:bg-accent disabled:pointer-events-none disabled:opacity-50',
         className,
@@ -285,13 +294,13 @@ function SortableItems({ items, visible, onMove, children }) {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
   const ids = visible.map((item) => item.id)
-  // En español y con el texto del criterio o del paso (dnd-kit los anuncia en inglés y por su id)
+  // En el idioma elegido y con el texto del criterio o del paso (dnd-kit los anuncia en inglés y por su id)
   const accessibility = {
     screenReaderInstructions: DND_INSTRUCTIONS,
     announcements: sortableAnnouncements(ids, (id) => {
       const item = items.find((candidate) => candidate.id === id)
-      if (!item) return 'el elemento'
-      return `${item.kind === 'CRITERION' ? 'el criterio' : 'el paso'} ${quoted(item.text)}`
+      if (!item) return t('el elemento')
+      return item.kind === 'CRITERION' ? t('el criterio {text}', { text: quoted(item.text) }) : t('el paso {text}', { text: quoted(item.text) })
     }),
   }
   return (
@@ -366,8 +375,8 @@ function ItemRow({ variant, item, sortable, actions, label, display, first = fal
       <button
         type="button"
         {...handle}
-        aria-label={`Mover «${item.text}»`}
-        title="Arrastra o usa alt + ↑ ↓"
+        aria-label={t('Mover «{text}»', { text: item.text })}
+        title={t('Arrastra o usa alt + ↑ ↓')}
         className={cn(
           'flex h-7 w-6 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-dash outline-none hover:bg-accent hover:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing',
           isDragging && 'bg-accent-soft text-accent-text',
@@ -384,7 +393,7 @@ function ItemRow({ variant, item, sortable, actions, label, display, first = fal
       {editing ? (
         <InlineEdit
           initial={item.text}
-          label={`Editar «${item.text}»`}
+          label={t('Editar «{text}»', { text: item.text })}
           onSave={(text) => {
             setEditing(false)
             if (text !== item.text) actions.rename(item, text)
@@ -395,7 +404,7 @@ function ItemRow({ variant, item, sortable, actions, label, display, first = fal
         <button
           type="button"
           onClick={() => setEditing(true)}
-          title="Editar"
+          title={t('Editar')}
           className={cn(
             'min-w-0 flex-1 cursor-text self-stretch rounded-md px-1 text-left text-sm leading-relaxed break-words hover:bg-accent/50',
             card ? 'py-0.5' : 'py-1',
@@ -413,7 +422,7 @@ function ItemRow({ variant, item, sortable, actions, label, display, first = fal
             variant="ghost"
             size="icon"
             className="size-7 shrink-0 text-muted-foreground opacity-60 group-hover:opacity-100 data-[state=open]:opacity-100"
-            aria-label={`Opciones de «${item.text}»`}
+            aria-label={t('Opciones de «{text}»', { text: item.text })}
           >
             <MoreHorizontal className="size-3.5" />
           </Button>
@@ -421,11 +430,11 @@ function ItemRow({ variant, item, sortable, actions, label, display, first = fal
         <DropdownMenuContent align="end">
           <DropdownMenuItem onSelect={() => setEditing(true)}>
             <Pencil />
-            Editar texto
+            {t('Editar texto')}
           </DropdownMenuItem>
           <DropdownMenuItem variant="destructive" onSelect={() => actions.remove(item)}>
             <Trash2 />
-            Eliminar
+            {t('Eliminar')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -437,13 +446,16 @@ function ItemRow({ variant, item, sortable, actions, label, display, first = fal
 function CheckedBy({ item, className }) {
   const name = checkedByName(item)
   if (!name) return null
-  const when = item.checkedAt ? ` · ${formatRelative(item.checkedAt)} (${formatDateTime(item.checkedAt)})` : ''
+  const fullName = item.checkedBy.fullName
+  const title = item.checkedAt
+    ? t('Marcado por {name} · {relative} ({date})', { name: fullName, relative: formatRelative(item.checkedAt), date: formatDateTime(item.checkedAt) })
+    : t('Marcado por {name}', { name: fullName })
   return (
     <span
-      title={`Marcado por ${item.checkedBy.fullName}${when}`}
+      title={title}
       className={cn('tf-fade max-w-24 shrink-0 truncate font-mono text-[11px] text-muted-foreground', className)}
     >
-      <span className="sr-only">marcado por </span>
+      <span className="sr-only">{t('marcado por')} </span>
       {name}
     </span>
   )
@@ -475,9 +487,9 @@ function CriterionText({ text }) {
   return (
     <span className="grid grid-cols-[64px_minmax(0,1fr)] gap-y-0.5">
       {[
-        ['Dado', parts.given],
-        ['cuando', parts.when],
-        ['entonces', parts.then],
+        [tc('criterio', 'Dado'), parts.given],
+        [tc('criterio', 'cuando'), parts.when],
+        [tc('criterio', 'entonces'), parts.then],
       ].map(([keyword, value]) => (
         <span key={keyword} className="contents">
           <span className="pt-px font-mono text-xs font-semibold text-accent-text">{keyword}</span>
@@ -560,7 +572,7 @@ function AddItemRow({ label, placeholder, onAdd, onClose, first }) {
         />
       </label>
       <span className="hidden shrink-0 font-mono text-[11px] text-muted-foreground sm:inline">
-        <kbd className="text-foreground">↵</kbd> agregar · <kbd className="text-foreground">esc</kbd>
+        {tx('{enter} agregar · {esc}', { enter: <kbd className="text-foreground">↵</kbd>, esc: <kbd className="text-foreground">esc</kbd> })}
       </span>
     </li>
   )
@@ -580,16 +592,16 @@ function GherkinAdder({ onAdd, onClose }) {
     ref.current?.querySelector('input')?.focus()
   }
   const fields = [
-    ['given', 'Dado', 'un correo registrado'],
-    ['when', 'cuando', 'pido recuperar la contraseña'],
-    ['then', 'entonces', 'recibo un enlace que sirve 30 minutos'],
+    ['given', tc('criterio', 'Dado'), t('un correo registrado')],
+    ['when', tc('criterio', 'cuando'), t('pido recuperar la contraseña')],
+    ['then', tc('criterio', 'entonces'), t('recibo un enlace que sirve 30 minutos')],
   ]
 
   return (
     <div
       ref={ref}
       role="group"
-      aria-label="Nuevo criterio de aceptación"
+      aria-label={t('Nuevo criterio de aceptación')}
       className="tf-pop flex flex-col gap-2 rounded-xl border border-ring bg-card p-3 shadow-[0_0_0_3px_var(--accent-soft)]"
       onBlur={(event) => {
         if (
@@ -624,13 +636,13 @@ function GherkinAdder({ onAdd, onClose }) {
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-mono text-[11px] text-muted-foreground">
-          <kbd className="text-foreground">↵</kbd> siguiente / agregar · <kbd className="text-foreground">esc</kbd> cerrar
+          {tx('{enter} siguiente / agregar · {esc} cerrar', { enter: <kbd className="text-foreground">↵</kbd>, esc: <kbd className="text-foreground">esc</kbd> })}
         </span>
         <Button type="button" size="sm" variant="ghost" className="ml-auto" onClick={onClose}>
-          Cancelar
+          {t('Cancelar')}
         </Button>
         <Button type="button" size="sm" disabled={!complete} onClick={submit}>
-          Agregar criterio
+          {t('Agregar criterio')}
         </Button>
       </div>
     </div>

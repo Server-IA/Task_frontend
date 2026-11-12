@@ -9,7 +9,8 @@ import { Spinner } from '@/components/common/Loaders'
 import { AvatarPhoto, UserAvatar, avatarColor, initials } from '@/components/common/UserAvatar'
 import { AVATAR_ACCEPT } from '@/features/files/fileTypes'
 import { useLastWorkspace } from '@/features/workspaces/hooks'
-import { ROLE_LABELS } from '@/lib/permissions'
+import { t } from '@/i18n'
+import { myRoleName } from '@/lib/permissions'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { AvatarCropDialog } from './AvatarCropDialog'
@@ -29,7 +30,7 @@ export function ProfilePhotoSection({ user }) {
   )
 }
 
-const STATUS = { queued: 'En cola…', confirming: 'Guardando…' }
+const STATUS = { queued: t('En cola…'), confirming: t('Guardando…') }
 
 function PhotoCard({ user }) {
   const inputRef = useRef(null)
@@ -45,7 +46,7 @@ function PhotoCard({ user }) {
 
   const hasPhoto = Boolean(user.avatarUrl)
   const busy = active || remove.isPending
-  const actionLabel = hasPhoto ? 'Cambiar foto' : 'Subir foto'
+  const actionLabel = hasPhoto ? t('Cambiar foto') : t('Subir foto')
   // Mientras sube se ve el recorte nuevo; si falla, vuelve la foto que había
   const shown = active ? task.meta.previewUrl : user.avatarUrl
 
@@ -68,11 +69,11 @@ function PhotoCard({ user }) {
     remove.mutate(undefined, {
       onSuccess: () => {
         setConfirmingRemove(false)
-        toast.success('Foto quitada', { description: 'Se usan tus iniciales y tu color.' })
+        toast.success(t('Foto quitada'), { description: t('Se usan tus iniciales y tu color.') })
       },
       onError: (error) => {
         setConfirmingRemove(false)
-        notifyError(error, 'No se pudo quitar la foto')
+        notifyError(error, t('No se pudo quitar la foto'))
       },
     })
   }
@@ -80,8 +81,8 @@ function PhotoCard({ user }) {
   return (
     <Card className="gap-3.5">
       <CardHeader>
-        <CardTitle>Foto de perfil</CardTitle>
-        <CardDescription>Se ve en la barra lateral, en tareas, comentarios y listas de miembros.</CardDescription>
+        <CardTitle>{t('Foto de perfil')}</CardTitle>
+        <CardDescription>{t('Se ve en la barra lateral, en tareas, comentarios y listas de miembros.')}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3.5">
         <div className="flex items-center gap-[18px]">
@@ -109,14 +110,14 @@ function PhotoCard({ user }) {
             }}
           >
             <Avatar className="size-24">
-              <AvatarPhoto src={shown} alt={`Foto de ${user.fullName}`} />
+              <AvatarPhoto src={shown} alt={t('Foto de {name}', { name: user.fullName })} />
               <AvatarFallback className={cn('font-display text-[34px] font-extrabold text-[#23201B]', avatarColor(user.fullName))}>
                 {initials(user.fullName)}
               </AvatarFallback>
             </Avatar>
             {active ? (
               <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center rounded-full bg-[rgb(35_32_27/0.55)] font-mono text-xs font-semibold text-white">
-                {task.status === 'uploading' ? `${Math.round(task.progress * 100)} %` : <Spinner />}
+                {task.status === 'uploading' ? t('{percent} %', { percent: Math.round(task.progress * 100) }) : <Spinner />}
               </span>
             ) : (
               <span
@@ -127,7 +128,7 @@ function PhotoCard({ user }) {
                 )}
               >
                 <Camera className="size-5" />
-                {dragging ? 'Soltar aquí' : actionLabel}
+                {dragging ? t('Soltar aquí') : actionLabel}
               </span>
             )}
           </button>
@@ -140,11 +141,11 @@ function PhotoCard({ user }) {
               {hasPhoto && (
                 <Button variant="outline" className="rounded-[11px] font-medium text-late hover:text-late" disabled={busy} onClick={() => setConfirmingRemove(true)}>
                   {remove.isPending && <Spinner />}
-                  Quitar foto
+                  {t('Quitar foto')}
                 </Button>
               )}
             </div>
-            <p className="font-mono text-[11.5px] leading-relaxed text-muted-foreground">PNG, JPG o WebP · hasta 5 MB · se recorta en cuadrado</p>
+            <p className="font-mono text-[11.5px] leading-relaxed text-muted-foreground">{t('PNG, JPG o WebP · hasta 5 MB · se recorta en cuadrado')}</p>
           </div>
           <input
             ref={inputRef}
@@ -164,9 +165,9 @@ function PhotoCard({ user }) {
       <ConfirmDialog
         open={confirmingRemove}
         onOpenChange={(open) => !remove.isPending && setConfirmingRemove(open)}
-        title="¿Quitar tu foto de perfil?"
-        description="Se borra la foto que subiste y en su lugar se ven tus iniciales sobre tu color. Para volver a tenerla, tendrás que subirla de nuevo."
-        confirmLabel="Quitar foto"
+        title={t('¿Quitar tu foto de perfil?')}
+        description={t('Se borra la foto que subiste y en su lugar se ven tus iniciales sobre tu color. Para volver a tenerla, tendrás que subirla de nuevo.')}
+        confirmLabel={t('Quitar foto')}
         loading={remove.isPending}
         onConfirm={removePhoto}
         // Quitada la foto, «Quitar foto» desaparece: el foco pasa a «Subir foto»
@@ -204,22 +205,22 @@ function PhotoStatus({ task, problem, hasPhoto, onCancel, onRetry }) {
   if (task?.status === 'error') {
     return (
       <div role="alert" className={cn(box, 'bg-late-soft py-2 text-late')}>
-        <span className="min-w-0 flex-1">No se pudo subir la foto. {task.error}</span>
+        <span className="min-w-0 flex-1">{t('No se pudo subir la foto. {error}', { error: task.error })}</span>
         {task.retryable && (
           <Button variant="outline" size="sm" className="h-7 bg-card text-foreground" onClick={onRetry}>
             <RotateCw className="size-3" />
-            Reintentar
+            {t('Reintentar')}
           </Button>
         )}
         <Button variant="ghost" size="sm" className="h-7 text-foreground" onClick={onCancel}>
-          Descartar
+          {t('Descartar')}
         </Button>
       </div>
     )
   }
   if (task && task.status !== 'done') {
     const percent = Math.round(task.progress * 100)
-    const label = task.status === 'uploading' ? `Subiendo foto… ${percent} %` : STATUS[task.status]
+    const label = task.status === 'uploading' ? t('Subiendo foto… {percent} %', { percent }) : STATUS[task.status]
     return (
       <div role="status" className={cn(box, 'border py-2')}>
         <span className="min-w-0 flex-1">
@@ -230,7 +231,7 @@ function PhotoStatus({ task, problem, hasPhoto, onCancel, onRetry }) {
         </span>
         {task.status !== 'confirming' && (
           <Button variant="ghost" size="sm" className="h-7" onClick={onCancel}>
-            Cancelar
+            {t('Cancelar')}
           </Button>
         )}
       </div>
@@ -240,14 +241,16 @@ function PhotoStatus({ task, problem, hasPhoto, onCancel, onRetry }) {
     return (
       <p role="status" className={cn(box, 'bg-ok-soft py-[9px] text-ok')}>
         <Check className="size-3.5 shrink-0" strokeWidth={2.6} aria-hidden="true" />
-        Foto actualizada. El equipo la ve en unos segundos.
+        {t('Foto actualizada. El equipo la ve en unos segundos.')}
       </p>
     )
   }
   return (
     <p className={cn(box, 'border border-dashed border-dash text-muted-foreground')}>
       <ImagePlus className="size-3.5 shrink-0" aria-hidden="true" />
-      {hasPhoto ? 'También puedes soltar una imagen sobre tu foto.' : 'También puedes soltar una imagen sobre tu avatar. Sin foto, se usan tus iniciales y tu color.'}
+      {hasPhoto
+        ? t('También puedes soltar una imagen sobre tu foto.')
+        : t('También puedes soltar una imagen sobre tu avatar. Sin foto, se usan tus iniciales y tu color.')}
     </p>
   )
 }
@@ -259,41 +262,41 @@ function PhotoStatus({ task, problem, hasPhoto, onCancel, onRetry }) {
 function SeenCard({ user }) {
   const hasPhoto = Boolean(user.avatarUrl)
   const workspace = useLastWorkspace()
-  const role = workspace ? ROLE_LABELS[workspace.myRole] : null
+  const role = workspace ? myRoleName(workspace) : null
   const row = 'flex items-center gap-2.5 rounded-xl border px-2.5 py-2'
   const caption = 'w-[70px] shrink-0 font-mono text-[11px] text-muted-foreground'
   return (
     <Card className="gap-3">
       <CardHeader>
-        <CardTitle>Así te ven</CardTitle>
-        <CardDescription>{hasPhoto ? 'Tu foto, en todos los tamaños de la app.' : 'Sin foto: tus iniciales sobre tu color.'}</CardDescription>
+        <CardTitle>{t('Así te ven')}</CardTitle>
+        <CardDescription>{hasPhoto ? t('Tu foto, en todos los tamaños de la app.') : t('Sin foto: tus iniciales sobre tu color.')}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <div className={row}>
-          <span className={caption}>miembros</span>
+          <span className={caption}>{t('miembros')}</span>
           <UserAvatar user={user} className="size-[34px] text-xs" />
           <span className="flex min-w-0 flex-col leading-tight">
             <span className="truncate font-semibold">
-              {user.fullName} <span className="font-normal text-muted-foreground">(tú)</span>
+              {user.fullName} <span className="font-normal text-muted-foreground">{t('(tú)')}</span>
             </span>
             {role && (
-              <span className="truncate font-mono text-[11.5px] text-muted-foreground" title={`Tu rol en ${workspace.name}`}>
+              <span className="truncate font-mono text-[11.5px] text-muted-foreground" title={t('Tu rol en {workspace}', { workspace: workspace.name })}>
                 {role} · {workspace.name}
               </span>
             )}
           </span>
         </div>
         <div className={cn(row, 'items-start')}>
-          <span className={cn(caption, 'pt-1.5')}>comentario</span>
+          <span className={cn(caption, 'pt-1.5')}>{t('comentario')}</span>
           <UserAvatar user={user} className="size-7 text-[10px]" />
           <span className="min-w-0 flex-1 text-[13px] leading-normal">
-            <strong className="font-semibold">{user.fullName}</strong> <span className="font-mono text-[11px] text-muted-foreground">· ahora</span>
+            <strong className="font-semibold">{user.fullName}</strong> <span className="font-mono text-[11px] text-muted-foreground">{t('· ahora')}</span>
             <br />
-            Listo el arreglo del botón Guardar.
+            {t('Listo el arreglo del botón Guardar.')}
           </span>
         </div>
         <div className={row}>
-          <span className={caption}>tarjeta</span>
+          <span className={caption}>{t('tarjeta')}</span>
           <span className="font-mono text-[11px] text-muted-foreground">WEB-15</span>
           <span className="ml-auto flex">
             <UserAvatar user={{ id: 'ejemplo', fullName: 'Ana Núñez', avatarUrl: null }} size="sm" className="text-[9px] ring-2 ring-card" />

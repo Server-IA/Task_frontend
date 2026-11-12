@@ -4,6 +4,7 @@ import { ArrowRight, Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/common/Loaders'
 import { useUrlToken } from '@/hooks/useUrlToken'
+import { t } from '@/i18n'
 import { AuthCard, AuthHeader, AuthIcon, CenteredShell } from '@/layouts/AuthLayout'
 import { asSentence, getErrorMessage } from '@/lib/errors'
 import { cn } from '@/lib/utils'
@@ -28,12 +29,12 @@ export function VerifyEmailPage() {
   const failed = !token || verify.isError
 
   return (
-    <CenteredShell meta="~/acceso/verificar">
+    <CenteredShell meta={t('~/acceso/verificar')}>
       <AuthCard>
         {token && verify.isPending && (
           <div className="flex flex-col items-center gap-3 py-8">
             <Spinner className="size-6 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Verificando tu correo…</p>
+            <p className="text-sm text-muted-foreground">{t('Verificando tu correo…')}</p>
           </div>
         )}
         {verify.isSuccess && (
@@ -43,13 +44,13 @@ export function VerifyEmailPage() {
             </AuthIcon>
             <AuthHeader
               size="md"
-              title="Correo verificado"
-              description="Listo. Tu cuenta ya está activa: entra y arma tu primer workspace."
+              title={t('Correo verificado')}
+              description={t('Listo. Tu cuenta ya está activa: entra y arma tu primer workspace.')}
             />
-            <Progress done={['cuenta', 'correo']} pending={['workspace']} />
+            <Progress done={[t('cuenta'), t('correo')]} pending={['workspace']} />
             <Button asChild className="h-11 rounded-xl">
               <Link to={continueLink}>
-                {isAuthenticated ? 'Ir a TaskFlow' : 'Iniciar sesión'}
+                {isAuthenticated ? t('Ir a TaskFlow') : t('Iniciar sesión')}
                 <ArrowRight />
               </Link>
             </Button>
@@ -62,11 +63,13 @@ export function VerifyEmailPage() {
             </AuthIcon>
             <AuthHeader
               size="md"
-              title="No pudimos verificar tu correo"
-              description={`${token ? asSentence(getErrorMessage(verify.error)) : 'El enlace no es válido.'} Pide un enlace nuevo desde la pantalla de inicio de sesión.`}
+              title={t('No pudimos verificar tu correo')}
+              description={t('{reason} Pide un enlace nuevo desde la pantalla de inicio de sesión.', {
+                reason: token ? asSentence(getErrorMessage(verify.error)) : t('El enlace no es válido.'),
+              })}
             />
             <Button asChild className="h-11 rounded-xl">
-              <Link to="/login">Ir a iniciar sesión</Link>
+              <Link to="/login">{t('Ir a iniciar sesión')}</Link>
             </Button>
           </>
         )}
@@ -79,7 +82,7 @@ export function VerifyEmailPage() {
 function Progress({ done, pending }) {
   const steps = [...done.map((label) => ({ label, ok: true })), ...pending.map((label) => ({ label, ok: false }))]
   return (
-    <ol aria-label="Progreso" className="flex gap-1.5">
+    <ol aria-label={t('Progreso')} className="flex gap-1.5">
       {steps.map((step) => (
         <li key={step.label} className="flex flex-1 flex-col gap-1.5">
           <span aria-hidden="true" className={cn('h-1 rounded-full', step.ok ? 'bg-ok-dot' : 'bg-column')} />

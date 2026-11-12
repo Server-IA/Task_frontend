@@ -2,6 +2,7 @@ import { api } from '@/api/client'
 
 /** @typedef {import('@/api/types').DailyResponse} DailyResponse */
 /** @typedef {import('@/api/types').DailyNote} DailyNote */
+/** @typedef {import('@/api/types').DailySettings} DailySettings */
 
 const data = (response) => response.data
 const base = (slug, projectId) => `/workspaces/${slug}/projects/${projectId}/daily`
@@ -20,4 +21,16 @@ export const dailyApi = {
    */
   saveNote: (slug, projectId, date, text) =>
     api.put(`${base(slug, projectId)}/note`, { text }, { params: { date } }).then((response) => (response.status === 204 ? null : response.data)),
+
+  /**
+   * Ajustes de la daily: bloques que se exponen y puntos a tratar.
+   * @returns {Promise<DailySettings>}
+   */
+  getSettings: (slug, projectId) => api.get(`${base(slug, projectId)}/settings`).then(data),
+
+  /**
+   * Reemplaza los ajustes (pide el permiso de configurar la daily).
+   * @returns {Promise<DailySettings>}
+   */
+  saveSettings: (slug, projectId, body) => api.put(`${base(slug, projectId)}/settings`, body).then(data),
 }

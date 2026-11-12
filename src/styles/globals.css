@@ -46,6 +46,9 @@
   --ok: #1d6b47;
   --ok-dot: #2e9e6a;
   --ok-soft: #e3f5ec;
+  /* Pull request fusionado (GitHub) */
+  --merged: #4b33a8;
+  --merged-soft: #ece6ff;
   --overlay: rgb(35 32 27 / 0.35);
   --dot: #ddd8ce;
   --card-shadow: 0 1px 2px rgb(35 32 27 / 0.05), 0 4px 12px rgb(35 32 27 / 0.05);
@@ -131,6 +134,8 @@
   --ok: #86efac;
   --ok-dot: #7ee2a8;
   --ok-soft: #12291d;
+  --merged: #c9bbff;
+  --merged-soft: #2b2440;
   --overlay: rgb(5 4 10 / 0.6);
   --dot: #26231f;
   --card-shadow: none;
@@ -218,6 +223,8 @@
   --color-ok: var(--ok);
   --color-ok-dot: var(--ok-dot);
   --color-ok-soft: var(--ok-soft);
+  --color-merged: var(--merged);
+  --color-merged-soft: var(--merged-soft);
   --color-overlay: var(--overlay);
   --shadow-card: var(--card-shadow);
   --color-chart-series: var(--chart-series);
@@ -395,24 +402,31 @@
     font-family: var(--font-mono);
     font-size: 12.5px;
   }
-  .tf-md table {
-    width: 100%;
-    margin: 0 0 14px;
-    border-collapse: separate;
-    border-spacing: 0;
+  /* Tablas: cada columna toma el ancho de su contenido (una con un número no ocupa lo mismo que una con una frase)
+     y, si no caben, la tabla se desliza dentro de su contenedor en vez de apretar el texto letra por letra */
+  .tf-md .tableWrapper {
+    margin: 4px 0 16px;
+    overflow-x: auto;
     border: 1px solid var(--border);
     border-radius: 10px;
-    overflow: hidden;
+  }
+  .tf-md table {
+    width: 100%;
+    margin: 0;
+    border-collapse: separate;
+    border-spacing: 0;
     font-size: 13.5px;
     line-height: 1.45;
-    table-layout: fixed;
+    table-layout: auto;
   }
   .tf-md th,
   .tf-md td {
     position: relative;
+    min-width: 96px;
     padding: 8px 12px;
     text-align: left;
     vertical-align: top;
+    overflow-wrap: break-word;
     border-top: 1px solid var(--border);
     border-left: 1px solid var(--border);
   }
@@ -426,17 +440,21 @@
     background: var(--subtle);
     font-weight: 600;
   }
+  /* Filas alternas apenas marcadas: en una tabla larga ayudan a seguir la línea */
+  .tf-md tr:nth-child(odd) > td {
+    background: color-mix(in oklab, var(--subtle) 45%, transparent);
+  }
   .tf-md th p,
   .tf-md td p {
     margin: 0;
   }
+  .tf-md th p + p,
+  .tf-md td p + p {
+    margin-top: 4px;
+  }
   /* Una tabla dentro de un punto de una lista (o de una casilla): igual que las demás, separada del texto */
-  .tf-md li table,
   .tf-md li .tableWrapper {
     margin: 6px 0 10px;
-  }
-  .tf-md li .tableWrapper table {
-    margin: 0;
   }
   /* Imagen subida: ajustada al texto (hasta 560 px de alto) o a todo el ancho, con su pie de foto */
   .tf-md .tf-md-figure {
@@ -663,9 +681,17 @@
   .tf-md-sm ol,
   .tf-md-sm blockquote,
   .tf-md-sm .tf-md-code,
-  .tf-md-sm table,
+  .tf-md-sm .tableWrapper,
   .tf-md-sm .tf-md-story {
     margin-bottom: 8px;
+  }
+  .tf-md-sm table {
+    font-size: 13px;
+  }
+  .tf-md-sm th,
+  .tf-md-sm td {
+    min-width: 80px;
+    padding: 6px 10px;
   }
 
   /* El editor */
@@ -836,6 +862,410 @@
 .tf-no-transitions *::before,
 .tf-no-transitions *::after {
   transition: none !important;
+}
+
+/*
+ * Logo de carga (components/common/Splash): el cuadro aparece con un pequeño rebote, el check se dibuja y termina en
+ * la flecha. `--splash-delay` es negativo cuando el logo ya llevaba un rato a la vista: sigue donde iba.
+ */
+@keyframes tf-splash-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes tf-splash-draw {
+  from {
+    opacity: 0;
+    stroke-dashoffset: 1;
+  }
+  5% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes tf-splash-line {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(260%);
+  }
+}
+.tf-splash {
+  transform-origin: 50% 50%;
+  animation: tf-splash-pop 450ms cubic-bezier(0.22, 1, 0.36, 1) var(--splash-delay, 0ms) both;
+}
+.tf-splash-check,
+.tf-splash-arrow {
+  stroke-dasharray: 1;
+}
+.tf-splash-check {
+  animation: tf-splash-draw 550ms cubic-bezier(0.65, 0, 0.35, 1) calc(var(--splash-delay, 0ms) + 300ms) both;
+}
+.tf-splash-arrow {
+  animation: tf-splash-draw 250ms ease-out calc(var(--splash-delay, 0ms) + 800ms) both;
+}
+.tf-splash-line {
+  animation: tf-splash-line 1100ms cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+/*
+ * Entrada del login al abrir la app (layouts/AuthLayout, `data-intro`): mientras el logo se dibuja (`wait`) el
+ * contenido no se ve; cuando despega (`go`) el panel aparece y cada parte sube 12 px, una tras otra según `--i`.
+ */
+@keyframes tf-intro-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+[data-intro='wait'] .tf-intro-aside,
+[data-intro='wait'] .tf-intro-item,
+[data-intro='wait'] .tf-intro-list > * {
+  opacity: 0;
+}
+[data-intro='go'] .tf-intro-aside {
+  animation: tf-fade 450ms ease-out backwards;
+}
+[data-intro='go'] .tf-intro-item,
+[data-intro='go'] .tf-intro-list > * {
+  animation: tf-intro-rise 420ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: calc(var(--intro-at, 400ms) + var(--i, 0) * 80ms);
+}
+.tf-intro-list {
+  --intro-at: 450ms;
+}
+.tf-intro-list > :nth-child(2) {
+  --i: 1;
+}
+.tf-intro-list > :nth-child(3) {
+  --i: 2;
+}
+.tf-intro-list > :nth-child(4) {
+  --i: 3;
+}
+.tf-intro-list > :nth-child(5) {
+  --i: 4;
+}
+.tf-intro-list > :nth-child(n + 6) {
+  --i: 5;
+}
+
+/*
+ * Al iniciar sesión el login sale (layouts/AuthLayout, `data-login-out`): el panel de marca y el formulario se
+ * desvanecen mientras el logo va al centro.
+ */
+@keyframes tf-login-out {
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+[data-login-out='go'] .tf-intro-aside,
+[data-login-out='go'] .tf-login-main {
+  animation: tf-login-out 320ms ease-in forwards;
+}
+
+/*
+ * Entrada de la app (layouts/AppLayout, `data-app-intro`): el logo de carga se desvanece en el centro y la app
+ * aparece por orden: el menú (y dentro, sus partes), después la página de arriba abajo.
+ */
+@keyframes tf-app-cover {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes tf-app-logo {
+  to {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+@keyframes tf-app-aside {
+  from {
+    opacity: 0;
+    transform: translateX(-18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.tf-app-cover {
+  animation: tf-app-cover 220ms ease-out forwards;
+}
+.tf-app-logo {
+  animation: tf-app-logo 340ms ease-in forwards;
+}
+[data-app-intro='go'] .tf-app-aside {
+  animation: tf-app-aside 480ms cubic-bezier(0.22, 1, 0.36, 1) 280ms backwards;
+}
+[data-app-intro='go'] .tf-app-aside > div > * {
+  animation: tf-intro-rise 420ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: calc(400ms + var(--i, 0) * 80ms);
+}
+[data-app-intro='go'] .tf-app-page > * {
+  animation: tf-intro-rise 460ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: calc(640ms + var(--i, 0) * 120ms);
+}
+.tf-app-aside > div > :nth-child(2),
+.tf-app-page > :nth-child(2) {
+  --i: 1;
+}
+.tf-app-aside > div > :nth-child(3),
+.tf-app-page > :nth-child(3) {
+  --i: 2;
+}
+.tf-app-aside > div > :nth-child(n + 4),
+.tf-app-page > :nth-child(n + 4) {
+  --i: 3;
+}
+
+/*
+ * Salida al cerrar sesión (`data-app-outro`): lo contrario de la entrada. El menú se va a la izquierda, la página
+ * baja y la tapa aparece con el logo, que se encoge hasta su tamaño en el centro.
+ */
+@keyframes tf-out-cover {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes tf-out-logo {
+  from {
+    opacity: 0;
+    transform: scale(1.45);
+  }
+}
+@keyframes tf-app-aside-out {
+  to {
+    opacity: 0;
+    transform: translateX(-18px);
+  }
+}
+@keyframes tf-app-main-out {
+  to {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+.tf-out-cover {
+  animation: tf-out-cover 300ms ease-in 60ms both;
+}
+.tf-out-logo {
+  animation: tf-out-logo 400ms cubic-bezier(0.22, 1, 0.36, 1) 60ms both;
+}
+[data-app-outro='go'] .tf-app-aside {
+  animation: tf-app-aside-out 280ms ease-in forwards;
+}
+[data-app-outro='go'] .tf-app-main {
+  animation: tf-app-main-out 280ms ease-in 40ms forwards;
+}
+
+/*
+ * Animaciones cortas de momentos concretos (no de la navegación de todos los días):
+ * - .tf-pulse: un número que cambió (contador de una columna, insignia de la bandeja).
+ * - .tf-settle: la tarjeta recién soltada en el tablero.
+ * - .tf-new-row: la tarea recién creada, resaltada un momento; .tf-ghost y .tf-task-chip: el diálogo que se encoge
+ *   hasta una ficha y la ficha que viaja hasta ella (`landNewTask`).
+ * - .tf-done-flash: la tarea recién completada se enciende en verde.
+ * - .tf-state-done / .tf-strike-in: una tarea que pasa a completada (el check se dibuja, el título se tacha).
+ * - .tf-bar-grow: la barra de avance de un ciclo recién cerrado.
+ * - .tf-col / .tf-line: las columnas y la línea de los gráficos al abrir las estadísticas.
+ * - .tf-slide-in: un aviso que acaba de llegar a la bandeja; .tf-slide-next / -prev: cambiar de persona en la daily.
+ */
+@keyframes tf-pulse {
+  50% {
+    transform: scale(1.3);
+  }
+}
+.tf-pulse {
+  animation: tf-pulse 380ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes tf-settle {
+  from {
+    transform: scale(1.04);
+  }
+  60% {
+    transform: scale(0.99);
+  }
+}
+.tf-settle {
+  animation: tf-settle 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* En una fila solo cambia el fondo: va dentro de una tarjeta de esquinas redondeadas y un borde se cortaría en ellas.
+   En una tarjeta del tablero (`article`), que tiene sus propias esquinas, además lleva un borde */
+@keyframes tf-new-row {
+  from,
+  35% {
+    background-color: var(--accent-soft);
+  }
+}
+@keyframes tf-new-card {
+  from,
+  35% {
+    background-color: var(--accent-soft);
+    box-shadow: inset 0 0 0 1.5px var(--accent-text);
+  }
+}
+.tf-new-row {
+  animation: tf-new-row 2000ms ease-out;
+}
+article.tf-new-row {
+  animation-name: tf-new-card;
+}
+@keyframes tf-done-flash {
+  from,
+  30% {
+    background-color: var(--ok-soft);
+  }
+}
+@keyframes tf-done-card {
+  from,
+  30% {
+    background-color: var(--ok-soft);
+    box-shadow: inset 0 0 0 1.5px var(--ok-dot);
+  }
+}
+.tf-done-flash {
+  animation: tf-done-flash 1900ms ease-out;
+}
+article.tf-done-flash {
+  animation-name: tf-done-card;
+}
+/* Soltada en una columna de completadas: se asienta y se enciende a la vez. Sin esta regla una animación pisa a la
+   otra, y si el «completada» llega a mitad del rebote la tarjeta da un salto */
+article.tf-settle.tf-done-flash {
+  animation:
+    tf-settle 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    tf-done-card 1900ms ease-out;
+}
+/* La ficha de la tarea recién creada, en camino a su lugar: código y título en una línea */
+.tf-task-chip {
+  position: fixed;
+  z-index: 61;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  overflow: hidden;
+  pointer-events: none;
+  border: 1px solid var(--accent-text);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 0 14px 34px rgb(35 32 27 / 0.2);
+  font-size: 14px;
+  white-space: nowrap;
+}
+.tf-task-chip span {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.tf-task-chip strong {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+}
+.tf-ghost {
+  position: fixed;
+  z-index: 60;
+  pointer-events: none;
+  border-radius: 22px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: 0 18px 44px rgb(35 32 27 / 0.18);
+}
+@keyframes tf-state-pop {
+  from {
+    transform: scale(0.6);
+  }
+  60% {
+    transform: scale(1.12);
+  }
+}
+.tf-state-done {
+  animation: tf-state-pop 340ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.tf-state-done path {
+  stroke-dasharray: 1;
+  animation: tf-splash-draw 380ms cubic-bezier(0.65, 0, 0.35, 1) 80ms both;
+}
+@keyframes tf-strike-in {
+  from {
+    text-decoration-color: transparent;
+  }
+}
+.tf-strike-in {
+  text-decoration-line: line-through;
+  animation: tf-strike-in 420ms ease-out;
+}
+@keyframes tf-bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+.tf-bar-grow {
+  transform-origin: 0 50%;
+  animation: tf-bar-grow 900ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+@keyframes tf-col-grow {
+  from {
+    transform: scaleY(0);
+  }
+}
+.tf-col {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: tf-col-grow 520ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: calc(120ms + var(--i, 0) * 60ms);
+}
+.tf-line {
+  stroke-dasharray: 1;
+  animation: tf-splash-draw 1100ms cubic-bezier(0.65, 0, 0.35, 1) 200ms both;
+}
+@keyframes tf-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+}
+.tf-slide-in {
+  animation: tf-slide-in 380ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes tf-slide-next {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+}
+@keyframes tf-slide-prev {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+}
+.tf-slide-next {
+  animation: tf-slide-next 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.tf-slide-prev {
+  animation: tf-slide-prev 320ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* Quien pide menos movimiento en su sistema ve los cambios sin animación */

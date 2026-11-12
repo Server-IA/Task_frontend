@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
+import { t } from '@/i18n'
 import { IssueDetailWithExtras } from './IssueDetailWithExtras'
 
 /**
@@ -18,8 +19,8 @@ export function IssuePeekSheet({ slug, project, issueId, onClose, onOpenIssue, f
         side="right"
         className="top-2.5 right-2.5 bottom-2.5 h-auto w-[calc(100%-1.25rem)] gap-0 overflow-hidden rounded-[20px] border p-0 shadow-2xl data-[state=closed]:duration-200 data-[state=open]:duration-300 sm:max-w-[780px] [&>button:last-child]:hidden"
       >
-        <SheetTitle className="sr-only">Detalle de la tarea</SheetTitle>
-        <SheetDescription className="sr-only">Propiedades, subtareas y actividad</SheetDescription>
+        <SheetTitle className="sr-only">{t('Detalle de la tarea')}</SheetTitle>
+        <SheetDescription className="sr-only">{t('Propiedades, subtareas y actividad')}</SheetDescription>
         {shownId && project && (
           // Al pasar de una tarea a otra (subtarea, padre) el contenido cambia con un fundido
           <div key={shownId} className="tf-fade h-full min-h-0">

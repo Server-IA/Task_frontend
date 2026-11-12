@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight, Download, ExternalLink, ImageIcon, X } from 'lucide-react'
 import { Dialog, DialogPortal, DialogTitle } from '@/components/ui/dialog'
+import { msg, t, tx } from '@/i18n'
 import { formatRelative } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
@@ -14,7 +15,12 @@ import { useResolvedSrc } from './FileImage'
  *             author?: { fullName: string } | null, createdAt?: string | null }} ViewerImage
  */
 
-const GROUP_LABEL = { descripción: 'la descripción', adjuntos: 'Adjuntos', comentarios: 'un comentario' }
+/** Dónde está la imagen («en la descripción», «en Adjuntos de WEB-12») y el título de su grupo en la tira de abajo. */
+const GROUPS = {
+  descripción: { title: msg('descripción'), place: msg('en la descripción'), placeOf: msg('en la descripción de {code}') },
+  adjuntos: { title: msg('adjuntos'), place: msg('en Adjuntos'), placeOf: msg('en Adjuntos de {code}') },
+  comentarios: { title: msg('comentarios'), place: msg('en un comentario'), placeOf: msg('en un comentario de {code}') },
+}
 
 /**
  * Visor de las imágenes de una tarea: todas en orden (descripción, adjuntos y comentarios), con ← → para cambiar,
@@ -81,9 +87,11 @@ export function ImageViewer({ images, index, issueCode, onIndexChange, onClose }
             event.preventDefault()
             if (opener?.isConnected) opener.focus()
           }}
-          className="fixed inset-0 z-[70] flex flex-col bg-background/97 text-foreground outline-none backdrop-blur-sm"
+          // Fondo liso: con el fondo casi opaco, el desenfoque de lo de atrás no se veía y a pantalla completa es de
+          // lo más caro que puede pintar el navegador (se notaba al abrir y al desplazar una imagen al 100 %)
+          className="tf-fade fixed inset-0 z-[70] flex flex-col bg-background text-foreground outline-none"
         >
-          <DialogTitle className="sr-only">{issueCode ? `Visor de imágenes de ${issueCode}` : 'Visor de imágenes'}</DialogTitle>
+          <DialogTitle className="sr-only">{issueCode ? t('Visor de imágenes de {code}', { code: issueCode }) : t('Visor de imágenes')}</DialogTitle>
           <header className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3.5 border-b px-4.5 py-3.5">
             <span className="flex min-w-0 items-center gap-3.5">
               <span className="flex size-[34px] shrink-0 items-center justify-center rounded-[10px] bg-muted text-muted-foreground" aria-hidden="true">
@@ -94,28 +102,24 @@ export function ImageViewer({ images, index, issueCode, onIndexChange, onClose }
                 <span className="truncate font-mono text-[11.5px] text-muted-foreground">
                   {meta.join(' · ')}
                   {meta.length > 0 && ' · '}
-                  en {GROUP_LABEL[image.group]}
-                  {issueCode && (
-                    <>
-                      {' de '}
-                      <span className="text-accent-text">{issueCode}</span>
-                    </>
-                  )}
+                  {issueCode
+                    ? tx(GROUPS[image.group].placeOf, { code: <span className="text-accent-text">{issueCode}</span> })
+                    : t(GROUPS[image.group].place)}
                 </span>
               </span>
             </span>
             <span className="rounded-full bg-muted px-3 py-1 font-mono text-xs text-muted-foreground">
-              <span className="font-semibold text-foreground">{index + 1}</span> de {count}
+              {tx('{current} de {total}', { current: <span className="font-semibold text-foreground">{index + 1}</span>, total: count })}
             </span>
             <span className="flex items-center justify-self-end gap-1.5">
-              <span role="group" aria-label="Zoom" className="flex rounded-[10px] border p-[3px] text-[12.5px]">
+              <span role="group" aria-label={t('Zoom')} className="flex rounded-[10px] border p-[3px] text-[12.5px]">
                 <button
                   type="button"
                   aria-pressed={!actual}
                   onClick={() => setActual(false)}
                   className={cn('rounded-[7px] px-2.5 py-1', !actual ? 'bg-accent-soft font-semibold text-accent-text' : 'hover:bg-muted')}
                 >
-                  Ajustar
+                  {t('Ajustar')}
                 </button>
                 <button
                   type="button"
@@ -123,7 +127,7 @@ export function ImageViewer({ images, index, issueCode, onIndexChange, onClose }
                   onClick={() => setActual(true)}
                   className={cn('rounded-[7px] px-2.5 py-1 font-mono text-xs', actual ? 'bg-accent-soft font-semibold text-accent-text' : 'hover:bg-muted')}
                 >
-                  100 %
+                  {t('100 %')}
                 </button>
               </span>
               <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
@@ -131,12 +135,12 @@ export function ImageViewer({ images, index, issueCode, onIndexChange, onClose }
               <button
                 type="button"
                 className="flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 text-[13px] font-medium hover:bg-muted"
-                onClick={() => downloadFile(image.id).catch((error) => notifyError(error, 'No se pudo descargar'))}
+                onClick={() => downloadFile(image.id).catch((error) => notifyError(error, t('No se pudo descargar')))}
               >
                 <Download className="size-4" aria-hidden="true" />
-                Descargar
+                {t('Descargar')}
               </button>
-              <button type="button" aria-label="Cerrar (Esc)" title="Cerrar · esc" onClick={onClose} className="rounded-[10px] p-2 hover:bg-muted">
+              <button type="button" aria-label={t('Cerrar (Esc)')} title={t('Cerrar · esc')} onClick={onClose} className="rounded-[10px] p-2 hover:bg-muted">
                 <X className="size-4" aria-hidden="true" />
               </button>
             </span>
@@ -149,7 +153,7 @@ export function ImageViewer({ images, index, issueCode, onIndexChange, onClose }
             }}
           >
             {count > 1 && (
-              <NavButton label={`Imagen anterior: ${images[(index - 1 + count) % count].name}`} title="Anterior · ←" onClick={() => go(-1)}>
+              <NavButton label={t('Imagen anterior: {name}', { name: images[(index - 1 + count) % count].name })} title={t('Anterior · ←')} onClick={() => go(-1)}>
                 <ChevronLeft className="size-5" aria-hidden="true" />
               </NavButton>
             )}
@@ -162,17 +166,17 @@ export function ImageViewer({ images, index, issueCode, onIndexChange, onClose }
               <ViewerImageContent key={image.id} image={image} actual={actual} onLoad={setDimensions} />
             </div>
             {count > 1 && (
-              <NavButton label={`Imagen siguiente: ${images[(index + 1) % count].name}`} title="Siguiente · →" onClick={() => go(1)}>
+              <NavButton label={t('Imagen siguiente: {name}', { name: images[(index + 1) % count].name })} title={t('Siguiente · →')} onClick={() => go(1)}>
                 <ChevronRight className="size-5" aria-hidden="true" />
               </NavButton>
             )}
           </div>
 
           <footer className="flex items-end gap-4.5 border-t px-4.5 pt-3 pb-4">
-            <ol aria-label="Imágenes de la tarea" className="flex flex-1 justify-center gap-4.5">
+            <ol aria-label={t('Imágenes de la tarea')} className="flex flex-1 justify-center gap-4.5">
               {groups.map(({ group, items }) => (
                 <li key={group} className="flex flex-col gap-1.5">
-                  <span className="font-mono text-[10.5px] tracking-[0.06em] text-muted-foreground uppercase">{group}</span>
+                  <span className="font-mono text-[10.5px] tracking-[0.06em] text-muted-foreground uppercase">{t(GROUPS[group].title)}</span>
                   <span className="flex gap-2">
                     {items.map(({ item, position }) => (
                       <Fragment key={item.id}>
@@ -184,9 +188,9 @@ export function ImageViewer({ images, index, issueCode, onIndexChange, onClose }
               ))}
             </ol>
             <span className="shrink-0 font-mono text-[11px] leading-relaxed text-muted-foreground">
-              <kbd className="text-foreground">← →</kbd> cambiar
+              {tx('{keys} cambiar', { keys: <kbd className="text-foreground">← →</kbd> })}
               <br />
-              <kbd className="text-foreground">esc</kbd> o clic fuera para cerrar
+              {tx('{key} o clic fuera para cerrar', { key: <kbd className="text-foreground">esc</kbd> })}
             </span>
           </footer>
         </DialogPrimitive.Content>
@@ -211,16 +215,19 @@ function NavButton({ label, title, onClick, children }) {
 
 function ViewerImageContent({ image, actual, onLoad }) {
   const { url, loading, missing } = useResolvedSrc(`/files/${image.id}`)
-  if (missing) return <p className="self-center text-sm text-muted-foreground">Esta imagen ya no está disponible.</p>
+  if (missing) return <p className="self-center text-sm text-muted-foreground">{t('Esta imagen ya no está disponible.')}</p>
   if (loading || !url) return <span className="size-40 animate-pulse self-center rounded-xl bg-muted" aria-busy="true" />
   return (
     <img
       src={url}
       alt={image.name}
+      // La imagen se decodifica fuera del hilo de la página: una captura grande no la congela al abrir
+      decoding="async"
       onLoad={(event) => onLoad({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })}
       className={cn(
-        'rounded-xl shadow-[0_30px_80px_rgb(35_32_27/0.22)]',
-        actual ? 'max-w-none' : 'max-h-full max-w-full object-contain',
+        'tf-fade rounded-xl',
+        // Al 100 % la imagen puede ser enorme y se desplaza: sin la sombra grande, que habría que volver a pintar
+        actual ? 'max-w-none border' : 'max-h-full max-w-full object-contain shadow-[0_18px_44px_rgb(35_32_27/0.18)]',
       )}
     />
   )
@@ -241,7 +248,7 @@ function Thumbnail({ image, current, onClick }) {
         current ? 'border-ring opacity-100' : 'border-transparent opacity-70 hover:opacity-100',
       )}
     >
-      {url && <img src={url} alt="" className="size-full object-cover" loading="lazy" />}
+      {url && <img src={url} alt="" className="size-full object-cover" loading="lazy" decoding="async" />}
     </button>
   )
 }
@@ -253,13 +260,13 @@ function NewTabLink({ id }) {
       href={data?.url ?? '#'}
       target="_blank"
       rel="noopener noreferrer"
-      title="Abrir en pestaña nueva"
+      title={t('Abrir en pestaña nueva')}
       aria-disabled={!data?.url || undefined}
       onClick={(event) => !data?.url && event.preventDefault()}
       className="flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 text-[13px] font-medium hover:bg-muted"
     >
       <ExternalLink className="size-4" aria-hidden="true" />
-      Pestaña nueva
+      {t('Pestaña nueva')}
     </a>
   )
 }

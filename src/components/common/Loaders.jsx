@@ -1,17 +1,20 @@
 import { Loader2 } from 'lucide-react'
-import { Logo } from '@/components/common/Logo'
+import { SplashStage } from '@/components/common/Splash'
+import { t } from '@/i18n'
 import { cn } from '@/lib/utils'
 
 export function Spinner({ className }) {
   return <Loader2 className={cn('size-4 animate-spin', className)} aria-hidden="true" />
 }
 
-/** Pantalla de carga mientras se recupera la sesión al abrir la app. */
+/**
+ * Pantalla de carga mientras se recupera la sesión al abrir la app: el logo que se dibuja y una línea de «cargando».
+ * Ocupa toda la ventana, igual que la entrada del login que la continúa (el logo no salta de lugar entre las dos).
+ */
 export function FullScreenLoader() {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-4">
-      <Logo withText={false} className="animate-pulse [&_svg]:size-11" />
-      <Spinner className="size-5 text-muted-foreground" />
+    <div role="status" aria-label={t('Cargando')} className="fixed inset-0 bg-background">
+      <SplashStage />
     </div>
   )
 }

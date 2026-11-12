@@ -3,11 +3,12 @@ import { Link } from 'react-router'
 import { TrendingDown, TrendingUp } from 'lucide-react'
 import { isTooDark } from '@/components/common/StateIcon'
 import { UserAvatar } from '@/components/common/UserAvatar'
+import { stateName, t, tn, tx } from '@/i18n'
 import { formatShortDate } from '@/lib/dates'
 import { cn } from '@/lib/utils'
 import { average, formatDecimal, formatDelta, percent } from '../chartMath'
 import { BurndownChart, burndownSeries } from './BurndownChart'
-import { ChartCard, ChartTooltip } from './ChartCard'
+import { ChartCard, ChartTooltip, DataTable } from './ChartCard'
 import { ThroughputChart } from './ThroughputChart'
 
 /** «!» en un cuadrito rojo: acompaña al rojo de lo vencido (el color nunca va solo). */
@@ -40,27 +41,25 @@ export function KpiTiles({ stats, onOpenIssue }) {
   const cycleDelta = cycleTime != null && stats.previousCycleTimeDays != null ? cycleTime - stats.previousCycleTimeDays : null
 
   return (
-    <section aria-label="Resumen" className="grid grid-cols-[repeat(auto-fit,minmax(190px,1fr))] gap-3.5">
+    <section aria-label={t('Resumen')} className="grid grid-cols-[repeat(auto-fit,minmax(190px,1fr))] gap-3.5">
       <KpiTile
-        label="Abiertas"
+        label={t('Abiertas')}
         value={stats.openCount}
         detail={
-          <span title={`${stats.createdThisWeek} creadas y ${stats.completedThisWeek} cerradas desde el lunes`}>
-            <Delta value={net} className="text-muted-foreground" /> esta semana
+          <span title={t('{created} creadas y {completed} cerradas desde el lunes', { created: stats.createdThisWeek, completed: stats.completedThisWeek })}>
+            {tx('{delta} esta semana', { delta: <Delta value={net} className="text-muted-foreground" /> })}
           </span>
         }
       />
       <KpiTile
-        label="Cerradas esta semana"
+        label={t('Cerradas esta semana')}
         value={stats.completedThisWeek}
         detail={
-          <>
-            <Delta value={closedDelta} className={deltaTone(closedDelta)} /> vs. semana pasada
-          </>
+          tx('{delta} vs. semana pasada', { delta: <Delta value={closedDelta} className={deltaTone(closedDelta)} /> })
         }
       />
       <KpiTile
-        label="Vencidas"
+        label={t('Vencidas')}
         alert={overdue.length > 0}
         value={overdue.length}
         valueClassName={overdue.length > 0 && 'text-late'}
@@ -82,30 +81,27 @@ export function KpiTiles({ stats, onOpenIssue }) {
               ))}
             </span>
           ) : (
-            'ninguna con la fecha límite pasada'
+            t('ninguna con la fecha límite pasada')
           )
         }
       />
       {/* Mediana de startedAt → completedAt: las que nunca pasaron por un estado «en curso» no cuentan */}
       <KpiTile
-        label="Tiempo de ciclo"
+        label={t('Tiempo de ciclo')}
         value={cycleTime != null ? formatDecimal(cycleTime) : '—'}
         valueClassName={cycleTime == null && 'text-muted-foreground'}
-        unit={cycleTime != null ? (cycleTime === 1 ? 'día' : 'días') : undefined}
+        unit={cycleTime != null ? (cycleTime === 1 ? t('día') : t('días')) : undefined}
         detail={
-          cycleTime != null ? (
-            <>
-              {cycleDelta != null && (
-                <>
-                  <Delta value={Math.round(cycleDelta * 10) / 10} className={deltaTone(cycleDelta, false)} />{' '}
-                </>
-              )}
-              mediana, de En curso a Hecho
-            </>
-          ) : (
-            <span title="Mediana de días desde que una tarea entra en curso hasta que se completa">
-              ninguna pasó de En curso a Hecho en el periodo
+          cycleTime == null ? (
+            <span title={t('Mediana de días desde que una tarea entra en curso hasta que se completa')}>
+              {t('ninguna pasó de En curso a Hecho en el periodo')}
             </span>
+          ) : cycleDelta != null ? (
+            tx('{delta} mediana, de En curso a Hecho', {
+              delta: <Delta value={Math.round(cycleDelta * 10) / 10} className={deltaTone(cycleDelta, false)} />,
+            })
+          ) : (
+            t('mediana, de En curso a Hecho')
           )
         }
       />
@@ -142,13 +138,13 @@ export function ThroughputCard({ throughput, weeks, className }) {
   return (
     <ChartCard
       className={className}
-      title="Tareas cerradas por semana"
-      meta={`últimas ${weeks} semanas · promedio ${formatDecimal(mean)}`}
+      title={t('Tareas cerradas por semana')}
+      meta={t('últimas {weeks} semanas · promedio {average}', { weeks, average: formatDecimal(mean) })}
       table={{
-        caption: 'Tareas cerradas por semana',
+        caption: t('Tareas cerradas por semana'),
         columns: [
-          { key: 'week', label: 'Semana del' },
-          { key: 'completed', label: 'Cerradas', numeric: true },
+          { key: 'week', label: t('Semana del') },
+          { key: 'completed', label: t('Cerradas'), numeric: true },
         ],
         rows: throughput.map((week) => ({ week: formatShortDate(week.weekStart), completed: week.completed })),
       }}
@@ -165,14 +161,14 @@ export function ThroughputCard({ throughput, weeks, className }) {
 export function BurndownCard({ burndown, cyclesUrl, className }) {
   if (!burndown) {
     return (
-      <ChartCard className={className} title="Burndown">
+      <ChartCard className={className} title={t('Burndown')}>
         <div className="flex flex-1 flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-dash px-4 py-10 text-center">
-          <p className="font-semibold">Sin ciclo en curso</p>
+          <p className="font-semibold">{t('Sin ciclo en curso')}</p>
           <p className="max-w-xs text-sm text-muted-foreground">
-            El burndown aparece cuando hay un ciclo con fechas que incluyen hoy.
+            {t('El burndown aparece cuando hay un ciclo con fechas que incluyen hoy.')}
           </p>
           <Link to={cyclesUrl} className="mt-1 text-sm font-semibold text-accent-text hover:underline">
-            Ver ciclos →
+            {t('Ver ciclos →')}
           </Link>
         </div>
       </ChartCard>
@@ -186,25 +182,24 @@ export function BurndownCard({ burndown, cyclesUrl, className }) {
   return (
     <ChartCard
       className={className}
-      title={
-        <>
-          Burndown ·{' '}
+      title={tx('Burndown · {cycle}', {
+        cycle: (
           <Link to={`${cyclesUrl}/${burndown.cycleId}`} className="hover:underline">
             {burndown.name}
           </Link>
-        </>
-      }
+        ),
+      })}
       meta={
         <span className="font-mono">
           {formatShortDate(burndown.startDate)} → {formatShortDate(burndown.endDate)}
         </span>
       }
       table={{
-        caption: `Burndown de ${burndown.name}`,
+        caption: t('Burndown de {name}', { name: burndown.name }),
         columns: [
-          { key: 'date', label: 'Día' },
-          { key: 'remaining', label: 'Restantes', numeric: true },
-          { key: 'ideal', label: 'Ideal', numeric: true },
+          { key: 'date', label: t('Día') },
+          { key: 'remaining', label: t('Restantes'), numeric: true },
+          { key: 'ideal', label: t('Ideal'), numeric: true },
         ],
         rows: points.map((point) => ({
           date: formatShortDate(point.date),
@@ -216,11 +211,11 @@ export function BurndownCard({ burndown, cyclesUrl, className }) {
         <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <span aria-hidden="true" className="h-0.5 w-4 rounded-full bg-chart-series" />
-            Real
+            {t('Real')}
           </span>
           <span className="flex items-center gap-1.5">
             <span aria-hidden="true" className="w-4 border-t-2 border-dashed border-chart-ref" />
-            Ideal
+            {t('Ideal')}
           </span>
           {last && <BurndownStatus gap={gap} />}
         </div>
@@ -228,7 +223,7 @@ export function BurndownCard({ burndown, cyclesUrl, className }) {
     >
       {burndown.total === 0 ? (
         <p className="rounded-xl border border-dashed border-dash px-4 py-10 text-center text-sm text-muted-foreground">
-          El ciclo todavía no tiene tareas.
+          {t('El ciclo todavía no tiene tareas.')}
         </p>
       ) : (
         <BurndownChart burndown={burndown} />
@@ -239,14 +234,16 @@ export function BurndownCard({ burndown, cyclesUrl, className }) {
 
 /** «3 tareas por encima del ideal» (rojo, con flecha) o por debajo (verde). */
 function BurndownStatus({ gap }) {
-  if (gap === 0) return <span className="ml-auto font-semibold">En línea con el ideal</span>
+  if (gap === 0) return <span className="ml-auto font-semibold">{t('En línea con el ideal')}</span>
   const behind = gap > 0
   const Icon = behind ? TrendingUp : TrendingDown
   const count = Math.abs(gap)
   return (
     <span className={cn('ml-auto flex items-center gap-1 font-semibold', behind ? 'text-late' : 'text-ok')}>
       <Icon className="size-3.5" aria-hidden="true" />
-      {count} {count === 1 ? 'tarea' : 'tareas'} {behind ? 'por encima' : 'por debajo'} del ideal
+      {behind
+        ? tn(count, '{count} tarea por encima del ideal', '{count} tareas por encima del ideal')
+        : tn(count, '{count} tarea por debajo del ideal', '{count} tareas por debajo del ideal')}
     </span>
   )
 }
@@ -267,28 +264,24 @@ export function StatesCard({ states, className }) {
   const [active, setActive] = useState(null)
   const total = states.reduce((sum, state) => sum + state.count, 0)
   const visible = states.filter((state) => state.count > 0)
-  const summary = visible.map((state) => `${state.count} en ${state.name}`).join(', ')
+  const summary = visible.map((state) => t('{count} en {state}', { count: state.count, state: stateName(state) })).join(', ')
 
   return (
     <ChartCard
       className={className}
-      title={
-        <>
-          Abiertas por estado <span className="font-mono text-xs font-normal text-muted-foreground">{total}</span>
-        </>
-      }
+      title={tx('Abiertas por estado {total}', { total: <span className="font-mono text-xs font-normal text-muted-foreground">{total}</span> })}
       table={{
-        caption: 'Tareas abiertas por estado',
+        caption: t('Tareas abiertas por estado'),
         columns: [
-          { key: 'name', label: 'Estado' },
-          { key: 'count', label: 'Tareas', numeric: true },
+          { key: 'name', label: t('Estado') },
+          { key: 'count', label: t('Tareas'), numeric: true },
           { key: 'share', label: '%', numeric: true },
         ],
-        rows: states.map((state) => ({ name: state.name, count: state.count, share: `${percent(state.count, total)}%` })),
+        rows: states.map((state) => ({ name: stateName(state), count: state.count, share: `${percent(state.count, total)}%` })),
       }}
     >
       {total === 0 ? (
-        <p className="text-sm text-muted-foreground">No hay tareas abiertas.</p>
+        <p className="text-sm text-muted-foreground">{t('No hay tareas abiertas.')}</p>
       ) : (
         <div className="flex flex-col gap-3">
           {/* Separación de 2 px entre segmentos (el color de la tarjeta separa, no un borde) */}
@@ -310,7 +303,7 @@ export function StatesCard({ states, className }) {
                   {active === state.stateId && (
                     <ChartTooltip x="50%" y={0}>
                       <strong className="font-semibold">{state.count}</strong> · {percent(state.count, total)}%
-                      <span className="block opacity-75">{state.name}</span>
+                      <span className="block opacity-75">{stateName(state)}</span>
                     </ChartTooltip>
                   )}
                 </span>
@@ -328,7 +321,7 @@ export function StatesCard({ states, className }) {
                   onPointerLeave={() => setActive(null)}
                 >
                   <span aria-hidden="true" className={cn('size-2.5 rounded-[3px]', swatch.className)} style={swatch.style} />
-                  <span className={cn('min-w-0 flex-1 truncate', active === state.stateId && 'font-semibold')}>{state.name}</span>
+                  <span className={cn('min-w-0 flex-1 truncate', active === state.stateId && 'font-semibold')}>{stateName(state)}</span>
                   <span className="font-mono text-xs text-muted-foreground tabular-nums">
                     {state.count} · {percent(state.count, total)}%
                   </span>
@@ -343,97 +336,103 @@ export function StatesCard({ states, className }) {
 }
 
 /**
- * Tareas abiertas asignadas a cada persona (barras horizontales) y cuántas tiene vencidas.
+ * Tareas abiertas asignadas a cada persona y cuántas tiene vencidas, en una tabla. Sin barras: con unas pocas
+ * personas el número ya dice quién tiene más.
  * @param {{ workload: import('@/api/types').WorkloadEntry[], className?: string }} props
  */
 export function WorkloadCard({ workload, className }) {
   // Primero las personas (de más a menos) y al final «Sin asignar»
   const rows = [...workload].sort((a, b) => (a.user === null) - (b.user === null) || b.open - a.open)
-  const max = Math.max(1, ...rows.map((row) => row.open))
-  const name = (row) => row.user?.fullName ?? 'Sin asignar'
 
   return (
-    <ChartCard
-      className={className}
-      title="Carga por persona"
-      meta="tareas abiertas asignadas"
-      table={{
-        caption: 'Tareas abiertas por persona',
-        columns: [
-          { key: 'name', label: 'Persona' },
-          { key: 'open', label: 'Abiertas', numeric: true },
-          { key: 'overdue', label: 'Vencidas', numeric: true },
-        ],
-        rows: rows.map((row) => ({ name: name(row), open: row.open, overdue: row.overdue })),
-      }}
-    >
+    <ChartCard className={className} title={t('Carga por persona')} meta={t('tareas abiertas asignadas')}>
       {rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No hay tareas abiertas.</p>
+        <p className="text-sm text-muted-foreground">{t('No hay tareas abiertas.')}</p>
       ) : (
-        <ul className="flex flex-col gap-2.5">
-          {rows.map((row) => (
-            <li key={row.user?.id ?? 'none'} className="grid grid-cols-[minmax(0,8.5rem)_minmax(0,1fr)_2rem] items-center gap-2.5">
-              <span className="flex min-w-0 items-center gap-2 text-[13px]">
+        <DataTable
+          caption={t('Tareas abiertas por persona')}
+          columns={[
+            { key: 'name', label: t('Persona') },
+            { key: 'open', label: t('Abiertas'), numeric: true },
+            { key: 'overdue', label: t('Vencidas'), numeric: true },
+          ]}
+          rows={rows.map((row) => ({
+            name: (
+              <span className="flex min-w-0 items-center gap-2">
                 {row.user ? (
                   <UserAvatar user={row.user} size="xs" className="size-5.5" />
                 ) : (
                   <span aria-hidden="true" className="size-5.5 shrink-0 rounded-full border border-dashed border-dash" />
                 )}
-                <span className={cn('truncate', !row.user && 'text-muted-foreground')}>{name(row)}</span>
+                <span className={cn('truncate', !row.user && 'text-muted-foreground')}>{row.user?.fullName ?? t('Sin asignar')}</span>
               </span>
-              <span className="flex flex-col gap-0.5" title={`${row.open} abiertas${row.overdue ? ` · ${row.overdue} vencidas` : ''}`}>
-                <span className="block h-2.5 rounded-[4px] bg-column">
-                  <span
-                    className="block h-full rounded-[4px] bg-chart-series transition-[width] duration-300"
-                    style={{ width: `${(row.open / max) * 100}%` }}
-                  />
+            ),
+            open: row.open,
+            overdue:
+              row.overdue > 0 ? (
+                <span className="inline-flex items-center gap-1 font-semibold text-late">
+                  <AlertMark className="size-3 text-[9px]" />
+                  {row.overdue}
                 </span>
-                {row.overdue > 0 && (
-                  <span className="flex items-center gap-1 text-[11px] font-semibold text-late">
-                    <AlertMark className="size-3 text-[9px]" />
-                    {row.overdue} {row.overdue === 1 ? 'vencida' : 'vencidas'}
-                  </span>
-                )}
-              </span>
-              <span className="text-right font-mono text-xs tabular-nums">{row.open}</span>
-            </li>
-          ))}
-        </ul>
+              ) : (
+                <span className="text-muted-foreground">0</span>
+              ),
+          }))}
+        />
       )}
     </ChartCard>
   )
 }
 
 /**
- * Abiertas sin cambios hace más de 14 días (como mucho 5, la más antigua primero).
+ * Abiertas sin cambios hace más de 14 días (como mucho 5, la más antigua primero), en una tabla. Cada tarea abre su
+ * panel.
  * @param {{ stale: import('@/api/types').StaleIssue[], onOpenIssue: (issueId: string) => void, className?: string }} props
  */
 export function StaleCard({ stale, onOpenIssue, className }) {
+  const open = (issue, className, children) => (
+    <button
+      type="button"
+      title={t('Abrir {code}', { code: issue.code })}
+      onClick={() => onOpenIssue(issue.id)}
+      className={cn(
+        'rounded text-left underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+        className,
+      )}
+    >
+      {children}
+    </button>
+  )
+
   return (
-    <ChartCard className={className} title="Sin movimiento" meta="abiertas y sin cambios hace más de 14 días">
+    <ChartCard
+      className={className}
+      title={t('Sin movimiento')}
+      meta={t('abiertas y sin cambios hace más de 14 días')}
+      footer={
+        stale.length > 0 && (
+          <p className="text-xs text-muted-foreground">{t('Revísalas en la próxima reunión: quizá sobran o necesitan responsable.')}</p>
+        )
+      }
+    >
       {stale.length === 0 ? (
         <p className="rounded-xl border border-dashed border-dash px-3 py-4 text-center text-sm text-muted-foreground">
-          Todas las tareas abiertas tuvieron cambios en las últimas dos semanas.
+          {t('Todas las tareas abiertas tuvieron cambios en las últimas dos semanas.')}
         </p>
       ) : (
-        <>
-          <ul className="overflow-hidden rounded-xl border">
-            {stale.map((issue, index) => (
-              <li key={issue.id} className={cn(index > 0 && 'border-t')}>
-                <button
-                  type="button"
-                  onClick={() => onOpenIssue(issue.id)}
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-subtle"
-                >
-                  <span className="shrink-0 font-mono text-xs text-muted-foreground">{issue.code}</span>
-                  <span className="min-w-0 flex-1 truncate">{issue.title}</span>
-                  <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{issue.daysWithoutChanges} días</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-          <p className="text-xs text-muted-foreground">Revísalas en la próxima reunión: quizá sobran o necesitan responsable.</p>
-        </>
+        <DataTable
+          caption={t('Tareas abiertas sin cambios hace más de 14 días')}
+          columns={[
+            { key: 'code', label: t('Tarea') },
+            { key: 'title', label: t('Título') },
+            { key: 'days', label: t('Días sin cambios'), numeric: true },
+          ]}
+          rows={stale.map((issue) => ({
+            code: open(issue, 'font-mono text-xs whitespace-nowrap text-muted-foreground hover:text-foreground', issue.code),
+            title: open(issue, undefined, issue.title),
+            days: issue.daysWithoutChanges,
+          }))}
+        />
       )}
     </ChartCard>
   )

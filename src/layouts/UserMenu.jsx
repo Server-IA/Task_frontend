@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
-import { ChevronsUpDown, LogOut, Palette, UserRound } from 'lucide-react'
+import { ChevronsUpDown, ListOrdered, LogOut, Palette, UserRound } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,16 +15,20 @@ import {
 import { ThemeRadioItems } from '@/components/common/ThemeToggle'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { useLogout } from '@/features/auth/hooks'
+import { t } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { useSessionStore } from '@/stores/sessionStore'
+import { MenuOrderDialog } from './MenuOrderDialog'
 
 export function UserMenu({ collapsed = false }) {
   const user = useSessionStore((state) => state.user)
   const logout = useLogout()
   const navigate = useNavigate()
   const onProfile = useLocation().pathname === '/profile'
+  const [menuOrderOpen, setMenuOrderOpen] = useState(false)
 
   return (
+    <>
     <DropdownMenu>
       <DropdownMenuTrigger
         className={cn(
@@ -51,26 +56,32 @@ export function UserMenu({ collapsed = false }) {
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => navigate('/profile')}>
           <UserRound />
-          Mi perfil
+          {t('Mi perfil')}
         </DropdownMenuItem>
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             <Palette className="mr-2 size-4 text-muted-foreground" />
-            Tema
+            {t('Tema')}
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
             <ThemeRadioItems />
           </DropdownMenuSubContent>
         </DropdownMenuSub>
+        <DropdownMenuItem onSelect={() => setMenuOrderOpen(true)}>
+          <ListOrdered />
+          {t('Personalizar menú')}
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           variant="destructive"
           onSelect={() => logout.mutate()}
         >
           <LogOut />
-          Cerrar sesión
+          {t('Cerrar sesión')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    <MenuOrderDialog open={menuOrderOpen} onOpenChange={setMenuOrderOpen} />
+    </>
   )
 }

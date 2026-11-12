@@ -1,9 +1,10 @@
 import { useCallback, useState } from 'react'
 import { isStoryClosedError } from '@/features/stories/hooks'
 import { useWorkspace } from '@/features/workspaces/hooks'
+import { stateName, t } from '@/i18n'
 import { toApiError } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
-import { isManager as isManagerRole } from '@/lib/permissions'
+import { can } from '@/lib/permissions'
 import { StoryClosedDialog } from './components/StoryClosedDialog'
 
 /**
@@ -11,16 +12,18 @@ import { StoryClosedDialog } from './components/StoryClosedDialog'
  * está cerrada (al pasar la tarea a otra historia es la nueva, no la actual) o, si no viene, la historia de la tarea.
  */
 export function closedStoryCode(error, issue) {
-  const fromMessage = toApiError(error).message?.match(/^(\S+-\d+) está cerrada/)?.[1]
+  // El mensaje llega en el idioma de la interfaz («WEB-15 está cerrada…», «WEB-15 is closed…»): solo se mira que
+  // empiece por el código, no las palabras que siguen
+  const fromMessage = toApiError(error).message?.match(/^([A-Za-z][A-Za-z0-9]*-\d+) /)?.[1]
   if (fromMessage) return fromMessage
   return issue?.parent?.type === 'STORY' ? issue.parent.code : null
 }
 
 /** Qué se intentó, para el diálogo: «Mover WEB-17 a «Todo»», «Convertir WEB-17 en tarea»… */
 export const closedStoryActions = {
-  move: (issue, state) => `Mover ${issue.code} a «${state?.name ?? 'otro estado'}»`,
-  type: (issue) => `Convertir ${issue.code} en tarea`,
-  parent: (issue) => `Agregar ${issue.code} a la historia`,
+  move: (issue, state) => t('Mover {code} a «{state}»', { code: issue.code, state: stateName(state) || t('otro estado') }),
+  type: (issue) => t('Convertir {code} en tarea', { code: issue.code }),
+  parent: (issue) => t('Agregar {code} a la historia', { code: issue.code }),
 }
 
 /**
@@ -34,7 +37,8 @@ export const closedStoryActions = {
  */
 export function useStoryClosedGuard(slug) {
   const { data: workspace } = useWorkspace(slug)
-  const manager = isManagerRole(workspace?.myRole)
+  // «manager»: quien puede cerrar y reabrir historias
+  const manager = can(workspace, 'STORY_CLOSE')
   const [pending, setPending] = useState(null)
 
   const onStoryClosed = useCallback(

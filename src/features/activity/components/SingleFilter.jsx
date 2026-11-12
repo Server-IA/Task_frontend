@@ -1,15 +1,19 @@
 import { useState } from 'react'
 import { Check, X } from 'lucide-react'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
+import { t } from '@/i18n'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
 /**
  * Filtro de un solo valor como pastilla, igual que los de la barra de tareas: punteada cuando está vacía
  * («+ proyecto») y oscura con su valor cuando está elegida («proyecto: Sitio web ×»).
- * @param {{ title: string, value?: string | null, onChange: (value: string | null) => void,
+ * Los textos llegan ya en el idioma de la interfaz: `title` es el nombre corto («proyecto») y las frases completas
+ * van aparte, porque cada idioma las ordena distinto.
+ * @param {{ title: string, removeLabel: string, searchPlaceholder: string, value?: string | null,
+ *           onChange: (value: string | null) => void,
  *           options: { value: string, label: string, short?: string, keywords?: string, icon?: React.ReactNode }[] }} props
  */
-export function SingleFilter({ title, value, onChange, options }) {
+export function SingleFilter({ title, removeLabel, searchPlaceholder, value, onChange, options }) {
   const [open, setOpen] = useState(false)
   const chosen = options.find((option) => option.value === value)
 
@@ -27,7 +31,7 @@ export function SingleFilter({ title, value, onChange, options }) {
             type="button"
             className="rounded-r-full py-1.5 pr-3 pl-1 opacity-80 hover:opacity-100"
             onClick={() => onChange(null)}
-            aria-label={`Quitar filtro de ${title}`}
+            aria-label={removeLabel}
           >
             <X className="size-3.5" />
           </button>
@@ -39,9 +43,9 @@ export function SingleFilter({ title, value, onChange, options }) {
       )}
       <PopoverContent className="w-64 p-0" align="start">
         <Command>
-          <CommandInput placeholder={`Filtrar por ${title}…`} />
+          <CommandInput placeholder={searchPlaceholder} />
           <CommandList>
-            <CommandEmpty>Sin resultados</CommandEmpty>
+            <CommandEmpty>{t('Sin resultados')}</CommandEmpty>
             <CommandGroup>
               {options.map((option) => (
                 <CommandItem

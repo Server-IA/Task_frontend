@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { t } from "@/i18n"
 import { cn } from "@/lib/utils"
 import { keepOpenOnToast } from "@/lib/toastLayer"
 import { useReturnFocus } from "@/lib/focusReturn"
@@ -86,7 +87,7 @@ function SheetContent({
         {showCloseButton && (
           <SheetPrimitive.Close className="absolute top-4 right-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none data-[state=open]:bg-secondary">
             <XIcon className="size-4" />
-            <span className="sr-only">Cerrar</span>
+            <span className="sr-only">{t("Cerrar")}</span>
           </SheetPrimitive.Close>
         )}
       </SheetPrimitive.Content>

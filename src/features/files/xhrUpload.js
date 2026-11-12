@@ -1,3 +1,5 @@
+import { t } from '@/i18n'
+
 /**
  * Sube un archivo directo a R2 con la URL firmada (`PUT`), con avance real y cancelable. Se usa XHR porque `fetch`
  * todavía no informa el avance de lo que se envía.
@@ -9,7 +11,7 @@ export class UploadError extends Error {
    * @param {{ status?: number, progress?: number }} [details]
    */
   constructor(reason, { status = 0, progress = 0 } = {}) {
-    super(reason === 'aborted' ? 'Subida cancelada' : reason === 'network' ? 'Se cortó la conexión' : `R2 respondió ${status}`)
+    super(reason === 'aborted' ? t('Subida cancelada') : reason === 'network' ? t('Se cortó la conexión') : t('R2 respondió {status}', { status }))
     this.name = 'UploadError'
     this.reason = reason
     this.status = status

@@ -27,6 +27,8 @@ vi.mock('../useIssueHelpers', () => ({
 }))
 vi.mock('@/features/stories/hooks', () => ({ useStories: () => ({ data: [] }), isStoryClosedError: () => false }))
 vi.mock('@/features/workspaces/hooks', () => ({ useWorkspace: () => ({ data: { myRole: role } }) }))
+// El indicador de GitHub consulta el resumen del proyecto: aquí no se prueba (tiene sus propias pruebas)
+vi.mock('@/features/github/GithubParts', () => ({ IssueDevChip: () => null }))
 
 beforeAll(() => {
   globalThis.ResizeObserver ??= class {

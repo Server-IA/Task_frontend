@@ -6,6 +6,8 @@ import { usePreferencesStore } from '@/stores/preferencesStore'
 import { checklistApi } from '../api'
 import { IssueChecklist } from './IssueChecklist'
 
+// Quien mira tiene todos los permisos (project manager)
+vi.mock('@/features/workspaces/hooks', () => ({ useWorkspace: () => ({ data: { myRole: 'OWNER' } }) }))
 vi.mock('../api', () => ({ checklistApi: { list: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() } }))
 
 beforeAll(() => {

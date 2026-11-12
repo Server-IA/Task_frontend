@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { onlineManager } from '@tanstack/react-query'
 import { WifiOff } from 'lucide-react'
+import { t, tx } from '@/i18n'
 
 const subscribe = (callback) => onlineManager.subscribe(callback)
 const isOnline = () => onlineManager.isOnline()
@@ -19,8 +20,9 @@ export function OfflineBanner() {
         <div className="mb-3.5 flex shrink-0 items-center gap-2.5 rounded-xl border border-late/30 bg-late-soft px-3.5 py-2 text-[13px] text-late">
           <WifiOff className="size-4 shrink-0" aria-hidden="true" />
           <span>
-            <span className="font-semibold">Sin conexión.</span> Lo que ves puede no estar al día y los cambios se guardan
-            cuando vuelva la conexión.
+            {tx('{offline} Lo que ves puede no estar al día y los cambios se guardan cuando vuelva la conexión.', {
+              offline: <span className="font-semibold">{t('Sin conexión.')}</span>,
+            })}
           </span>
         </div>
       )}

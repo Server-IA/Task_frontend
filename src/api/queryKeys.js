@@ -44,8 +44,12 @@ export const queryKeys = {
   /** Prefijo de la daily de un proyecto (cualquier fecha). */
   dailyOf: (projectId) => ['daily', projectId],
   daily: (projectId, date) => ['daily', projectId, date],
+  dailySettings: (projectId) => ['dailySettings', projectId],
+  roles: (slug) => ['roles', slug],
+  permissionCatalog: ['permissionCatalog'],
 
   stats: (projectId, weeks) => ['stats', projectId, weeks],
+  reportPreview: (projectId, params) => ['reportPreview', projectId, params],
 
   myWork: (slug, view) => ['myWork', slug, view],
   /** Prefijo del feed y del resumen de actividad del workspace (con cualquier filtro). */
@@ -57,6 +61,24 @@ export const queryKeys = {
   storageUsage: (slug) => ['storage', slug, 'usage'],
   storageReport: (slug) => ['storage', slug, 'report'],
   storageOf: (slug) => ['storage', slug],
+  /** Importaciones desde otras herramientas (pestaña «Importar» de los ajustes del workspace). */
+  imports: (slug) => ['imports', slug, 'list'],
+  importJob: (slug, jobId) => ['imports', slug, 'job', jobId],
+
+  // GitHub: todo lo de un workspace cuelga de ['github', slug] (al desconectar se invalida entero)
+  github: (slug) => ['github', slug],
+  /** Mi cuenta de GitHub (no depende del workspace). */
+  githubMe: ['github', 'me'],
+  githubWorkspace: (slug) => ['github', slug, 'workspace'],
+  githubProject: (slug, projectId) => ['github', slug, 'project', projectId, 'status'],
+  githubPulls: (slug, projectId, state) => ['github', slug, 'project', projectId, 'pulls', state],
+  githubRuns: (slug, projectId) => ['github', slug, 'project', projectId, 'runs'],
+  githubBranches: (slug, projectId) => ['github', slug, 'project', projectId, 'branches'],
+  githubSummary: (slug, projectId) => ['github', slug, 'project', projectId, 'summary'],
+  githubWorkflows: (slug, projectId, repositoryId) => ['github', slug, 'project', projectId, 'workflows', repositoryId],
+  githubRepoBranches: (slug, projectId, repositoryId) => ['github', slug, 'project', projectId, 'repo-branches', repositoryId],
+  githubIssue: (slug, projectId, issueId) => ['github', slug, 'project', projectId, 'issue', issueId],
+  githubChecks: (slug, projectId, issueId, pullRequestId) => ['github', slug, 'project', projectId, 'issue', issueId, 'checks', pullRequestId],
 
   notifications: (params) => ['notifications', 'list', params],
   notificationsAll: ['notifications'],

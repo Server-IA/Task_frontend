@@ -25,3 +25,22 @@ export function useSaveDailyNote(slug, projectId, date) {
       queryClient.setQueryData(queryKeys.daily(projectId, date), (daily) => (daily ? { ...daily, note } : daily)),
   })
 }
+
+/** Ajustes de la daily del proyecto (cambian poco: se piden una vez y se refrescan al guardar). */
+export function useDailySettings(slug, projectId) {
+  return useQuery({
+    queryKey: queryKeys.dailySettings(projectId),
+    queryFn: () => dailyApi.getSettings(slug, projectId),
+    enabled: Boolean(slug && projectId),
+    staleTime: 60_000,
+  })
+}
+
+/** `mutate(body)`: guarda los ajustes y los deja en caché. */
+export function useSaveDailySettings(slug, projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body) => dailyApi.saveSettings(slug, projectId, body),
+    onSuccess: (settings) => queryClient.setQueryData(queryKeys.dailySettings(projectId), settings),
+  })
+}

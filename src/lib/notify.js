@@ -1,4 +1,5 @@
 import { toast } from 'sonner'
+import { t } from '@/i18n'
 import { SESSION_EXPIRED, toApiError } from '@/lib/errors'
 
 /**
@@ -11,8 +12,8 @@ export function notifyError(error, fallbackTitle) {
   if (apiError.code === SESSION_EXPIRED) return 0
   if (apiError.status === 429) {
     const seconds = apiError.retryAfter ?? 60
-    toast.warning('Demasiados intentos', {
-      description: `Espera ${seconds} segundos antes de volver a intentarlo.`,
+    toast.warning(t('Demasiados intentos'), {
+      description: t('Espera {seconds} segundos antes de volver a intentarlo.', { seconds }),
     })
     return seconds
   }

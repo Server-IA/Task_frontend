@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useComments } from '@/features/comments/hooks'
 import { markdownToDoc } from '@/features/editor/markdown/parse'
+import { t } from '@/i18n'
 import { parseFileReference } from '../fileRefs'
 import { useAttachments } from '../hooks'
 import { ImageViewerContext } from '../imageViewerContext'
@@ -13,7 +14,7 @@ export function markdownImages(markdown) {
   const visit = (node) => {
     if (node.type === 'image') {
       const reference = parseFileReference(node.attrs?.src)
-      if (reference) found.push({ id: reference.id, name: node.attrs?.alt || 'imagen' })
+      if (reference) found.push({ id: reference.id, name: node.attrs?.alt || t('imagen') })
       return
     }
     node.content?.forEach(visit)
@@ -66,7 +67,7 @@ export function TaskImagesProvider({ slug, projectId, issue, children }) {
       {children}
       {openId && (
         <ImageViewer
-          images={index >= 0 ? images : [{ id: openId, name: 'imagen', group: 'descripción' }]}
+          images={index >= 0 ? images : [{ id: openId, name: t('imagen'), group: 'descripción' }]}
           index={Math.max(0, index)}
           issueCode={issue?.code}
           onIndexChange={(next) => setOpenId(images[next]?.id ?? openId)}

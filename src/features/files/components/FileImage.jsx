@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { ImageOff } from 'lucide-react'
+import { t } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { localPreview, parseFileReference } from '../fileRefs'
 import { fileUrlKey, useFileUrl } from '../fileUrls'
@@ -42,15 +43,15 @@ export function FileImage({ src, alt = '', className, imgClassName, onClick, dra
       <span
         className={cn('flex min-h-24 items-center justify-center gap-2 rounded-lg border border-dashed bg-muted/40 px-4 py-6 text-[13px] text-muted-foreground', className)}
         role="img"
-        aria-label={alt ? `${alt} (no disponible)` : 'Imagen no disponible'}
+        aria-label={alt ? t('{name} (no disponible)', { name: alt }) : t('Imagen no disponible')}
       >
         <ImageOff className="size-4" aria-hidden="true" />
-        {alt ? `«${alt}» no está disponible` : 'Imagen no disponible'}
+        {alt ? t('«{name}» no está disponible', { name: alt }) : t('Imagen no disponible')}
       </span>
     )
   }
   if (loading || !url) {
-    return <span className={cn('block h-40 animate-pulse rounded-lg bg-muted', className)} role="img" aria-label={alt || 'Imagen'} aria-busy="true" />
+    return <span className={cn('block h-40 animate-pulse rounded-lg bg-muted', className)} role="img" aria-label={alt || t('Imagen')} aria-busy="true" />
   }
   const image = (
     <img
@@ -73,7 +74,7 @@ export function FileImage({ src, alt = '', className, imgClassName, onClick, dra
   )
   if (!onClick) return <span className={cn('block', className)}>{image}</span>
   return (
-    <button type="button" className={cn('block cursor-zoom-in rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none', className)} onClick={onClick} aria-label={alt ? `Ver ${alt}` : 'Ver imagen'}>
+    <button type="button" className={cn('block cursor-zoom-in rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none', className)} onClick={onClick} aria-label={alt ? t('Ver {name}', { name: alt }) : t('Ver imagen')}>
       {image}
     </button>
   )

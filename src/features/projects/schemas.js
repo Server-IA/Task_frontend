@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { t } from '@/i18n'
 import { PROJECT_COLOR_KEYS } from './projectColors'
 
 /** Mismas reglas que el backend. */
@@ -7,27 +8,27 @@ export const PROJECT_IDENTIFIER = /^[A-Za-z][A-Za-z0-9]{0,11}$/
 
 export const STATE_GROUPS = ['BACKLOG', 'UNSTARTED', 'STARTED', 'COMPLETED', 'CANCELLED']
 
-export const colorSchema = z.string().regex(HEX_COLOR, 'Usa el formato #RRGGBB')
+export const colorSchema = z.string().regex(HEX_COLOR, t('Usa el formato #RRGGBB'))
 
 export const projectSchema = z.object({
-  name: z.string().trim().min(1, 'El nombre es obligatorio').max(80, 'Máximo 80 caracteres'),
+  name: z.string().trim().min(1, t('El nombre es obligatorio')).max(80, t('Máximo 80 caracteres')),
   identifier: z
     .string()
     .trim()
-    .min(1, 'El identificador es obligatorio')
-    .regex(PROJECT_IDENTIFIER, 'Debe empezar por letra; solo letras y números, hasta 12'),
-  description: z.string().max(10000, 'La descripción es demasiado larga'),
-  color: z.enum(PROJECT_COLOR_KEYS, 'Elige un color de la paleta'),
+    .min(1, t('El identificador es obligatorio'))
+    .regex(PROJECT_IDENTIFIER, t('Debe empezar por letra; solo letras y números, hasta 12')),
+  description: z.string().max(10000, t('La descripción es demasiado larga')),
+  color: z.enum(PROJECT_COLOR_KEYS, t('Elige un color de la paleta')),
 })
 
 export const stateSchema = z.object({
-  name: z.string().trim().min(1, 'El nombre es obligatorio').max(50, 'Máximo 50 caracteres'),
+  name: z.string().trim().min(1, t('El nombre es obligatorio')).max(50, t('Máximo 50 caracteres')),
   color: colorSchema,
   group: z.enum(STATE_GROUPS),
 })
 
 export const labelSchema = z.object({
-  name: z.string().trim().min(1, 'El nombre es obligatorio').max(50, 'Máximo 50 caracteres'),
+  name: z.string().trim().min(1, t('El nombre es obligatorio')).max(50, t('Máximo 50 caracteres')),
   color: colorSchema,
 })
 

@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { LockNote } from '@/components/common/LockNote'
-import { isManager } from '@/lib/permissions'
+import { t, tc, tx } from '@/i18n'
+import { can, isManager } from '@/lib/permissions'
 import { notifyError } from '@/lib/notify'
 import { useSessionStore } from '@/stores/sessionStore'
 import { useDeleteWorkspace, useMembers, useRemoveMember, useUpdateWorkspace } from '../hooks'
@@ -15,12 +16,14 @@ import { WorkspaceForm } from './WorkspaceForm'
 export function GeneralSettings({ workspace }) {
   const navigate = useNavigate()
   const update = useUpdateWorkspace(workspace.slug)
-  const canManage = isManager(workspace.myRole)
+  const canManage = can(workspace, 'WORKSPACE_EDIT')
+  // Eliminar el workspace es solo del project manager
+  const manager = isManager(workspace.myRole)
 
   const handleSubmit = (values, { onError }) => {
     update.mutate(values, {
       onSuccess: (updated) => {
-        toast.success('Workspace actualizado')
+        toast.success(t('Workspace actualizado'))
         if (updated.slug !== workspace.slug) {
           navigate(`/${updated.slug}/settings`, { replace: true })
         }
@@ -30,14 +33,15 @@ export function GeneralSettings({ workspace }) {
   }
 
   return (
-    <div className="space-y-6">
+    // En pantallas anchas, el formulario a la izquierda y salir / eliminar a la derecha
+    <div className="grid items-start gap-3.5 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
       <Card>
         <CardHeader>
-          <CardTitle>General</CardTitle>
+          <CardTitle>{t('General')}</CardTitle>
           {canManage ? (
-            <CardDescription>Cambiar la URL rompe los enlaces que hayas compartido.</CardDescription>
+            <CardDescription>{t('Cambiar la URL rompe los enlaces que hayas compartido.')}</CardDescription>
           ) : (
-            <LockNote>Solo el project manager puede editar el workspace.</LockNote>
+            <LockNote>{t('Tu rol no permite editar el workspace.')}</LockNote>
           )}
         </CardHeader>
         <CardContent>
@@ -46,14 +50,16 @@ export function GeneralSettings({ workspace }) {
             defaultValues={{ name: workspace.name, slug: workspace.slug }}
             onSubmit={handleSubmit}
             pending={update.isPending}
-            submitLabel="Guardar cambios"
+            submitLabel={t('Guardar cambios')}
             disabled={!canManage}
           />
         </CardContent>
       </Card>
 
-      <LeaveWorkspaceCard workspace={workspace} isManager={canManage} />
-      {canManage && <DeleteWorkspaceCard workspace={workspace} />}
+      <div className="flex flex-col gap-3.5">
+        <LeaveWorkspaceCard workspace={workspace} isManager={manager} />
+        {manager && <DeleteWorkspaceCard workspace={workspace} />}
+      </div>
     </div>
   )
 }
@@ -63,7 +69,7 @@ function DeleteWorkspaceCard({ workspace }) {
   const navigate = useNavigate()
   const remove = useDeleteWorkspace(workspace.slug, {
     onGone: () => {
-      toast.success(`Workspace «${workspace.name}» eliminado`)
+      toast.success(t('Workspace «{name}» eliminado', { name: workspace.name }))
       navigate('/', { replace: true })
     },
   })
@@ -75,21 +81,21 @@ function DeleteWorkspaceCard({ workspace }) {
   return (
     <Card className="border-destructive/40">
       <CardHeader>
-        <CardTitle className="text-destructive">Eliminar workspace</CardTitle>
+        <CardTitle className="text-destructive">{t('Eliminar workspace')}</CardTitle>
         <CardDescription>
-          Se borrarán todos sus proyectos, tareas, ciclos y módulos. Esta acción no se puede deshacer.
+          {t('Se borrarán todos sus proyectos, tareas, ciclos y módulos. Esta acción no se puede deshacer.')}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Button variant="destructive" onClick={() => setOpen(true)}>
-          Eliminar workspace
+          {t('Eliminar workspace')}
         </Button>
         <ConfirmDialog
           open={open}
           onOpenChange={setOpen}
-          title={`¿Eliminar «${workspace.name}»?`}
-          description="Se perderán todos los proyectos y tareas del workspace para todos sus miembros."
-          confirmLabel="Eliminar definitivamente"
+          title={t('¿Eliminar «{name}»?', { name: workspace.name })}
+          description={t('Se perderán todos los proyectos y tareas del workspace para todos sus miembros.')}
+          confirmLabel={t('Eliminar definitivamente')}
           loading={remove.isPending}
           onConfirm={handleDelete}
         />
@@ -110,7 +116,7 @@ function LeaveWorkspaceCard({ workspace, isManager: manager }) {
   const onlyManager = manager && Array.isArray(members) && members.filter((member) => isManager(member.role)).length <= 1
   const leave = useRemoveMember(workspace.slug, {
     onGone: () => {
-      toast.success(`Saliste de «${workspace.name}»`)
+      toast.success(t('Saliste de «{name}»', { name: workspace.name }))
       navigate('/', { replace: true })
     },
   })
@@ -122,25 +128,23 @@ function LeaveWorkspaceCard({ workspace, isManager: manager }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Salir del workspace</CardTitle>
+        <CardTitle>{t('Salir del workspace')}</CardTitle>
         <CardDescription>
-          Dejarás de ver sus proyectos. Necesitarás otra invitación para volver.
-          {manager && !onlyManager && ' Si eres el único project manager, antes nombra a otro.'}
+          {t('Dejarás de ver sus proyectos. Necesitarás otra invitación para volver.')}
+          {manager && !onlyManager && ` ${t('Si eres el único project manager, antes nombra a otro.')}`}
         </CardDescription>
         {onlyManager && (
           <p role="note" className="rounded-lg bg-soon-soft px-3 py-2 text-[13px] text-soon">
-            Eres el único project manager de «{workspace.name}».{' '}
-            {members.length > 1 ? (
-              <>
-                Para salir, primero nombra project manager a otra persona en{' '}
-                <Link to="?tab=members" className="font-semibold underline underline-offset-2">
-                  Miembros
-                </Link>
-                .
-              </>
-            ) : (
-              'No hay nadie más: para salir, invita a alguien y nómbralo project manager, o elimina el workspace.'
-            )}
+            {t('Eres el único project manager de «{name}».', { name: workspace.name })}{' '}
+            {members.length > 1
+              ? tx('Para salir, primero nombra project manager a otra persona en {link}.', {
+                  link: (
+                    <Link to="?tab=members" className="font-semibold underline underline-offset-2">
+                      {t('Miembros')}
+                    </Link>
+                  ),
+                })
+              : t('No hay nadie más: para salir, invita a alguien y nómbralo project manager, o elimina el workspace.')}
           </p>
         )}
       </CardHeader>
@@ -149,15 +153,15 @@ function LeaveWorkspaceCard({ workspace, isManager: manager }) {
           variant="outline"
           onClick={() => setOpen(true)}
           disabled={onlyManager}
-          title={onlyManager ? 'Eres el único project manager: nombra a otro antes de salir' : undefined}
+          title={onlyManager ? t('Eres el único project manager: nombra a otro antes de salir') : undefined}
         >
-          Salir del workspace
+          {t('Salir del workspace')}
         </Button>
         <ConfirmDialog
           open={open}
           onOpenChange={setOpen}
-          title={`¿Salir de «${workspace.name}»?`}
-          confirmLabel="Salir"
+          title={t('¿Salir de «{name}»?', { name: workspace.name })}
+          confirmLabel={tc('workspace', 'Salir')}
           loading={leave.isPending}
           onConfirm={handleLeave}
         />

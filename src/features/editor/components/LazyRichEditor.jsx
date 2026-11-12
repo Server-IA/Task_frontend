@@ -1,4 +1,5 @@
 import { Component, lazy, Suspense, useEffect } from 'react'
+import { t } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { MarkdownView } from './MarkdownView'
 
@@ -71,13 +72,13 @@ export class EditorLoadBoundary extends Component {
       <div className="flex flex-col gap-1.5">
         {fallback}
         <p role="alert" className="flex flex-wrap items-center gap-x-2 px-3 pb-1 text-xs text-late">
-          No se pudo cargar el editor. Revisa tu conexión y recarga la página.
+          {t('No se pudo cargar el editor. Revisa tu conexión y recarga la página.')}
           <button
             type="button"
             className="rounded-sm font-semibold underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-ring"
             onClick={() => window.location.reload()}
           >
-            Recargar
+            {t('Recargar')}
           </button>
         </p>
       </div>

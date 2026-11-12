@@ -1,10 +1,11 @@
+import { t } from '@/i18n'
 import { cn } from '@/lib/utils'
 
 /** Reglas de la contraseña (las mismas del backend) con su estado para el valor escrito. */
 export function passwordChecks(value = '') {
   return [
-    { label: 'al menos 8 caracteres', ok: value.length >= 8 },
-    { label: 'una letra y un número', ok: /[A-Za-z]/.test(value) && /[0-9]/.test(value) },
+    { label: t('al menos 8 caracteres'), ok: value.length >= 8 },
+    { label: t('una letra y un número'), ok: /[A-Za-z]/.test(value) && /[0-9]/.test(value) },
   ]
 }
 
@@ -34,7 +35,7 @@ export function PasswordRules({ value, meter = false, className }) {
           ))}
         </div>
       )}
-      <ul aria-label="Requisitos de la contraseña" className="space-y-1 font-mono text-xs">
+      <ul aria-label={t('Requisitos de la contraseña')} className="space-y-1 font-mono text-xs">
         {passwordChecks(value).map((check) => (
           <li key={check.label} className={cn('flex gap-2', check.ok ? 'text-ok' : 'text-muted-foreground')}>
             <span aria-hidden="true">{check.ok ? '✓' : '·'}</span>

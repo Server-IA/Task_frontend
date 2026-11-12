@@ -1,3 +1,5 @@
+import { t } from '@/i18n'
+
 /**
  * Filtro «+ persona» de las estadísticas (funciones puras): las personas viven en la URL como
  * `?assignee=<id>&assignee=<id>` y se mandan igual al backend, que limita todas las métricas a sus tareas.
@@ -44,5 +46,5 @@ export const assigneesKey = (ids) => [...ids].sort()
  */
 export function resolveAssignees(ids, users) {
   const byId = new Map((users ?? []).filter(Boolean).map((user) => [user.id, user]))
-  return ids.map((id) => byId.get(id) ?? { id, fullName: 'Persona', email: '', avatarUrl: null })
+  return ids.map((id) => byId.get(id) ?? { id, fullName: t('Persona'), email: '', avatarUrl: null })
 }

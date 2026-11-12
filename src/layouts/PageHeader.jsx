@@ -2,6 +2,7 @@ import { Fragment, useEffect } from 'react'
 import { Link } from 'react-router'
 import { Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { t } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { useLayoutStore } from '@/stores/layoutStore'
 
@@ -40,12 +41,12 @@ export function PageHeader({ path = [], title, titleAddon, leading, description,
               size="icon"
               className="-ml-2 size-7 md:hidden"
               onClick={() => openSidebar(true)}
-              aria-label="Abrir menú"
+              aria-label={t('Abrir menú')}
             >
               <Menu className="size-4" />
             </Button>
             {path.length > 0 && (
-              <nav aria-label="Ruta" className="tf-path min-w-0 truncate">
+              <nav aria-label={t('Ruta')} className="tf-path min-w-0 truncate">
                 {path.map((crumb, index) => (
                   <Fragment key={index}>
                     {index > 0 && <span aria-hidden="true"> / </span>}

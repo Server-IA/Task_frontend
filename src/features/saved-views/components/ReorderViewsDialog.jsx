@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUp, GripVertical, Lock, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { LockNote } from '@/components/common/LockNote'
+import { t } from '@/i18n'
 import { DND_INSTRUCTIONS, DRAG_ROLE, quoted, sortableAnnouncements } from '@/lib/dndAnnouncements'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
@@ -26,31 +27,31 @@ export function ReorderViewsDialog({ slug, projectId, views, isManager, open, on
   const move = (view, toIndex) => {
     const moved = moveView(views, view.id, toIndex)
     if (!moved) return
-    reorder.mutate(moved, { onError: (error) => notifyError(error, 'No se pudo cambiar el orden') })
+    reorder.mutate(moved, { onError: (error) => notifyError(error, t('No se pudo cambiar el orden')) })
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="gap-4 sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Ordenar vistas</DialogTitle>
-          <DialogDescription>Así aparecen en la barra. Las compartidas siempre van antes que las personales.</DialogDescription>
+          <DialogTitle>{t('Ordenar vistas')}</DialogTitle>
+          <DialogDescription>{t('Así aparecen en la barra. Las compartidas siempre van antes que las personales.')}</DialogDescription>
         </DialogHeader>
         {shared.length > 0 && (
           <ViewGroup
-            title="Compartidas"
+            title={t('Compartidas')}
             icon={Users}
             views={shared}
             canMove={canShared}
-            note={!isManager && shared.length > 1 ? 'Solo el project manager ordena las vistas compartidas.' : null}
+            note={!isManager && shared.length > 1 ? t('Solo el project manager ordena las vistas compartidas.') : null}
             onMove={move}
           />
         )}
         {personal.length > 0 && (
-          <ViewGroup title="Personales" icon={Lock} views={personal} canMove={personal.length > 1} onMove={move} />
+          <ViewGroup title={t('Personales')} icon={Lock} views={personal} canMove={personal.length > 1} onMove={move} />
         )}
         <DialogFooter>
-          <Button onClick={() => onOpenChange(false)}>Listo</Button>
+          <Button onClick={() => onOpenChange(false)}>{t('Listo')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -75,7 +76,7 @@ function ViewGroup({ title, icon: Icon, views, canMove, note, onMove }) {
           screenReaderInstructions: DND_INSTRUCTIONS,
           announcements: sortableAnnouncements(
             views.map((view) => view.id),
-            (id) => `la vista ${quoted(views.find((view) => view.id === id)?.name ?? '')}`,
+            (id) => t('la vista {name}', { name: quoted(views.find((view) => view.id === id)?.name ?? '') }),
           ),
         }}
         onDragEnd={({ active, over }) => {
@@ -132,8 +133,8 @@ function SortableRow({ view, index, count, canMove, onMove }) {
             }
             listeners?.onKeyDown?.(event)
           }}
-          aria-label={`Mover «${view.name}»`}
-          title="Arrastra o usa alt + ↑ ↓"
+          aria-label={t('Mover «{name}»', { name: view.name })}
+          title={t('Arrastra o usa alt + ↑ ↓')}
           className={cn(
             'flex h-7 w-6 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-dash outline-none hover:bg-accent hover:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing',
             isDragging && 'bg-accent-soft text-accent-text',
@@ -142,9 +143,9 @@ function SortableRow({ view, index, count, canMove, onMove }) {
           <GripVertical className="size-3.5" />
         </button>
       )}
-      <Icon className="size-3.5 shrink-0 text-muted-foreground" aria-label={view.shared ? 'compartida' : 'personal'} />
+      <Icon className="size-3.5 shrink-0 text-muted-foreground" aria-label={view.shared ? t('compartida') : t('personal')} />
       <span className="min-w-0 flex-1 truncate text-sm font-medium">{view.name}</span>
-      <span className="font-mono text-[11px] text-muted-foreground" title="Tareas que muestra">
+      <span className="font-mono text-[11px] text-muted-foreground" title={t('Tareas que muestra')}>
         {view.issueCount ?? ''}
       </span>
       {canMove && (
@@ -153,7 +154,7 @@ function SortableRow({ view, index, count, canMove, onMove }) {
             variant="ghost"
             size="icon"
             className="size-7 text-muted-foreground"
-            aria-label={`Subir «${view.name}»`}
+            aria-label={t('Subir «{name}»', { name: view.name })}
             disabled={index === 0}
             onClick={() => onMove(view, index - 1)}
           >
@@ -163,7 +164,7 @@ function SortableRow({ view, index, count, canMove, onMove }) {
             variant="ghost"
             size="icon"
             className="size-7 text-muted-foreground"
-            aria-label={`Bajar «${view.name}»`}
+            aria-label={t('Bajar «{name}»', { name: view.name })}
             disabled={index === count - 1}
             onClick={() => onMove(view, index + 1)}
           >

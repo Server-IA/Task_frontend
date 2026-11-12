@@ -3,6 +3,7 @@ import { Check, UserRoundX } from 'lucide-react'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { UserAvatar } from '@/components/common/UserAvatar'
+import { t } from '@/i18n'
 import { cn } from '@/lib/utils'
 
 /**
@@ -25,18 +26,18 @@ export function OwnerPicker({ members, value, onChange, disabled = false, childr
       </PopoverTrigger>
       <PopoverContent className="w-60 p-0" align="start">
         <Command>
-          <CommandInput placeholder="Responsable…" />
+          <CommandInput placeholder={t('Responsable…')} />
           <CommandList>
-            <CommandEmpty>Nadie con ese nombre en el proyecto</CommandEmpty>
+            <CommandEmpty>{t('Nadie con ese nombre en el proyecto')}</CommandEmpty>
             {value && (
               <CommandGroup>
-                <CommandItem value="sin responsable quitar" onSelect={() => choose(null)}>
+                <CommandItem value={t('sin responsable quitar')} onSelect={() => choose(null)}>
                   <UserRoundX className="size-4 text-muted-foreground" aria-hidden="true" />
-                  Sin responsable
+                  {t('Sin responsable')}
                 </CommandItem>
               </CommandGroup>
             )}
-            <CommandGroup heading="Miembros del proyecto">
+            <CommandGroup heading={t('Miembros del proyecto')}>
               {members.map((user) => (
                 <CommandItem key={user.id} value={`${user.fullName} ${user.email ?? ''} ${user.id}`} onSelect={() => choose(user.id)}>
                   <UserAvatar user={user} size="xs" />
@@ -60,7 +61,7 @@ export function OwnerButton({ owner, className, ...props }) {
   return (
     <button
       type="button"
-      aria-label={owner ? `Responsable: ${owner.fullName}. Cambiar` : 'Elegir responsable'}
+      aria-label={owner ? t('Responsable: {name}. Cambiar', { name: owner.fullName }) : t('Elegir responsable')}
       className={cn(
         'inline-flex h-7 max-w-full min-w-0 items-center gap-1.5 rounded-full text-xs transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-60',
         owner
@@ -76,7 +77,7 @@ export function OwnerButton({ owner, className, ...props }) {
           <span className="truncate">{owner.fullName}</span>
         </>
       ) : (
-        '+ responsable'
+        t('+ responsable')
       )}
     </button>
   )

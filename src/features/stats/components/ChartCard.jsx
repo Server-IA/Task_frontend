@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import { t } from '@/i18n'
 import { cn } from '@/lib/utils'
 
 /**
@@ -25,11 +26,12 @@ export function ChartCard({ title, meta, table, footer, children, className }) {
             onClick={() => setShowTable((value) => !value)}
             className="ml-auto rounded text-xs text-accent-text hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           >
-            {showTable ? 'Ver gráfico' : 'Ver tabla'}
+            {showTable ? t('Ver gráfico') : t('Ver tabla')}
           </button>
         )}
       </div>
-      {showTable ? <DataTable {...table} /> : children}
+      {/* Si la tabla deja de existir (la lista quedó vacía con «Ver tabla» puesto), vuelve el contenido normal */}
+      {showTable && table ? <DataTable {...table} /> : children}
       {footer}
     </section>
   )
@@ -40,7 +42,10 @@ export function ChartCard({ title, meta, table, footer, children, className }) {
  *             rows: Record<string, React.ReactNode>[] }} DataTableProps
  */
 
-/** Tabla simple con los datos de un gráfico (la alternativa accesible a mirar las barras). */
+/**
+ * Tabla simple: la alternativa accesible a un gráfico («Ver tabla») o, donde un gráfico no aporta (carga por persona,
+ * sin movimiento), la forma de mostrar los datos.
+ */
 export function DataTable({ caption, columns, rows }) {
   return (
     <div className="tf-fade overflow-x-auto rounded-xl border">

@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AvatarStack } from '@/components/common/AvatarStack'
+import { CountUp, StrikeText } from '@/components/common/Pulse'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { CenteredSpinner } from '@/components/common/Loaders'
 import { EmptyState, ErrorState } from '@/components/common/States'
@@ -15,9 +16,11 @@ import { useIssues } from '@/features/issues/hooks'
 import { isClosed } from '@/features/issues/useIssueHelpers'
 import { useIssueFilters } from '@/features/issues/useIssueFilters'
 import { useCurrentProject } from '@/features/projects/hooks'
-import { useCurrentWorkspace, useIsManager } from '@/features/workspaces/hooks'
+import { useCan, useCurrentWorkspace } from '@/features/workspaces/hooks'
+import { t, tn } from '@/i18n'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { notifyError } from '@/lib/notify'
+import { useFlash } from '@/lib/flash'
 import { projectPath } from '@/lib/paths'
 import { slugify } from '@/lib/slug'
 import { cn } from '@/lib/utils'
@@ -53,10 +56,13 @@ export function PlanningDetailPage({ kind }) {
   const [addOpen, setAddOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [closeOpen, setCloseOpen] = useState(false)
-  // Editar y eliminar el ciclo/módulo es del project manager; agregar o quitar tareas, de todos
-  const canManage = useIsManager()
+  // Editar, eliminar, cerrar y mover tareas van cada uno por su permiso
+  const canEdit = useCan(kind === 'cycles' ? 'CYCLE_EDIT' : 'MODULE_EDIT')
+  const canDelete = useCan(kind === 'cycles' ? 'CYCLE_DELETE' : 'MODULE_DELETE')
+  const canClose = useCan('CYCLE_CLOSE')
+  const canAssign = useCan(kind === 'cycles' ? 'CYCLE_ASSIGN' : 'MODULE_ASSIGN')
   const listUrl = `/${workspace.slug}/projects/${project.id}/${kind}`
-  const listPath = [...projectPath(workspace, project), { label: kind === 'cycles' ? 'ciclos' : 'modulos', to: listUrl }]
+  const listPath = [...projectPath(workspace, project), { label: kind === 'cycles' ? t('ciclos') : t('modulos'), to: listUrl }]
 
   const issues = useMemo(() => issuesPage?.content ?? [], [issuesPage])
 
@@ -75,7 +81,7 @@ export function PlanningDetailPage({ kind }) {
   const closed = kind === 'cycles' && isCycleClosed(item)
   const showRemaining = kind === 'cycles' && !closed && item.status === 'CURRENT' && end
   // Cerrar el ciclo: el project manager, si ya empezó y sigue abierto
-  const showClose = kind === 'cycles' && canManage && canCloseCycle(item)
+  const showClose = kind === 'cycles' && canClose && canCloseCycle(item)
 
   return (
     <>
@@ -97,41 +103,41 @@ export function PlanningDetailPage({ kind }) {
         actions={
           <div className="flex w-full flex-col gap-3 sm:w-auto sm:items-end">
             <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-              {canManage && (
-                <>
-                  <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-                    <Pencil />
-                    Editar
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-8 text-muted-foreground"
-                    onClick={() => setConfirmDelete(true)}
-                    aria-label={`Eliminar ${text.singular}`}
-                  >
-                    <Trash2 />
-                  </Button>
-                </>
+              {canEdit && (
+                <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+                  <Pencil />
+                  {t('Editar')}
+                </Button>
+              )}
+              {canDelete && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 text-muted-foreground"
+                  onClick={() => setConfirmDelete(true)}
+                  aria-label={text.deleteLabel}
+                >
+                  <Trash2 />
+                </Button>
               )}
               {closed && (
                 <Button size="sm" asChild>
                   <Link to={`${listUrl}/${item.id}/retro`}>
                     <MessagesSquare />
-                    Ver retrospectiva
+                    {t('Ver retrospectiva')}
                   </Link>
                 </Button>
               )}
               {showClose && (
                 <Button variant="outline" size="sm" onClick={() => setCloseOpen(true)}>
                   <Flag />
-                  Cerrar ciclo
+                  {t('Cerrar ciclo')}
                 </Button>
               )}
               {!closed && (
                 <Button size="sm" onClick={() => setAddOpen(true)}>
                   <Plus strokeWidth={3} />
-                  Agregar tareas
+                  {t('Agregar tareas')}
                 </Button>
               )}
             </div>
@@ -151,8 +157,8 @@ export function PlanningDetailPage({ kind }) {
           issues={issues}
           isLoading={issuesLoading}
           onOpenIssue={issueFilters.openIssue}
-          onAdd={closed ? undefined : () => setAddOpen(true)}
-          canRemove={!closed}
+          onAdd={closed || !canAssign ? undefined : () => setAddOpen(true)}
+          canRemove={!closed && canAssign}
         />
       </PageBody>
 
@@ -174,21 +180,21 @@ export function PlanningDetailPage({ kind }) {
       <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
-        title={`¿Eliminar «${item.name}»?`}
-        description="Las tareas no se borran: solo dejan de pertenecer a él."
-        confirmLabel="Eliminar"
+        title={t('¿Eliminar «{name}»?', { name: item.name })}
+        description={t('Las tareas no se borran: solo dejan de pertenecer a él.')}
+        confirmLabel={t('Eliminar')}
         loading={remove.isPending}
         onConfirm={() =>
           remove.mutate(item.id, {
             onSuccess: () => {
-              toast.success(`«${item.name}» eliminado`)
+              toast.success(t('«{name}» eliminado', { name: item.name }))
               navigate(listUrl, { replace: true })
             },
             onError: (deleteError) => notifyError(deleteError),
           })
         }
       />
-      {kind === 'cycles' && canManage && (
+      {kind === 'cycles' && canClose && (
         <CloseCycleDialog slug={workspace.slug} projectId={project.id} cycle={item} open={closeOpen} onOpenChange={setCloseOpen} />
       )}
       <AddIssuesDialog
@@ -218,22 +224,24 @@ function ProgressBlock({ kind, item, issues }) {
   const { completedIssues, totalIssues, percentage } = item.progress
   const { started, pending } = progressBreakdown(issues)
   const bar = kind === 'cycles' ? (CYCLE_STATUS[cycleStatusKey(item)] ?? CYCLE_STATUS.DRAFT).bar : 'bg-accent-text'
+  // Recién cerrado: la barra se llena hasta su valor y el porcentaje cuenta hacia arriba
+  const justClosed = useFlash('closedCycle', kind === 'cycles' ? item.id : null)
 
   return (
     <div>
       <p className="mb-1.5 flex items-baseline justify-between gap-2">
-        <span className="font-display text-[28px] leading-none font-extrabold">{percentage}%</span>
+        <span className="font-display text-[28px] leading-none font-extrabold tabular-nums">
+          <CountUp value={percentage} animate={justClosed} />%
+        </span>
         <span className="text-xs text-muted-foreground">
-          {totalIssues === 0 ? 'Sin tareas' : `${completedIssues} de ${totalIssues} completadas`}
+          {totalIssues === 0 ? t('Sin tareas') : t('{completed} de {total} completadas', { completed: completedIssues, total: totalIssues })}
         </span>
       </p>
-      <ProgressBar value={percentage} className={bar} />
+      <ProgressBar value={percentage} className={bar} grow={justClosed} />
       <p className="mt-1.5 flex justify-between gap-2 font-mono text-[11px] text-muted-foreground">
-        <span>○ {pending} por hacer</span>
-        <span>◐ {started} en curso</span>
-        <span>
-          ● {completedIssues} {completedIssues === 1 ? 'hecha' : 'hechas'}
-        </span>
+        <span>{t('○ {count} por hacer', { count: pending })}</span>
+        <span>{t('◐ {count} en curso', { count: started })}</span>
+        <span>{tn(completedIssues, '● {count} hecha', '● {count} hechas')}</span>
       </p>
     </div>
   )
@@ -241,7 +249,7 @@ function ProgressBlock({ kind, item, issues }) {
 
 export function PlanningIssues({ kind, slug, projectId, item, issues, isLoading, onOpenIssue, onAdd, canRemove = true }) {
   const removeIssue = useRemovePlanningIssue(kind, slug, projectId)
-  const singular = PLANNING_TEXT[kind].singular
+  const text = PLANNING_TEXT[kind]
   const count = useMemo(() => planningListCount(issues), [issues])
 
   if (isLoading) return <Skeleton className="h-64 w-full rounded-2xl" />
@@ -250,13 +258,13 @@ export function PlanningIssues({ kind, slug, projectId, item, issues, isLoading,
     return (
       <EmptyState
         icon={CircleDot}
-        title="Sin tareas"
-        description={onAdd ? `Agrega tareas del proyecto a este ${singular}.` : 'El ciclo está cerrado: ya no recibe tareas.'}
+        title={t('Sin tareas')}
+        description={onAdd ? text.addHint : t('El ciclo está cerrado: ya no recibe tareas.')}
         action={
           onAdd && (
             <Button onClick={onAdd}>
               <Plus />
-              Agregar tareas
+              {t('Agregar tareas')}
             </Button>
           )
         }
@@ -265,9 +273,9 @@ export function PlanningIssues({ kind, slug, projectId, item, issues, isLoading,
   }
 
   return (
-    <section aria-label={`Tareas del ${singular}`} className="overflow-hidden rounded-2xl border bg-card">
+    <section aria-label={text.issuesTitle} className="overflow-hidden rounded-2xl border bg-card">
       <header className="flex items-center gap-2 bg-column px-4 py-2.5 font-mono text-[11px] tracking-[0.08em] uppercase">
-        <h2 className="font-semibold">Tareas del {singular}</h2>
+        <h2 className="font-semibold">{text.issuesTitle}</h2>
         {/* Como el avance: tareas y bugs sin cancelar; las historias y canceladas de la lista, aparte */}
         <span className="text-muted-foreground" title={count.title}>
           {count.text}
@@ -281,9 +289,9 @@ export function PlanningIssues({ kind, slug, projectId, item, issues, isLoading,
               <button type="button" onClick={() => onOpenIssue(issue.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
                 <StateIcon group={issue.state?.group} color={issue.state?.color} />
                 <span className="min-w-16 shrink-0 font-mono text-xs whitespace-nowrap text-muted-foreground">{issue.code}</span>
-                <span className={cn('min-w-0 flex-1 truncate text-sm font-medium', closed && 'text-muted-foreground line-through')}>
+                <StrikeText done={closed} className={cn('min-w-0 flex-1 truncate text-sm font-medium', closed && 'text-muted-foreground')}>
                   {issue.title}
-                </span>
+                </StrikeText>
                 {issue.priority !== 'NONE' && <PriorityChip priority={issue.priority} className="hidden sm:inline-flex" />}
                 {issue.assignees?.length > 0 && <AvatarStack users={issue.assignees} size="sm" />}
               </button>
@@ -292,14 +300,14 @@ export function PlanningIssues({ kind, slug, projectId, item, issues, isLoading,
                   variant="ghost"
                   size="icon"
                   className="size-7 text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-                  aria-label={`Quitar ${issue.code} del ${singular}`}
-                  title={`Quitar del ${singular}`}
+                  aria-label={text.removeLabel(issue.code)}
+                  title={text.removeTitle}
                   disabled={removeIssue.isPending}
                   onClick={() =>
                     removeIssue.mutate(
                       { id: item.id, issueId: issue.id },
                       {
-                        onSuccess: () => toast.success(`${issue.code} quitada de «${item.name}»`),
+                        onSuccess: () => toast.success(t('{code} quitada de «{name}»', { code: issue.code, name: item.name })),
                         onError: (removeError) => notifyError(removeError),
                       },
                     )

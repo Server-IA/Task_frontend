@@ -8,36 +8,28 @@ import { CreateProjectDialog } from '@/features/projects/components/CreateProjec
 import { ProjectIcon } from '@/features/projects/components/ProjectIcon'
 import { useProjects } from '@/features/projects/hooks'
 import { useWorkspace } from '@/features/workspaces/hooks'
-import { isManager } from '@/lib/permissions'
+import { t, tn } from '@/i18n'
+import { can } from '@/lib/permissions'
+import { usePreferencesStore } from '@/stores/preferencesStore'
+import { orderItems, PROJECT_SECTIONS, SECTION_PERMISSIONS } from './menuOrder'
 import { SidebarLink } from './Sidebar'
 
-/** Secciones de un proyecto con su atajo de teclado (ver ProjectLayout). */
-export const PROJECT_SECTIONS = [
-  { path: 'issues', label: 'Tareas', hint: 'I' },
-  { path: 'stories', label: 'Historias', hint: 'H' },
-  { path: 'cycles', label: 'Ciclos', hint: 'Y' },
-  { path: 'daily', label: 'Daily', hint: 'D' },
-  { path: 'modules', label: 'Módulos', hint: 'M' },
-  { path: 'roadmap', label: 'Hoja de ruta', hint: 'R' },
-  { path: 'stats', label: 'Estadísticas', hint: 'S' },
-  { path: 'settings', label: 'Ajustes', hint: ',' },
-]
-
 /** «12 abiertas» / «1 abierta». */
-const openLabel = (count = 0) => `${count} ${count === 1 ? 'abierta' : 'abiertas'}`
+const openLabel = (count = 0) => tn(count, '{count} abierta', '{count} abiertas')
 
 /** Lista «// proyectos»: el proyecto abierto se despliega con sus secciones, los demás son un enlace. */
 export function SidebarProjects({ slug, currentProjectId, collapsed }) {
   const { data: projects = [] } = useProjects(slug)
   const [createOpen, setCreateOpen] = useState(false)
-  // Solo el project manager crea proyectos
-  const canCreate = isManager(useWorkspace(slug).data?.myRole)
+  // Crear proyectos va por permiso
+  const workspace = useWorkspace(slug).data
+  const canCreate = can(workspace, 'PROJECT_CREATE')
 
   return (
     <div className="flex flex-col gap-0.5">
       {!collapsed && (
         <div className="flex min-h-7.5 items-center justify-between pr-1 pb-1.5 pl-2.5">
-          <span className="font-mono text-[11px] text-sidebar-muted">// proyectos</span>
+          <span className="font-mono text-[11px] text-sidebar-muted">{t('// proyectos')}</span>
           {canCreate && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -46,12 +38,12 @@ export function SidebarProjects({ slug, currentProjectId, collapsed }) {
                   size="icon"
                   className="size-6 text-sidebar-muted hover:bg-sidebar-accent"
                   onClick={() => setCreateOpen(true)}
-                  aria-label="Nuevo proyecto"
+                  aria-label={t('Nuevo proyecto')}
                 >
                   <Plus className="size-3.5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="right">Nuevo proyecto</TooltipContent>
+              <TooltipContent side="right">{t('Nuevo proyecto')}</TooltipContent>
             </Tooltip>
           )}
         </div>
@@ -75,7 +67,7 @@ export function SidebarProjects({ slug, currentProjectId, collapsed }) {
             />
           )
         }
-        return <CurrentProject key={project.id} slug={slug} project={project} base={base} />
+        return <CurrentProject key={project.id} slug={slug} project={project} base={base} workspace={workspace} />
       })}
       {canCreate && <CreateProjectDialog slug={slug} open={createOpen} onOpenChange={setCreateOpen} />}
     </div>
@@ -86,24 +78,29 @@ export function SidebarProjects({ slug, currentProjectId, collapsed }) {
  * Proyecto abierto con sus secciones. A la derecha de cada una va un dato útil:
  * tareas abiertas, el ciclo en curso, la daily de hoy y los módulos sin terminar.
  */
-function CurrentProject({ slug, project, base }) {
+function CurrentProject({ slug, project, base, workspace }) {
   const { data: cycles } = usePlanningList('cycles', slug, project.id)
   const { data: modules } = usePlanningList('modules', slug, project.id)
   const currentCycle = cycles?.find((cycle) => cycle.status === 'CURRENT' && !cycle.closedAt)
   const activeModules = modules?.filter((module) => module.progress.percentage < 100).length ?? 0
+  // El orden de las secciones lo elige cada persona («Personalizar menú»)
+  const menuOrder = usePreferencesStore((state) => state.menuOrder)
+  // Las secciones que piden un permiso (estadísticas, reportes) no se ofrecen a quien no lo tiene
+  const allowed = PROJECT_SECTIONS.filter((section) => !SECTION_PERMISSIONS[section.path] || can(workspace, SECTION_PERMISSIONS[section.path]))
+  const sections = orderItems(allowed, menuOrder.mode, menuOrder.sections, (section) => section.path)
 
   const meta = {
     issues: openLabel(project.openIssueCount),
     // «2 sin partir» (o, si están todas partidas, cuántas hay abiertas)
     stories:
       project.unsplitStoryCount > 0
-        ? `${project.unsplitStoryCount} sin partir`
+        ? t('{count} sin partir', { count: project.unsplitStoryCount })
         : project.openStoryCount > 0
           ? openLabel(project.openStoryCount)
           : undefined,
     cycles: currentCycle?.name,
-    daily: 'hoy',
-    modules: activeModules > 0 ? `${activeModules} ${activeModules === 1 ? 'activo' : 'activos'}` : undefined,
+    daily: t('hoy'),
+    modules: activeModules > 0 ? tn(activeModules, '{count} activo', '{count} activos') : undefined,
   }
 
   return (
@@ -113,13 +110,13 @@ function CurrentProject({ slug, project, base }) {
         <span className="min-w-0 flex-1 truncate">{project.name}</span>
       </NavLink>
       <div className="mt-0.5 flex flex-col gap-0.5">
-        {PROJECT_SECTIONS.map((section) => (
+        {sections.map((section) => (
           <SidebarLink
             key={section.path}
             to={`${base}/${section.path}`}
             label={section.label}
             meta={meta[section.path]}
-            title={`${section.label} · atajo ${section.hint}`}
+            title={t('{section} · atajo {key}', { section: section.label, key: section.hint })}
             className="h-8 pl-3 hover:bg-sidebar-active/60"
           />
         ))}

@@ -1,3 +1,5 @@
+import { localeTag } from '@/i18n'
+
 /**
  * Cálculos de los gráficos de estadísticas (SVG hecho a mano, sin librería de gráficos).
  * Funciones puras: reciben números y devuelven escalas, rutas y textos.
@@ -57,9 +59,9 @@ export function idealRemaining(total, day, days) {
   return Math.max(0, total - (total * day) / days)
 }
 
-const decimal = new Intl.NumberFormat('es', { maximumFractionDigits: 1 })
+const decimal = new Intl.NumberFormat(localeTag(), { maximumFractionDigits: 1 })
 
-/** «3,4» (un decimal como mucho, coma decimal). */
+/** «3,4» (un decimal como mucho; coma decimal en español, punto en inglés). */
 export function formatDecimal(value) {
   return decimal.format(value)
 }

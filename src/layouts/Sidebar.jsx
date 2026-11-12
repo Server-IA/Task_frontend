@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { NavLink } from 'react-router'
 import { Activity, FolderClosed, PanelLeftClose, PanelLeftOpen, Search, SlidersHorizontal, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -5,12 +6,15 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useMyWork } from '@/features/my-work/hooks'
 import { NotificationsLink } from '@/features/notifications/NotificationsLink'
 import { WorkspaceSwitcher } from '@/features/workspaces/components/WorkspaceSwitcher'
-import { useLastWorkspaceSlug } from '@/features/workspaces/hooks'
+import { useLastWorkspaceSlug, useWorkspace } from '@/features/workspaces/hooks'
 import { useRouteParams } from '@/hooks/useRouteParams'
+import { t } from '@/i18n'
+import { can } from '@/lib/permissions'
 import { COMMAND_SHORTCUT } from '@/lib/shortcuts'
 import { cn } from '@/lib/utils'
 import { useLayoutStore } from '@/stores/layoutStore'
 import { usePreferencesStore } from '@/stores/preferencesStore'
+import { MAIN_MENU, orderItems } from './menuOrder'
 import { SidebarProjects } from './SidebarProjects'
 import { UserMenu } from './UserMenu'
 
@@ -20,6 +24,20 @@ export function Sidebar({ collapsed }) {
   const { slug: routeSlug, projectId } = useRouteParams()
   // Fuera de un workspace (perfil, notificaciones) se usa el último abierto
   const slug = routeSlug ?? lastWorkspaceSlug
+  // El orden lo elige cada persona («Personalizar menú», en el menú de usuario); «Buscar» siempre va primero
+  const menuOrder = usePreferencesStore((state) => state.menuOrder)
+  const { data: workspace } = useWorkspace(slug)
+  const entries = {
+    inbox: <NotificationsLink collapsed={collapsed} />,
+    // Fuera de un workspace (sin ninguno todavía) solo queda la bandeja
+    'my-work': slug && <MyWorkLink slug={slug} collapsed={collapsed} />,
+    // La actividad pide su permiso
+    activity: slug && can(workspace, 'ACTIVITY_VIEW') && (
+      <SidebarLink to={`/${slug}/activity`} icon={Activity} label={t('Actividad')} collapsed={collapsed} />
+    ),
+    projects: slug && <SidebarLink to={`/${slug}`} end icon={FolderClosed} label={t('Proyectos')} collapsed={collapsed} />,
+    settings: slug && <SidebarLink to={`/${slug}/settings`} icon={SlidersHorizontal} label={t('Ajustes')} collapsed={collapsed} />,
+  }
 
   return (
     <div className={cn('flex h-full flex-col gap-4.5 py-3.5', collapsed ? 'px-2' : 'px-3')}>
@@ -35,27 +53,21 @@ export function Sidebar({ collapsed }) {
               size="icon"
               className="hidden size-8 text-sidebar-muted hover:bg-sidebar-accent md:inline-flex"
               onClick={toggleSidebar}
-              aria-label={collapsed ? 'Expandir menú' : 'Contraer menú'}
+              aria-label={collapsed ? t('Expandir menú') : t('Contraer menú')}
             >
               {collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="right">{collapsed ? 'Expandir menú' : 'Contraer menú'}</TooltipContent>
+          <TooltipContent side="right">{collapsed ? t('Expandir menú') : t('Contraer menú')}</TooltipContent>
         </Tooltip>
       </div>
 
       {/* overflow-x-hidden: plegada y con scroll vertical, la barra le quitaba ancho y aparecía otra horizontal */}
-      <nav className="flex min-h-0 flex-1 flex-col gap-4.5 overflow-x-hidden overflow-y-auto" aria-label="Principal">
+      <nav className="flex min-h-0 flex-1 flex-col gap-4.5 overflow-x-hidden overflow-y-auto" aria-label={t('Principal')}>
         <div className="flex flex-col gap-0.5">
           <SearchButton collapsed={collapsed} />
-          <NotificationsLink collapsed={collapsed} />
-          {slug && (
-            <>
-              <MyWorkLink slug={slug} collapsed={collapsed} />
-              <SidebarLink to={`/${slug}/activity`} icon={Activity} label="Actividad" collapsed={collapsed} />
-              <SidebarLink to={`/${slug}`} end icon={FolderClosed} label="Proyectos" collapsed={collapsed} />
-              <SidebarLink to={`/${slug}/settings`} icon={SlidersHorizontal} label="Ajustes" collapsed={collapsed} />
-            </>
+          {orderItems(MAIN_MENU, menuOrder.mode, menuOrder.main).map((item) =>
+            entries[item.key] ? <Fragment key={item.key}>{entries[item.key]}</Fragment> : null,
           )}
         </div>
         {slug && <SidebarProjects slug={slug} currentProjectId={projectId} collapsed={collapsed} />}
@@ -74,7 +86,7 @@ function MyWorkLink({ slug, collapsed }) {
     <SidebarLink
       to={`/${slug}/my-work`}
       icon={User}
-      label="Mi trabajo"
+      label={t('Mi trabajo')}
       meta={count > 0 ? String(count) : undefined}
       collapsed={collapsed}
     />
@@ -88,7 +100,7 @@ function SearchButton({ collapsed }) {
     <button
       type="button"
       onClick={() => setCommandOpen(true)}
-      aria-label={collapsed ? `Buscar (${COMMAND_SHORTCUT})` : undefined}
+      aria-label={collapsed ? t('Buscar ({shortcut})', { shortcut: COMMAND_SHORTCUT }) : undefined}
       aria-keyshortcuts={COMMAND_SHORTCUT === '⌘K' ? 'Meta+K' : 'Control+K'}
       className={cn(
         'flex h-9 w-full items-center gap-2.5 rounded-[10px] px-2.5 text-sm whitespace-nowrap text-sidebar-foreground transition-colors duration-150 outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring',
@@ -98,7 +110,7 @@ function SearchButton({ collapsed }) {
       <Search className="size-4 shrink-0" />
       {!collapsed && (
         <>
-          <span className="min-w-0 flex-1 truncate text-left">Buscar</span>
+          <span className="min-w-0 flex-1 truncate text-left">{t('Buscar')}</span>
           <kbd className="rounded-[5px] border border-sidebar-border px-1.5 font-mono text-[11px] text-sidebar-muted">
             {COMMAND_SHORTCUT}
           </kbd>
@@ -110,7 +122,7 @@ function SearchButton({ collapsed }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>{button}</TooltipTrigger>
-      <TooltipContent side="right">Buscar · {COMMAND_SHORTCUT}</TooltipContent>
+      <TooltipContent side="right">{t('Buscar · {shortcut}', { shortcut: COMMAND_SHORTCUT })}</TooltipContent>
     </Tooltip>
   )
 }

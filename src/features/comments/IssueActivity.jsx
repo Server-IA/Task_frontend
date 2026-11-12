@@ -21,12 +21,13 @@ import { inlineImageTarget } from '@/features/files/hooks'
 import { useMentionPeople } from '@/features/mentions/hooks'
 import { joinNames, mentionedIds } from '@/features/mentions/mentions'
 import { useWorkspace } from '@/features/workspaces/hooks'
+import { t, tc, tn, tx } from '@/i18n'
 import { formatDateTime, formatRelative } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
-import { canDeleteComment } from '@/lib/permissions'
+import { can, canDeleteComment } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { useSessionStore } from '@/stores/sessionStore'
-import { activityActorName, describeActivity } from './describeActivity'
+import { activityActorName, activityAutoMark, describeActivity } from './describeActivity'
 import { useComments, useCreateComment, useDeleteComment, useUpdateComment } from './hooks'
 
 /**
@@ -41,6 +42,8 @@ export function IssueActivity({ slug, projectId, issueId, issueCode, projectIden
   const comments = useComments(slug, projectId, issueId)
   const activity = useActivity(slug, projectId, issueId)
   const people = useMentionPeople(slug, projectId)
+  // Del workspace de la tarea (no de la URL): la actividad también se ve desde la Bandeja
+  const { data: workspace } = useWorkspace(slug)
 
   const timeline = useMemo(() => {
     const commentItems = (comments.data ?? []).map((comment) => ({ type: 'comment', at: comment.createdAt, comment }))
@@ -60,7 +63,7 @@ export function IssueActivity({ slug, projectId, issueId, issueCode, projectIden
   const composerFocusRef = useMemo(
     () => ({
       get current() {
-        return sectionRef.current?.querySelector('[aria-label="Escribe un comentario"]') ?? null
+        return sectionRef.current?.querySelector(`[aria-label="${COMPOSER_LABEL}"]`) ?? null
       },
     }),
     [],
@@ -75,8 +78,8 @@ export function IssueActivity({ slug, projectId, issueId, issueCode, projectIden
   return (
     <section ref={sectionRef} className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold">Actividad</h2>
-        <Segmented label="Filtrar actividad" size="sm" className="p-0.5" value={filter} onChange={setFilter} options={FILTERS} />
+        <h2 className="text-sm font-semibold">{t('Actividad')}</h2>
+        <Segmented label={t('Filtrar actividad')} size="sm" className="p-0.5" value={filter} onChange={setFilter} options={FILTERS} />
       </div>
 
       {isLoading ? (
@@ -105,20 +108,24 @@ export function IssueActivity({ slug, projectId, issueId, issueCode, projectIden
           )}
           {timeline.length === 0 && (
             <li className="text-sm text-muted-foreground">
-              {filter === 'comments' ? 'Todavía no hay comentarios.' : 'Sin actividad.'}
+              {filter === 'comments' ? t('Todavía no hay comentarios.') : t('Sin actividad.')}
             </li>
           )}
         </ol>
       )}
 
-      <CommentComposer
-        slug={slug}
-        projectId={projectId}
-        issueId={issueId}
-        issueCode={issueCode}
-        projectIdentifier={projectIdentifier}
-        people={people}
-      />
+      {/* Comentar y subir imágenes en comentarios van cada uno por su permiso */}
+      {can(workspace, 'COMMENT_CREATE') && (
+        <CommentComposer
+          slug={slug}
+          projectId={projectId}
+          issueId={issueId}
+          issueCode={issueCode}
+          projectIdentifier={projectIdentifier}
+          people={people}
+          allowImages={can(workspace, 'COMMENT_IMAGES')}
+        />
+      )}
     </section>
   )
 }
@@ -126,16 +133,23 @@ export function IssueActivity({ slug, projectId, issueId, issueCode, projectIden
 /** Id del elemento de un comentario (para llevar la vista hasta él). */
 const commentAnchor = (commentId) => `comentario-${commentId}`
 
+/** El nombre de la caja para comentar (también sirve para encontrarla y devolverle el foco). */
+const COMPOSER_LABEL = t('Escribe un comentario')
+
 const FILTERS = [
-  { value: 'all', label: 'Todo' },
-  { value: 'comments', label: 'Comentarios' },
-  { value: 'history', label: 'Historial' },
+  { value: 'all', label: tc('filtro', 'Todo') },
+  { value: 'comments', label: t('Comentarios') },
+  { value: 'history', label: t('Historial') },
 ]
 
 function ActivityLine({ entry }) {
   return (
     <div className="flex items-start gap-2 pl-1.5 text-xs text-muted-foreground">
-      {entry.field === 'STORY_AUTO_STATE' ? (
+      {activityAutoMark(entry) === 'GH' ? (
+        <span aria-hidden="true" className="mt-px flex size-5 shrink-0 items-center justify-center rounded-md bg-foreground font-mono text-[8px] font-bold text-background">
+          GH
+        </span>
+      ) : activityAutoMark(entry) ? (
         <span aria-hidden="true" className="mt-px flex size-5 shrink-0 items-center justify-center rounded-full bg-primary font-mono text-[8px] font-bold text-primary-foreground">
           TF
         </span>
@@ -165,18 +179,18 @@ function ActivityLine({ entry }) {
 function AttachedFileText({ file }) {
   const actions = useFileActions()
   return (
-    <>
-      adjuntó «
-      <button
-        type="button"
-        onClick={() => actions.open(file)}
-        className="font-medium text-foreground underline-offset-2 hover:underline"
-        title={file.image ? 'Ver la imagen' : 'Abrir el archivo'}
-      >
-        {file.fileName}
-      </button>
-      »
-    </>
+    tx('adjuntó «{file}»', {
+      file: (
+        <button
+          type="button"
+          onClick={() => actions.open(file)}
+          className="font-medium text-foreground underline-offset-2 hover:underline"
+          title={file.image ? t('Ver la imagen') : t('Abrir el archivo')}
+        >
+          {file.fileName}
+        </button>
+      ),
+    })
   )
 }
 
@@ -194,7 +208,7 @@ function CommentCard({ slug, projectId, issueId, comment, people, projectIdentif
   const [uploading, setUploading] = useState(0)
 
   const isAuthor = comment.author?.id === currentUserId
-  const canDelete = canDeleteComment(workspace?.myRole, comment, currentUserId)
+  const canDelete = canDeleteComment(workspace, comment, currentUserId)
   const edited = comment.updatedAt !== comment.createdAt
   // Un comentario de otra persona que me menciona se resalta
   const mentionsMe = !isAuthor && Boolean(currentUserId) && mentionedIds(comment.body).includes(currentUserId)
@@ -226,14 +240,14 @@ function CommentCard({ slug, projectId, issueId, comment, people, projectIdentif
           {/* En un panel angosto la fecha se corta (completa en el título) y «te mencionó» no se parte */}
           <span className="min-w-0 truncate font-mono text-muted-foreground" title={formatDateTime(comment.createdAt)}>
             · {formatRelative(comment.createdAt)}
-            {edited && ' · editado'}
+            {edited && ` · ${t('editado')}`}
           </span>
           <span className="ml-auto flex shrink-0 items-center gap-1.5">
-            {mentionsMe && <span className="font-semibold whitespace-nowrap text-accent-text">te mencionó</span>}
+            {mentionsMe && <span className="font-semibold whitespace-nowrap text-accent-text">{t('te mencionó')}</span>}
             {(isAuthor || canDelete) && !editing && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="size-6" aria-label="Acciones del comentario">
+                  <Button variant="ghost" size="icon" className="size-6" aria-label={t('Acciones del comentario')}>
                     <MoreHorizontal className="size-3.5" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -246,13 +260,13 @@ function CommentCard({ slug, projectId, issueId, comment, people, projectIdentif
                       }}
                     >
                       <Pencil />
-                      Editar
+                      {t('Editar')}
                     </DropdownMenuItem>
                   )}
                   {canDelete && (
                     <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(true)}>
                       <Trash2 />
-                      Eliminar
+                      {t('Eliminar')}
                     </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>
@@ -267,7 +281,7 @@ function CommentCard({ slug, projectId, issueId, comment, people, projectIdentif
                 value={draft}
                 onChange={setDraft}
                 size="sm"
-                ariaLabel="Editar comentario"
+                ariaLabel={t('Editar comentario')}
                 placeholder=""
                 people={people}
                 slug={slug}
@@ -275,19 +289,20 @@ function CommentCard({ slug, projectId, issueId, comment, people, projectIdentif
                 autoFocus
                 onSubmit={save}
                 onEscape={() => setEditing(false)}
-                imageUpload={imageUpload}
+                // Las imágenes nuevas piden el permiso de subir imágenes en comentarios
+                imageUpload={can(workspace, 'COMMENT_IMAGES') ? imageUpload : undefined}
                 onUploadsChange={setUploading}
                 contentClassName="min-h-16 px-3 py-2"
               />
             </div>
             <div className="flex items-center justify-end gap-2">
-              <span className="mr-auto font-mono text-[11px] text-muted-foreground">@ mencionar · ctrl ↵ guardar · esc cancelar</span>
+              <span className="mr-auto font-mono text-[11px] text-muted-foreground">{t('@ mencionar · ctrl ↵ guardar · esc cancelar')}</span>
               <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
-                Cancelar
+                {t('Cancelar')}
               </Button>
-              <Button size="sm" onClick={save} disabled={update.isPending || uploading > 0} title={uploading > 0 ? 'Se activa cuando termina la subida' : undefined}>
+              <Button size="sm" onClick={save} disabled={update.isPending || uploading > 0} title={uploading > 0 ? t('Se activa cuando termina la subida') : undefined}>
                 {(update.isPending || uploading > 0) && <Spinner />}
-                {uploading > 0 ? 'Subiendo…' : 'Guardar'}
+                {uploading > 0 ? t('Subiendo…') : t('Guardar')}
               </Button>
             </div>
           </div>
@@ -305,15 +320,15 @@ function CommentCard({ slug, projectId, issueId, comment, people, projectIdentif
       <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
-        title="¿Eliminar el comentario?"
-        confirmLabel="Eliminar"
+        title={t('¿Eliminar el comentario?')}
+        confirmLabel={t('Eliminar')}
         loading={remove.isPending}
         focusAfterConfirmRef={focusAfterDeleteRef}
         onConfirm={() =>
           remove.mutate(comment.id, {
             onSuccess: () => {
               setConfirmDelete(false)
-              toast.success('Comentario eliminado')
+              toast.success(t('Comentario eliminado'))
             },
             onError: (error) => notifyError(error),
           })
@@ -323,7 +338,7 @@ function CommentCard({ slug, projectId, issueId, comment, people, projectIdentif
   )
 }
 
-function CommentComposer({ slug, projectId, issueId, issueCode, projectIdentifier, people }) {
+function CommentComposer({ slug, projectId, issueId, issueCode, projectIdentifier, people, allowImages = true }) {
   const user = useSessionStore((state) => state.user)
   const create = useCreateComment(slug, projectId, issueId)
   const [body, setBody] = useState('')
@@ -387,8 +402,8 @@ function CommentComposer({ slug, projectId, issueId, issueCode, projectIdentifie
               value={body}
               onChange={setBody}
               size="sm"
-              ariaLabel="Escribe un comentario"
-              placeholder="Escribe un comentario…"
+              ariaLabel={COMPOSER_LABEL}
+              placeholder={t('Escribe un comentario…')}
               people={people}
               slug={slug}
               projectIdentifier={projectIdentifier}
@@ -397,7 +412,8 @@ function CommentComposer({ slug, projectId, issueId, issueCode, projectIdentifie
               // Con texto, Escape suelta el campo en vez de cerrar el panel (y perder el comentario sin enviar)
               onEscape={body.trim() ? blurComposer : undefined}
               apiRef={apiRef}
-              imageUpload={imageUpload}
+              // Sin el permiso de subir imágenes en comentarios, el editor no las recibe (ni pegadas ni soltadas)
+              imageUpload={allowImages ? imageUpload : undefined}
               onUploadsChange={setUploading}
               contentClassName="min-h-11 px-3 pt-2.5 pb-1"
             />
@@ -405,24 +421,26 @@ function CommentComposer({ slug, projectId, issueId, issueCode, projectIdentifie
             <div
               role="textbox"
               tabIndex={0}
-              aria-label="Escribe un comentario"
+              aria-label={COMPOSER_LABEL}
               onFocus={() => setActive(true)}
               onPointerEnter={preloadRichEditor}
               className="min-h-11 cursor-text px-3 pt-2.5 pb-1 text-sm leading-relaxed text-muted-foreground outline-none"
             >
-              Escribe un comentario…
+              {t('Escribe un comentario…')}
             </div>
           )}
           <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 pr-2 pb-2 pl-1.5">
-            <button
-              type="button"
-              aria-label="Adjuntar imagen"
-              title="Adjuntar imagen · también puedes pegar o soltar"
-              className="-mr-1 rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Paperclip className="size-3.5" aria-hidden="true" />
-            </button>
+            {allowImages && (
+              <button
+                type="button"
+                aria-label={t('Adjuntar imagen')}
+                title={t('Adjuntar imagen · también puedes pegar o soltar')}
+                className="-mr-1 rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Paperclip className="size-3.5" aria-hidden="true" />
+              </button>
+            )}
             <input
               ref={fileInputRef}
               type="file"
@@ -437,19 +455,21 @@ function CommentComposer({ slug, projectId, issueId, issueCode, projectIdentifie
               }}
             />
             <span className="mr-auto font-mono text-[11px] text-muted-foreground">
-              <kbd className="text-foreground">/</kbd> insertar · <kbd className="text-foreground">@</kbd> mencionar · pega o arrastra una imagen
+              {allowImages
+                ? tx('{slash} insertar · {at} mencionar · pega o arrastra una imagen', { slash: <kbd className="text-foreground">/</kbd>, at: <kbd className="text-foreground">@</kbd> })
+                : tx('{slash} insertar · {at} mencionar', { slash: <kbd className="text-foreground">/</kbd>, at: <kbd className="text-foreground">@</kbd> })}
             </span>
             <span className="ml-auto flex items-center gap-2.5">
-              <span className="font-mono text-[11px] text-muted-foreground">ctrl ↵ enviar</span>
+              <span className="font-mono text-[11px] text-muted-foreground">{t('ctrl ↵ enviar')}</span>
               <Button
                 size="sm"
                 className="rounded-[9px]"
                 onClick={submit}
                 disabled={!body.trim() || create.isPending || uploading > 0}
-                title={uploading > 0 ? 'Se activa cuando termina la subida' : undefined}
+                title={uploading > 0 ? t('Se activa cuando termina la subida') : undefined}
               >
                 {(create.isPending || uploading > 0) && <Spinner />}
-                {uploading > 0 ? 'Subiendo…' : 'Comentar'}
+                {uploading > 0 ? t('Subiendo…') : t('Comentar')}
               </Button>
             </span>
           </div>
@@ -457,9 +477,11 @@ function CommentComposer({ slug, projectId, issueId, issueCode, projectIdentifie
       </div>
       {notified.length > 0 && (
         <p className="tf-fade ml-10.5 text-xs text-muted-foreground">
-          {joinNames(notified.map((person) => person.fullName.split(' ')[0]))}{' '}
-          {notified.length === 1 ? 'recibirá' : 'recibirán'} «{user?.fullName} te mencionó en {issueCode ?? 'la tarea'}» en su
-          bandeja.
+          {tn(notified.length, '{names} recibirá «{author} te mencionó en {task}» en su bandeja.', '{names} recibirán «{author} te mencionó en {task}» en su bandeja.', {
+            names: joinNames(notified.map((person) => person.fullName.split(' ')[0])),
+            author: user?.fullName ?? '',
+            task: issueCode ?? t('la tarea'),
+          })}
         </p>
       )}
     </div>

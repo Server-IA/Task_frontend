@@ -4,7 +4,10 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { PropertyRow } from '@/features/issues/components/IssueDetail'
 import { PropertyButton } from '@/features/issues/components/PropertyPickers'
+import { t } from '@/i18n'
 import { notifyError } from '@/lib/notify'
+import { can } from '@/lib/permissions'
+import { useWorkspace } from '@/features/workspaces/hooks'
 import { useAddPlanningIssues, usePlanningList, useRemovePlanningIssue } from '../hooks'
 
 /**
@@ -14,10 +17,10 @@ import { useAddPlanningIssues, usePlanningList, useRemovePlanningIssue } from '.
 export function IssuePlanningProperties({ slug, projectId, issue }) {
   return (
     <>
-      <PropertyRow label="Ciclo">
+      <PropertyRow label={t('Ciclo')}>
         <CyclePicker slug={slug} projectId={projectId} issue={issue} />
       </PropertyRow>
-      <PropertyRow label="Módulos">
+      <PropertyRow label={t('Módulos')}>
         <ModulesPicker slug={slug} projectId={projectId} issue={issue} />
       </PropertyRow>
     </>
@@ -30,6 +33,8 @@ function CyclePicker({ slug, projectId, issue }) {
   const add = useAddPlanningIssues('cycles', slug, projectId)
   const remove = useRemovePlanningIssue('cycles', slug, projectId)
   const current = issue.cycle
+  // Mover tareas entre ciclos va por permiso
+  const canAssign = can(useWorkspace(slug).data, 'CYCLE_ASSIGN')
   // Un ciclo cerrado ya no recibe ni suelta tareas (409): solo aparece si es el de la tarea, y sin «Quitar del ciclo»
   // (sí se la puede pasar a uno abierto)
   const choices = cycles.filter((cycle) => !cycle.closedAt || cycle.id === current?.id)
@@ -49,28 +54,28 @@ function CyclePicker({ slug, projectId, issue }) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <PropertyButton aria-label="Ciclo" disabled={add.isPending || remove.isPending}>
+        <PropertyButton aria-label={t('Ciclo')} disabled={!canAssign || add.isPending || remove.isPending}>
           <RefreshCcw className="size-3.5 text-muted-foreground" />
-          <span className={current ? 'truncate' : 'text-muted-foreground'}>{current?.name ?? 'Sin ciclo'}</span>
+          <span className={current ? 'truncate' : 'text-muted-foreground'}>{current?.name ?? t('Sin ciclo')}</span>
         </PropertyButton>
       </PopoverTrigger>
       <PopoverContent className="w-60 p-0" align="start">
         <Command>
-          <CommandInput placeholder="Buscar ciclo…" />
+          <CommandInput placeholder={t('Buscar ciclo…')} />
           <CommandList>
-            <CommandEmpty>No hay ciclos (créalos en la sección Ciclos)</CommandEmpty>
+            <CommandEmpty>{t('No hay ciclos (créalos en la sección Ciclos)')}</CommandEmpty>
             <CommandGroup>
               {current && !currentClosed && (
-                <CommandItem value="__none__ sin ciclo" onSelect={() => choose(null)}>
+                <CommandItem value={`__none__ ${t('sin ciclo')}`} onSelect={() => choose(null)}>
                   <X />
-                  Quitar del ciclo
+                  {t('Quitar del ciclo')}
                 </CommandItem>
               )}
               {choices.map((cycle) => (
                 <CommandItem key={cycle.id} value={`${cycle.name} ${cycle.id}`} onSelect={() => choose(cycle.id)}>
                   <RefreshCcw className="text-muted-foreground" />
                   <span className="min-w-0 flex-1 truncate">{cycle.name}</span>
-                  {cycle.closedAt && <span className="font-mono text-[11px] text-muted-foreground">cerrado</span>}
+                  {cycle.closedAt && <span className="font-mono text-[11px] text-muted-foreground">{t('cerrado')}</span>}
                   {cycle.id === current?.id && <Check className="size-4" />}
                 </CommandItem>
               ))}
@@ -87,6 +92,8 @@ function ModulesPicker({ slug, projectId, issue }) {
   const add = useAddPlanningIssues('modules', slug, projectId)
   const remove = useRemovePlanningIssue('modules', slug, projectId)
   const selected = new Set((issue.modules ?? []).map((module) => module.id))
+  // Mover tareas entre módulos va por permiso
+  const canAssign = can(useWorkspace(slug).data, 'MODULE_ASSIGN')
 
   const toggle = (moduleId) => {
     const options = { onError: (error) => notifyError(error) }
@@ -97,20 +104,20 @@ function ModulesPicker({ slug, projectId, issue }) {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <PropertyButton className="h-auto min-h-7 py-1" aria-label="Módulos">
+        <PropertyButton className="h-auto min-h-7 py-1" aria-label={t('Módulos')} disabled={!canAssign}>
           <Layers className="size-3.5 text-muted-foreground" />
           {issue.modules?.length ? (
             <span className="truncate">{issue.modules.map((module) => module.name).join(', ')}</span>
           ) : (
-            <span className="text-muted-foreground">Sin módulos</span>
+            <span className="text-muted-foreground">{t('Sin módulos')}</span>
           )}
         </PropertyButton>
       </PopoverTrigger>
       <PopoverContent className="w-60 p-0" align="start">
         <Command>
-          <CommandInput placeholder="Buscar módulo…" />
+          <CommandInput placeholder={t('Buscar módulo…')} />
           <CommandList>
-            <CommandEmpty>No hay módulos (créalos en la sección Módulos)</CommandEmpty>
+            <CommandEmpty>{t('No hay módulos (créalos en la sección Módulos)')}</CommandEmpty>
             <CommandGroup>
               {modules.map((module) => (
                 <CommandItem key={module.id} value={`${module.name} ${module.id}`} onSelect={() => toggle(module.id)}>

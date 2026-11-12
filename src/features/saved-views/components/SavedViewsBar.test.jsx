@@ -19,7 +19,7 @@ vi.mock('../hooks', () => ({
   useReorderSavedViews: () => ({ mutate: vi.fn(), isPending: false }),
 }))
 vi.mock('@/features/issues/hooks', () => ({ useIssues: () => ({ data: { totalElements: 0 } }) }))
-vi.mock('@/features/workspaces/hooks', () => ({ useIsManager: () => manager }))
+vi.mock('@/features/workspaces/hooks', () => ({ useCan: () => manager }))
 
 const view = (id, name, extra) => ({ id, name, shared: false, mine: true, filters: {}, position: 0, ...extra })
 const meta = { states: [], labels: [], users: [], cycles: [], modules: [] }

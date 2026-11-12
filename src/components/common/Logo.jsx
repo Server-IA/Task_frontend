@@ -4,7 +4,8 @@ import { cn } from '@/lib/utils'
 export function LogoMark({ className }) {
   return (
     <svg viewBox="0 0 32 32" className={cn('size-8 shrink-0', className)} aria-hidden="true">
-      <rect width="32" height="32" rx="9" fill="#23201B" />
+      {/* En tema oscuro el cuadro va un poco más claro y con borde: sobre un fondo casi negro no se distinguía */}
+      <rect x="0.5" y="0.5" width="31" height="31" rx="8.5" strokeWidth="1" className="fill-[#23201B] dark:fill-[#38332b] dark:stroke-[#5a5246]" />
       <path
         d="M8.5 16.5l5 5L23.5 11 M17.5 11h6v6"
         fill="none"

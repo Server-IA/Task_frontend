@@ -11,6 +11,8 @@
 
 /** Pestaña de los ajustes del workspace a la que lleva el aviso de espacio (solo la ven los PM). */
 export const STORAGE_SETTINGS_TAB = 'storage'
+/** Pestaña de los ajustes del workspace a la que lleva el aviso de una importación terminada. */
+export const IMPORT_SETTINGS_TAB = 'import'
 
 /** Pestañas de la Bandeja y qué pide cada una a la API. */
 export const INBOX_TABS = {
@@ -34,6 +36,10 @@ export function notificationTarget(notification) {
   const { issue, cycle, workspace } = notification
   if (notification.type === 'STORAGE_WARNING') {
     return workspace?.slug ? `/${workspace.slug}/settings?tab=${STORAGE_SETTINGS_TAB}` : null
+  }
+  // Una importación terminó: su informe está en la pestaña «Importar»
+  if (notification.type === 'IMPORT_FINISHED') {
+    return workspace?.slug ? `/${workspace.slug}/settings?tab=${IMPORT_SETTINGS_TAB}` : null
   }
   if (cycle?.workspaceSlug && cycle.projectId && cycle.id) {
     return `/${cycle.workspaceSlug}/projects/${cycle.projectId}/cycles/${cycle.id}/retro`
@@ -76,7 +82,7 @@ export function notificationWorkspaceSlug(notification) {
  * Lo manda TaskFlow (sin autor): historia lista para revisar y espacio casi lleno.
  * @param {NotificationResponse} notification
  */
-export const isSystemNotification = (notification) => ['STORY_READY', 'STORAGE_WARNING'].includes(notification.type)
+export const isSystemNotification = (notification) => ['STORY_READY', 'STORAGE_WARNING', 'IMPORT_FINISHED', 'PR_MERGED_PENDING'].includes(notification.type)
 
 function codePrefix(code = '') {
   const dash = code.lastIndexOf('-')

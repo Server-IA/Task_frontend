@@ -4,13 +4,24 @@
  * «etiqueta: otro». Se quitan de los filtros activos sin avisar con un error.
  */
 
+import { t } from '@/i18n'
+
 /** Filtros de ids, con lo que los nombra en el aviso de una vista guardada. */
 export const ID_FILTERS = {
-  state: 'estado',
-  assignee: 'persona asignada',
-  label: 'etiqueta',
-  cycle: 'ciclo',
-  module: 'módulo',
+  state: t('estado'),
+  assignee: t('persona asignada'),
+  label: t('etiqueta'),
+  cycle: t('ciclo'),
+  module: t('módulo'),
+}
+
+/** El aviso cuando falta un solo filtro (cada uno con su frase: el artículo cambia con el idioma). */
+const MISSING_ONE = {
+  state: t('Esta vista filtraba por un estado que ya no existe'),
+  assignee: t('Esta vista filtraba por una persona asignada que ya no existe'),
+  label: t('Esta vista filtraba por una etiqueta que ya no existe'),
+  cycle: t('Esta vista filtraba por un ciclo que ya no existe'),
+  module: t('Esta vista filtraba por un módulo que ya no existe'),
 }
 
 /**
@@ -84,11 +95,7 @@ export function withoutUnknownViewFilters(filters = {}, known) {
  */
 export function missingFiltersText(emptied) {
   if (emptied.length === 0) return null
-  if (emptied.length === 1) {
-    const noun = ID_FILTERS[emptied[0]]
-    const article = noun === 'persona asignada' || noun === 'etiqueta' ? 'una' : 'un'
-    return `Esta vista filtraba por ${article} ${noun} que ya no existe`
-  }
+  if (emptied.length === 1) return MISSING_ONE[emptied[0]]
   const nouns = emptied.map((key) => ID_FILTERS[key])
-  return `Esta vista filtraba por ${nouns.slice(0, -1).join(', ')} y ${nouns.at(-1)} que ya no existen`
+  return t('Esta vista filtraba por {list} y {last} que ya no existen', { list: nouns.slice(0, -1).join(', '), last: nouns.at(-1) })
 }

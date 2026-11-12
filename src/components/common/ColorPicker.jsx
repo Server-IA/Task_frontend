@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Check } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { t } from '@/i18n'
 import { cn } from '@/lib/utils'
 
 export const PRESET_COLORS = [
@@ -67,7 +68,7 @@ export function ColorPicker({ value, onChange, disabled, className }) {
             'flex h-9 items-center gap-2 rounded-md border border-input px-2.5 text-sm shadow-xs hover:bg-accent disabled:opacity-50',
             className,
           )}
-          aria-label="Elegir color"
+          aria-label={t('Elegir color')}
         >
           <span className="size-4 rounded-full border" style={{ backgroundColor: value }} />
           <span className="font-mono text-xs text-muted-foreground uppercase">{value}</span>
@@ -99,7 +100,7 @@ export function ColorPicker({ value, onChange, disabled, className }) {
             }}
             maxLength={7}
             className="h-8 font-mono text-xs uppercase"
-            aria-label="Color hexadecimal"
+            aria-label={t('Color hexadecimal')}
           />
         </div>
       </PopoverContent>

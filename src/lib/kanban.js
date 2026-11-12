@@ -29,15 +29,18 @@ export function sortOrderBetween(above, below, maxInColumn) {
 }
 
 /**
- * Agrupa los issues por estado, ordenados por sortOrder.
+ * Agrupa los issues por estado. Por defecto van por sortOrder (el orden manual del tablero); con `keepOrder` se
+ * respeta el orden en que llegan (el que pidió la persona: prioridad, más recientes…), que al repartirse en columnas
+ * sigue siendo el mismo dentro de cada una.
  * @param {import('@/api/types').IssueResponse[]} issues
  * @param {import('@/api/types').StateResponse[]} states
+ * @param {{ keepOrder?: boolean }} [options]
  * @returns {Record<string, string[]>} stateId → ids de issues
  */
-export function groupByState(issues, states) {
+export function groupByState(issues, states, { keepOrder = false } = {}) {
   const columns = Object.fromEntries(states.map((state) => [state.id, []]))
   // Desempate por número: dos issues pueden compartir sortOrder si se crearon a la vez
-  const sorted = [...issues].sort((a, b) => a.sortOrder - b.sortOrder || a.sequenceId - b.sequenceId)
+  const sorted = keepOrder ? issues : [...issues].sort((a, b) => a.sortOrder - b.sortOrder || a.sequenceId - b.sequenceId)
   for (const issue of sorted) {
     if (columns[issue.state?.id]) columns[issue.state.id].push(issue.id)
   }
@@ -81,11 +84,12 @@ export function laneOfColumn(key) {
  * en el carril de otra historia.
  * @param {{ key: string, issues: import('@/api/types').IssueResponse[] }[]} lanes
  * @param {import('@/api/types').StateResponse[]} states
+ * @param {{ keepOrder?: boolean }} [options] ver `groupByState`
  */
-export function groupByLaneAndState(lanes, states) {
+export function groupByLaneAndState(lanes, states, options) {
   const columns = {}
   for (const lane of lanes) {
-    for (const [stateId, ids] of Object.entries(groupByState(lane.issues, states))) columns[columnKey(lane.key, stateId)] = ids
+    for (const [stateId, ids] of Object.entries(groupByState(lane.issues, states, options))) columns[columnKey(lane.key, stateId)] = ids
   }
   return columns
 }

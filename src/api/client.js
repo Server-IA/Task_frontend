@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { getLanguage } from '@/i18n'
 import { ApiError, SESSION_EXPIRED, SESSION_EXPIRED_MESSAGE, toApiError } from '@/lib/errors'
 import { useSessionStore } from '@/stores/sessionStore'
 
@@ -13,12 +14,13 @@ export const api = axios.create({
   paramsSerializer: { indexes: null },
 })
 
-// Agrega el access token a cada petición
+// Agrega el access token a cada petición y el idioma en el que deben venir los mensajes del backend
 api.interceptors.request.use((config) => {
   const { accessToken } = useSessionStore.getState()
   if (accessToken) {
     config.headers.Authorization = `Bearer ${accessToken}`
   }
+  config.headers['Accept-Language'] = getLanguage()
   return config
 })
 

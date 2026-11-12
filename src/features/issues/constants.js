@@ -1,9 +1,11 @@
+import { t } from '@/i18n'
+
 export const PRIORITIES = [
-  { value: 'URGENT', label: 'Urgente' },
-  { value: 'HIGH', label: 'Alta' },
-  { value: 'MEDIUM', label: 'Media' },
-  { value: 'LOW', label: 'Baja' },
-  { value: 'NONE', label: 'Sin prioridad' },
+  { value: 'URGENT', label: t('Urgente') },
+  { value: 'HIGH', label: t('Alta') },
+  { value: 'MEDIUM', label: t('Media') },
+  { value: 'LOW', label: t('Baja') },
+  { value: 'NONE', label: t('Sin prioridad') },
 ]
 
 export const PRIORITY_LABELS = Object.fromEntries(PRIORITIES.map(({ value, label }) => [value, label]))
@@ -13,13 +15,13 @@ export const PRIORITY_LABELS = Object.fromEntries(PRIORITIES.map(({ value, label
  * prioridad y, dentro de cada prioridad, por fecha límite y número. `summary`: cómo se lee en el resumen de una vista.
  */
 export const SORT_OPTIONS = [
-  { value: 'sortOrder,asc', label: 'Manual' },
-  { value: 'priorityRank,asc', label: 'Prioridad', summary: 'prioridad, luego fecha' },
-  { value: 'sequenceId,desc', label: 'Más recientes' },
-  { value: 'sequenceId,asc', label: 'Más antiguos' },
-  { value: 'updatedAt,desc', label: 'Actualizados recientemente' },
-  { value: 'dueDate,asc', label: 'Fecha límite' },
-  { value: 'title,asc', label: 'Título (A-Z)' },
+  { value: 'sortOrder,asc', label: t('Manual') },
+  { value: 'priorityRank,asc', label: t('Prioridad'), summary: t('prioridad, luego fecha') },
+  { value: 'sequenceId,desc', label: t('Más recientes') },
+  { value: 'sequenceId,asc', label: t('Más antiguos') },
+  { value: 'updatedAt,desc', label: t('Actualizados recientemente') },
+  { value: 'dueDate,asc', label: t('Fecha límite') },
+  { value: 'title,asc', label: t('Título (A-Z)') },
 ]
 
 export const DEFAULT_SORT = 'sortOrder,asc'
@@ -34,11 +36,11 @@ export const sanitizeSort = (value) => (SORT_VALUES.has(value) ? value : DEFAULT
 
 /** Cómo se agrupan las filas de la lista. Lo mismo acepta `groupBy` en las vistas guardadas. */
 export const GROUP_BY_OPTIONS = [
-  { value: 'state', label: 'Estado' },
-  { value: 'priority', label: 'Prioridad' },
-  { value: 'assignee', label: 'Asignado' },
-  { value: 'label', label: 'Etiqueta' },
-  { value: 'type', label: 'Tipo' },
+  { value: 'state', label: t('Estado') },
+  { value: 'priority', label: t('Prioridad') },
+  { value: 'assignee', label: t('Asignado') },
+  { value: 'label', label: t('Etiqueta') },
+  { value: 'type', label: t('Tipo') },
 ]
 export const GROUP_BY_DEFAULT = 'state'
 
@@ -47,8 +49,8 @@ export const GROUP_BY_DEFAULT = 'state'
  * historia»). Se guarda en el mismo `groupBy` (la lista ignora «story» y el tablero, los de la lista).
  */
 export const BOARD_GROUP_OPTIONS = [
-  { value: 'state', label: 'Ninguno' },
-  { value: 'story', label: 'Historia' },
+  { value: 'state', label: t('Ninguno') },
+  { value: 'story', label: t('Historia') },
 ]
 export const BOARD_GROUP_STORY = 'story'
 

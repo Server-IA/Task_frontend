@@ -1,8 +1,10 @@
 import { useSearchParams } from 'react-router'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ProjectGithubSettings } from '@/features/github/ProjectGithubSettings'
 import { TemplatesSettings } from '@/features/templates/components/TemplatesSettings'
 import { useTemplates } from '@/features/templates/hooks'
 import { useCurrentWorkspace } from '@/features/workspaces/hooks'
+import { t } from '@/i18n'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { projectPath } from '@/lib/paths'
 import { LabelsSettings } from '../components/LabelsSettings'
@@ -11,7 +13,7 @@ import { ProjectMembersSettings } from '../components/ProjectMembersSettings'
 import { StatesSettings } from '../components/StatesSettings'
 import { useCurrentProject, useLabels, useProjectMembers, useStates } from '../hooks'
 
-const TABS = ['general', 'states', 'labels', 'members', 'templates']
+const TABS = ['general', 'states', 'labels', 'members', 'templates', 'github']
 
 export function ProjectSettingsPage() {
   const workspace = useCurrentWorkspace()
@@ -32,20 +34,21 @@ export function ProjectSettingsPage() {
       className="min-h-0 flex-1 gap-3.5"
     >
       <PageHeader
-        path={[...projectPath(workspace, project), { label: 'ajustes' }]}
-        title="Ajustes del proyecto"
-        documentTitle={['Ajustes', project.name]}
+        path={[...projectPath(workspace, project), { label: t('ajustes') }]}
+        title={t('Ajustes del proyecto')}
+        documentTitle={[t('Ajustes'), project.name]}
       >
-        <TabsList aria-label="Secciones">
-          <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="states">Estados {count(states)}</TabsTrigger>
-          <TabsTrigger value="labels">Etiquetas {count(labels)}</TabsTrigger>
-          <TabsTrigger value="members">Miembros {count(members)}</TabsTrigger>
-          <TabsTrigger value="templates">Plantillas {count(templates)}</TabsTrigger>
+        <TabsList aria-label={t('Secciones')}>
+          <TabsTrigger value="general">{t('General')}</TabsTrigger>
+          <TabsTrigger value="states">{t('Estados')} {count(states)}</TabsTrigger>
+          <TabsTrigger value="labels">{t('Etiquetas')} {count(labels)}</TabsTrigger>
+          <TabsTrigger value="members">{t('Miembros')} {count(members)}</TabsTrigger>
+          <TabsTrigger value="templates">{t('Plantillas')} {count(templates)}</TabsTrigger>
+          <TabsTrigger value="github">GitHub</TabsTrigger>
         </TabsList>
       </PageHeader>
       <PageBody>
-        <div className="mx-auto max-w-[920px]">
+        <div className="mx-auto max-w-[1320px]">
           <TabsContent value="general">
             <ProjectGeneralSettings workspace={workspace} project={project} />
           </TabsContent>
@@ -60,6 +63,9 @@ export function ProjectSettingsPage() {
           </TabsContent>
           <TabsContent value="templates">
             <TemplatesSettings slug={workspace.slug} project={project} />
+          </TabsContent>
+          <TabsContent value="github">
+            <ProjectGithubSettings workspace={workspace} project={project} />
           </TabsContent>
         </div>
       </PageBody>

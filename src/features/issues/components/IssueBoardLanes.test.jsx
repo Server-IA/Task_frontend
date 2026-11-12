@@ -38,6 +38,8 @@ vi.mock('@/features/stories/hooks', () => ({
   isStoryClosedError: (error) => error?.code === 'STORY_CLOSED',
 }))
 vi.mock('@/features/workspaces/hooks', () => ({ useWorkspace: () => ({ data: { myRole: 'OWNER' } }) }))
+// El indicador de GitHub consulta el resumen del proyecto: aquí no se prueba (tiene sus propias pruebas)
+vi.mock('@/features/github/GithubParts', () => ({ IssueDevChip: () => null }))
 vi.mock('sonner', () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn(), warning: vi.fn() }) }))
 
 beforeAll(() => {

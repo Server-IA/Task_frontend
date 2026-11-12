@@ -27,7 +27,7 @@ vi.mock('../hooks', () => ({
   useDeleteState: () => ({ mutate: removeState, isPending: false }),
   useReorderStates: () => mutation,
 }))
-vi.mock('@/features/workspaces/hooks', () => ({ useIsManager: () => true, useMembers: () => ({ data: [] }) }))
+vi.mock('@/features/workspaces/hooks', () => ({ useCan: () => true, useMembers: () => ({ data: [] }) }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 
 const project = { id: 'p1', identifier: 'WEB' }
@@ -79,7 +79,7 @@ describe('Quitar una fila desde la confirmación: el foco no cae al body', () =>
     removeState.mockImplementation((_id, { onError }) => onError(new Error('Tiene tareas')))
     render(<StatesSettings slug="acme" project={project} />)
 
-    const trash = screen.getByRole('button', { name: 'Eliminar el estado «Done»' })
+    const trash = screen.getByRole('button', { name: 'Eliminar el estado «Completado»' })
     await actor.click(trash)
     await actor.click(await screen.findByRole('button', { name: 'Eliminar' }))
     await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
@@ -91,7 +91,7 @@ describe('Quitar una fila desde la confirmación: el foco no cae al body', () =>
     removeState.mockImplementation((_id, { onSuccess }) => onSuccess())
     render(<StatesSettings slug="acme" project={project} />)
 
-    await actor.click(screen.getByRole('button', { name: 'Eliminar el estado «Done»' }))
+    await actor.click(screen.getByRole('button', { name: 'Eliminar el estado «Completado»' }))
     await actor.click(await screen.findByRole('button', { name: 'Eliminar' }))
     await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
     expect(screen.getByRole('button', { name: 'Nuevo estado' })).toHaveFocus()

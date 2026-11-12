@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { PRIORITY_LABELS } from '../constants'
 
@@ -57,7 +58,7 @@ export function PriorityChip({ priority = 'NONE', iconOnlyWhenEmpty = false, cla
   const iconOnly = iconOnlyWhenEmpty && priority === 'NONE'
   return (
     <span
-      title={`Prioridad ${label.toLowerCase()}`}
+      title={priority === 'NONE' ? label : t('Prioridad {priority}', { priority: label.toLowerCase() })}
       className={cn(
         'inline-flex items-center gap-1.5 rounded-md py-0.5 font-mono text-[11.5px] font-semibold whitespace-nowrap',
         iconOnly ? 'px-1' : 'pr-2 pl-1',

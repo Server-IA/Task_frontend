@@ -3,10 +3,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router'
 import { forgetQueries } from '@/api/forgetQueries'
 import { queryKeys } from '@/api/queryKeys'
-import { isManager } from '@/lib/permissions'
+import { can, isManager } from '@/lib/permissions'
 import { usePreferencesStore } from '@/stores/preferencesStore'
 import { useSessionStore } from '@/stores/sessionStore'
-import { invitationsApi, workspacesApi } from './api'
+import { invitationsApi, rolesApi, workspacesApi } from './api'
 
 export function useWorkspaces() {
   return useQuery({ queryKey: queryKeys.workspaces, queryFn: workspacesApi.list })
@@ -113,6 +113,14 @@ export function useIsManager() {
   return isManager(useCurrentWorkspace()?.myRole)
 }
 
+/**
+ * Si quien usa la app tiene ese permiso en el workspace de la URL («ISSUE_CREATE», «CYCLE_CLOSE»…): decide qué
+ * acciones se muestran. El backend valida lo mismo.
+ */
+export function useCan(permission) {
+  return can(useCurrentWorkspace(), permission)
+}
+
 export function useCreateWorkspace() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -162,8 +170,12 @@ export function useMembers(slug) {
 export function useUpdateMemberRole(slug) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ userId, role }) => workspacesApi.updateMemberRole(slug, userId, role),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.members(slug) }),
+    mutationFn: ({ userId, role, roleId }) => workspacesApi.updateMemberRole(slug, userId, role, roleId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.members(slug) })
+      // Cuántas personas tiene cada rol
+      queryClient.invalidateQueries({ queryKey: queryKeys.roles(slug) })
+    },
   })
 }
 
@@ -233,5 +245,68 @@ export function useAcceptInvitation() {
       queryClient.setQueryData(queryKeys.workspace(workspace.slug), workspace)
       queryClient.invalidateQueries({ queryKey: queryKeys.workspaces })
     },
+  })
+}
+
+// ----- Roles -----
+
+/** Catálogo de permisos agrupado por módulo (no cambia: se pide una vez). */
+export function usePermissionCatalog() {
+  return useQuery({
+    queryKey: queryKeys.permissionCatalog,
+    queryFn: rolesApi.catalog,
+    staleTime: Infinity,
+  })
+}
+
+/** Roles del workspace: project manager, «Miembro» y los creados. */
+export function useRoles(slug, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.roles(slug),
+    queryFn: () => rolesApi.list(slug),
+    enabled: Boolean(slug) && enabled,
+  })
+}
+
+/** Un cambio en los roles puede cambiar lo que yo mismo puedo hacer, los nombres en Miembros y en Invitaciones. */
+function invalidateRoles(queryClient, slug) {
+  queryClient.invalidateQueries({ queryKey: queryKeys.roles(slug) })
+  queryClient.invalidateQueries({ queryKey: queryKeys.members(slug) })
+  queryClient.invalidateQueries({ queryKey: queryKeys.invitations(slug) })
+  queryClient.invalidateQueries({ queryKey: queryKeys.workspace(slug) })
+  queryClient.invalidateQueries({ queryKey: queryKeys.workspaces })
+}
+
+/**
+ * `mutate({ role, name, description, permissions })`: crea un rol (`role.id` vacío y no es «Miembro»), cambia los
+ * permisos de «Miembro» o edita un rol creado.
+ */
+export function useSaveRole(slug) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ role, name, description, permissions }) => {
+      if (role.kind === 'MEMBER') return rolesApi.updateMemberPermissions(slug, permissions)
+      const body = { name, description, permissions }
+      return role.id ? rolesApi.update(slug, role.id, body) : rolesApi.create(slug, body)
+    },
+    onSuccess: (saved) => {
+      // El rol guardado entra a la lista enseguida: la pantalla lo selecciona sin esperar a la recarga
+      queryClient.setQueryData(queryKeys.roles(slug), (roles) =>
+        roles
+          ? roles.some((role) => role.key === saved.key)
+            ? roles.map((role) => (role.key === saved.key ? saved : role))
+            : [...roles, saved]
+          : roles,
+      )
+      invalidateRoles(queryClient, slug)
+    },
+  })
+}
+
+export function useDeleteRole(slug) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (roleId) => rolesApi.remove(slug, roleId),
+    onSuccess: () => invalidateRoles(queryClient, slug),
   })
 }

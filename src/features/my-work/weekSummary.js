@@ -1,6 +1,8 @@
+import { localeTag, stateName, t } from '@/i18n'
+
 /**
  * «// tu semana» de Mi trabajo (funciones puras): los contadores salen del backend (`byState`) y se nombran
- * con el nombre de cada estado, nunca con nombres escritos aquí.
+ * con el nombre de cada estado, nunca con nombres escritos aquí (los de fábrica, en el idioma de la interfaz).
  */
 
 /** @typedef {import('@/api/types').StateCount} StateCount */
@@ -11,8 +13,8 @@
  */
 export function stateLabel(name) {
   const text = (name ?? '').trim()
-  if (!text) return 'sin estado'
-  return text === text.toLocaleUpperCase('es') ? text : text.toLocaleLowerCase('es')
+  if (!text) return t('sin estado')
+  return text === text.toLocaleUpperCase(localeTag()) ? text : text.toLocaleLowerCase(localeTag())
 }
 
 /**
@@ -23,5 +25,5 @@ export function stateLabel(name) {
 export function startedCounts(byState) {
   return (byState ?? [])
     .filter((state) => state.group === 'STARTED' && (state.count ?? 0) > 0)
-    .map((state) => ({ key: `${state.group}:${state.name}`, count: state.count, label: stateLabel(state.name), color: state.color }))
+    .map((state) => ({ key: `${state.group}:${state.name}`, count: state.count, label: stateLabel(stateName(state.name)), color: state.color }))
 }

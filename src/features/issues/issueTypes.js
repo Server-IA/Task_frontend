@@ -4,14 +4,16 @@
  * tablero agrupado por historia. Funciones puras (sin React).
  */
 
+import { localeTag, t, tn } from '@/i18n'
+
 /** @typedef {import('@/api/types').IssueResponse} IssueResponse */
 /** @typedef {'STORY' | 'TASK' | 'BUG'} IssueType */
 
 /** Los tres tipos, en el orden en que se ofrecen. `hint`: qué es (en el selector de tipo). */
 export const ISSUE_TYPES = [
-  { value: 'STORY', label: 'Historia', plural: 'historias', hint: 'El qué y el porqué. Sale del tablero y avanza sola con sus tareas.' },
-  { value: 'TASK', label: 'Tarea', plural: 'tareas', hint: 'Trabajo concreto. Se mueve en el tablero.' },
-  { value: 'BUG', label: 'Bug', plural: 'bugs', hint: 'Algo que no funciona. Agrega las secciones del reporte si la descripción está vacía.' },
+  { value: 'STORY', label: t('Historia'), plural: t('historias'), hint: t('El qué y el porqué. Sale del tablero y avanza sola con sus tareas.') },
+  { value: 'TASK', label: t('Tarea'), plural: t('tareas'), hint: t('Trabajo concreto. Se mueve en el tablero.') },
+  { value: 'BUG', label: t('Bug'), plural: t('bugs'), hint: t('Algo que no funciona. Agrega las secciones del reporte si la descripción está vacía.') },
 ]
 
 export const TYPE_LABELS = Object.fromEntries(ISSUE_TYPES.map(({ value, label }) => [value, label]))
@@ -88,7 +90,7 @@ export function storyProgress(story) {
     started,
     donePct: pct(done),
     startedPct: pct(started),
-    label: total === 0 ? 'sin tareas' : `${done} de ${total} ${total === 1 ? 'tarea' : 'tareas'}`,
+    label: total === 0 ? t('sin tareas') : tn(total, '{done} de {count} tarea', '{done} de {count} tareas', { done }),
   }
 }
 
@@ -110,17 +112,17 @@ export function storyFlags(story) {
 }
 
 /** «1 bug abierto» / «2 bugs abiertos». */
-export const openBugsLabel = (count) => `${count} ${count === 1 ? 'bug abierto' : 'bugs abiertos'}`
+export const openBugsLabel = (count) => tn(count, '{count} bug abierto', '{count} bugs abiertos')
 
 /** «1 bug después de cerrar» / «2 bugs después de cerrar». */
-export const bugsAfterCloseLabel = (count) => `${count} ${count === 1 ? 'bug' : 'bugs'} después de cerrar`
+export const bugsAfterCloseLabel = (count) => tn(count, '{count} bug después de cerrar', '{count} bugs después de cerrar')
 
 /** Pestañas de «Historias». */
 export const STORY_TABS = [
-  { value: 'open', label: 'Abiertas' },
-  { value: 'unsplit', label: 'Sin partir' },
-  { value: 'review', label: 'Para revisar' },
-  { value: 'closed', label: 'Cerradas' },
+  { value: 'open', label: t('Abiertas') },
+  { value: 'unsplit', label: t('Sin partir') },
+  { value: 'review', label: t('Para revisar') },
+  { value: 'closed', label: t('Cerradas') },
 ]
 
 /**
@@ -169,9 +171,9 @@ export const storyStateLocked = (issue, manager) => isStory(issue) && !manager &
 export function typeChangeBlock(issue, target, { isManager, hasChildren }) {
   const current = typeOf(issue)
   if (target === current) return null
-  if ((current === 'STORY' || target === 'STORY') && !isManager) return 'Solo el project manager convierte en historia o deja de serlo.'
-  if (current === 'STORY' && hasChildren) return 'Una historia con tareas no puede cambiar de tipo hasta mover sus tareas.'
-  if (target === 'STORY' && issue?.parent) return 'Una tarea de una historia no puede ser historia: quítale el padre antes.'
+  if ((current === 'STORY' || target === 'STORY') && !isManager) return t('Tu rol no permite convertir en historia ni dejar de serlo.')
+  if (current === 'STORY' && hasChildren) return t('Una historia con tareas no puede cambiar de tipo hasta mover sus tareas.')
+  if (target === 'STORY' && issue?.parent) return t('Una tarea de una historia no puede ser historia: quítale el padre antes.')
   return null
 }
 
@@ -259,5 +261,5 @@ function sequenceOf(code = '') {
 export function peopleOf(children) {
   const byId = new Map()
   for (const child of children) for (const user of child.assignees ?? []) if (!byId.has(user.id)) byId.set(user.id, user)
-  return [...byId.values()].sort((a, b) => a.fullName.localeCompare(b.fullName, 'es'))
+  return [...byId.values()].sort((a, b) => a.fullName.localeCompare(b.fullName, localeTag()))
 }

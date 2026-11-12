@@ -2,18 +2,19 @@
  * Colores de proyecto: las mismas claves que `ProjectColor` del backend, en su orden. Los tonos (pastilla y
  * versión suave para cada tema) están en `styles/globals.css` y se aplican con `data-project-color`.
  */
+import { t } from '@/i18n'
 
 /** @typedef {NonNullable<import('@/api/types').ProjectResponse['color']>} ProjectColor */
 
 /** @type {{ key: ProjectColor, label: string }[]} */
 export const PROJECT_COLORS = [
-  { key: 'TEAL', label: 'Turquesa' },
-  { key: 'AMBER', label: 'Ámbar' },
-  { key: 'BLUE', label: 'Azul' },
-  { key: 'PINK', label: 'Rosa' },
-  { key: 'VIOLET', label: 'Violeta' },
-  { key: 'ORANGE', label: 'Naranja' },
-  { key: 'GREEN', label: 'Verde' },
+  { key: 'TEAL', label: t('Turquesa') },
+  { key: 'AMBER', label: t('Ámbar') },
+  { key: 'BLUE', label: t('Azul') },
+  { key: 'PINK', label: t('Rosa') },
+  { key: 'VIOLET', label: t('Violeta') },
+  { key: 'ORANGE', label: t('Naranja') },
+  { key: 'GREEN', label: t('Verde') },
 ]
 
 /** @type {[ProjectColor, ...ProjectColor[]]} */

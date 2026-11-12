@@ -17,10 +17,12 @@ let me = { id: 'u1', fullName: 'Ana Pérez', email: 'ana@correo.com', avatarUrl:
 
 const changePassword = vi.fn()
 const updateProfile = vi.fn()
+const updateLanguage = vi.fn()
 vi.mock('@/features/auth/hooks', () => ({
   useMe: () => ({ data: me, isLoading: false }),
   useChangePassword: () => ({ mutate: changePassword, isPending: false }),
   useUpdateProfile: () => ({ mutate: updateProfile, isPending: false }),
+  useUpdateLanguage: () => ({ mutate: updateLanguage, isPending: false }),
   useLogout: () => ({ mutate: vi.fn(), isPending: false }),
 }))
 let lastWorkspace = null
@@ -35,6 +37,8 @@ vi.mock('./cropImage', async (importOriginal) => ({
   renderCrop: vi.fn(async () => new Blob(['recorte'], { type: 'image/webp' })),
 }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } }))
+// La sección «Cuentas conectadas» consulta la cuenta de GitHub: se prueba en features/github
+vi.mock('@/features/github/GithubAccount', () => ({ GithubAccountSection: () => null }))
 
 beforeAll(() => {
   globalThis.ResizeObserver ??= class {
@@ -105,6 +109,16 @@ describe('Datos personales', () => {
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }))
 
     expect(updateProfile).toHaveBeenCalledWith({ fullName: 'Ana María Pérez' }, expect.anything())
+  })
+})
+
+describe('Idioma', () => {
+  it('elegir «English» guarda el idioma en la cuenta', async () => {
+    renderPage()
+    const group = screen.getByRole('group', { name: 'Idioma de la interfaz' })
+    expect(within(group).getByRole('button', { name: 'Español' })).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(within(group).getByRole('button', { name: 'English' }))
+    expect(updateLanguage).toHaveBeenCalledWith('en', expect.anything())
   })
 })
 

@@ -3,6 +3,8 @@
  * y la regla para pedir confirmación al completarla.
  */
 
+import { t, tn } from '@/i18n'
+
 /** @typedef {import('@/api/types').IssueResponse} IssueResponse */
 /** @typedef {import('@/api/types').StateResponse} StateResponse */
 
@@ -12,7 +14,7 @@ export const blockedCount = (issue) => issue?.blockedByCodes?.length || issue?.b
 /** «WEB-2», «WEB-2 y WEB-7», «WEB-2, WEB-7 y AMC-3» (para títulos y avisos). */
 export function joinCodes(codes = []) {
   if (codes.length <= 1) return codes[0] ?? ''
-  return `${codes.slice(0, -1).join(', ')} y ${codes.at(-1)}`
+  return t('{codes} y {last}', { codes: codes.slice(0, -1).join(', '), last: codes.at(-1) })
 }
 
 /**
@@ -54,8 +56,8 @@ export function checklistProgress(issue) {
   if (total === 0) return null
   const done = (issue.checklistDone ?? 0) + (issue.criteriaDone ?? 0)
   const parts = []
-  if (checks > 0) parts.push(`${issue.checklistDone ?? 0}/${checks} ${checks === 1 ? 'paso' : 'pasos'}`)
-  if (criteria > 0) parts.push(`${issue.criteriaDone ?? 0}/${criteria} ${criteria === 1 ? 'criterio' : 'criterios'}`)
+  if (checks > 0) parts.push(tn(checks, '{done}/{count} paso', '{done}/{count} pasos', { done: issue.checklistDone ?? 0 }))
+  if (criteria > 0) parts.push(tn(criteria, '{done}/{count} criterio', '{done}/{count} criterios', { done: issue.criteriaDone ?? 0 }))
   return { done, total, complete: done === total, label: parts.join(' · ') }
 }
 

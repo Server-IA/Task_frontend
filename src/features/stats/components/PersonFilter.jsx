@@ -1,8 +1,9 @@
-import { Check, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { CheckMark } from '@/components/common/CheckMark'
 import { UserAvatar } from '@/components/common/UserAvatar'
-import { cn } from '@/lib/utils'
+import { t } from '@/i18n'
 import { toggleAssignee } from '../personFilter'
 
 /**
@@ -16,7 +17,7 @@ export function PersonFilter({ users, selected, onChange }) {
   const chosen = new Set(ids)
 
   return (
-    <div role="group" aria-label="Personas" className="flex flex-wrap items-center gap-1.5">
+    <div role="group" aria-label={t('Personas')} className="flex flex-wrap items-center gap-1.5">
       {selected.map((user) => (
         <span
           key={user.id}
@@ -29,7 +30,7 @@ export function PersonFilter({ users, selected, onChange }) {
           <button
             type="button"
             onClick={() => onChange(ids.filter((id) => id !== user.id))}
-            aria-label={`Quitar a ${user.fullName}`}
+            aria-label={t('Quitar a {name}', { name: user.fullName })}
             className="flex size-5 items-center justify-center rounded-full opacity-80 outline-none hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
           >
             <X className="size-3.5" />
@@ -38,13 +39,13 @@ export function PersonFilter({ users, selected, onChange }) {
       ))}
       <Popover>
         <PopoverTrigger className="flex h-9 items-center gap-1.5 rounded-full border border-dashed border-dash px-3 text-[13px] text-muted-foreground transition-colors duration-150 outline-none hover:border-foreground/40 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
-          + persona
+          {t('+ persona')}
         </PopoverTrigger>
         <PopoverContent className="w-64 p-0" align="end">
           <Command>
-            <CommandInput placeholder="Buscar persona…" />
+            <CommandInput placeholder={t('Buscar persona…')} />
             <CommandList>
-              <CommandEmpty>Nadie con ese nombre en el proyecto</CommandEmpty>
+              <CommandEmpty>{t('Nadie con ese nombre en el proyecto')}</CommandEmpty>
               <CommandGroup>
                 {users.map((user) => (
                   <CommandItem
@@ -52,15 +53,7 @@ export function PersonFilter({ users, selected, onChange }) {
                     value={`${user.fullName} ${user.email ?? ''} ${user.id}`}
                     onSelect={() => onChange(toggleAssignee(ids, user.id))}
                   >
-                    <span
-                      aria-hidden="true"
-                      className={cn(
-                        'flex size-4 items-center justify-center rounded-sm border',
-                        chosen.has(user.id) && 'border-foreground bg-foreground text-background',
-                      )}
-                    >
-                      {chosen.has(user.id) && <Check className="size-3" />}
-                    </span>
+                    <CheckMark checked={chosen.has(user.id)} />
                     <UserAvatar user={user} size="xs" />
                     <span className="min-w-0 flex-1 truncate">{user.fullName}</span>
                   </CommandItem>

@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { stateName, t } from '@/i18n'
 import { useCreateProject, useProjects } from '../hooks'
 import { suggestProjectColor } from '../projectColors'
 import { ProjectForm } from './ProjectForm'
@@ -14,7 +15,7 @@ export function CreateProjectDialog({ slug, open, onOpenChange }) {
   const handleSubmit = (values, { onError }) => {
     createProject.mutate(values, {
       onSuccess: (project) => {
-        toast.success(`Proyecto «${project.name}» creado`)
+        toast.success(t('Proyecto «{name}» creado', { name: project.name }))
         onOpenChange(false)
         navigate(`/${slug}/projects/${project.id}/issues`)
       },
@@ -26,9 +27,16 @@ export function CreateProjectDialog({ slug, open, onOpenChange }) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Nuevo proyecto</DialogTitle>
+          <DialogTitle>{t('Nuevo proyecto')}</DialogTitle>
           <DialogDescription>
-            Se crearán los estados Backlog, Todo, In Progress, Done y Cancelled. Podrás cambiarlos después.
+            {/* Los estados de fábrica, con el nombre que se les ve en el idioma elegido */}
+            {t('Se crearán los estados {backlog}, {todo}, {inProgress}, {done} y {cancelled}. Podrás cambiarlos después.', {
+              backlog: stateName('Backlog'),
+              todo: stateName('Todo'),
+              inProgress: stateName('In Progress'),
+              done: stateName('Done'),
+              cancelled: stateName('Cancelled'),
+            })}
           </DialogDescription>
         </DialogHeader>
         {/* El formulario vive mientras exista el diálogo: así no desaparece durante la animación de cierre */}
@@ -36,10 +44,10 @@ export function CreateProjectDialog({ slug, open, onOpenChange }) {
           suggestedColor={suggestProjectColor(projects)}
           onSubmit={handleSubmit}
           pending={createProject.isPending}
-          submitLabel="Crear proyecto"
+          submitLabel={t('Crear proyecto')}
           footer={
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancelar
+              {t('Cancelar')}
             </Button>
           }
         />

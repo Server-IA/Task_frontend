@@ -13,7 +13,8 @@ import { ColorDot } from '@/components/common/LabelChip'
 import { LockNote } from '@/components/common/LockNote'
 import { CenteredSpinner, Spinner } from '@/components/common/Loaders'
 import { EmptyState, ErrorState } from '@/components/common/States'
-import { useIsManager } from '@/features/workspaces/hooks'
+import { useCan } from '@/features/workspaces/hooks'
+import { t } from '@/i18n'
 import { applyFieldErrors } from '@/lib/errors'
 import { useFocusAfterRemoval } from '@/lib/focusReturn'
 import { notifyError } from '@/lib/notify'
@@ -30,7 +31,7 @@ export function LabelsSettings({ slug, project }) {
   const [creating, setCreating] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [toDelete, setToDelete] = useState(null)
-  const canManage = useIsManager()
+  const canManage = useCan('PROJECT_LABELS')
   // Al eliminar una etiqueta su fila desaparece: el foco va a «Nueva etiqueta» (o al título, si no está)
   const newRef = useRef(null)
   const titleRef = useRef(null)
@@ -41,7 +42,7 @@ export function LabelsSettings({ slug, project }) {
     remove.mutate(toDelete.id, {
       onSuccess: () => {
         removal.done()
-        toast.success(`Etiqueta «${toDelete.name}» eliminada`)
+        toast.success(t('Etiqueta «{name}» eliminada', { name: toDelete.name }))
         setToDelete(null)
       },
       onError: (deleteError) => notifyError(deleteError),
@@ -53,15 +54,15 @@ export function LabelsSettings({ slug, project }) {
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div className="space-y-1.5">
           <CardTitle ref={titleRef} tabIndex={-1} className="outline-none">
-            Etiquetas
+            {t('Etiquetas')}
           </CardTitle>
-          <CardDescription>Clasifica las tareas (bug, mejora, diseño…).</CardDescription>
-          {!canManage && <LockNote>Solo el project manager puede cambiar las etiquetas.</LockNote>}
+          <CardDescription>{t('Clasifica las tareas (bug, mejora, diseño…).')}</CardDescription>
+          {!canManage && <LockNote>{t('Tu rol no permite cambiar las etiquetas.')}</LockNote>}
         </div>
         {canManage && !creating && (
           <Button ref={newRef} size="sm" onClick={() => setCreating(true)}>
             <Plus />
-            Nueva etiqueta
+            {t('Nueva etiqueta')}
           </Button>
         )}
       </CardHeader>
@@ -69,12 +70,12 @@ export function LabelsSettings({ slug, project }) {
         {creating && (
           <LabelForm
             pending={create.isPending}
-            submitLabel="Crear"
+            submitLabel={t('Crear')}
             onCancel={() => setCreating(false)}
             onSubmit={(values, setError, reset) =>
               create.mutate(values, {
                 onSuccess: (label) => {
-                  toast.success(`Etiqueta «${label.name}» creada`)
+                  toast.success(t('Etiqueta «{name}» creada', { name: label.name }))
                   reset({ name: '', color: randomColor() })
                 },
                 onError: (createError) => {
@@ -89,8 +90,8 @@ export function LabelsSettings({ slug, project }) {
         {labels?.length === 0 && !creating && (
           <EmptyState
             icon={Tags}
-            title="Sin etiquetas"
-            description={canManage ? 'Crea la primera para clasificar tareas.' : undefined}
+            title={t('Sin etiquetas')}
+            description={canManage ? t('Crea la primera para clasificar tareas.') : undefined}
             className="py-6"
           />
         )}
@@ -102,14 +103,14 @@ export function LabelsSettings({ slug, project }) {
                   <LabelForm
                     label={label}
                     pending={update.isPending}
-                    submitLabel="Guardar"
+                    submitLabel={t('Guardar')}
                     onCancel={() => setEditingId(null)}
                     onSubmit={(values, setError) =>
                       update.mutate(
                         { labelId: label.id, ...values },
                         {
                           onSuccess: () => {
-                            toast.success('Etiqueta actualizada')
+                            toast.success(t('Etiqueta actualizada'))
                             setEditingId(null)
                           },
                           onError: (updateError) => {
@@ -130,7 +131,7 @@ export function LabelsSettings({ slug, project }) {
                         variant="ghost"
                         size="icon"
                         className="size-8 text-muted-foreground"
-                        aria-label={`Editar la etiqueta «${label.name}»`}
+                        aria-label={t('Editar la etiqueta «{name}»', { name: label.name })}
                         onClick={() => setEditingId(label.id)}
                       >
                         <Pencil />
@@ -139,7 +140,7 @@ export function LabelsSettings({ slug, project }) {
                         variant="ghost"
                         size="icon"
                         className="size-8 text-muted-foreground"
-                        aria-label={`Eliminar la etiqueta «${label.name}»`}
+                        aria-label={t('Eliminar la etiqueta «{name}»', { name: label.name })}
                         onClick={() => setToDelete(label)}
                       >
                         <Trash2 />
@@ -155,9 +156,9 @@ export function LabelsSettings({ slug, project }) {
       <ConfirmDialog
         open={Boolean(toDelete)}
         onOpenChange={(open) => !open && setToDelete(null)}
-        title={`¿Eliminar la etiqueta «${toDelete?.name}»?`}
-        description="Se quitará de todas las tareas que la tengan."
-        confirmLabel="Eliminar"
+        title={t('¿Eliminar la etiqueta «{name}»?', { name: toDelete?.name })}
+        description={t('Se quitará de todas las tareas que la tengan.')}
+        confirmLabel={t('Eliminar')}
         loading={remove.isPending}
         onConfirm={handleDelete}
         returnFocusRef={[newRef, titleRef]}
@@ -197,14 +198,14 @@ function LabelForm({ label, pending, submitLabel, onSubmit, onCancel }) {
           render={({ field }) => (
             <FormItem className="min-w-40 flex-1">
               <FormControl>
-                <Input placeholder="Nombre de la etiqueta" autoFocus aria-label="Nombre" {...field} />
+                <Input placeholder={t('Nombre de la etiqueta')} autoFocus aria-label={t('Nombre')} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
         <Button type="button" variant="ghost" onClick={onCancel}>
-          Cancelar
+          {t('Cancelar')}
         </Button>
         <Button type="submit" disabled={pending}>
           {pending && <Spinner />}

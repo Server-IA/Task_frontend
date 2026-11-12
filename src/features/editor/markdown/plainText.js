@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 import { markdownToDoc } from './parse'
 
 /**
@@ -29,7 +30,7 @@ function blockTexts(doc, { mentionTokens }) {
   const visit = (node) => {
     if (node.type === 'image') {
       const name = (node.attrs?.alt ?? '').trim()
-      lines.push(name ? `[imagen: ${name}]` : '[imagen]')
+      lines.push(name ? t('[imagen: {name}]', { name }) : t('[imagen]'))
       return
     }
     if (node.type === 'codeBlock') {
