@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { Plus, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -127,36 +127,99 @@ function SectionSwitch({ section, checked, onChange, className }) {
   )
 }
 
-/** Lista de puntos: se escriben, se quitan y se agregan hasta el máximo. */
+/** Lo que tarda un punto quitado en plegarse antes de salir de la lista. */
+const LEAVE_MS = 180
+
+let nextAgendaId = 0
+const agendaId = () => `punto-${++nextAgendaId}`
+
+/**
+ * Lista de puntos: se escriben, se quitan y se agregan hasta el máximo. Cada punto tiene su propia clave (no su
+ * posición): uno nuevo entra animado y con el foco puesto, y uno quitado se pliega antes de salir sin que los demás
+ * salten. Enter agrega el siguiente; Retroceso en un punto vacío lo quita.
+ */
 function AgendaEditor({ agenda, onChange }) {
+  const [ids, setIds] = useState(() => agenda.map(agendaId))
+  const [leaving, setLeaving] = useState(null)
+  const inputs = useRef(new Map())
+  const focusLater = (id) => requestAnimationFrame(() => inputs.current.get(id)?.focus())
+
   const setItem = (index, value) => onChange(agenda.map((item, position) => (position === index ? value : item)))
-  const removeItem = (index) => onChange(agenda.filter((_, position) => position !== index))
+  const addItem = (after = agenda.length - 1) => {
+    if (agenda.length >= AGENDA_MAX) return
+    const id = agendaId()
+    setIds([...ids.slice(0, after + 1), id, ...ids.slice(after + 1)])
+    onChange([...agenda.slice(0, after + 1), '', ...agenda.slice(after + 1)])
+    focusLater(id)
+  }
+  const removeItem = (index, { focusPrevious = false } = {}) => {
+    if (leaving) return
+    const id = ids[index]
+    if (focusPrevious && index > 0) focusLater(ids[index - 1])
+    setLeaving(id)
+    setTimeout(() => {
+      setLeaving(null)
+      setIds((current) => current.filter((other) => other !== id))
+      onChange(agenda.filter((_, position) => position !== index))
+    }, LEAVE_MS)
+  }
+
   return (
-    <div className="flex flex-col gap-1.5">
-      {agenda.map((item, index) => (
-        <div key={index} className="flex items-center gap-2">
-          <span aria-hidden="true" className="w-5 shrink-0 text-right font-mono text-xs text-muted-foreground">
-            {index + 1}
-          </span>
-          <Input
-            value={item}
-            maxLength={AGENDA_ITEM_MAX}
-            placeholder={t('Por ejemplo: demo de lo terminado')}
-            aria-label={t('Punto {number}', { number: index + 1 })}
-            onChange={(event) => setItem(index, event.target.value)}
-          />
-          <Button type="button" variant="ghost" size="icon-sm" onClick={() => removeItem(index)} aria-label={t('Quitar el punto {number}', { number: index + 1 })}>
-            <X />
-          </Button>
-        </div>
-      ))}
+    <div className="flex flex-col">
+      {agenda.map((item, index) => {
+        const id = ids[index]
+        const gone = leaving === id
+        return (
+          <div
+            key={id}
+            className={cn(
+              'tf-enter grid transition-[grid-template-rows,opacity] duration-200 ease-out',
+              gone ? 'grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr]',
+            )}
+          >
+            <div className="min-h-0 overflow-hidden">
+              <div className="flex items-center gap-2 pb-1.5">
+                <span aria-hidden="true" className="w-5 shrink-0 text-right font-mono text-xs text-muted-foreground">
+                  {index + 1}
+                </span>
+                <Input
+                  ref={(element) => (element ? inputs.current.set(id, element) : inputs.current.delete(id))}
+                  value={item}
+                  maxLength={AGENDA_ITEM_MAX}
+                  placeholder={t('Por ejemplo: demo de lo terminado')}
+                  aria-label={t('Punto {number}', { number: index + 1 })}
+                  onChange={(event) => setItem(index, event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault()
+                      addItem(index)
+                    } else if (event.key === 'Backspace' && item === '' && agenda.length > 0) {
+                      event.preventDefault()
+                      removeItem(index, { focusPrevious: true })
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => removeItem(index)}
+                  aria-label={t('Quitar el punto {number}', { number: index + 1 })}
+                >
+                  <X />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )
+      })}
       {agenda.length < AGENDA_MAX ? (
-        <Button type="button" variant="outline" size="sm" className="self-start" onClick={() => onChange([...agenda, ''])}>
+        <Button type="button" variant="outline" size="sm" className="mt-0.5 self-start" onClick={() => addItem()}>
           <Plus />
           {t('Agregar punto')}
         </Button>
       ) : (
-        <p className="text-xs text-muted-foreground">{t('Máximo {max} puntos.', { max: AGENDA_MAX })}</p>
+        <p className="tf-fade text-xs text-muted-foreground">{t('Máximo {max} puntos.', { max: AGENDA_MAX })}</p>
       )}
     </div>
   )
