@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { CLIENT_ID } from '@/api/clientId'
 import { getLanguage } from '@/i18n'
 import { ApiError, SESSION_EXPIRED, SESSION_EXPIRED_MESSAGE, toApiError } from '@/lib/errors'
 import { useSessionStore } from '@/stores/sessionStore'
@@ -21,6 +22,7 @@ api.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${accessToken}`
   }
   config.headers['Accept-Language'] = getLanguage()
+  config.headers['X-Client-Id'] = CLIENT_ID
   return config
 })
 

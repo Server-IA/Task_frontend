@@ -13,3 +13,7 @@ if (!window.matchMedia) {
     dispatchEvent: () => false,
   })
 }
+
+// El tiempo real abre una conexión al montarse con sesión: en las pruebas de pantallas no hay servidor. Sus propias
+// pruebas lo cargan de verdad con vi.importActual
+vi.mock('@/features/realtime/RealtimeSync', () => ({ RealtimeSync: () => null }))

@@ -33,6 +33,21 @@ server {
         proxy_send_timeout 120s;
     }
 
+    # Avisos en tiempo real (Server-Sent Events): una conexión larga que se reenvía en cuanto llega cada aviso, sin
+    # guardarla ni comprimirla. El backend manda un latido cada 25 s y la cierra a los 30 min (el navegador reconecta)
+    location = /api/v1/events {
+        proxy_pass ${BACKEND_URL};
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 1h;
+    }
+
     # Archivos con hash en el nombre: caché larga (un solo Cache-Control: expires agregaría otro)
     location /assets/ {
         add_header Cache-Control "public, max-age=31536000, immutable";

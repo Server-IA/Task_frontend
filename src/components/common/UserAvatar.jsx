@@ -57,7 +57,7 @@ const RETRY_EVERY_MS = 60_000
  * La foto de un archivo subido (`/files/<id>`): se pide su URL firmada (junto con las de los demás avatares de la
  * pantalla). Mientras llega, si no se puede ver o sin sesión, el `AvatarFallback` muestra las iniciales.
  */
-function FileAvatarImage({ src, alt, className }) {
+function FileAvatarImage({ src, alt, className, onError }) {
   const queryClient = useQueryClient()
   const { url, fileId } = useResolvedSrc(src, { external: true })
   const lastRetry = useRef(0)
@@ -68,6 +68,7 @@ function FileAvatarImage({ src, alt, className }) {
       alt={alt}
       className={className}
       onLoadingStatusChange={(status) => {
+        if (status === 'error') onError?.()
         // La URL venció (una pestaña que quedó abierta): se pide otra
         if (status !== 'error' || !fileId || Date.now() - lastRetry.current < RETRY_EVERY_MS) return
         lastRetry.current = Date.now()
@@ -79,15 +80,23 @@ function FileAvatarImage({ src, alt, className }) {
 
 /**
  * La imagen de un avatar (va dentro de `Avatar`, antes del `AvatarFallback`): una foto subida (`/files/<id>`), una URL
- * antigua (http/https) o nada.
- * @param {{ src?: string | null, alt?: string, className?: string }} props
+ * antigua (http/https) o nada. `onError`: no se pudo cargar (quien la usa puede probar con otra foto).
+ * @param {{ src?: string | null, alt?: string, className?: string, onError?: () => void }} props
  */
-export function AvatarPhoto({ src, alt = '', className }) {
+export function AvatarPhoto({ src, alt = '', className, onError }) {
   if (!src) return null
-  if (parseFileReference(src)) return <FileAvatarImage key={src} src={src} alt={alt} className={className} />
+  if (parseFileReference(src))
+    return <FileAvatarImage key={src} src={src} alt={alt} className={className} onError={onError} />
   // Las fotos antiguas (enlaces) y las vistas previas locales se usan tal cual, sin pedir nada
   if (!/^(https?:\/\/|blob:|data:image\/)/.test(src)) return null
-  return <AvatarImage src={src} alt={alt} className={className} />
+  return (
+    <AvatarImage
+      src={src}
+      alt={alt}
+      className={className}
+      onLoadingStatusChange={(status) => status === 'error' && onError?.()}
+    />
+  )
 }
 
 /** @param {{ user?: import('@/api/types').UserSummary | null, size?: keyof SIZES, className?: string }} props */

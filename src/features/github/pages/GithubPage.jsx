@@ -2,11 +2,13 @@ import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { GitBranch, GitPullRequest, Play, Search } from 'lucide-react'
 import { toast } from 'sonner'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Segmented } from '@/components/common/Segmented'
 import { SingleFilter } from '@/components/common/SingleFilter'
+import { AvatarPhoto, avatarColor, initials } from '@/components/common/UserAvatar'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { useCurrentProject } from '@/features/projects/hooks'
 import { useCurrentWorkspace } from '@/features/workspaces/hooks'
@@ -19,7 +21,7 @@ import { can } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { ActionsView } from '../GithubActions'
 import { GhMark, PullMark, ShowMore, TaskLink, TonePill } from '../GithubParts'
-import { branchUrl, pullChecks, pullNote, pullState, repoName, repoUrl } from '../githubModel'
+import { branchUrl, githubAvatarUrl, pullChecks, pullNote, pullState, repoName, repoUrl } from '../githubModel'
 import {
   useGithubBranches,
   useGithubLinked,
@@ -205,25 +207,24 @@ export function GithubPage() {
 }
 
 /** Las siglas de quien abrió un pull request (su usuario de GitHub). */
-function Author({ login, name }) {
+function Author({ login, name, avatarUrl }) {
+  const [photoFailed, setPhotoFailed] = useState(false)
   if (!login) return <span className="size-6.5 shrink-0" />
-  // Con la cuenta enlazada es la persona de TaskFlow (sus iniciales); si no, su usuario de GitHub
-  const initials = name
-    ? name
-        .split(/\s+/)
-        .slice(0, 2)
-        .map((word) => word[0])
-        .join('')
-    : login.slice(0, 2)
+  const label = name ? `${name} (@${login})` : `@${login}`
+  // Con la cuenta enlazada, su foto de TaskFlow; si no tiene, no carga o es alguien de fuera, la de GitHub. Las
+  // iniciales solo mientras carga o si no hay ninguna
+  const ownPhoto = avatarUrl && !photoFailed
   return (
-    <span
-      role="img"
-      aria-label={name ? `${name} (@${login})` : `@${login}`}
-      title={name ? `${name} (@${login})` : `@${login}`}
-      className="bg-accent-soft text-accent-text flex size-6.5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold uppercase"
-    >
-      {initials}
-    </span>
+    <Avatar role="img" aria-label={label} title={label} className="size-6.5 shrink-0">
+      {ownPhoto ? (
+        <AvatarPhoto src={avatarUrl} alt="" onError={() => setPhotoFailed(true)} />
+      ) : (
+        <AvatarImage src={githubAvatarUrl(login)} alt="" />
+      )}
+      <AvatarFallback className={cn('text-[10px] font-bold text-[#23201B] uppercase', avatarColor(name ?? login))}>
+        {name ? initials(name) : login.slice(0, 2)}
+      </AvatarFallback>
+    </Avatar>
   )
 }
 
@@ -402,7 +403,7 @@ function PullsView({ workspace, project, status }) {
                       </TonePill>
                     )}
                   </span>
-                  <Author login={pull.authorLogin} name={pull.authorName} />
+                  <Author login={pull.authorLogin} name={pull.authorName} avatarUrl={pull.authorAvatarUrl} />
                   <span className="text-muted-foreground truncate text-right font-mono text-[11.5px]">
                     {formatRelative(pull.changedAt)}
                   </span>
