@@ -54,7 +54,7 @@ export function RolesSettings({ workspace }) {
     : (roles.find((role) => role.key === selectedKey) ?? roles[0])
 
   return (
-    <div className="grid items-start gap-3.5 xl:grid-cols-[340px_minmax(0,1fr)]">
+    <div className="grid grid-cols-1 items-start gap-3.5 xl:grid-cols-[340px_minmax(0,1fr)]">
       <section aria-label={t('Roles')} className="tf-panel flex flex-col gap-3 px-4.5 py-4">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-[15px] font-semibold">{t('Roles')}</h2>

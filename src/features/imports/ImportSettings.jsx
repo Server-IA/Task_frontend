@@ -53,7 +53,7 @@ function SourcePicker({ onPick }) {
           )}
         </p>
       </div>
-      <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {sources().map((source) => (
           <li key={source.key}>
             <button

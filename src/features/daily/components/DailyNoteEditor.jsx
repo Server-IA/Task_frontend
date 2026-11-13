@@ -82,14 +82,17 @@ export function DailyNoteEditor({ slug, projectId, date, isToday, note, readOnly
 /** «Guardando…», «Guardado», «No se pudo guardar · Reintentar» o quién la editó por última vez. */
 function SaveStatus({ save, dirty, note, userId, onRetry }) {
   let content
-  if (save.isPending || dirty) {
+  // El error va antes que «hay cambios»: después de un fallo siguen sin guardar, y sin este orden el spinner quedaba
+  // para siempre y nunca aparecía «Reintentar»
+  const failed = !save.isPending && save.isError
+  if (save.isPending || (dirty && !failed)) {
     content = (
       <>
         <Spinner className="size-3" />
         {t('Guardando…')}
       </>
     )
-  } else if (save.isError) {
+  } else if (failed) {
     content = (
       <span className="flex items-center gap-1.5 text-late">
         {t('No se pudo guardar')}
@@ -115,7 +118,7 @@ function SaveStatus({ save, dirty, note, userId, onRetry }) {
   }
   if (!content) return null
   // Cada cambio de estado (guardando → guardada) entra con un fundido corto en vez de saltar
-  const phase = save.isPending || dirty ? 'saving' : save.isError ? 'error' : 'saved'
+  const phase = failed ? 'error' : save.isPending || dirty ? 'saving' : 'saved'
   return (
     <span key={phase} role="status" className="tf-fade ml-auto flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground">
       {content}

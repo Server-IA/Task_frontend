@@ -36,9 +36,12 @@ export function useResolvedSrc(src, { external = false } = {}) {
 export function FileImage({ src, alt = '', className, imgClassName, onClick, draggable = false }) {
   const queryClient = useQueryClient()
   const { url, loading, missing, fileId } = useResolvedSrc(src)
-  const [failedUrl, setFailedUrl] = useState(null)
+  // Por imagen: si ya se pidió otra URL (una vencida se renueva una sola vez) y si definitivamente no carga. Antes,
+  // con un archivo que ya no existe, cada URL nueva fallaba y pedía otra (una ráfaga) y nunca se veía el aviso
+  const [failure, setFailure] = useState({ src: null, retried: false, failed: false })
+  const current = failure.src === src ? failure : { src, retried: false, failed: false }
 
-  if (missing || (url && failedUrl === url && !fileId)) {
+  if (missing || current.failed) {
     return (
       <span
         className={cn('flex min-h-24 items-center justify-center gap-2 rounded-lg border border-dashed bg-muted/40 px-4 py-6 text-[13px] text-muted-foreground', className)}
@@ -62,12 +65,12 @@ export function FileImage({ src, alt = '', className, imgClassName, onClick, dra
       draggable={draggable}
       className={cn('block max-w-full rounded-lg', imgClassName)}
       onError={() => {
-        // Una URL vencida: se pide otra una vez
-        if (fileId && failedUrl !== url) {
-          setFailedUrl(url)
+        // Una URL vencida: se pide otra una sola vez; si esa tampoco carga, se muestra que no está disponible
+        if (fileId && !current.retried) {
+          setFailure({ src, retried: true, failed: false })
           queryClient.invalidateQueries({ queryKey: fileUrlKey(fileId) })
         } else {
-          setFailedUrl(url)
+          setFailure({ src, retried: current.retried, failed: true })
         }
       }}
     />

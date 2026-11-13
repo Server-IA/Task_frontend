@@ -23,7 +23,7 @@ import { validateAvatarFile } from './cropImage'
  */
 export function ProfilePhotoSection({ user }) {
   return (
-    <div className="grid items-stretch gap-3.5 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
+    <div className="grid grid-cols-1 items-stretch gap-3.5 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
       <PhotoCard user={user} />
       <SeenCard user={user} />
     </div>

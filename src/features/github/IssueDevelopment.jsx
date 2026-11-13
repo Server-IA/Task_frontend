@@ -489,7 +489,7 @@ function CreateBranchForm({ slug, project, issue, dev, onDone }) {
         <DialogTitle>{t('Crear rama para {code}', { code: issue.code })}</DialogTitle>
         <DialogDescription>{t('Se crea en GitHub y queda enlazada a la tarea.')}</DialogDescription>
       </DialogHeader>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className={label}>
           {t('Repositorio')}
           <Pick
@@ -668,7 +668,7 @@ function LinkForm({ slug, project, issue, dev, onDone }) {
           </ul>
         )}
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className={label}>
           {t('Repositorio')}
           <Pick

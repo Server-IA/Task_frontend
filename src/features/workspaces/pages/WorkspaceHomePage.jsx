@@ -52,7 +52,7 @@ export function WorkspaceHomePage() {
       />
       <PageBody>
         {isLoading && (
-          <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
             {Array.from({ length: 3 }, (_, index) => (
               <Skeleton key={index} className="h-44 rounded-2xl" />
             ))}
@@ -79,7 +79,7 @@ export function WorkspaceHomePage() {
           />
         )}
         {count > 0 && (
-          <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
             {projects.map((project) => (
               <ProjectCard key={project.id} slug={workspace.slug} project={project} />
             ))}

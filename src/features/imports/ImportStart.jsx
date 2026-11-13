@@ -61,7 +61,7 @@ export function ConnectStep({ workspace, source, onCancel, onJob }) {
           {t('¿Cómo quieres traer los datos?')}
         </h2>
         {source.api && (
-          <div role="radiogroup" aria-labelledby="import-via-title" className="grid gap-3 sm:grid-cols-2">
+          <div role="radiogroup" aria-labelledby="import-via-title" className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {[
               ['api', source.api],
               ['file', source.file],
@@ -85,7 +85,7 @@ export function ConnectStep({ workspace, source, onCancel, onJob }) {
 
         {via === 'api' ? (
           <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
-            <div className="grid gap-3.5 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
               {source.api.fields.map((field, index) => (
                 <label key={field.name} className={cn(FIELD, source.api.fields.length % 2 === 1 && index === 0 && 'sm:col-span-2')}>
                   {field.label}
@@ -358,7 +358,7 @@ export function ChooseStep({ workspace, job, onDone }) {
         <h2 id="import-options-title" className="text-[15px] font-semibold">
           {t('Opciones')}
         </h2>
-        <div className="grid gap-x-6 gap-y-2.5 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-x-6 gap-y-2.5 sm:grid-cols-2">
           {shownOptions.map(([key, label, note]) => (
             <label key={key} className="flex items-start gap-2.5">
               <Checkbox className="mt-0.5" checked={options[key]} onCheckedChange={(checked) => setOptions((current) => ({ ...current, [key]: checked === true }))} />

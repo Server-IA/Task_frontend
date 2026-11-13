@@ -75,6 +75,8 @@ export function startRealtime({ onEvent, onReconnect }) {
       schedule(BACKOFF_MS[1])
       return
     }
+    // Una sola conexión por pestaña: si quedaba otra abierta (volvió la red con la anterior todavía viva), se cierra
+    controller?.abort()
     controller = new AbortController()
     const current = controller
     try {

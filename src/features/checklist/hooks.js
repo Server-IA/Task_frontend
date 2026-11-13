@@ -49,6 +49,9 @@ function useChecklistMutation(slug, projectId, issueId, { mutationFn, optimistic
       return { previous }
     },
     onError: (_error, _variables, context) => {
+      // Con otras en camino, volver a la foto de antes desharía también las que vinieron después: la recarga de la
+      // última (onSettled) deja la lista como está en el servidor
+      if (queryClient.isMutating({ mutationKey: ['checklist', issueId] }) > 1) return
       if (context?.previous) setItems(context.previous)
     },
     onSuccess: (result, variables) => {

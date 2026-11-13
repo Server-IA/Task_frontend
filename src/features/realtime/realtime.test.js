@@ -79,6 +79,12 @@ describe('shouldRefresh', () => {
     expect(shouldRefresh(['me'], batch([], { everything: true }))).toBe(false)
   })
 
+  it('en la Bandeja (fuera de un workspace) la tarea abierta al lado se refresca igual', () => {
+    const change = batch([{ workspace: 'equipo', projectId: P }], { currentSlug: undefined })
+    expect(shouldRefresh(['comments', ISSUE], change)).toBe(true)
+    expect(shouldRefresh(['issue', ISSUE], change)).toBe(true)
+  })
+
   it('el workspace en pantalla sale de la ruta', () => {
     expect(slugOf('/equipo-producto/projects/x/issues')).toBe('equipo-producto')
     expect(slugOf('/profile')).toBeUndefined()
