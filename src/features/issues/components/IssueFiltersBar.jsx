@@ -116,9 +116,11 @@ export function IssueFiltersBar({
   return (
     // Dos zonas: los filtros (que pasan a otra línea si no caben) y, a la derecha, «agrupar» y «orden», que no se
     // mueven de su sitio. Antes iba todo en una sola fila y, al elegir una agrupación de nombre largo, los selectores
-    // se caían debajo de los filtros
-    <div className="flex items-start gap-2 px-1">
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+    // se caían debajo de los filtros. En una pantalla angosta (teléfono) «agrupar» y «orden» van debajo: a la derecha
+    // les dejaban a los filtros unos 100 px y la búsqueda y las pastillas quedaban aplastadas. Las pastillas no parten
+    // su texto: pasan enteras a la línea siguiente
+    <div className="flex flex-col gap-2 px-1 md:flex-row md:items-start">
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 [&>*]:shrink-0 [&_button]:whitespace-nowrap">
       <SearchBox
         value={filters.search}
         onChange={(value) => setFilter('search', value, { replace: true })}
@@ -173,7 +175,7 @@ export function IssueFiltersBar({
         </button>
       )}
       </div>
-      <div className="flex shrink-0 items-center gap-2">{children}</div>
+      <div className="flex shrink-0 flex-wrap items-center gap-2">{children}</div>
     </div>
   )
 }

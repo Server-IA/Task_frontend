@@ -40,6 +40,7 @@ const RESULTS = {
   failed: () => toast.error(t('No se pudo conectar con GitHub. Vuelve a intentarlo desde aquí.')),
   unlinked: () =>
     toast.error(t('Conecta primero tu cuenta de GitHub y vuelve a pulsar «Conectar con GitHub».')),
+  forbidden: () => toast.error(t('Tu rol ya no permite conectar GitHub en este workspace.')),
   foreign: () =>
     toast.error(
       t(

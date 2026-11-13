@@ -95,7 +95,11 @@ export function SavedViewsBar({ slug, project, meta, issueFilters, known = {} })
     )
 
   return (
-    <nav aria-label={t('Vistas guardadas')} className="flex flex-wrap items-center gap-1.5 px-1">
+    // En el teléfono, una sola fila que se desliza de lado (con muchas vistas, una por línea ocupaba media pantalla)
+    <nav
+      aria-label={t('Vistas guardadas')}
+      className="flex flex-wrap items-center gap-1.5 px-1 max-md:flex-nowrap max-md:overflow-x-auto max-md:pb-1 max-md:[scrollbar-width:none] [&>*]:shrink-0"
+    >
       <button
         ref={allRef}
         type="button"
