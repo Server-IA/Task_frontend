@@ -57,6 +57,24 @@ describe('cola de subidas', () => {
     expect(calls[0].headers).toEqual({ 'Content-Type': 'image/png' })
   })
 
+  it('quitar de la lista una subida terminada no borra el archivo ya confirmado', async () => {
+    const { put, calls } = fakePut()
+    const queue = createUploadQueue({ put })
+    const destination = target()
+    // Como en los adjuntos: al terminar, la subida sale de la lista
+    destination.onDone = vi.fn((result, task) => queue.dismiss(task.id))
+    queue.add(file('foto.png'), { target: destination, scope: 's' })
+    await flush()
+    calls[0].finish()
+    await flush()
+    await flush()
+
+    expect(destination.confirm).toHaveBeenCalledTimes(1)
+    expect(destination.onDone).toHaveBeenCalledTimes(1)
+    expect(queue.getSnapshot()).toHaveLength(0)
+    expect(destination.discard).not.toHaveBeenCalled()
+  })
+
   it('un error no frena a las demás y se puede reintentar con una URL nueva', async () => {
     const { put, calls } = fakePut()
     const queue = createUploadQueue({ put })

@@ -107,6 +107,9 @@ export function createUploadQueue({ concurrency = MAX_PARALLEL_UPLOADS, put = xh
       })
       update(id, { status: 'confirming', progress: 1 })
       const result = await state.target.confirm(ticket, find(id))
+      // Confirmada: ya no es una subida pendiente sino un archivo de verdad. Sin esto, quitarla de la lista al
+      // terminar (dismiss) o un error después la «soltaban» y borraban el adjunto recién subido
+      state.ticket = null
       if (!find(id)) return
       update(id, { status: 'done', result, progress: 1 })
       // El archivo ya no hace falta (puede pesar varios MB)
