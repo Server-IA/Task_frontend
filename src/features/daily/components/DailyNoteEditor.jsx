@@ -55,7 +55,7 @@ export function DailyNoteEditor({ slug, projectId, date, isToday, note, readOnly
   const day = formatShortDate(date)
 
   return (
-    <section aria-labelledby={titleId} className="tf-panel flex flex-col gap-2 rounded-[18px] px-4 py-3.5">
+    <section aria-labelledby={titleId} className="tf-panel tf-enter flex flex-col gap-2 rounded-[18px] px-4 py-3.5">
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
         <h2 id={titleId} className="text-[15px] font-semibold">
           {isToday ? t('Notas de hoy') : t('Notas del {date}', { date: day })}
@@ -73,7 +73,7 @@ export function DailyNoteEditor({ slug, projectId, date, isToday, note, readOnly
         onChange={(event) => setDraft(event.target.value)}
         // Escape suelta el campo: así vuelven a funcionar los atajos de la página (P presentar)
         onKeyDown={(event) => event.key === 'Escape' && event.currentTarget.blur()}
-        className="field-sizing-content block max-h-80 min-h-[68px] w-full resize-none rounded-xl border bg-card px-3 py-2.5 text-sm leading-relaxed outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30 dark:bg-input/30"
+        className="field-sizing-content block max-h-80 min-h-[68px] w-full resize-none rounded-xl border bg-card px-3 py-2.5 text-sm leading-relaxed transition-[border-color,box-shadow] duration-150 outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30 dark:bg-input/30"
       />
     </section>
   )
@@ -114,8 +114,10 @@ function SaveStatus({ save, dirty, note, userId, onRetry }) {
     content = t('Nota borrada')
   }
   if (!content) return null
+  // Cada cambio de estado (guardando → guardada) entra con un fundido corto en vez de saltar
+  const phase = save.isPending || dirty ? 'saving' : save.isError ? 'error' : 'saved'
   return (
-    <span role="status" className="ml-auto flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground">
+    <span key={phase} role="status" className="tf-fade ml-auto flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground">
       {content}
     </span>
   )

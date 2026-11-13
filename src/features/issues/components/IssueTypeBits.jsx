@@ -118,8 +118,10 @@ export function StoryProgress({ story, className, barClassName, compact = false 
         aria-valuemax={progress.total}
         aria-valuenow={progress.done}
       >
-        <span className="h-full bg-ok-dot transition-[width] duration-300" style={{ width: `${progress.donePct}%` }} />
-        <span className="h-full bg-started transition-[width] duration-300" style={{ width: `${progress.startedPct}%` }} />
+        <span className="tf-grow flex h-full w-full">
+          <span className="h-full bg-ok-dot transition-[width] duration-300" style={{ width: `${progress.donePct}%` }} />
+          <span className="h-full bg-started transition-[width] duration-300" style={{ width: `${progress.startedPct}%` }} />
+        </span>
       </span>
     </span>
   )

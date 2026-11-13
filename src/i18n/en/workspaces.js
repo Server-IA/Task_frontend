@@ -116,6 +116,10 @@ export default {
   // ----- Workspaces: ajustes → Roles -----
   'Nuevo rol': 'New role',
   'Rol nuevo': 'New role',
+  'sin guardar': 'not saved yet',
+  'Crear un rol': 'Create a role',
+  'Empieza con los permisos de «Miembro». Ponle un nombre y marca o quita lo que necesite; se aplica a quien lo tenga en cuanto lo guardes.':
+    'It starts with the permissions of “Member”. Give it a name and check or uncheck what it needs; it applies to everyone with this role as soon as you save it.',
   'Rol {name}': 'Role {name}',
   'Quien crea el workspace es project manager. Los demás entran como «Miembro» o con el rol que les des al invitarlos.':
     'Whoever creates the workspace is a project manager. Everyone else joins as “Member” or with the role you give them when you invite them.',

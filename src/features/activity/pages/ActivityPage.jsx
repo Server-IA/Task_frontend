@@ -22,6 +22,8 @@ import { flattenUniquePages } from '@/lib/pagination'
 import { workspacePath } from '@/lib/paths'
 import { cn } from '@/lib/utils'
 import { SingleFilter } from '@/components/common/SingleFilter'
+import { useShownKey } from '@/hooks/useShownKey'
+import { stagger } from '@/lib/motion'
 import { useActivitySummary, useStateGroups, useWorkspaceActivity } from '../hooks'
 
 const TYPES = [
@@ -48,7 +50,10 @@ export function ActivityPage() {
   const actorId = searchParams.get('person') ?? undefined
   const filters = useMemo(() => ({ type, projectId, actorId }), [type, projectId, actorId])
 
-  const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useWorkspaceActivity(slug, filters)
+  const { data, isLoading, isPlaceholderData, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useWorkspaceActivity(slug, filters)
+  // Los filtros de lo que se ve: siguen los anteriores (atenuados) hasta que llega la lista nueva, que entra animada
+  const shownFilters = useShownKey(`${type}|${projectId ?? ''}|${actorId ?? ''}`, isPlaceholderData)
   const { data: projects = [] } = useProjects(slug)
   const { data: members = [] } = useMembers(slug)
   const entries = useMemo(() => flattenUniquePages(data), [data])
@@ -121,7 +126,7 @@ export function ActivityPage() {
           <div className="flex min-w-0 flex-[3_1_520px] flex-col gap-2.5">
             {isLoading && <FeedSkeleton />}
             {error && <ErrorState error={error} onRetry={refetch} homeLink={`/${slug}`} />}
-            {!isLoading && !error && entries.length === 0 && (
+            {!isLoading && !isPlaceholderData && !error && entries.length === 0 && (
               <EmptyState
                 icon={History}
                 title={hasFilters || type !== 'all' ? t('Nada con estos filtros') : t('Todavía no hay actividad')}
@@ -139,12 +144,17 @@ export function ActivityPage() {
                 }
               />
             )}
-            {days.map((day) => (
-              <section key={day.label} aria-label={day.label} className="flex flex-col gap-1.5">
+            <div
+              key={shownFilters}
+              aria-busy={isPlaceholderData}
+              className={cn('flex flex-col gap-2.5 transition-opacity duration-200', isPlaceholderData && 'opacity-60')}
+            >
+            {days.map((day, index) => (
+              <section key={day.label} aria-label={day.label} className="tf-enter flex flex-col gap-1.5" style={stagger(index, 60, 4)}>
                 <h2 className="mx-1 mt-1 font-mono text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
                   {day.label}
                 </h2>
-                <ol className="tf-enter rounded-2xl border bg-card py-1.5">
+                <ol className="rounded-2xl border bg-card py-1.5">
                   {day.items.map((entry) => (
                     <FeedEntry
                       key={entry.id}
@@ -156,6 +166,7 @@ export function ActivityPage() {
                 </ol>
               </section>
             ))}
+            </div>
             {hasNextPage && (
               <Button variant="outline" className="self-center" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
                 {isFetchingNextPage && <Spinner />}

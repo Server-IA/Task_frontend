@@ -32,6 +32,8 @@ import {
   summaryItems,
   toIsoDay,
 } from '../daily'
+import { dailySummaryText, orderPeople, useDailyRound } from '../dailyRound'
+import { DailyRoundBar } from '../components/DailyRoundBar'
 import { useDaily, useDailySettings } from '../hooks'
 
 /**
@@ -59,7 +61,10 @@ export function DailyPage() {
   const [presenting, setPresenting] = useState(false)
   const [current, setCurrent] = useState(0)
 
-  const people = useMemo(() => daily?.people ?? [], [daily])
+  // La ronda de la reunión de ese día (quién ya habló, puntos vistos, orden sorteado): de quien la lleva, en su navegador
+  const { round, toggleSpoke, markSpoke, toggleAgenda, shuffle, resetOrder } = useDailyRound(project.id, fixedDate)
+  const people = useMemo(() => orderPeople(daily?.people ?? [], round.order), [daily, round.order])
+  const spokeCount = people.filter((person) => round.spoke.includes(person.user?.id)).length
   const blocking = useMemo(() => blockingByPerson(people), [people])
   // Ciclo en curso ese día, según el backend («Sprint 1 · día 13 de 15»)
   const cycle = daily?.cycle ?? null
@@ -100,7 +105,12 @@ export function DailyPage() {
     growFrom(document.querySelector('[data-daily-presenter] > article'), origin)
   }, [canPresent, presenting, exitPresenting])
   const goPrevious = useCallback(() => setCurrent((value) => clampIndex(value - 1, people.length)), [people.length])
-  const goNext = useCallback(() => setCurrent((value) => clampIndex(value + 1, people.length)), [people.length])
+  // Pasar a la siguiente persona en «Presentar» marca que la anterior ya habló
+  const goNext = useCallback(() => {
+    const speaker = people[clampIndex(current, people.length)]?.user?.id
+    if (speaker) markSpoke(speaker)
+    setCurrent((value) => clampIndex(value + 1, people.length))
+  }, [people, current, markSpoke])
 
   // P presenta o vuelve; en «Presentar», ← → cambian de persona y Esc sale (no con el panel de una tarea abierto)
   useHotkey('p', togglePresenting)
@@ -177,15 +187,31 @@ export function DailyPage() {
 
         {daily && people.length > 0 && !presenting && (
           <div
+            // Otro día: lo nuevo entra animado cuando llega (mientras tanto se ve el anterior, atenuado)
+            key={daily.date}
             aria-busy={isPlaceholderData}
             className={cn('flex flex-col gap-3.5 transition-opacity duration-200', isPlaceholderData && 'opacity-60')}
           >
             {sections.summary && <DailySummaryStrip daily={daily} />}
-            <DailyAgenda agenda={settings.agenda} />
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(270px,1fr))] items-start gap-3.5">
+            <DailyRoundBar
+              spoke={spokeCount}
+              total={people.length}
+              shuffledOrder={Boolean(round.order)}
+              onShuffle={() => shuffle(people.map((person) => person.user?.id).filter(Boolean))}
+              onResetOrder={resetOrder}
+              getSummary={() =>
+                dailySummaryText({ projectName: project.name, daily, people, agenda: settings.agenda, note: daily.note?.text })
+              }
+            />
+            <DailyAgenda agenda={settings.agenda} done={round.agendaDone} onToggle={toggleAgenda} />
+            {/* Con otro orden las tarjetas vuelven a entrar, una tras otra, en su nuevo lugar */}
+            <div key={round.order?.join() ?? 'orden'} className="grid grid-cols-[repeat(auto-fit,minmax(270px,1fr))] items-start gap-3.5">
               {people.map((person, index) => (
                 <DailyPersonCard
                   key={person.user?.id}
+                  index={index}
+                  spoke={round.spoke.includes(person.user?.id)}
+                  onToggleSpoke={person.user?.id ? () => toggleSpoke(person.user.id) : undefined}
                   // La tarjeta desde la que crece la pantalla de «Presentar»
                   morph={index === position}
                   person={person}
@@ -200,7 +226,7 @@ export function DailyPage() {
               ))}
             </div>
             {/* Una nota por día: al cambiar de fecha el editor empieza de nuevo (y guarda lo pendiente) */}
-            {!isPlaceholderData && sections.note && (canWriteNote || daily.note) && (
+            {sections.note && (canWriteNote || daily.note) && (
               <DailyNoteEditor
                 key={daily.date}
                 slug={workspace.slug}
@@ -208,7 +234,8 @@ export function DailyPage() {
                 date={daily.date}
                 isToday={daily.date === today}
                 note={daily.note}
-                readOnly={!canWriteNote}
+                // Mientras llega el otro día se ve la nota anterior, sin poder editarla
+                readOnly={!canWriteNote || isPlaceholderData}
               />
             )}
           </div>
@@ -305,6 +332,7 @@ function DailySummaryStrip({ daily }) {
 function DailySkeleton() {
   return (
     <div className="flex flex-col gap-3.5" aria-label={t('Cargando la daily')}>
+      <Skeleton className="h-12 rounded-2xl" />
       <Skeleton className="h-12 rounded-2xl" />
       <div className="grid grid-cols-[repeat(auto-fit,minmax(270px,1fr))] gap-3.5">
         {Array.from({ length: 3 }, (_, index) => (

@@ -1,5 +1,5 @@
 import { useId, useMemo, useState } from 'react'
-import { Lock, Plus, ShieldCheck, Trash2, Users } from 'lucide-react'
+import { Lock, Plus, ShieldCheck, Sparkles, Trash2, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -12,6 +12,7 @@ import { t, tn, tx } from '@/i18n'
 import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { can, isManager } from '@/lib/permissions'
+import { stagger } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { useDeleteRole, usePermissionCatalog, useRoles, useSaveRole } from '../hooks'
 import {
@@ -100,25 +101,35 @@ export function RolesSettings({ workspace }) {
             )
           })}
           {creating && (
-            <li className="flex items-center gap-2.5 rounded-xl border border-dashed border-accent-text/50 bg-accent-soft px-3 py-2 text-sm font-semibold text-accent-text">
-              {t('Rol nuevo')}
+            <li
+              aria-current="true"
+              className="tf-pop flex items-center gap-2.5 rounded-xl border border-dashed border-accent-text/50 bg-accent-soft px-3 py-2 text-accent-text"
+            >
+              <Sparkles className="size-4 shrink-0" aria-hidden="true" />
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate text-sm font-semibold">{t('Rol nuevo')}</span>
+                <span className="font-mono text-[11px] opacity-80">{t('sin guardar')}</span>
+              </span>
             </li>
           )}
         </ul>
         {!canManage && <LockNote>{t('Solo quien gestiona roles puede crearlos o cambiarlos.')}</LockNote>}
       </section>
 
-      <RoleEditor
-        // Cada rol empieza con sus propios datos (y un rol recién guardado, con los del servidor)
-        key={`${selected.key}:${selected.permissions.join(',')}:${selected.name}:${selected.description ?? ''}`}
-        workspace={workspace}
-        role={selected}
-        groups={groups}
-        canManage={canManage}
-        onSaved={(saved) => setSelectedKey(saved.key)}
-        onDeleted={() => setSelectedKey(null)}
-        onCancelNew={() => setSelectedKey(null)}
-      />
+      {/* Al cambiar de rol (o empezar uno nuevo) el panel entra con un fundido; guardar no lo vuelve a animar */}
+      <div key={selected.key} className="tf-fade min-w-0">
+        <RoleEditor
+          // Cada rol empieza con sus propios datos (y un rol recién guardado, con los del servidor)
+          key={`${selected.key}:${selected.permissions.join(',')}:${selected.name}:${selected.description ?? ''}`}
+          workspace={workspace}
+          role={selected}
+          groups={groups}
+          canManage={canManage}
+          onSaved={(saved) => setSelectedKey(saved.key)}
+          onDeleted={() => setSelectedKey(null)}
+          onCancelNew={() => setSelectedKey(null)}
+        />
+      </div>
     </div>
   )
 }
@@ -178,6 +189,19 @@ function RoleEditor({ workspace, role, groups, canManage, onSaved, onDeleted, on
       className="tf-panel flex min-w-0 flex-col gap-4 px-4.5 py-4"
       noValidate
     >
+      {isNew && (
+        <div className="tf-enter flex items-start gap-3 rounded-xl border border-dashed border-accent-text/40 bg-accent-soft/60 px-3.5 py-3">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-card text-accent-text">
+            <Sparkles className="size-4.5" aria-hidden="true" />
+          </span>
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span className="text-[15px] font-semibold">{t('Crear un rol')}</span>
+            <span className="text-[13px] text-muted-foreground">
+              {t('Empieza con los permisos de «Miembro». Ponle un nombre y marca o quita lo que necesite; se aplica a quien lo tenga en cuanto lo guardes.')}
+            </span>
+          </span>
+        </div>
+      )}
       <div className="flex flex-wrap items-start gap-3">
         <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-3">
           {role.kind === 'CUSTOM' ? (
@@ -252,9 +276,10 @@ function RoleEditor({ workspace, role, groups, canManage, onSaved, onDeleted, on
 
       {/* En columnas (los módulos tienen alturas distintas: una cuadrícula dejaría huecos debajo de los cortos) */}
       <div className="columns-[320px] gap-3">
-        {groups.map((group) => (
+        {groups.map((group, index) => (
           <PermissionGroupCard
             key={group.key}
+            index={index}
             group={group}
             selected={selected}
             editable={editable}
@@ -332,7 +357,7 @@ function RoleEditor({ workspace, role, groups, canManage, onSaved, onDeleted, on
 }
 
 /** Un módulo con sus permisos y la casilla que marca o desmarca el módulo completo. */
-function PermissionGroupCard({ group, selected, editable, grantable, onToggle, onToggleAll }) {
+function PermissionGroupCard({ group, index, selected, editable, grantable, onToggle, onToggleAll }) {
   const allId = useId()
   // La casilla del módulo mira solo lo que la persona puede dar: con todo eso marcado está «todo» (y un clic lo quita),
   // aunque el módulo tenga permisos que no puede tocar
@@ -341,7 +366,7 @@ function PermissionGroupCard({ group, selected, editable, grantable, onToggle, o
   const count = group.permissions.filter((permission) => selected.has(permission.key)).length
 
   return (
-    <fieldset className="mb-3 flex break-inside-avoid flex-col rounded-xl border">
+    <fieldset className="tf-enter mb-3 flex break-inside-avoid flex-col rounded-xl border" style={stagger(index, 35, 10)}>
       <legend className="sr-only">{group.label}</legend>
       <div className="flex items-center gap-2.5 rounded-t-xl bg-column px-3 py-2">
         <Checkbox
@@ -378,7 +403,7 @@ function PermissionGroupCard({ group, selected, editable, grantable, onToggle, o
 function PermissionRow({ permission, checked, disabled, locked, onToggle }) {
   const id = useId()
   return (
-    <li className="flex items-start gap-2.5 border-t px-3 py-2">
+    <li className={cn('flex items-start gap-2.5 border-t px-3 py-2 transition-colors duration-150', checked && 'bg-accent-soft/35')}>
       <Checkbox id={id} checked={checked} disabled={disabled} onCheckedChange={onToggle} className="mt-0.5" aria-describedby={`${id}-hint`} />
       <span className="flex min-w-0 flex-1 flex-col">
         <label htmlFor={id} className={cn('text-[13px] font-medium', disabled && 'text-muted-foreground')}>

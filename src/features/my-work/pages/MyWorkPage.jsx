@@ -17,6 +17,7 @@ import { describeDueDate } from '@/lib/dates'
 import { cn } from '@/lib/utils'
 import { countByPriority, countByProject } from '../breakdown'
 import { groupByDue } from '../groupByDue'
+import { useShownKey } from '@/hooks/useShownKey'
 import { useMyWork } from '../hooks'
 import { startedCounts } from '../weekSummary'
 
@@ -61,6 +62,8 @@ export function MyWorkPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const view = VIEWS[searchParams.get('view')] ? searchParams.get('view') : 'assigned'
   const { data, isLoading, isPlaceholderData, error, refetch } = useMyWork(slug, view)
+  // La vista de lo que se ve: al cambiar de pestaña sigue la anterior (atenuada) hasta que llega la nueva
+  const shownView = useShownKey(view, isPlaceholderData)
   const { data: projects = [] } = useProjects(slug)
   const projectsById = useMemo(() => new Map(projects.map((project) => [project.id, project])), [projects])
 
@@ -130,10 +133,16 @@ export function MyWorkPage() {
           <div className="flex min-w-0 flex-1 flex-col gap-3.5">
             <WeekStrip slug={slug} data={data} className="min-[1440px]:hidden" />
             {issues.length === 0 && (
-              <EmptyState icon={CircleCheck} title={config.emptyTitle} description={config.emptyDescription} />
+              <EmptyState
+                key={`vacio-${shownView}`}
+                icon={CircleCheck}
+                title={VIEWS[shownView].emptyTitle}
+                description={VIEWS[shownView].emptyDescription}
+                className={cn('transition-opacity', isPlaceholderData && 'opacity-60')}
+              />
             )}
             <div
-              key={view}
+              key={shownView}
               aria-busy={isPlaceholderData}
               className={cn('tf-fade flex flex-col gap-3.5 transition-opacity', isPlaceholderData && 'opacity-60')}
             >
