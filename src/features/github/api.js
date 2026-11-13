@@ -22,7 +22,8 @@ import { api } from '@/api/client'
  *             title: string, state: 'OPEN' | 'DRAFT' | 'MERGED' | 'CLOSED', url: string, authorLogin: string | null,
  *             headBranch: string | null, baseBranch: string | null, headSha: string | null, reviewers: string | null,
  *             checksState: 'SUCCESS' | 'FAILURE' | 'PENDING' | null, checksTotal: number, checksFailed: number,
- *             mergedAt: string | null, openedAt: string | null, changedAt: string | null }} PullRequest
+ *             mergedAt: string | null, openedAt: string | null, changedAt: string | null, authorUserId: string | null,
+ *             authorName: string | null, authorAvatarUrl: string | null }} PullRequest
  * @typedef {{ id: string, repositoryId: string, repository: string, runId: number | null, workflowId: number | null,
  *             workflowName: string | null, title: string | null, branch: string | null, headSha: string | null,
  *             event: string | null, status: string, conclusion: string | null, actorLogin: string | null,

@@ -1,5 +1,11 @@
 import { useEffect, useRef } from 'react'
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { queryKeys } from '@/api/queryKeys'
 import { flattenUniquePages, nextCursorParam } from '@/lib/pagination'
 import { notificationsApi } from './api'
@@ -43,6 +49,8 @@ export function useNotifications({ tab }) {
     queryFn: ({ pageParam }) => notificationsApi.list({ ...filter, before: pageParam, size: PAGE_SIZE }),
     initialPageParam: undefined,
     getNextPageParam: nextCursorParam,
+    // Al cambiar de pestaña se ve la anterior (atenuada) hasta que llega la nueva: la lista no pasa por el esqueleto
+    placeholderData: keepPreviousData,
   })
   const { data, refetch } = query
 

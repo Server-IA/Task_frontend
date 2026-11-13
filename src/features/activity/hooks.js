@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useQueries, useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useQueries, useQuery } from '@tanstack/react-query'
 import { queryKeys } from '@/api/queryKeys'
 import { statesApi } from '@/features/projects/api'
 import { nextCursorParam } from '@/lib/pagination'
@@ -17,6 +17,8 @@ export function useWorkspaceActivity(slug, filters) {
     initialPageParam: undefined,
     getNextPageParam: nextCursorParam,
     enabled: Boolean(slug),
+    // Al cambiar un filtro se ve lo anterior (atenuado) hasta que llega lo nuevo: la lista no se vacía
+    placeholderData: keepPreviousData,
   })
 }
 

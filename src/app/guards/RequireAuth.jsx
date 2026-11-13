@@ -1,4 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router'
+import { RealtimeSync } from '@/features/realtime/RealtimeSync'
 import { useSessionStore } from '@/stores/sessionStore'
 
 /**
@@ -13,5 +14,11 @@ export function RequireAuth() {
   if (status !== 'authenticated') {
     return <Navigate to="/login" replace state={loggedOut ? undefined : { from: location }} />
   }
-  return <Outlet />
+  return (
+    <>
+      {/* Con la sesión abierta, la pantalla se actualiza sola con lo que cambian los demás */}
+      <RealtimeSync />
+      <Outlet />
+    </>
+  )
 }

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CenteredSpinner, Spinner } from '@/components/common/Loaders'
 import { Segmented } from '@/components/common/Segmented'
+import { useShownKey } from '@/hooks/useShownKey'
 import { EmptyState, ErrorState } from '@/components/common/States'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { TypeIcon } from '@/features/issues/components/IssueTypeBits'
@@ -19,6 +20,7 @@ import { t, tx } from '@/i18n'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { formatDateTime, formatRelative, groupByDay } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
+import { stagger } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { useSessionStore } from '@/stores/sessionStore'
 import { useMarkAllAsRead, useMarkAsRead, useNotificationCounts, useNotifications } from './hooks'
@@ -76,7 +78,10 @@ export function NotificationsPage() {
   const navigate = useNavigate()
   const tab = inboxTab(searchParams.get('tab'))
   const opened = openedIssueFromParams(searchParams)
-  const { notifications, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useNotifications({ tab })
+  const { notifications, isLoading, isPlaceholderData, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useNotifications({ tab })
+  // La pestaña de lo que se ve: sigue la anterior (atenuada) hasta que llega la nueva, que entra animada
+  const shownTab = useShownKey(tab, isPlaceholderData)
   const { data: counts } = useNotificationCounts()
   const unreadCount = counts?.unread ?? 0
   const markAll = useMarkAllAsRead()
@@ -89,7 +94,7 @@ export function NotificationsPage() {
   // deslizándose (la lista se actualiza sola cuando llega algo). Lo que ya estaba, lo que trae «Cargar más» o lo
   // que se ve al cambiar de pestaña, no.
   const [atOpen, setAtOpen] = useState({ tab: null, newest: null })
-  if (atOpen.tab !== tab && !isLoading && notifications) setAtOpen({ tab, newest: notifications[0]?.createdAt ?? '' })
+  if (atOpen.tab !== tab && !isLoading && !isPlaceholderData && notifications) setAtOpen({ tab, newest: notifications[0]?.createdAt ?? '' })
   const newestAtOpen = atOpen.tab === tab ? atOpen.newest : null
 
   // Agrupadas por día, en el orden en que llegan (más recientes primero)
@@ -193,15 +198,21 @@ export function NotificationsPage() {
             </div>
           )}
           {error && <ErrorState error={error} onRetry={refetch} />}
-          {!isLoading && !error && notifications.length === 0 && (
-            <EmptyState icon={empty.icon} title={empty.title} description={empty.description} />
+          {!isLoading && !isPlaceholderData && !error && notifications.length === 0 && (
+            <EmptyState key={`vacio-${tab}`} icon={empty.icon} title={empty.title} description={empty.description} />
           )}
-          {days.map((day) => (
-            <section key={`${tab}-${day.label}`} aria-label={day.label} className="flex flex-col gap-1.5">
+          {days.map((day, index) => (
+            <section
+              key={`${shownTab}-${day.label}`}
+              aria-label={day.label}
+              aria-busy={isPlaceholderData}
+              className={cn('tf-enter flex flex-col gap-1.5 transition-opacity duration-200', isPlaceholderData && 'opacity-60')}
+              style={stagger(index, 60, 4)}
+            >
               <h2 className="mx-1 mt-1.5 font-mono text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
                 {day.label}
               </h2>
-              <ul className="tf-enter overflow-hidden rounded-2xl border bg-card">
+              <ul className="overflow-hidden rounded-2xl border bg-card">
                 {day.items.map((notification, index) => (
                   <NotificationItem
                     key={notification.id}

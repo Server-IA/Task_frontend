@@ -229,7 +229,6 @@ export default {
   '{count} tareas creadas en {code}': '{count} tasks created in {code}',
   'No se pudieron crear las tareas': 'Could not create the tasks',
   nada: 'nothing',
-  'una línea por tarea': 'one line per task',
   'Bug · Tab cambia el tipo': 'Bug · Tab changes the type',
   'Tarea · Tab cambia el tipo': 'Task · Tab changes the type',
   'Tipo de la línea {number}: Bug': 'Type of line {number}: Bug',
@@ -239,12 +238,6 @@ export default {
   'Quitar asignado': 'Remove assignee',
   'Quitar prioridad': 'Remove priority',
   'Asignar a': 'Assign to',
-  'heredan de la historia: {inherited} · sin {mark}, prioridad {priority}':
-    'inherited from the story: {inherited} · without {mark}, {priority} priority',
-  'heredan de la historia: {inherited} · sin {mark}, prioridad sin prioridad':
-    'inherited from the story: {inherited} · without {mark}, no priority',
-  '{enter} nueva línea · {at} asignar · {mark} prioridad · {tab} tipo · {esc} cancelar':
-    '{enter} new line · {at} assign · {mark} priority · {tab} type · {esc} cancel',
   'Crear {count} tarea': 'Create {count} task',
   'Crear {count} tareas': 'Create {count} tasks',
 
@@ -582,4 +575,42 @@ export default {
     'The daily shows the project members and whoever has tasks assigned.',
   Presentar: 'Present',
   'Cargando la daily': 'Loading the daily',
+
+  // ----- Daily: la ronda de la reunión y el resumen para copiar -----
+  'Visto: un clic lo desmarca': 'Covered: click to unmark',
+  'Un clic lo marca como visto': 'Click to mark it as covered',
+  '{seen} de {total} vistos': '{seen} of {total} covered',
+  'Quitar la marca: todavía no habló': 'Unmark: has not spoken yet',
+  'Marcar que ya habló en la daily de hoy': 'Mark that they already spoke in today’s daily',
+  habló: 'spoke',
+  'ya habló': 'spoke?',
+  'No se pudo copiar el resumen': 'Could not copy the summary',
+  'Ronda de la daily': 'Daily round',
+  'Ya hablaron todos': 'Everyone has spoken',
+  '{spoke} de {total} ya hablaron': '{spoke} of {total} have spoken',
+  'Personas que ya hablaron': 'People who already spoke',
+  'Sortea quién habla primero': 'Draw who speaks first',
+  'Orden al azar': 'Random order',
+  'Orden de siempre': 'Usual order',
+  'Copia la daily en texto para pegarla en el chat del equipo': 'Copies the daily as text to paste in the team chat',
+  'Copiar resumen': 'Copy summary',
+  'Daily · {project} · {date}': 'Daily · {project} · {date}',
+  'Sin nombre': 'No name',
+  'sin cambios': 'no changes',
+  'nada asignado': 'nothing assigned',
+  'bloqueada por {codes}': 'blocked by {codes}',
+  Notas: 'Notes',
+
+  // ----- Partir en tareas -----
+  'Una línea por tarea. Enter agrega otra.': 'One line per task. Enter adds another.',
+  'Otra tarea…': 'Another task…',
+  'otra línea': 'another line',
+  'Heredan de la historia:': 'Inherited from the story:',
+  'sin {mark}, prioridad {priority}': 'without {mark}, priority {priority}',
+  'sin {mark}, sin prioridad': 'without {mark}, no priority',
+  'nueva línea': 'new line',
+  asignar: 'assign',
+  cancelar: 'cancel',
+  '{count} lista': '{count} ready',
+  '{count} listas': '{count} ready',
 }

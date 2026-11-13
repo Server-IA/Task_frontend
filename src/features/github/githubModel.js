@@ -30,6 +30,10 @@ export const shortSha = (sha) => (sha ?? '').slice(0, 7)
  * La pantalla de GitHub para abrir un pull request desde esa rama (hacia la rama por defecto), con el título ya puesto:
  * el código de la tarea en el título lo enlaza solo.
  */
+/** La foto de perfil de GitHub de un usuario (la sirve GitHub sin sesión; si no existe, se ven sus iniciales). */
+export const githubAvatarUrl = (login, size = 64) =>
+  `https://avatars.githubusercontent.com/${encodeURIComponent(login)}?s=${size}`
+
 export const newPullUrl = (fullName, branch, title) =>
   `${GITHUB}/${fullName}/compare/${branch.split('/').map(encodeURIComponent).join('/')}?expand=1&title=${encodeURIComponent(title)}`
 

@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { ChevronDown, ChevronRight, Lock, Plus } from 'lucide-react'
+import { ChevronRight, GitBranch, Lock, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -25,6 +25,7 @@ import { useHotkey } from '@/hooks/useHotkey'
 import { stateName, t, tn, tx } from '@/i18n'
 import { formatShortDate } from '@/lib/dates'
 import { projectPath } from '@/lib/paths'
+import { stagger } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { PageBody, PageHeader } from '@/layouts/PageHeader'
 import { focusRowMain } from '@/lib/focusReturn'
@@ -288,10 +289,11 @@ export function StoriesPage() {
                   {hasStoryFilters(filters) ? t('Ninguna historia en esta pestaña con esos filtros.') : t('Ninguna historia en esta pestaña.')}
                 </p>
               ) : (
-                <ul>
+                <ul key={tab}>
                   {filtered.map((row, index) => (
                     <StoryRowItem
                       key={row.story.id}
+                      index={index}
                       row={row}
                       manager={manager}
                       expanded={expanded.has(row.story.id)}
@@ -363,7 +365,7 @@ export function StoriesPage() {
 }
 
 /** Una fila de «Historias» (y, desplegada, sus tareas y bugs). */
-function StoryRowItem({ row, manager, expanded, onToggle, onOpen, active, buttonRef, onFocus }) {
+function StoryRowItem({ row, index, manager, expanded, onToggle, onOpen, active, buttonRef, onFocus }) {
   const { story, people, children } = row
   const flags = storyFlags(story)
   const tasks = children.filter((child) => typeOf(child) !== 'BUG')
@@ -372,7 +374,7 @@ function StoryRowItem({ row, manager, expanded, onToggle, onOpen, active, button
   const modules = (story.modules ?? []).map((module) => module.name).join(', ')
 
   return (
-    <li className={cn('border-t first:border-t-0', expanded && 'bg-subtle')}>
+    <li className={cn('tf-enter border-t transition-colors duration-200 first:border-t-0', expanded && 'bg-subtle')} style={stagger(index)}>
       {/* Un clic en la fila la abre; con el teclado, el título es el botón (nombre corto: código y título; Enter abre,
           → y ← despliegan) y los demás botones van aparte */}
       <div
@@ -381,7 +383,7 @@ function StoryRowItem({ row, manager, expanded, onToggle, onOpen, active, button
           onOpen(story.id)
         }}
         className={cn(
-          'grid cursor-pointer items-center gap-3 px-4 py-3 hover:bg-subtle',
+          'grid cursor-pointer items-center gap-3 px-4 py-3.5 transition-colors duration-150 hover:bg-subtle',
           ROW_FOCUS,
           TABLE_COLUMNS,
           active && 'bg-accent-soft hover:bg-accent-soft',
@@ -395,9 +397,9 @@ function StoryRowItem({ row, manager, expanded, onToggle, onOpen, active, button
             event.stopPropagation()
             onToggle()
           }}
-          className="flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-card hover:text-foreground"
+          className="flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-card hover:text-foreground"
         >
-          {expanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+          <ChevronRight className={cn('size-4 transition-transform duration-200', expanded && 'rotate-90')} />
         </button>
         <div className="flex min-w-0 items-start gap-2.5">
           <TypeIcon type="STORY" className="mt-0.5" />
@@ -430,8 +432,9 @@ function StoryRowItem({ row, manager, expanded, onToggle, onOpen, active, button
                         event.stopPropagation()
                         onOpen(story.id)
                       }}
-                      className="font-medium text-accent-text underline underline-offset-2"
+                      className="inline-flex items-center gap-1 rounded-[7px] border border-accent-text/30 bg-accent-soft px-2 py-0.5 font-semibold text-accent-text transition-colors duration-150 hover:border-accent-text/60"
                     >
+                      <GitBranch className="size-3" strokeWidth={2.5} aria-hidden="true" />
                       {t('Partir en tareas →')}
                     </button>
                   )}
@@ -474,14 +477,14 @@ function StoryRowItem({ row, manager, expanded, onToggle, onOpen, active, button
         </span>
       </div>
       {expanded && (
-        <div className="px-4 pb-3 pl-12">
-          <div className="overflow-hidden rounded-xl border bg-card">
+        <div className="px-4 pb-3.5 pl-12">
+          <div className="tf-enter overflow-hidden rounded-xl border bg-card">
             <p className="border-b bg-subtle px-3 py-2 font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase">
               {t('Tareas de la historia · {progress}', { progress: storyProgress(story).label })}
             </p>
             {tasks.length === 0 && <p className="px-3 py-3 text-sm text-muted-foreground">{t('Sin tareas todavía.')}</p>}
-            {tasks.map((child) => (
-              <ChildRow key={child.id} child={child} onOpen={onOpen} />
+            {tasks.map((child, childIndex) => (
+              <ChildRow key={child.id} child={child} onOpen={onOpen} index={childIndex} />
             ))}
             {bugs.length > 0 && (
               <>
@@ -514,13 +517,17 @@ function closedBy(story) {
   return story.closedAt ? t('por {name} · {date}', { name, date: formatShortDate(story.closedAt) }) : t('por {name}', { name })
 }
 
-function ChildRow({ child, onOpen }) {
+function ChildRow({ child, onOpen, index = 0 }) {
   const done = child.state?.group === 'COMPLETED' || child.state?.group === 'CANCELLED'
   return (
     <button
       type="button"
       onClick={() => onOpen(child.id)}
-      className={cn('flex w-full items-center gap-3 border-t px-3 py-2 text-left text-sm first:border-t-0 hover:bg-subtle', child.afterClose && 'bg-late-soft/60')}
+      style={stagger(index, 30)}
+      className={cn(
+        'tf-fade flex w-full items-center gap-3 border-t px-3 py-2.5 text-left text-sm transition-colors duration-150 first:border-t-0 hover:bg-subtle',
+        child.afterClose && 'bg-late-soft/60',
+      )}
     >
       <TypeIcon type={typeOf(child)} size={14} />
       <StateIcon group={child.state?.group} color={child.state?.color} />
