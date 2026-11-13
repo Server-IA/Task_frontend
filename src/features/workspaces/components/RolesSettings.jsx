@@ -12,7 +12,6 @@ import { t, tn, tx } from '@/i18n'
 import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { can, isManager } from '@/lib/permissions'
-import { stagger } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { useDeleteRole, usePermissionCatalog, useRoles, useSaveRole } from '../hooks'
 import {
@@ -275,11 +274,12 @@ function RoleEditor({ workspace, role, groups, canManage, onSaved, onDeleted, on
       )}
 
       {/* En columnas (los módulos tienen alturas distintas: una cuadrícula dejaría huecos debajo de los cortos) */}
+      {/* En columnas CSS los módulos no se animan uno por uno: con un desplazamiento, Chrome desarma las columnas
+          mientras dura la animación (todo cae a una y luego salta). Entran juntos con un fundido, que no mueve nada */}
       <div className="columns-[320px] gap-3">
-        {groups.map((group, index) => (
+        {groups.map((group) => (
           <PermissionGroupCard
             key={group.key}
-            index={index}
             group={group}
             selected={selected}
             editable={editable}
@@ -357,7 +357,7 @@ function RoleEditor({ workspace, role, groups, canManage, onSaved, onDeleted, on
 }
 
 /** Un módulo con sus permisos y la casilla que marca o desmarca el módulo completo. */
-function PermissionGroupCard({ group, index, selected, editable, grantable, onToggle, onToggleAll }) {
+function PermissionGroupCard({ group, selected, editable, grantable, onToggle, onToggleAll }) {
   const allId = useId()
   // La casilla del módulo mira solo lo que la persona puede dar: con todo eso marcado está «todo» (y un clic lo quita),
   // aunque el módulo tenga permisos que no puede tocar
@@ -366,7 +366,7 @@ function PermissionGroupCard({ group, index, selected, editable, grantable, onTo
   const count = group.permissions.filter((permission) => selected.has(permission.key)).length
 
   return (
-    <fieldset className="tf-enter mb-3 flex break-inside-avoid flex-col rounded-xl border" style={stagger(index, 35, 10)}>
+    <fieldset className="mb-3 flex break-inside-avoid flex-col rounded-xl border">
       <legend className="sr-only">{group.label}</legend>
       <div className="flex items-center gap-2.5 rounded-t-xl bg-column px-3 py-2">
         <Checkbox
