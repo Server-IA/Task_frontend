@@ -52,7 +52,12 @@ export function MembersSettings({ workspace }) {
       { userId: member.user.id, ...memberRoleBody(key) },
       {
         onSuccess: () =>
-          toast.success(t('{name} ahora tiene el rol {role}', { name: member.user.fullName, role: role?.name ?? '' }).trim()),
+          toast.success(
+            t('{name} ahora tiene el rol {role}', {
+              name: member.user.fullName,
+              role: role?.name ?? '',
+            }).trim(),
+          ),
         // 409 si el workspace se quedaría sin project manager: se muestra el mensaje del backend
         onError: (error) => notifyError(error, t('No se pudo cambiar el rol')),
       },
@@ -78,7 +83,9 @@ export function MembersSettings({ workspace }) {
           {t('Miembros')}
         </CardTitle>
         <CardDescription>
-          {members ? tn(members.length, '{count} persona en el workspace.', '{count} personas en el workspace.') : ' '}{' '}
+          {members
+            ? tn(members.length, '{count} persona en el workspace.', '{count} personas en el workspace.')
+            : ' '}{' '}
           {t(
             'El project manager tiene todos los permisos y puede haber más de uno; lo que pueden hacer los demás lo decide su rol (pestaña Roles).',
           )}
@@ -92,7 +99,7 @@ export function MembersSettings({ workspace }) {
             <TableHeader>
               <TableRow>
                 <TableHead>{t('Persona')}</TableHead>
-                <TableHead className="w-48">{t('Rol')}</TableHead>
+                <TableHead className="hidden w-48 sm:table-cell">{t('Rol')}</TableHead>
                 <TableHead className="hidden w-28 sm:table-cell">{tc('miembro', 'Desde')}</TableHead>
                 <TableHead className="w-10" />
               </TableRow>
@@ -100,6 +107,40 @@ export function MembersSettings({ workspace }) {
             <TableBody>
               {members.map((member) => {
                 const isMe = member.user.id === currentUserId
+                const roleControl = (
+                  <>
+                    {/* El rol propio no se cambia desde aquí: así nadie se quita los permisos sin querer */}
+                    {canChangeRoles && !isMe && roles.length > 0 && mayChange(member) ? (
+                      <Select
+                        value={roleKeyOf(member)}
+                        onValueChange={(key) => handleRoleChange(member, key)}
+                        disabled={updateRole.isPending}
+                      >
+                        <SelectTrigger
+                          size="sm"
+                          className="w-44"
+                          aria-label={t('Rol de {name}', { name: member.user.fullName })}
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {/* Su rol actual siempre aparece, aunque quien mira no lo pueda asignar */}
+                          {roles
+                            .filter((role) => options.includes(role) || role.key === roleKeyOf(member))
+                            .map((role) => (
+                              <SelectItem key={role.key} value={role.key}>
+                                {role.name}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Badge variant={isManager(member.role) ? 'default' : 'secondary'}>
+                        {roleNameOf(member)}
+                      </Badge>
+                    )}
+                  </>
+                )
                 return (
                   <TableRow key={member.user.id}>
                     <TableCell>
@@ -108,39 +149,18 @@ export function MembersSettings({ workspace }) {
                         <div className="min-w-0">
                           <p className="truncate font-medium">
                             {member.user.fullName}
-                            {isMe && <span className="ml-1.5 text-xs text-muted-foreground">{t('(tú)')}</span>}
+                            {isMe && (
+                              <span className="text-muted-foreground ml-1.5 text-xs">{t('(tú)')}</span>
+                            )}
                           </p>
-                          <p className="truncate text-xs text-muted-foreground">{member.user.email}</p>
+                          <p className="text-muted-foreground truncate text-xs">{member.user.email}</p>
+                          {/* En el teléfono la columna «Rol» no cabe: el rol va debajo del correo */}
+                          <div className="mt-2 sm:hidden">{roleControl}</div>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      {/* El rol propio no se cambia desde aquí: así nadie se quita los permisos sin querer */}
-                      {canChangeRoles && !isMe && roles.length > 0 && mayChange(member) ? (
-                        <Select
-                          value={roleKeyOf(member)}
-                          onValueChange={(key) => handleRoleChange(member, key)}
-                          disabled={updateRole.isPending}
-                        >
-                          <SelectTrigger size="sm" className="w-44" aria-label={t('Rol de {name}', { name: member.user.fullName })}>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {/* Su rol actual siempre aparece, aunque quien mira no lo pueda asignar */}
-                            {roles
-                              .filter((role) => options.includes(role) || role.key === roleKeyOf(member))
-                              .map((role) => (
-                                <SelectItem key={role.key} value={role.key}>
-                                  {role.name}
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Badge variant={isManager(member.role) ? 'default' : 'secondary'}>{roleNameOf(member)}</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="hidden text-sm text-muted-foreground sm:table-cell">
+                    <TableCell className="hidden sm:table-cell">{roleControl}</TableCell>
+                    <TableCell className="text-muted-foreground hidden text-sm sm:table-cell">
                       {formatShortDate(member.joinedAt)}
                     </TableCell>
                     <TableCell>

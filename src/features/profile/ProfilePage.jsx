@@ -38,7 +38,7 @@ export function ProfilePage() {
       <ProfileHeader user={user} />
       <PageBody className="flex flex-col gap-3.5">
         <ProfilePhotoSection user={user} />
-        <div className="grid items-start gap-3.5 lg:grid-cols-2">
+        <div className="grid grid-cols-1 items-start gap-3.5 lg:grid-cols-2">
           <ProfileCard user={user} />
           <ChangePasswordCard />
         </div>

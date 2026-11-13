@@ -128,7 +128,8 @@ export function ActionsView({ workspace, project, status, settingsLink }) {
             className="py-10"
           />
         ) : (
-          <ul className="tf-fade">
+          // Angosta (teléfono, media pantalla): tarjeta con los datos debajo del nombre; desde 768 px, columnas
+          <ul className="tf-fade @container">
             {shown.slice(0, limit).map((run, index) => {
               const info = runState(run)
               const trigger = runTrigger(run, status.rules)
@@ -137,7 +138,7 @@ export function ActionsView({ workspace, project, status, settingsLink }) {
                 <li
                   key={run.id}
                   className={cn(
-                    'grid grid-cols-[auto_minmax(0,1fr)_92px_64px_200px_96px] items-center gap-x-3.5 px-4 py-3',
+                    'grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3.5 gap-y-2 px-4 py-3 @3xl:grid-cols-[auto_minmax(0,1fr)_92px_64px_200px_96px]',
                     index > 0 && 'border-t',
                   )}
                 >
@@ -182,44 +183,46 @@ export function ActionsView({ workspace, project, status, settingsLink }) {
                       )}
                     </p>
                   </div>
-                  <span className="flex min-w-0">
-                    {run.issueId && (
-                      <TaskLink
-                        slug={slug}
-                        projectId={project.id}
-                        issueId={run.issueId}
-                        code={run.issueCode}
-                      />
-                    )}
-                  </span>
-                  <span className="text-muted-foreground truncate text-right font-mono text-[11.5px]">
-                    {runDuration(run)}
-                  </span>
-                  <span className="text-muted-foreground truncate text-right font-mono text-[11.5px]">
-                    {formatRelative(run.startedAt ?? run.requestedAt ?? run.changedAt)}
-                  </span>
-                  <span className="flex justify-end">
-                    {canAct && info.canRetry && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleRerun(run)}
-                        disabled={rerun.isPending}
-                      >
-                        {t('Reintentar')}
-                      </Button>
-                    )}
-                    {canAct && info.canCancel && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleCancel(run)}
-                        disabled={cancel.isPending}
-                      >
-                        {t('Cancelar')}
-                      </Button>
-                    )}
-                  </span>
+                  <div className="col-start-2 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5 @3xl:contents">
+                    <span className="flex min-w-0">
+                      {run.issueId && (
+                        <TaskLink
+                          slug={slug}
+                          projectId={project.id}
+                          issueId={run.issueId}
+                          code={run.issueCode}
+                        />
+                      )}
+                    </span>
+                    <span className="text-muted-foreground truncate font-mono text-[11.5px] @3xl:text-right">
+                      {runDuration(run)}
+                    </span>
+                    <span className="text-muted-foreground truncate font-mono text-[11.5px] @3xl:text-right">
+                      {formatRelative(run.startedAt ?? run.requestedAt ?? run.changedAt)}
+                    </span>
+                    <span className="flex @3xl:justify-end">
+                      {canAct && info.canRetry && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRerun(run)}
+                          disabled={rerun.isPending}
+                        >
+                          {t('Reintentar')}
+                        </Button>
+                      )}
+                      {canAct && info.canCancel && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCancel(run)}
+                          disabled={cancel.isPending}
+                        >
+                          {t('Cancelar')}
+                        </Button>
+                      )}
+                    </span>
+                  </div>
                 </li>
               )
             })}

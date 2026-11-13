@@ -18,6 +18,10 @@ function useCommentMutation(issueId, mutationFn) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.comments(issueId) })
       queryClient.invalidateQueries({ queryKey: queryKeys.activity(issueId) })
+      // «Mi trabajo › Comentadas» y la actividad del workspace también cambian (el tiempo real ignora lo de esta
+      // misma pestaña, así que aquí se piden de nuevo)
+      queryClient.invalidateQueries({ queryKey: ['myWork'] })
+      queryClient.invalidateQueries({ queryKey: ['workspaceActivity'] })
     },
   })
 }

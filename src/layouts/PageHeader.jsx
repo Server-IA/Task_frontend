@@ -34,7 +34,7 @@ export function PageHeader({ path = [], title, titleAddon, leading, description,
     <header className={cn('tf-panel shrink-0 px-5 py-4', className)}>
       <div className="flex flex-wrap items-end gap-3.5">
         {leading}
-        <div className="min-w-0 flex-[1_1_320px]">
+        <div className="min-w-0 flex-[1_1_240px]">
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"

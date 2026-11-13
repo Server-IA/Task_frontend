@@ -34,7 +34,7 @@ export function GeneralSettings({ workspace }) {
 
   return (
     // En pantallas anchas, el formulario a la izquierda y salir / eliminar a la derecha
-    <div className="grid items-start gap-3.5 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+    <div className="grid grid-cols-1 items-start gap-3.5 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
       <Card>
         <CardHeader>
           <CardTitle>{t('General')}</CardTitle>

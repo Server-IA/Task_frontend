@@ -53,7 +53,9 @@ export function shouldRefresh(queryKey, { changes, notifications, everything, cu
     const here = change.workspace === currentSlug
     // Un cambio del workspace entero (GitHub, una importación, los miembros…) toca todo lo que se ve de él
     if (here && !change.projectId) return root !== 'workspaces'
-    return here && OPEN_ITEM.has(root)
+    // Fuera de un workspace (la Bandeja, con una tarea abierta al lado) no se sabe de cuál es lo abierto: se refresca
+    // igual (solo lo que está en pantalla)
+    return (here || !currentSlug) && OPEN_ITEM.has(root)
   })
 }
 

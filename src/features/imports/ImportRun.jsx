@@ -75,7 +75,7 @@ export function MappingStep({ workspace, job, onBack, onNext }) {
               {t('Cómo queda cada tipo del origen. TaskFlow ya los emparejó; cambia lo que no te sirva.')}
             </span>
           </div>
-          <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {proposal.types.map((type) => (
               <div key={type.source} className="flex flex-col gap-1.5 rounded-xl border px-3 py-2.5">
                 <span className="font-mono text-[11.5px] text-muted-foreground">
@@ -102,7 +102,7 @@ export function MappingStep({ workspace, job, onBack, onNext }) {
         </section>
       )}
 
-      <div className="grid items-start gap-3.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
+      <div className="grid grid-cols-1 items-start gap-3.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
         <section aria-labelledby="import-states-title" className="overflow-hidden rounded-2xl border bg-card">
           <div className={PANEL_HEAD}>
             <h2 id="import-states-title" className="text-[15px] font-semibold">
@@ -372,7 +372,7 @@ export function ReviewStep({ workspace, job, onBack }) {
 
   return (
     <>
-      <div className="grid items-start gap-3.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
+      <div className="grid grid-cols-1 items-start gap-3.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
         <section aria-labelledby="import-creates-title" className="tf-panel px-5 pt-4 pb-4.5">
           <h2 id="import-creates-title" className="mb-2.5 text-[15px] font-semibold">
             {t('Se va a crear')}
@@ -594,7 +594,7 @@ export function ReportStep({ workspace, job, onHome }) {
 
       {report && job.status !== 'UNDONE' && (
         <>
-          <dl aria-label={t('Lo que entró')} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <dl aria-label={t('Lo que entró')} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {tiles.map(([label, value, notes]) => (
               <div key={label} className="tf-panel px-4 py-3.5">
                 <dt className="font-mono text-[11px] text-muted-foreground">{label}</dt>
@@ -604,7 +604,7 @@ export function ReportStep({ workspace, job, onHome }) {
             ))}
           </dl>
 
-          <div className="grid items-start gap-3.5 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+          <div className="grid grid-cols-1 items-start gap-3.5 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
             <section aria-labelledby="import-skipped-title" className="overflow-hidden rounded-2xl border bg-card">
               <div className={PANEL_HEAD}>
                 <h2 id="import-skipped-title" className="text-[15px] font-semibold">

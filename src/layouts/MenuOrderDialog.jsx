@@ -65,7 +65,7 @@ export function MenuOrderDialog({ open, onOpenChange }) {
           </span>
         </p>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <OrderGroup
             title={t('Menú principal')}
             items={main.map((item) => ({ id: item.key, label: item.label }))}

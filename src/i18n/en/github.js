@@ -394,4 +394,5 @@ export default {
     'That installation is not yours: to connect it you must be the GitHub account where it was installed or an owner of that organization.',
   'Buscar rama o tarea': 'Search branch or task',
   'Ninguna rama coincide con «{query}»': 'No branch matches “{query}”',
+  'Tu rol ya no permite conectar GitHub en este workspace.': 'Your role no longer allows connecting GitHub in this workspace.',
 }

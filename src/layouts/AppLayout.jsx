@@ -6,6 +6,7 @@ import { SplashStage } from '@/components/common/Splash'
 import { CommandPalette } from '@/features/search/CommandPalette'
 import { t } from '@/i18n'
 import { INTRO, markAppShown, peekAppIntro } from '@/lib/intro'
+import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { cn } from '@/lib/utils'
 import { useLayoutStore } from '@/stores/layoutStore'
 import { usePreferencesStore } from '@/stores/preferencesStore'
@@ -19,6 +20,7 @@ export function AppLayout() {
   const leaving = useLayoutStore((state) => state.leaving)
   const setLeaving = useLayoutStore((state) => state.setLeaving)
   const location = useLocation()
+  const railOnly = useMediaQuery('(max-width: 1023.98px)')
 
   // Al navegar en móvil se cierra el drawer
   useEffect(() => {
@@ -62,10 +64,12 @@ export function AppLayout() {
       <aside
         className={cn(
           'tf-app-aside hidden shrink-0 overflow-hidden rounded-2xl bg-sidebar text-sidebar-foreground transition-[width] duration-200 ease-out md:block',
-          collapsed ? 'w-16' : 'w-62',
+          railOnly || collapsed ? 'w-16' : 'w-62',
         )}
       >
-        <Sidebar collapsed={collapsed} />
+        {/* Entre 768 y 1023 px (tablet, media pantalla) va siempre como barra de íconos: abierta le quitaba al
+            contenido casi la mitad. Ahí «Expandir» abre el menú completo encima, como en el teléfono */}
+        <Sidebar collapsed={railOnly || collapsed} onExpand={railOnly ? () => setMobileOpen(true) : undefined} />
       </aside>
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>

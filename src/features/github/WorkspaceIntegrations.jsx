@@ -40,6 +40,7 @@ const RESULTS = {
   failed: () => toast.error(t('No se pudo conectar con GitHub. Vuelve a intentarlo desde aquí.')),
   unlinked: () =>
     toast.error(t('Conecta primero tu cuenta de GitHub y vuelve a pulsar «Conectar con GitHub».')),
+  forbidden: () => toast.error(t('Tu rol ya no permite conectar GitHub en este workspace.')),
   foreign: () =>
     toast.error(
       t(
@@ -174,7 +175,7 @@ function Connect({ workspace, status, canManage }) {
           )}
         </p>
       )}
-      <ol className="grid gap-3 md:grid-cols-3">
+      <ol className="grid grid-cols-1 gap-3 md:grid-cols-3">
         {HOW().map(([title, text], index) => (
           <li key={title} className="flex flex-col gap-1.5 rounded-[14px] border px-4 py-3.5">
             <span
@@ -464,7 +465,7 @@ const CANNOT = () => [
 /** Lo que la app puede y no puede hacer en GitHub: se dice antes de conectar y sigue a la vista después. */
 function Scope() {
   return (
-    <section aria-labelledby="github-scope-title" className="grid gap-3.5 md:grid-cols-2">
+    <section aria-labelledby="github-scope-title" className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
       <div className="tf-panel px-5 py-4">
         <h2 id="github-scope-title" className="mb-2.5 text-[15px] font-semibold">
           {t('Lo que TaskFlow puede hacer en GitHub')}

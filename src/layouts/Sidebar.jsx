@@ -18,7 +18,8 @@ import { MAIN_MENU, orderItems } from './menuOrder'
 import { SidebarProjects } from './SidebarProjects'
 import { UserMenu } from './UserMenu'
 
-export function Sidebar({ collapsed }) {
+/** `onExpand`: en lugar de cambiar la preferencia, qué hace «Expandir» (en tablet abre el menú completo encima). */
+export function Sidebar({ collapsed, onExpand }) {
   const toggleSidebar = usePreferencesStore((state) => state.toggleSidebar)
   const lastWorkspaceSlug = useLastWorkspaceSlug()
   const { slug: routeSlug, projectId } = useRouteParams()
@@ -52,7 +53,7 @@ export function Sidebar({ collapsed }) {
               variant="ghost"
               size="icon"
               className="hidden size-8 text-sidebar-muted hover:bg-sidebar-accent md:inline-flex"
-              onClick={toggleSidebar}
+              onClick={onExpand ?? toggleSidebar}
               aria-label={collapsed ? t('Expandir menú') : t('Contraer menú')}
             >
               {collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}

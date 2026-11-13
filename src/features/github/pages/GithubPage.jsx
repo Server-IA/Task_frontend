@@ -21,7 +21,15 @@ import { can } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { ActionsView } from '../GithubActions'
 import { GhMark, PullMark, ShowMore, TaskLink, TonePill } from '../GithubParts'
-import { branchUrl, githubAvatarUrl, pullChecks, pullNote, pullState, repoName, repoUrl } from '../githubModel'
+import {
+  branchUrl,
+  githubAvatarUrl,
+  pullChecks,
+  pullNote,
+  pullState,
+  repoName,
+  repoUrl,
+} from '../githubModel'
 import {
   useGithubBranches,
   useGithubLinked,
@@ -221,7 +229,9 @@ function Author({ login, name, avatarUrl }) {
       ) : (
         <AvatarImage src={githubAvatarUrl(login)} alt="" />
       )}
-      <AvatarFallback className={cn('text-[10px] font-bold text-[#23201B] uppercase', avatarColor(name ?? login))}>
+      <AvatarFallback
+        className={cn('text-[10px] font-bold text-[#23201B] uppercase', avatarColor(name ?? login))}
+      >
         {name ? initials(name) : login.slice(0, 2)}
       </AvatarFallback>
     </Avatar>
@@ -234,7 +244,12 @@ function PullsView({ workspace, project, status }) {
   const [repository, setRepository] = useState(null)
   const [author, setAuthor] = useState(null)
   // Al cambiar entre abiertos, fusionados y todos, la lista anterior se queda (atenuada) hasta que llega la nueva
-  const { data: pulls, error, refetch, isPlaceholderData: switching } = useGithubPulls(slug, project.id, state)
+  const {
+    data: pulls,
+    error,
+    refetch,
+    isPlaceholderData: switching,
+  } = useGithubPulls(slug, project.id, state)
   const link = useLinkPullRequest(slug, project.id)
   const linked = useGithubLinked()
   // Enlazar un PR a una tarea es editarla, y se hace con la cuenta de GitHub de la persona
@@ -332,7 +347,8 @@ function PullsView({ workspace, project, status }) {
             className="py-10"
           />
         ) : (
-          <ul className="tf-fade">
+          // Angosta (teléfono, media pantalla): tarjeta con los datos debajo del título; desde 768 px, columnas
+          <ul className="tf-fade @container">
             {shown.slice(0, limit).map((pull, index) => {
               const info = pullState(pull.state)
               const checks = pullChecks(pull)
@@ -340,7 +356,7 @@ function PullsView({ workspace, project, status }) {
                 <li
                   key={pull.id}
                   className={cn(
-                    'grid grid-cols-[auto_minmax(0,1fr)_176px_138px_auto_200px] items-center gap-x-3.5 px-4 py-3',
+                    'grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3.5 gap-y-2 px-4 py-3 @3xl:grid-cols-[auto_minmax(0,1fr)_176px_138px_auto_200px]',
                     index > 0 && 'border-t',
                   )}
                 >
@@ -368,45 +384,51 @@ function PullsView({ workspace, project, status }) {
                         .join(' · ')}
                     </p>
                   </div>
-                  <span className="flex min-w-0">
-                    {pull.issueId ? (
-                      <TaskLink
-                        slug={slug}
-                        projectId={project.id}
-                        issueId={pull.issueId}
-                        code={pull.issueCode}
-                        state={pull.issueState}
-                      />
-                    ) : canLink ? (
-                      <IssuePicker
-                        slug={slug}
-                        projectId={project.id}
-                        onPick={(issue) => handleLink(pull, issue)}
-                        align="end"
-                      >
-                        <button
-                          type="button"
-                          className="border-dash text-muted-foreground hover:text-foreground focus-visible:ring-ring shrink-0 rounded-lg border border-dashed px-2 py-1 text-[12.5px] transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                  <div className="col-start-2 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5 @3xl:contents">
+                    <span className="flex min-w-0">
+                      {pull.issueId ? (
+                        <TaskLink
+                          slug={slug}
+                          projectId={project.id}
+                          issueId={pull.issueId}
+                          code={pull.issueCode}
+                          state={pull.issueState}
+                        />
+                      ) : canLink ? (
+                        <IssuePicker
+                          slug={slug}
+                          projectId={project.id}
+                          onPick={(issue) => handleLink(pull, issue)}
+                          align="end"
                         >
-                          {t('sin tarea · enlazar')}
-                        </button>
-                      </IssuePicker>
-                    ) : (
-                      <span className="text-muted-foreground shrink-0 text-[12.5px]">{t('sin tarea')}</span>
-                    )}
-                  </span>
-                  <span className="flex min-w-0 justify-start">
-                    {checks && (
-                      <TonePill tone={checks.tone}>
-                        <span aria-hidden="true">{checks.mark}</span>
-                        {checks.text}
-                      </TonePill>
-                    )}
-                  </span>
-                  <Author login={pull.authorLogin} name={pull.authorName} avatarUrl={pull.authorAvatarUrl} />
-                  <span className="text-muted-foreground truncate text-right font-mono text-[11.5px]">
-                    {formatRelative(pull.changedAt)}
-                  </span>
+                          <button
+                            type="button"
+                            className="border-dash text-muted-foreground hover:text-foreground focus-visible:ring-ring shrink-0 rounded-lg border border-dashed px-2 py-1 text-[12.5px] transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                          >
+                            {t('sin tarea · enlazar')}
+                          </button>
+                        </IssuePicker>
+                      ) : (
+                        <span className="text-muted-foreground shrink-0 text-[12.5px]">{t('sin tarea')}</span>
+                      )}
+                    </span>
+                    <span className="flex min-w-0 justify-start">
+                      {checks && (
+                        <TonePill tone={checks.tone}>
+                          <span aria-hidden="true">{checks.mark}</span>
+                          {checks.text}
+                        </TonePill>
+                      )}
+                    </span>
+                    <Author
+                      login={pull.authorLogin}
+                      name={pull.authorName}
+                      avatarUrl={pull.authorAvatarUrl}
+                    />
+                    <span className="text-muted-foreground truncate font-mono text-[11.5px] @3xl:text-right">
+                      {formatRelative(pull.changedAt)}
+                    </span>
+                  </div>
                 </li>
               )
             })}
@@ -512,7 +534,7 @@ function BranchesView({ workspace, project, branches }) {
                   issueId={branch.issueId}
                   code={branch.issueCode}
                 />
-                <span className="text-muted-foreground w-[200px] shrink-0 truncate text-right font-mono text-[11.5px]">
+                <span className="text-muted-foreground shrink-0 truncate font-mono text-[11.5px] md:w-[200px] md:text-right">
                   {formatRelative(branch.createdAt)}
                 </span>
               </li>

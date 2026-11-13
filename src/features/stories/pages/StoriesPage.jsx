@@ -40,12 +40,14 @@ import { SPLIT_PARAM } from '../splitLines'
 const TAB_VALUES = new Set(STORY_TABS.map((tab) => tab.value))
 
 /**
- * Columnas de la tabla. Por debajo de 1360 px «Personas» y «Módulo» se ocultan: con todas, en 1024 px la columna
- * «Historia» quedaba en 0 (el título desaparecía, los encabezados se montaban y «Estado» se cortaba a la derecha).
+ * Columnas de la tabla según el ancho de la tabla (no de la ventana: con el menú abierto o en media pantalla queda
+ * menos). Angosta (teléfono, ventana chica): cada historia es una tarjeta, con su progreso, ciclo, prioridad y estado
+ * debajo del título. Desde 768 px, tabla; desde 1024 px, también «Personas» y «Módulo» (con todas en menos espacio, la
+ * columna «Historia» quedaba en 0 y los encabezados se montaban).
  */
 const TABLE_COLUMNS =
-  'grid-cols-[24px_minmax(0,1fr)_120px_96px_104px_132px] min-[1360px]:grid-cols-[24px_minmax(0,1fr)_150px_88px_96px_120px_104px_132px]'
-const WIDE_ONLY = 'hidden min-[1360px]:block'
+  'grid-cols-[24px_minmax(0,1fr)] @3xl:grid-cols-[24px_minmax(0,1fr)_120px_96px_104px_132px] @5xl:grid-cols-[24px_minmax(0,1fr)_150px_88px_96px_120px_104px_132px]'
+const WIDE_ONLY = 'hidden @5xl:block'
 
 /**
  * «Historias» (la página del project manager; los miembros la ven sin crear ni partir): pestañas Abiertas, Sin
@@ -268,10 +270,10 @@ export function StoriesPage() {
           />
         ) : (
           <div className="flex min-h-full flex-col gap-3">
-            <div className="overflow-hidden rounded-2xl border bg-card">
+            <div className="@container overflow-hidden rounded-2xl border bg-card">
               <div
                 className={cn(
-                  'grid gap-3 border-b bg-subtle px-4 py-2.5 font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase',
+                  'hidden gap-3 border-b bg-subtle px-4 py-2.5 font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase @3xl:grid',
                   TABLE_COLUMNS,
                 )}
               >
@@ -329,7 +331,7 @@ export function StoriesPage() {
                 </p>
               )}
             </div>
-            <footer className="mt-auto flex flex-wrap items-center gap-4 rounded-xl border bg-card px-3.5 py-2 font-mono text-[11px] text-muted-foreground">
+            <footer className="mt-auto flex flex-wrap items-center gap-4 rounded-xl border bg-card px-3.5 py-2 font-mono text-[11px] text-muted-foreground max-md:hidden">
               <span>{tx('{keys} moverse', { keys: <kbd className="text-foreground">J K</kbd> })}</span>
               <span>{tx('{key} expandir', { key: <kbd className="text-foreground">→</kbd> })}</span>
               {manager && <span>{tx('{key} partir en tareas', { key: <kbd className="text-foreground">P</kbd> })}</span>}
@@ -459,7 +461,9 @@ function StoryRowItem({ row, index, manager, expanded, onToggle, onOpen, active,
             </span>
           </div>
         </div>
-        <StoryProgress story={story} />
+        {/* En una tabla angosta, una fila debajo del título; en la ancha, cada dato en su columna */}
+        <div className="col-start-2 flex flex-wrap items-center gap-x-4 gap-y-2 @3xl:contents">
+        <StoryProgress story={story} className="w-36 @3xl:w-auto" />
         <span className={WIDE_ONLY}>{people.length > 0 ? <AvatarStack users={people} size="xs" /> : <span className="text-muted-foreground">—</span>}</span>
         <span className={cn('truncate text-[13px]', !story.cycle && 'text-muted-foreground')}>{story.cycle?.name ?? t('Sin ciclo')}</span>
         <span className={cn('truncate text-[13px]', WIDE_ONLY, !modules && 'text-muted-foreground')}>{modules || '—'}</span>
@@ -475,9 +479,10 @@ function StoryRowItem({ row, index, manager, expanded, onToggle, onOpen, active,
             </span>
           </span>
         </span>
+        </div>
       </div>
       {expanded && (
-        <div className="px-4 pb-3.5 pl-12">
+        <div className="px-3 pb-3.5 @3xl:px-4 @3xl:pl-12">
           <div className="tf-enter overflow-hidden rounded-xl border bg-card">
             <p className="border-b bg-subtle px-3 py-2 font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase">
               {t('Tareas de la historia · {progress}', { progress: storyProgress(story).label })}
@@ -536,7 +541,7 @@ function ChildRow({ child, onOpen, index = 0 }) {
         {child.title}
       </StrikeText>
       {child.afterClose && <span className="shrink-0 font-mono text-[11px] font-semibold text-late">{t('después de cerrar')}</span>}
-      <span className="w-24 shrink-0 text-xs text-muted-foreground">{stateName(child.state)}</span>
+      <span className="hidden w-24 shrink-0 text-xs text-muted-foreground @md:block">{stateName(child.state)}</span>
       <span className="w-6">{child.assignees?.[0] && <UserAvatar user={child.assignees[0]} size="xs" />}</span>
     </button>
   )

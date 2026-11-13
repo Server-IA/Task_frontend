@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, CircleDot, CornerDownRight, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -47,6 +47,13 @@ export function IssueListView({
   const { data, isLoading, error, refetch, isFetching } = useIssues(slug, project.id, params)
   const { guard, dialog: criteriaDialog } = useCriteriaGuard()
   const { onStoryClosed, dialog: storyClosedDialog, manager } = useStoryClosedGuard(slug)
+
+  // La última página se quedó vacía (su última tarea cambió de estado, se borró o la movió otra persona): se va a la
+  // última que tiene tareas, en vez de mostrar una lista vacía con «51–50 de 50»
+  const emptyPage = Boolean(data) && data.content.length === 0 && page > 0 && data.totalElements > 0
+  useEffect(() => {
+    if (emptyPage) setPage(Math.max(0, data.totalPages - 1))
+  }, [emptyPage, data?.totalPages, setPage])
 
   if (isLoading) {
     return (

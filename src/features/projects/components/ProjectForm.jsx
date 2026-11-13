@@ -51,7 +51,7 @@ export function ProjectForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4" noValidate>
-        <div className="grid gap-4 sm:grid-cols-[1fr_9rem]">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_9rem]">
           <FormField
             control={form.control}
             name="name"
