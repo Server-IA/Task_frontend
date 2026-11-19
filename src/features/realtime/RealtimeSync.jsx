@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { CLIENT_ID } from '@/api/clientId'
 import { startRealtime } from '@/api/realtime'
+import { appPath } from '@/lib/basePath'
 import { shouldRefresh, slugOf } from './refreshRules'
 
 /** Los avisos que llegan juntos (un movimiento que toca varias cosas, una ráfaga de GitHub) se atienden de una vez. */
@@ -27,7 +28,7 @@ export function RealtimeSync() {
         timer = setTimeout(flush, WHILE_SAVING_MS)
         return
       }
-      const batch = { ...pending, currentSlug: slugOf(window.location.pathname) }
+      const batch = { ...pending, currentSlug: slugOf(appPath(window.location.pathname)) }
       pending = { changes: [], notifications: false, everything: false }
       queryClient.invalidateQueries({ predicate: (query) => shouldRefresh(query.queryKey, batch) })
     }

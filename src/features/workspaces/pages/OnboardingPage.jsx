@@ -13,6 +13,7 @@ import { emailSchema } from '@/features/auth/schemas'
 import { t, tn, tx } from '@/i18n'
 import { AuthHeader, CenteredShell } from '@/layouts/AuthLayout'
 import { UserMenu } from '@/layouts/UserMenu'
+import { BASE_PATH } from '@/lib/basePath'
 import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { slugify } from '@/lib/slug'
@@ -136,7 +137,7 @@ export function OnboardingPage() {
                     <FormLabel>{t('Identificador')}</FormLabel>
                     <FormControl>
                       <div className="flex h-10 items-center overflow-hidden rounded-md border border-input bg-card font-mono text-[13px] focus-within:ring-[3px] focus-within:ring-ring/50">
-                        <span className="pl-3 text-muted-foreground select-none">{window.location.host}/</span>
+                        <span className="pl-3 text-muted-foreground select-none">{window.location.host}{BASE_PATH}/</span>
                         <input
                           className="min-w-0 flex-1 bg-transparent pr-3 outline-none"
                           {...field}

@@ -19,6 +19,7 @@ import { StateIcon } from '@/components/common/StateIcon'
 import { MarkdownView } from '@/features/editor/components/MarkdownView'
 import { useWorkspace } from '@/features/workspaces/hooks'
 import { stateName, t } from '@/i18n'
+import { appUrl } from '@/lib/basePath'
 import { formatDateTime, formatRelative, formatShortDate } from '@/lib/dates'
 import { useFlashed } from '@/lib/flash'
 import { notifyError } from '@/lib/notify'
@@ -318,7 +319,7 @@ function IssueTopBar({ slug, project, issue, variant, pageUrl, onClose, showMark
 
   const copyLink = async () => {
     try {
-      await navigator.clipboard.writeText(`${window.location.origin}${pageUrl}`)
+      await navigator.clipboard.writeText(appUrl(pageUrl))
       toast.success(t('Enlace copiado'))
     } catch {
       toast.error(t('No se pudo copiar el enlace'))

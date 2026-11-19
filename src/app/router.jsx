@@ -27,6 +27,7 @@ import { StatsPage } from '@/features/stats/pages/StatsPage'
 import { StoriesPage } from '@/features/stories/pages/StoriesPage'
 import { HomeRedirect } from '@/features/workspaces/pages/HomeRedirect'
 import { t } from '@/i18n'
+import { BASE_PATH } from '@/lib/basePath'
 import { InvitationPage } from '@/features/workspaces/pages/InvitationPage'
 import { OnboardingPage } from '@/features/workspaces/pages/OnboardingPage'
 import { WorkspaceHomePage } from '@/features/workspaces/pages/WorkspaceHomePage'
@@ -38,6 +39,7 @@ import { AuthLayout } from '@/layouts/AuthLayout'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { RouteErrorPage } from '@/pages/RouteErrorPage'
 
+// En producción la app vive en una subruta (/taskflow): el router la agrega a los enlaces y la quita al leer la URL
 export const router = createBrowserRouter([
   {
     element: <SessionGate />,
@@ -133,4 +135,4 @@ export const router = createBrowserRouter([
       { path: '*', element: <NotFoundPage /> },
     ],
   },
-])
+], { basename: BASE_PATH || '/' })
