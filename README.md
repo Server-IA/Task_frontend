@@ -5,7 +5,7 @@ estilo de Plane o Jira, sin copiar código de ninguno). Proyecto de prácticas u
 
 - Consume la API de [`Task_backend`](https://github.com/Server-IA/Task_backend). Su README explica la API, la
   seguridad, GitHub, las importaciones y el despliegue.
-- En producción corre en **https://dev.inmero.co**.
+- En producción corre en **https://dev.inmero.co/taskflow**.
 - Funciona en computador, tablet y teléfono, en español o en inglés, con tema claro u oscuro.
 
 ## Contenido
@@ -68,7 +68,8 @@ npm run dev            # http://localhost:5173
 
 | Variable | Para qué |
 |---|---|
-| `VITE_API_URL` | URL base de la API. En local `http://localhost:8080/api/v1`; en la imagen de Docker `/api/v1` (mismo dominio) |
+| `VITE_API_URL` | URL base de la API. En local `http://localhost:8080/api/v1`; en la imagen de Docker `/taskflow/api/v1` (mismo dominio) |
+| `BASE_PATH` | Subruta donde se sirve la app, al compilar (`base` de Vite y `basename` del router). En local vacía (la raíz); en la imagen de Docker `/taskflow` |
 | `VITE_QUERY_DEVTOOLS` | `true` muestra el panel de React Query Devtools |
 
 **Correos en local:** con el backend en `MAIL_PROVIDER=smtp`, todos los correos llegan a **Mailpit**
@@ -267,22 +268,29 @@ tiempo real).
 ## Docker y despliegue
 
 **El `Dockerfile`:**
-- construye la app con Node 22 (`VITE_API_URL=/api/v1`);
-- la sirve con **nginx 1.27 sin privilegios** en el puerto **5446**.
+- construye la app con Node 22 bajo la subruta `BASE_PATH=/taskflow` (`VITE_API_URL=/taskflow/api/v1`): la raíz del
+  dominio es de otra página;
+- la sirve con **nginx 1.27 sin privilegios** en el puerto **5446**, en `/taskflow/` (`/taskflow` sin barra redirige;
+  fuera de la subruta responde 404).
+
+Con la subruta, lo que se arma a mano desde `window.location` (copiar el enlace de una tarea, volver de GitHub, el
+workspace en pantalla para el tiempo real) pasa por `src/lib/basePath.js`; las rutas de React Router van sin ella.
 
 **Qué hace nginx** (`nginx/default.conf.template`):
-- **Assets:** caché larga para `/assets` (llevan hash en el nombre). Las demás rutas devuelven `index.html` para que
-  las resuelva React Router.
-- **API:** reenvía `/api` a la API (`BACKEND_URL`), así el navegador y la API comparten dominio y no hace falta CORS.
-- **Tiempo real:** `/api/v1/events` pasa sin búfer, con una hora de espera.
+- **Assets:** caché larga para `/taskflow/assets` (llevan hash en el nombre). Las demás rutas de la app devuelven
+  `index.html` para que las resuelva React Router.
+- **API:** reenvía `/taskflow/api` tal cual a la API (`BACKEND_URL`; la API corre con esa misma subruta), así el
+  navegador y la API comparten dominio y no hace falta CORS.
+- **Tiempo real:** `/taskflow/api/v1/events` pasa sin búfer, con una hora de espera.
 - **Además:** gzip, cabeceras de seguridad y subidas de hasta 20 MB (para la importación).
 
 ```bash
 docker build -t taskflow-frontend .
-docker run -p 5446:5446 -e BACKEND_URL=http://<api>:8080 taskflow-frontend
+docker run -p 5446:5446 -e BACKEND_URL=http://<api>:8080 taskflow-frontend   # abre http://localhost:5446/taskflow
 ```
 
-**En Dokploy** este contenedor es el único con dominio (`dev.inmero.co`, puerto 5446), y la API queda interna. Los
+**En Dokploy** este contenedor es el único con dominio (`dev.inmero.co`, path `/taskflow` sin quitarlo, puerto 5446),
+y la API queda interna. Los
 pasos completos están en
 [`DESPLIEGUE.md`](https://github.com/Server-IA/Task_backend/blob/main/DESPLIEGUE.md) del backend.
 

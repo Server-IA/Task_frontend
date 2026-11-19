@@ -7,6 +7,7 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { t } from '@/i18n'
 import { formatShortDate } from '@/lib/dates'
 import { notifyError } from '@/lib/notify'
+import { appPath } from '@/lib/basePath'
 import { cn } from '@/lib/utils'
 import { GhMark } from './GithubParts'
 import { useLinkGithub, useMyGithub, useUnlinkGithub } from './hooks'
@@ -44,7 +45,7 @@ export function useConnectGithub() {
   const connect = () =>
     link.mutate(undefined, {
       onSuccess: ({ url }) => {
-        rememberReturn(window.location.pathname + window.location.search)
+        rememberReturn(appPath(window.location.pathname) + window.location.search)
         setLeaving(true)
         window.location.assign(url)
       },

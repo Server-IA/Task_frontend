@@ -6,6 +6,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/common/Loaders'
 import { t } from '@/i18n'
+import { BASE_PATH } from '@/lib/basePath'
 import { applyFieldErrors } from '@/lib/errors'
 import { notifyError } from '@/lib/notify'
 import { slugify } from '@/lib/slug'
@@ -69,7 +70,7 @@ export function WorkspaceForm({ defaultValues, onSubmit, pending, submitLabel, d
                   )}
                 >
                   <span className="pl-3 text-sm text-muted-foreground select-none">
-                    {window.location.host}/
+                    {window.location.host}{BASE_PATH}/
                   </span>
                   <input
                     className="h-9 min-w-0 flex-1 bg-transparent pr-3 text-sm outline-none disabled:cursor-not-allowed"
